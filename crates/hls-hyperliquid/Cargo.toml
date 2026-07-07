@@ -5,6 +5,10 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 
+[[test]]
+name = "reconnect_heartbeat"
+path = "../../tests/integration/reconnect_heartbeat.rs"
+
 [dependencies]
 hls-core.workspace = true
 reqwest.workspace = true

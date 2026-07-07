@@ -84,6 +84,19 @@ Expected outcome:
 - Data gaps are reported.
 - No live network access is required for replay.
 
+## Health And Local API Smoke
+
+```bash
+./target/debug/hls doctor --live --json
+./target/debug/hls server --print-health
+```
+
+Expected outcome:
+
+- `doctor --live --json` reports read-only safety, public REST reachability, and health status.
+- `server --print-health` prints the compact `/health` JSON payload for the local read-only API contract.
+- No output contains wallet prompts, private credentials, or order actions.
+
 ## Validation Commands
 
 ```bash

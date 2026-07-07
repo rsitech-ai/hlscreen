@@ -416,6 +416,7 @@ dependencies = [
  "hls-features",
  "hls-hyperliquid",
  "hls-screen",
+ "hls-server",
  "hls-store",
  "hls-tui",
  "predicates",
@@ -466,6 +467,9 @@ name = "hls-server"
 version = "0.1.0"
 dependencies = [
  "hls-core",
+ "hls-screen",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

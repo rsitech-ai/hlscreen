@@ -137,19 +137,19 @@
 
 ### Tests for User Story 4
 
-- [ ] T056 [P] [US4] Add heartbeat and reconnect tests with a mock WebSocket server in `/Users/s1kor/dev/trading/rsibot/hlscreen/tests/integration/reconnect_heartbeat.rs`
-- [ ] T057 [P] [US4] Add health state unit tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/tests/health_state.rs`
-- [ ] T058 [P] [US4] Add optional local API contract tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-server/tests/read_only_api.rs`
+- [x] T056 [P] [US4] Add heartbeat and reconnect tests with a mock WebSocket server in `/Users/s1kor/dev/trading/rsibot/hlscreen/tests/integration/reconnect_heartbeat.rs`
+- [x] T057 [P] [US4] Add health state unit tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/tests/health_state.rs`
+- [x] T058 [P] [US4] Add optional local API contract tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-server/tests/read_only_api.rs`
 
 ### Implementation for User Story 4
 
-- [ ] T059 [US4] Implement health state and telemetry models in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/src/health.rs`
-- [ ] T060 [US4] Implement heartbeat, ping/pong handling, reconnect backoff, and resubscribe flow in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-hyperliquid/src/ws/connection.rs`
-- [ ] T061 [US4] Implement latency and lag measurement in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/src/telemetry.rs`
-- [ ] T062 [US4] Implement TUI health pane in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-tui/src/health.rs`
-- [ ] T063 [US4] Extend `hls doctor --live` with read-only live checks in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/src/commands/doctor.rs`
-- [ ] T064 [US4] Implement optional localhost read-only API in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-server/src/lib.rs`
-- [ ] T065 [US4] Add API command/config wiring in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/src/commands/server.rs`
+- [x] T059 [US4] Implement health state and telemetry models in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/src/health.rs`
+- [x] T060 [US4] Implement heartbeat, ping/pong handling, reconnect backoff, and resubscribe flow in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-hyperliquid/src/ws/connection.rs`
+- [x] T061 [US4] Implement latency and lag measurement in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/src/telemetry.rs`
+- [x] T062 [US4] Implement TUI health pane in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-tui/src/health.rs`
+- [x] T063 [US4] Extend `hls doctor --live` with read-only live checks in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/src/commands/doctor.rs`
+- [x] T064 [US4] Implement optional localhost read-only API in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-server/src/lib.rs`
+- [x] T065 [US4] Add API command/config wiring in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/src/commands/server.rs`
 
 **Checkpoint**: User Story 4 complete when degraded states are visible within the required window and no health/API surface exposes trading actions.
 
@@ -166,7 +166,7 @@
 - [x] T070 Run formatting check with `cargo fmt --check` from `/Users/s1kor/dev/trading/rsibot/hlscreen`
 - [x] T071 Run lint check with `cargo clippy --workspace --all-targets -- -D warnings` from `/Users/s1kor/dev/trading/rsibot/hlscreen`
 - [x] T072 Run full test suite with `cargo test --workspace` from `/Users/s1kor/dev/trading/rsibot/hlscreen`
-- [ ] T073 Run quickstart validation commands from `/Users/s1kor/dev/trading/rsibot/hlscreen/specs/001-hyperliquid-spot-screener/quickstart.md`
+- [x] T073 Run quickstart validation commands from `/Users/s1kor/dev/trading/rsibot/hlscreen/specs/001-hyperliquid-spot-screener/quickstart.md`
 - [x] T074 Update durable project memory in `/Users/s1kor/dev/trading/rsibot/hlscreen/MEMORY.md`
 - [x] T075 Close local planning notes in `/Users/s1kor/dev/trading/rsibot/hlscreen/PLAN.md` and `/Users/s1kor/dev/trading/rsibot/hlscreen/TODO.md`
 
