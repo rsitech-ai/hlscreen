@@ -15,3 +15,31 @@ US1 parser tests use newline-delimited JSON with one public Hyperliquid WebSocke
 ```
 
 Supported fixture channels are `trades`, `bbo`, `allMids`, `activeAssetCtx`, and `candle`. Private/user channels such as `userFills`, `userEvents`, `orderUpdates`, and `openOrders` are rejected by the parser.
+
+## Current Local Recording Format
+
+US2 writes raw public WebSocket messages to compressed newline-delimited JSON:
+
+```text
+raw/ws/run=<run-id>/part-000000.ndjson.zst
+```
+
+Each decompressed line is a `RawMarketMessage` with `recv_ts_ns`, `conn_id`, `seq`, `channel`, and the preserved JSON `payload`.
+
+US2 writes normalized replay events as deterministic JSONL:
+
+```text
+normalized/events/run=<run-id>/part-000000.ndjson
+```
+
+Each line is a serialized `MarketEvent`. This is the replay source used by `hls replay`.
+
+The local SQLite registry lives at:
+
+```text
+hls.sqlite
+```
+
+It tracks `runs`, `files`, `symbols`, and `data_gaps`. The registry is local-only and stores no secrets.
+
+True Parquet output is not implemented in the current slice. The CLI rejects `--parquet` and asks for `--normalized` until the Parquet writer is added.
