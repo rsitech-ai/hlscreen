@@ -7,3 +7,16 @@ The v1 feature set is a transparent screener surface, not a prediction engine.
 - `tob_imbalance`: top-of-book bid notional versus ask notional, bounded to `[-1, 1]`.
 - Return and volatility windows are computed from available local trade and quote state.
 - Score fields are bounded heuristic ranks from `0` to `100`, not trade signals.
+
+## Current Formula Definitions
+
+- `spread_bps = (ask_px - bid_px) / ((bid_px + ask_px) / 2) * 10_000`
+- `tob_depth_usd = bid_px * bid_sz + ask_px * ask_sz`
+- `tob_imbalance = (bid_notional - ask_notional) / (bid_notional + ask_notional)`
+- `ret_* = (latest_trade_px - first_trade_px) / first_trade_px` for the available fixture-backed trade window
+- `rv_*` is population standard deviation over trade-to-trade returns, or `0` when fewer than three trades are available
+- `liquidity_score = clamp(tob_depth_usd / 100, 0, 100)`
+- `momentum_score = clamp(50 + ret_1m * 100, 0, 100)`
+- `mean_reversion_score = clamp(50 - ret_1m * 100, 0, 100)`
+
+These scores are screen ordering aids only. They are not predictions, recommendations, or profitability claims.

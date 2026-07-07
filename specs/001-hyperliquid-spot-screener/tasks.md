@@ -52,23 +52,23 @@
 
 ### Tests for User Story 1
 
-- [ ] T019 [P] [US1] Add WebSocket parser fixture tests for trades, BBO, all-mids, active asset context, and candles in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-hyperliquid/tests/ws_parser.rs`
-- [ ] T020 [P] [US1] Add feature formula tests for spread, top-of-book depth, imbalance, returns, realized volatility, z-scores, and bounded scores in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-features/tests/formulas.rs`
-- [ ] T021 [P] [US1] Add terminal table golden test for fixed feature rows in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-tui/tests/main_table_golden.rs`
-- [ ] T022 [P] [US1] Add mock live integration test for one-symbol and multi-symbol updates in `/Users/s1kor/dev/trading/rsibot/hlscreen/tests/integration/live_mock.rs`
+- [x] T019 [P] [US1] Add WebSocket parser fixture tests for trades, BBO, all-mids, active asset context, and candles in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-hyperliquid/tests/ws_parser.rs`
+- [x] T020 [P] [US1] Add feature formula tests for spread, top-of-book depth, imbalance, returns, realized volatility, z-scores, and bounded scores in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-features/tests/formulas.rs`
+- [x] T021 [P] [US1] Add terminal table golden test for fixed feature rows in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-tui/tests/main_table_golden.rs`
+- [x] T022 [P] [US1] Add mock live integration test for one-symbol and multi-symbol updates in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/tests/live_mock.rs`
 
 ### Implementation for User Story 1
 
-- [ ] T023 [US1] Implement WebSocket message types and envelope parsing in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-hyperliquid/src/ws/types.rs`
-- [ ] T024 [US1] Implement channel-specific WebSocket parser in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-hyperliquid/src/ws/parser.rs`
-- [ ] T025 [US1] Implement subscription manager and subscription budget checks in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-hyperliquid/src/ws/subscriptions.rs`
-- [ ] T026 [US1] Implement live market state container in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/src/market_state.rs`
-- [ ] T027 [US1] Implement rolling windows in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-features/src/windows.rs`
-- [ ] T028 [US1] Implement feature formulas in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-features/src/formulas.rs`
-- [ ] T029 [US1] Implement feature engine snapshot updates in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-features/src/engine.rs`
-- [ ] T030 [US1] Implement TUI main table, details pane, sorting, stale markers, and read-only banner in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-tui/src/app.rs`
-- [ ] T031 [US1] Implement `hls live` command orchestration in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/src/commands/live.rs`
-- [ ] T032 [US1] Wire live command modules into `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/src/main.rs`
+- [x] T023 [US1] Implement WebSocket message types and envelope parsing in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-hyperliquid/src/ws/types.rs`
+- [x] T024 [US1] Implement channel-specific WebSocket parser in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-hyperliquid/src/ws/parser.rs`
+- [x] T025 [US1] Implement subscription manager and subscription budget checks in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-hyperliquid/src/ws/subscriptions.rs`
+- [x] T026 [US1] Implement live market state container in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/src/market_state.rs`
+- [x] T027 [US1] Implement rolling windows in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-features/src/windows.rs`
+- [x] T028 [US1] Implement feature formulas in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-features/src/formulas.rs`
+- [x] T029 [US1] Implement feature engine snapshot updates in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-features/src/engine.rs`
+- [x] T030 [US1] Implement TUI main table, details pane, sorting, stale markers, and read-only banner in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-tui/src/app.rs`
+- [x] T031 [US1] Implement `hls live` command orchestration in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/src/commands/live.rs`
+- [x] T032 [US1] Wire live command modules into `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/src/main.rs`
 
 **Checkpoint**: User Story 1 complete when mock live tests pass and the live TUI shows updating read-only rows from fixtures.
 
@@ -159,16 +159,16 @@
 
 **Purpose**: Documentation, validation, performance checks, and repo continuity.
 
-- [ ] T066 [P] Document architecture decisions in `/Users/s1kor/dev/trading/rsibot/hlscreen/docs/architecture.md`
-- [ ] T067 [P] Document raw and normalized data formats in `/Users/s1kor/dev/trading/rsibot/hlscreen/docs/data-format.md`
-- [ ] T068 [P] Document feature formulas and score interpretation in `/Users/s1kor/dev/trading/rsibot/hlscreen/docs/feature-definitions.md`
+- [x] T066 [P] Document architecture decisions in `/Users/s1kor/dev/trading/rsibot/hlscreen/docs/architecture.md`
+- [x] T067 [P] Document raw and normalized data formats in `/Users/s1kor/dev/trading/rsibot/hlscreen/docs/data-format.md`
+- [x] T068 [P] Document feature formulas and score interpretation in `/Users/s1kor/dev/trading/rsibot/hlscreen/docs/feature-definitions.md`
 - [x] T069 [P] Create user README with read-only positioning in `/Users/s1kor/dev/trading/rsibot/hlscreen/README.md`
-- [ ] T070 Run formatting check with `cargo fmt --check` from `/Users/s1kor/dev/trading/rsibot/hlscreen`
-- [ ] T071 Run lint check with `cargo clippy --workspace --all-targets -- -D warnings` from `/Users/s1kor/dev/trading/rsibot/hlscreen`
-- [ ] T072 Run full test suite with `cargo test --workspace` from `/Users/s1kor/dev/trading/rsibot/hlscreen`
+- [x] T070 Run formatting check with `cargo fmt --check` from `/Users/s1kor/dev/trading/rsibot/hlscreen`
+- [x] T071 Run lint check with `cargo clippy --workspace --all-targets -- -D warnings` from `/Users/s1kor/dev/trading/rsibot/hlscreen`
+- [x] T072 Run full test suite with `cargo test --workspace` from `/Users/s1kor/dev/trading/rsibot/hlscreen`
 - [ ] T073 Run quickstart validation commands from `/Users/s1kor/dev/trading/rsibot/hlscreen/specs/001-hyperliquid-spot-screener/quickstart.md`
-- [ ] T074 Update durable project memory in `/Users/s1kor/dev/trading/rsibot/hlscreen/MEMORY.md`
-- [ ] T075 Close local planning notes in `/Users/s1kor/dev/trading/rsibot/hlscreen/PLAN.md` and `/Users/s1kor/dev/trading/rsibot/hlscreen/TODO.md`
+- [x] T074 Update durable project memory in `/Users/s1kor/dev/trading/rsibot/hlscreen/MEMORY.md`
+- [x] T075 Close local planning notes in `/Users/s1kor/dev/trading/rsibot/hlscreen/PLAN.md` and `/Users/s1kor/dev/trading/rsibot/hlscreen/TODO.md`
 
 ---
 

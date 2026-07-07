@@ -369,7 +369,9 @@ dependencies = [
  "assert_cmd",
  "clap",
  "hls-core",
+ "hls-features",
  "hls-hyperliquid",
+ "hls-tui",
  "predicates",
  "serde_json",
  "tempfile",
@@ -392,6 +394,7 @@ name = "hls-features"
 version = "0.1.0"
 dependencies = [
  "hls-core",
+ "hls-hyperliquid",
 ]
 
 [[package]]
@@ -431,6 +434,8 @@ name = "hls-tui"
 version = "0.1.0"
 dependencies = [
  "hls-core",
+ "hls-features",
+ "hls-hyperliquid",
 ]
 
 [[package]]

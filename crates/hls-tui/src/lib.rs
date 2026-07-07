@@ -1,5 +1,3 @@
 #![forbid(unsafe_code)]
 
-pub fn crate_name() -> &'static str {
-    "hls-tui"
-}
+pub mod app;
