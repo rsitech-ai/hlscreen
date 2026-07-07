@@ -42,4 +42,13 @@ Current US3 screening flow:
 4. `hls-tui::app::render_screened_table` applies screening before rendering.
 5. `hls-cli screen` and fixture-backed `hls live --preset/--where/--sort` call the same shared engine.
 
-Real WebSocket connection, reconnect, true Parquet output, health/API surfaces, and interactive keyboard filter editing remain separate later slices.
+Current US4 health/safety flow:
+
+1. `hls-core::health` owns serializable read-only safety, connection, writer, recording, gap, and aggregate health state.
+2. `hls-core::telemetry` owns deterministic latency percentile calculation for data, feature, and render lag.
+3. `hls-hyperliquid::ws::connection` owns heartbeat timing, bounded reconnect backoff, and resubscribe state transitions for public WebSocket connections.
+4. `hls-tui::health::render_health_pane` renders operator health text from the shared snapshot.
+5. `hls-server::handle_get` exposes pure read-only `/health`, `/symbols`, `/screen`, and `/symbol/{symbol}` response helpers.
+6. `hls-cli doctor --live` and `hls-cli server --print-health` expose health status without wallet, private, order, or trading actions.
+
+True Parquet output, a long-running localhost HTTP server loop, real external WebSocket I/O, and interactive keyboard filter editing remain separate later slices.

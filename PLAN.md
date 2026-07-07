@@ -241,3 +241,65 @@
 - Tradeoffs: `hls screen` is fixture/replay backed in this slice. Real live network screening waits on the later network connection work, and interactive keyboard filter editing remains future TUI work.
 - Rollback: revert the US3 commit(s); US1/US2 remain usable.
 - Follow-ups: Pushed commit `9c478f8` to `origin/feat/andrzej_hlscreen_foundation`. US4 health/safety, real network connection/reconnect, interactive TUI editing, or true Parquet storage remain open.
+
+## 2026-07-07 US4 Health/Safety Slice
+
+### Task
+- Objective: Implement US4 health and safety monitoring: health/telemetry models, deterministic reconnect/backoff behavior, TUI health rendering, `doctor --live` health output, and a read-only localhost API surface.
+- Owner repo(s): standalone `hlscreen/` repository only.
+- Capital impact: research-only / read-only public market-data health reporting. No wallet, private-key, order, exchange action, or live trading surface.
+
+### Context
+- Background: US1-US3 are implemented and pushed. US4 starts at T056 and should surface degraded connection, stale data, writer lag, gaps, and read-only safety status in tests, CLI/TUI, and local API contracts.
+- Inputs: `tasks.md` T056-T065, `contracts/local-http-api.md`, `spec.md` health requirements, `research.md` heartbeat/backoff decision, existing `LiveMarketState`/`FeatureSnapshot` paths.
+- Outputs: health/telemetry modules, connection health simulator, TUI health pane rendering, server response helpers, CLI `server` command, `doctor --live` health details, tests, docs/memory updates, validation evidence, and pushed commit(s).
+
+### Assumptions
+- This slice can validate heartbeat/reconnect behavior with deterministic state transitions instead of opening a real external WebSocket; live exchange network checks stay read-only and bounded to existing public REST behavior.
+- The local API can be implemented as a read-only response/router module plus a CLI endpoint preview in this slice; no long-running public service or non-local bind is required for proof.
+- Health metrics are operational status and must not imply trading safety or profitability.
+
+### Constraints
+- Technical: keep models serializable and dependency-light; avoid blocking async handlers; keep all API routes read-only.
+- Operational: keep parent `rsibot` untouched; push only the standalone `hlscreen` branch after validation.
+- Risk/capital: no private/user streams, wallet inputs, order parameters, or exchange actions.
+
+### Options Considered
+1. Add only CLI `doctor --live` text fields.
+   - Pros: small.
+   - Cons: misses the shared health model, TUI pane, reconnect/backoff, and API contract tasks.
+2. Implement shared health/telemetry/reconnect models with thin TUI/CLI/API adapters.
+   - Pros: one testable boundary for all US4 surfaces.
+   - Cons: larger diff than a CLI-only health readout.
+
+### Chosen Approach
+- Choice: option 2.
+- Why: US4 is about consistent operational truth; shared models prevent each surface from inventing its own degraded-state semantics.
+
+### Execution Plan
+1. Add failing tests for health state transitions, telemetry/lag, reconnect/backoff simulation, and read-only API responses.
+2. Implement `hls-core::health` and `hls-core::telemetry`.
+3. Implement `hls-hyperliquid::ws::connection` deterministic heartbeat/reconnect helpers.
+4. Implement `hls-tui::health` rendering.
+5. Implement `hls-server` read-only API response/router helpers and `hls server` command wiring.
+6. Extend `hls doctor --live` with health output.
+7. Run fmt, clippy, tests, quickstart/smoke commands, read-only audit, update tasks/memory/docs, commit, and push.
+
+### Test Plan
+- Unit: `cargo test -p hls-core --test health_state`; `cargo test -p hls-server --test read_only_api`; `cargo test -p hls-hyperliquid --test reconnect_heartbeat`.
+- Integration/smoke: `cargo test -p hls-cli --test health_commands`; `hls doctor --live --json`; `hls server --print-health`.
+- Regression/audit: `cargo fmt --check`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`; quickstart commands; read-only boundary scan.
+
+### Risks and Rollback
+- Risks: simulated reconnect behavior might be mistaken for a real live WebSocket client; local API preview might be mistaken for a full web dashboard.
+- Rollback: revert the US4 commit(s); US1-US3 remain usable.
+
+### Memory Impact
+- Add/update in `MEMORY.md`: health model command examples, API route helpers, and the boundary that US4 health simulation is read-only and deterministic.
+
+### Final Notes
+- What changed: Implemented US4 health/safety with serializable health snapshots, latency percentile telemetry, deterministic heartbeat/reconnect/resubscribe simulation, TUI health rendering, read-only local API response helpers, `hls doctor --live` health output, and `hls server --print-health`.
+- Validation run: red/green focused tests for `hls-core --test health_state`, `hls-hyperliquid --test reconnect_heartbeat`, `hls-server --test read_only_api`, `hls-tui --test health_pane`, and `hls-cli --test health_commands`; `cargo fmt --check`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`; `cargo build --workspace`; `git diff --check`; quickstart smokes under `/tmp/hlscreen-quickstart-us4.Phs2mp`; public read-only REST metadata smoke; `hls doctor --live --json`; `hls server --print-health`; read-only boundary scan.
+- Tradeoffs: US4 validates deterministic reconnect behavior and pure read-only API response helpers. A long-running localhost HTTP server loop and real external WebSocket I/O remain future work.
+- Rollback: revert the US4 implementation commit(s); US1-US3 stay usable because the new surfaces are additive.
+- Follow-ups: Future work can add the real WebSocket connection loop and long-running localhost API process using the shared health/router contracts.

@@ -9,6 +9,8 @@ use hls_core::config::{default_config_for_data_dir, load_config};
 use hls_hyperliquid::rest::HyperliquidRestClient;
 use serde_json::json;
 
+use crate::commands::health::require_live_health;
+
 #[derive(Debug, Args)]
 pub struct DoctorArgs {
     #[arg(long, default_value = ".hls")]
@@ -19,6 +21,9 @@ pub struct DoctorArgs {
 
     #[arg(long)]
     pub json: bool,
+
+    #[arg(long, hide = true)]
+    pub simulate_health: Option<String>,
 }
 
 pub async fn run(args: DoctorArgs) -> anyhow::Result<()> {
@@ -34,11 +39,12 @@ pub async fn run(args: DoctorArgs) -> anyhow::Result<()> {
     let data_dir_writable = check_writable(&args.data_dir)?;
     let read_only_ok =
         config.safety.read_only && !config.safety.wallet_enabled && !config.safety.trading_enabled;
-    let live_rest_ok = if args.live {
+    let live_rest_ok = if args.live && args.simulate_health.is_none() {
         Some(HyperliquidRestClient::default().spot_meta().await.is_ok())
     } else {
         None
     };
+    let health = require_live_health(args.live, args.simulate_health.as_deref(), live_rest_ok)?;
 
     if args.json {
         println!(
@@ -49,6 +55,7 @@ pub async fn run(args: DoctorArgs) -> anyhow::Result<()> {
                 "data_dir_writable": data_dir_writable,
                 "read_only": read_only_ok,
                 "live_rest": live_rest_ok,
+                "health": health,
             }))?
         );
     } else {
@@ -68,6 +75,12 @@ pub async fn run(args: DoctorArgs) -> anyhow::Result<()> {
 
         if let Some(live_ok) = live_rest_ok {
             println!("live REST: {}", if live_ok { "ok" } else { "fail" });
+        }
+        if let Some(health) = health {
+            println!("health: {}", health.status.as_str());
+            for reason in health.degraded_reasons {
+                println!("health reason: {reason}");
+            }
         }
     }
 

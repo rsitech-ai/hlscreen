@@ -106,3 +106,20 @@
 
 - [x] Commit and push US3 slice
   DoD: validated commits are pushed to `origin/feat/andrzej_hlscreen_foundation`.
+
+## 2026-07-07 US4 Health/Safety Slice
+
+- [x] Add health/API/reconnect tests
+  DoD: health state, reconnect simulation, local API, and CLI health tests fail before implementation and pass after.
+
+- [x] Implement shared health, telemetry, and reconnect helpers
+  DoD: degraded states and reconnect backoff are represented deterministically and serializably.
+
+- [x] Implement TUI health pane, doctor live health output, and local API wiring
+  DoD: health status is visible through TUI text, `hls doctor --live`, and read-only API route helpers/CLI preview.
+
+- [x] Run validation, quickstart, and read-only audit
+  DoD: fmt, clippy, workspace tests, quickstart smokes, API/doctor smokes, and boundary scan pass.
+
+- [x] Commit and push US4 slice
+  DoD: validated commits are pushed to `origin/feat/andrzej_hlscreen_foundation`.

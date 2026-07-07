@@ -25,6 +25,7 @@ hls-core = { path = "crates/hls-core" }
 hls-features = { path = "crates/hls-features" }
 hls-hyperliquid = { path = "crates/hls-hyperliquid" }
 hls-screen = { path = "crates/hls-screen" }
+hls-server = { path = "crates/hls-server" }
 hls-store = { path = "crates/hls-store" }
 hls-tui = { path = "crates/hls-tui" }
 predicates = "3.1"

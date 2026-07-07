@@ -4,7 +4,7 @@ use clap::{Parser, Subcommand};
 
 use crate::commands::{
     doctor::DoctorArgs, init::InitArgs, live::LiveArgs, record::RecordArgs, replay::ReplayArgs,
-    screen::ScreenArgs, symbols::SymbolsArgs,
+    screen::ScreenArgs, server::ServerArgs, symbols::SymbolsArgs,
 };
 
 mod commands;
@@ -26,6 +26,7 @@ enum Command {
     Record(RecordArgs),
     Replay(ReplayArgs),
     Screen(ScreenArgs),
+    Server(ServerArgs),
 }
 
 #[tokio::main]
@@ -38,5 +39,6 @@ async fn main() -> anyhow::Result<()> {
         Command::Record(args) => commands::record::run(args).await,
         Command::Replay(args) => commands::replay::run(args).await,
         Command::Screen(args) => commands::screen::run(args).await,
+        Command::Server(args) => commands::server::run(args).await,
     }
 }
