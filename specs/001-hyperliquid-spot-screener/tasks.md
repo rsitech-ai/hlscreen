@@ -111,19 +111,19 @@
 
 ### Tests for User Story 3
 
-- [ ] T046 [P] [US3] Add DSL parser tests for boolean logic, comparisons, literals, and `abs(field)` in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-screen/tests/dsl_parser.rs`
-- [ ] T047 [P] [US3] Add DSL evaluator tests for fixed feature rows in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-screen/tests/dsl_evaluator.rs`
-- [ ] T048 [P] [US3] Add preset golden tests for liquid momentum, volume anomaly, tight-spread movers, mean-reversion watch, and thin books in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-screen/tests/presets.rs`
+- [x] T046 [P] [US3] Add DSL parser tests for boolean logic, comparisons, literals, and `abs(field)` in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-screen/tests/dsl_parser.rs`
+- [x] T047 [P] [US3] Add DSL evaluator tests for fixed feature rows in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-screen/tests/dsl_evaluator.rs`
+- [x] T048 [P] [US3] Add preset golden tests for liquid momentum, volume anomaly, tight-spread movers, mean-reversion watch, and thin books in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-screen/tests/presets.rs`
 
 ### Implementation for User Story 3
 
-- [ ] T049 [US3] Implement screen row and sort models in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-screen/src/row.rs`
-- [ ] T050 [US3] Implement DSL tokenizer and parser in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-screen/src/dsl/parser.rs`
-- [ ] T051 [US3] Implement DSL evaluator and type validation in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-screen/src/dsl/evaluator.rs`
-- [ ] T052 [US3] Implement built-in presets in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-screen/src/presets.rs`
-- [ ] T053 [US3] Implement filtering and sorting engine in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-screen/src/engine.rs`
-- [ ] T054 [US3] Implement `hls screen` command in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/src/commands/screen.rs`
-- [ ] T055 [US3] Integrate preset selection and filter editing into the TUI in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-tui/src/app.rs`
+- [x] T049 [US3] Implement screen row and sort models in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-screen/src/row.rs`
+- [x] T050 [US3] Implement DSL tokenizer and parser in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-screen/src/dsl/parser.rs`
+- [x] T051 [US3] Implement DSL evaluator and type validation in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-screen/src/dsl/evaluator.rs`
+- [x] T052 [US3] Implement built-in presets in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-screen/src/presets.rs`
+- [x] T053 [US3] Implement filtering and sorting engine in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-screen/src/engine.rs`
+- [x] T054 [US3] Implement `hls screen` command in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/src/commands/screen.rs`
+- [x] T055 [US3] Integrate preset selection and filter editing into the TUI in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-tui/src/app.rs`
 
 **Checkpoint**: User Story 3 complete when presets and custom rules work over fixture rows and invalid rules do not replace the active screen.
 

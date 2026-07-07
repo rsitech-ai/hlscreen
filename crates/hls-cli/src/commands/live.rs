@@ -5,8 +5,9 @@ use clap::Args;
 use hls_core::market_state::LiveMarketState;
 use hls_features::engine::FeatureEngine;
 use hls_hyperliquid::ws::parser::parse_ws_ndjson;
+use hls_screen::ScreenRequest;
 use hls_store::recorder::{RecordOptions, record_fixture_ndjson};
-use hls_tui::app::render_main_table;
+use hls_tui::app::render_screened_table;
 
 use crate::commands::record::{default_run_id, enabled_outputs, parse_symbols};
 
@@ -97,7 +98,18 @@ pub async fn run(args: LiveArgs) -> anyhow::Result<()> {
     }
 
     let snapshots = FeatureEngine::default().snapshots(&state, latest_update_ms(&state));
-    print!("{}", render_main_table(&snapshots));
+    print!(
+        "{}",
+        render_screened_table(
+            &snapshots,
+            "READ-ONLY Hyperliquid spot live screen",
+            &ScreenRequest {
+                preset: args.preset,
+                where_expr: args.r#where,
+                sort: args.sort,
+            }
+        )?
+    );
 
     Ok(())
 }

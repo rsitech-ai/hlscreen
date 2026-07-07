@@ -6,48 +6,41 @@ fn fixture(path: &str) -> String {
 }
 
 #[test]
-fn live_once_renders_fixture_backed_read_only_table() {
+fn screen_filters_fixture_rows_with_custom_rule() {
     Command::cargo_bin("hls")
         .expect("hls binary")
         .args([
-            "live",
-            "--symbols",
-            "@107",
+            "screen",
             "--fixture-file",
             &fixture("tests/fixtures/hyperliquid/ws_mock_live.ndjson"),
-            "--once",
+            "--where",
+            r#"symbol == "@107" and spread_bps < 60"#,
+            "--sort",
+            "price:desc",
         ])
         .assert()
         .success()
         .stdout(predicate::str::contains(
-            "READ-ONLY Hyperliquid spot live screen",
+            "READ-ONLY Hyperliquid spot screen",
         ))
         .stdout(predicate::str::contains("@107"))
         .stdout(predicate::str::contains("35.2000"))
-        .stdout(predicate::str::contains("fresh"))
         .stdout(predicate::str::contains("wallet").not())
         .stdout(predicate::str::contains("order").not());
 }
 
 #[test]
-fn live_once_applies_screen_preset_before_rendering() {
+fn screen_preset_uses_shared_rule_engine() {
     Command::cargo_bin("hls")
         .expect("hls binary")
         .args([
-            "live",
-            "--symbols",
-            "@107",
+            "screen",
             "--fixture-file",
             &fixture("tests/fixtures/hyperliquid/ws_mock_live.ndjson"),
             "--preset",
             "thin_books",
-            "--once",
         ])
         .assert()
         .success()
-        .stdout(predicate::str::contains(
-            "READ-ONLY Hyperliquid spot live screen",
-        ))
-        .stdout(predicate::str::contains("@107"))
-        .stdout(predicate::str::contains("35.2000"));
+        .stdout(predicate::str::contains("@107"));
 }

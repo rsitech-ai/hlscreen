@@ -34,4 +34,12 @@ Current US2 fixture recording/replay flow:
 5. `hls-store::replay` rebuilds feature snapshots from normalized local files.
 6. `hls-cli record`, `hls-cli replay`, and fixture-backed `hls live --record` expose the flow without live network access.
 
-Real WebSocket connection, reconnect, true Parquet output, health/API surfaces, and interactive TUI work remain separate later slices.
+Current US3 screening flow:
+
+1. `hls-screen::dsl::parser` parses the small deterministic filter DSL and sort syntax.
+2. `hls-screen::engine::ScreenEngine` filters and sorts `FeatureSnapshot` rows by custom expression or built-in preset.
+3. `hls-screen::engine::ScreenSession` preserves the last active rows when an invalid expression is rejected.
+4. `hls-tui::app::render_screened_table` applies screening before rendering.
+5. `hls-cli screen` and fixture-backed `hls live --preset/--where/--sort` call the same shared engine.
+
+Real WebSocket connection, reconnect, true Parquet output, health/API surfaces, and interactive keyboard filter editing remain separate later slices.

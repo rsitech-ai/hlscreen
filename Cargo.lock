@@ -415,6 +415,7 @@ dependencies = [
  "hls-core",
  "hls-features",
  "hls-hyperliquid",
+ "hls-screen",
  "hls-store",
  "hls-tui",
  "predicates",
@@ -488,6 +489,7 @@ dependencies = [
  "hls-core",
  "hls-features",
  "hls-hyperliquid",
+ "hls-screen",
 ]
 
 [[package]]

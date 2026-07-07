@@ -1,7 +1,21 @@
 use hls_core::market_state::{FeatureSnapshot, StalenessState};
+use hls_screen::{ScreenEngine, ScreenRequest};
 
 pub fn render_main_table(rows: &[FeatureSnapshot]) -> String {
-    let mut output = String::from("READ-ONLY Hyperliquid spot live screen\n");
+    render_table_with_title(rows, "READ-ONLY Hyperliquid spot live screen")
+}
+
+pub fn render_screened_table(
+    rows: &[FeatureSnapshot],
+    title: &str,
+    request: &ScreenRequest,
+) -> hls_core::HlsResult<String> {
+    let rows = ScreenEngine.apply(rows, request)?;
+    Ok(render_table_with_title(&rows, title))
+}
+
+pub fn render_table_with_title(rows: &[FeatureSnapshot], title: &str) -> String {
+    let mut output = format!("{title}\n");
     output.push_str("symbol        price      spread_bps  tob_depth_usd  ret_1m    liq_score  updated_ms  state\n");
 
     for row in rows {
