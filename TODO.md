@@ -104,5 +104,5 @@
 - [x] Run validation and read-only audit
   DoD: fmt, clippy, workspace tests, screen smoke, live preset smoke, and boundary scan pass.
 
-- [ ] Commit and push US3 slice
+- [x] Commit and push US3 slice
   DoD: validated commits are pushed to `origin/feat/andrzej_hlscreen_foundation`.

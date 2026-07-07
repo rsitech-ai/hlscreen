@@ -240,4 +240,4 @@
 - Validation run: `cargo test -p hls-screen --test dsl_parser`; `cargo test -p hls-screen --test dsl_evaluator`; `cargo test -p hls-screen --test presets`; `cargo test -p hls-cli --test screen_command`; `cargo test -p hls-cli --test live_mock`; `cargo fmt --check`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`; `cargo build --workspace`; custom screen smoke; preset screen smoke; replay-backed screen smoke; live preset smoke; `git diff --check`; read-only/no-prediction boundary scan.
 - Tradeoffs: `hls screen` is fixture/replay backed in this slice. Real live network screening waits on the later network connection work, and interactive keyboard filter editing remains future TUI work.
 - Rollback: revert the US3 commit(s); US1/US2 remain usable.
-- Follow-ups: US4 health/safety, real network connection/reconnect, interactive TUI editing, or true Parquet storage remain open.
+- Follow-ups: Pushed commit `9c478f8` to `origin/feat/andrzej_hlscreen_foundation`. US4 health/safety, real network connection/reconnect, interactive TUI editing, or true Parquet storage remain open.
