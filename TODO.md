@@ -44,8 +44,8 @@
 - [x] Run validation and audit
   DoD: fmt, clippy, tests, diff check, and read-only boundary audit are recorded.
 
-- [-] Push coherent validated slice if checks pass
+- [x] Push coherent validated slice if checks pass
   DoD: standalone `hlscreen` Git repo is committed and pushed to `s1korrrr/hlscreen.git` without unrelated parent changes.
 
-- [ ] Close implementation notes
+- [x] Close implementation notes
   DoD: `PLAN.md`, `TODO.md`, `MEMORY.md`, and Spec Kit `tasks.md` reflect actual state.
