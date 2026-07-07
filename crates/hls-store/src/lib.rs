@@ -1,5 +1,7 @@
 #![forbid(unsafe_code)]
 
-pub fn crate_name() -> &'static str {
-    "hls-store"
-}
+pub mod metadata;
+pub mod normalized;
+pub mod raw;
+pub mod recorder;
+pub mod replay;

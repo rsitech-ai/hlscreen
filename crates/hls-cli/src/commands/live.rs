@@ -5,7 +5,10 @@ use clap::Args;
 use hls_core::market_state::LiveMarketState;
 use hls_features::engine::FeatureEngine;
 use hls_hyperliquid::ws::parser::parse_ws_ndjson;
+use hls_store::recorder::{RecordOptions, record_fixture_ndjson};
 use hls_tui::app::render_main_table;
+
+use crate::commands::record::{default_run_id, enabled_outputs, parse_symbols};
 
 #[derive(Debug, Args)]
 pub struct LiveArgs {
@@ -33,6 +36,12 @@ pub struct LiveArgs {
     #[arg(long)]
     pub parquet: bool,
 
+    #[arg(long)]
+    pub normalized: bool,
+
+    #[arg(long)]
+    pub run_id: Option<String>,
+
     #[arg(long, default_value = ".hls")]
     pub data_dir: PathBuf,
 
@@ -56,6 +65,29 @@ pub async fn run(args: LiveArgs) -> anyhow::Result<()> {
 
     let raw = fs::read_to_string(fixture_file)
         .with_context(|| format!("read {}", fixture_file.display()))?;
+
+    if args.record {
+        if args.parquet {
+            bail!(
+                "Parquet output is not implemented in this slice; use --normalized for replayable JSONL"
+            );
+        }
+        let run_id = args.run_id.clone().unwrap_or_else(default_run_id);
+        let (raw_enabled, normalized_enabled) = enabled_outputs(args.raw, args.normalized);
+        let summary = record_fixture_ndjson(
+            &raw,
+            RecordOptions::new(
+                &args.data_dir,
+                &run_id,
+                parse_symbols(args.symbols.as_deref()),
+                raw_enabled,
+                normalized_enabled,
+            ),
+        )?;
+        println!("recording run: {}", summary.run_id);
+        println!("clean_shutdown={}", summary.clean_shutdown);
+    }
+
     let events = parse_ws_ndjson(&raw)?;
     let symbols = selected_symbols(&args, &events);
     let mut state = LiveMarketState::new(symbols);
