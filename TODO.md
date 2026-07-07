@@ -87,5 +87,5 @@
 - [x] Run validation and read-only audit
   DoD: fmt, clippy, workspace tests, record/replay smoke, and boundary scan pass.
 
-- [ ] Commit and push US2 slice
+- [x] Commit and push US2 slice
   DoD: validated commits are pushed to `origin/feat/andrzej_hlscreen_foundation`.
