@@ -1,0 +1,81 @@
+[
+  {
+    "tokens": [
+      {
+        "name": "USDC",
+        "szDecimals": 6,
+        "weiDecimals": 6,
+        "index": 0,
+        "tokenId": "0xusdc",
+        "isCanonical": true
+      },
+      {
+        "name": "PURR",
+        "szDecimals": 0,
+        "weiDecimals": 5,
+        "index": 1,
+        "tokenId": "0xpurr",
+        "isCanonical": true
+      },
+      {
+        "name": "HYPE",
+        "szDecimals": 2,
+        "weiDecimals": 8,
+        "index": 150,
+        "tokenId": "0xhype",
+        "isCanonical": true
+      },
+      {
+        "name": "TEST",
+        "szDecimals": 4,
+        "weiDecimals": 8,
+        "index": 151,
+        "tokenId": "0xtest",
+        "isCanonical": false
+      }
+    ],
+    "universe": [
+      {
+        "name": "PURR/USDC",
+        "tokens": [1, 0],
+        "index": 0,
+        "isCanonical": true
+      },
+      {
+        "name": "HYPE/USDC",
+        "tokens": [150, 0],
+        "index": 107,
+        "isCanonical": true
+      },
+      {
+        "name": "TEST/USDC",
+        "tokens": [151, 0],
+        "index": 108,
+        "isCanonical": false
+      }
+    ]
+  },
+  [
+    {
+      "dayNtlVlm": "1000000.0",
+      "prevDayPx": "0.1200",
+      "markPx": "0.1250",
+      "midPx": "0.1248",
+      "circulatingSupply": "1000000000"
+    },
+    {
+      "dayNtlVlm": "25000000.5",
+      "prevDayPx": "34.00",
+      "markPx": "35.50",
+      "midPx": "35.45",
+      "circulatingSupply": "333000000"
+    },
+    {
+      "dayNtlVlm": "10.0",
+      "prevDayPx": "1.00",
+      "markPx": "0.95",
+      "midPx": "0.96",
+      "circulatingSupply": "1000"
+    }
+  ]
+]

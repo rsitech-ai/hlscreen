@@ -1,0 +1,56 @@
+{
+  "tokens": [
+    {
+      "name": "USDC",
+      "szDecimals": 6,
+      "weiDecimals": 6,
+      "index": 0,
+      "tokenId": "0xusdc",
+      "isCanonical": true
+    },
+    {
+      "name": "PURR",
+      "szDecimals": 0,
+      "weiDecimals": 5,
+      "index": 1,
+      "tokenId": "0xpurr",
+      "isCanonical": true
+    },
+    {
+      "name": "HYPE",
+      "szDecimals": 2,
+      "weiDecimals": 8,
+      "index": 150,
+      "tokenId": "0xhype",
+      "isCanonical": true
+    },
+    {
+      "name": "TEST",
+      "szDecimals": 4,
+      "weiDecimals": 8,
+      "index": 151,
+      "tokenId": "0xtest",
+      "isCanonical": false
+    }
+  ],
+  "universe": [
+    {
+      "name": "PURR/USDC",
+      "tokens": [1, 0],
+      "index": 0,
+      "isCanonical": true
+    },
+    {
+      "name": "HYPE/USDC",
+      "tokens": [150, 0],
+      "index": 107,
+      "isCanonical": true
+    },
+    {
+      "name": "TEST/USDC",
+      "tokens": [151, 0],
+      "index": 108,
+      "isCanonical": false
+    }
+  ]
+}

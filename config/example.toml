@@ -1,0 +1,41 @@
+data_dir = ".hls"
+
+[network]
+environment = "mainnet"
+rest_base_url = "https://api.hyperliquid.xyz"
+ws_base_url = "wss://api.hyperliquid.xyz/ws"
+heartbeat_secs = 30
+stale_after_secs = 10
+max_reconnect_attempts = 12
+
+[recording]
+raw = true
+normalized = true
+max_raw_file_mb = 256
+flush_secs = 5
+
+[universe]
+top_n = 150
+include = []
+exclude = []
+subscription_headroom = 20
+
+[streams]
+trades = true
+bbo = true
+all_mids = true
+active_asset_ctx = true
+candles_1m = true
+l2_book = false
+
+[features]
+windows = ["1m", "5m", "1h"]
+baseline_window = "1h"
+
+[terminal]
+refresh_hz = 5
+
+[safety]
+read_only = true
+wallet_enabled = false
+trading_enabled = false
