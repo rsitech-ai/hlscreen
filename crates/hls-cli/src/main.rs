@@ -2,7 +2,7 @@
 
 use clap::{Parser, Subcommand};
 
-use crate::commands::{doctor::DoctorArgs, init::InitArgs, symbols::SymbolsArgs};
+use crate::commands::{doctor::DoctorArgs, init::InitArgs, live::LiveArgs, symbols::SymbolsArgs};
 
 mod commands;
 
@@ -19,6 +19,7 @@ enum Command {
     Init(InitArgs),
     Doctor(DoctorArgs),
     Symbols(SymbolsArgs),
+    Live(LiveArgs),
 }
 
 #[tokio::main]
@@ -27,5 +28,6 @@ async fn main() -> anyhow::Result<()> {
         Command::Init(args) => commands::init::run(args).await,
         Command::Doctor(args) => commands::doctor::run(args).await,
         Command::Symbols(args) => commands::symbols::run(args).await,
+        Command::Live(args) => commands::live::run(args).await,
     }
 }

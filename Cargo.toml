@@ -22,7 +22,9 @@ anyhow = "1.0"
 assert_cmd = "2.0"
 clap = { version = "4.5", features = ["derive", "env"] }
 hls-core = { path = "crates/hls-core" }
+hls-features = { path = "crates/hls-features" }
 hls-hyperliquid = { path = "crates/hls-hyperliquid" }
+hls-tui = { path = "crates/hls-tui" }
 predicates = "3.1"
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 serde = { version = "1.0", features = ["derive"] }

@@ -1,0 +1,6 @@
+{"channel":"trades","data":[{"coin":"@107","side":"B","px":"35.00","sz":"2.0","hash":"0xabc","time":1710000000000,"tid":11,"users":["0xbuyer","0xseller"]}]}
+{"channel":"bbo","data":{"coin":"@107","time":1710000000500,"bbo":[{"px":"34.90","sz":"3.0","n":2},{"px":"35.10","sz":"4.0","n":3}]}}
+{"channel":"allMids","data":{"mids":{"@107":"35.00","PURR/USDC":"0.1248"}}}
+{"channel":"activeAssetCtx","data":{"coin":"@107","ctx":{"dayNtlVlm":25000000.5,"prevDayPx":34.00,"markPx":35.50,"midPx":35.45,"circulatingSupply":333000000}}}
+{"channel":"candle","data":[{"t":1710000000000,"T":1710000059999,"s":"@107","i":"1m","o":34.50,"c":35.00,"h":35.20,"l":34.40,"v":1200.0,"n":42}]}
+{"channel":"trades","data":[{"coin":"@107","side":"A","px":"35.20","sz":"1.0","hash":"0xdef","time":1710000060000,"tid":12,"users":["0xbuyer2","0xseller2"]}]}
