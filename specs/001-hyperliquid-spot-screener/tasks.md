@@ -82,22 +82,22 @@
 
 ### Tests for User Story 2
 
-- [ ] T033 [P] [US2] Add raw writer rotation and flush tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-store/tests/raw_writer.rs`
-- [ ] T034 [P] [US2] Add normalized event writer tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-store/tests/normalized_writer.rs`
-- [ ] T035 [P] [US2] Add SQLite metadata registry tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-store/tests/metadata_registry.rs`
-- [ ] T036 [P] [US2] Add replay equivalence integration test in `/Users/s1kor/dev/trading/rsibot/hlscreen/tests/integration/replay_equivalence.rs`
+- [x] T033 [P] [US2] Add raw writer rotation and flush tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-store/tests/raw_writer.rs`
+- [x] T034 [P] [US2] Add normalized event writer tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-store/tests/normalized_writer.rs`
+- [x] T035 [P] [US2] Add SQLite metadata registry tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-store/tests/metadata_registry.rs`
+- [x] T036 [P] [US2] Add replay equivalence integration test in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/tests/record_replay.rs`
 
 ### Implementation for User Story 2
 
-- [ ] T037 [US2] Implement raw market message model and writer in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-store/src/raw.rs`
-- [ ] T038 [US2] Implement normalized event file writers in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-store/src/normalized.rs`
-- [ ] T039 [US2] Implement SQLite metadata registry for symbols, files, runs, and data gaps in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-store/src/metadata.rs`
-- [ ] T040 [US2] Implement data gap model and state propagation in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/src/data_gap.rs`
-- [ ] T041 [US2] Implement recorder task orchestration with bounded channels and clean shutdown in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-store/src/recorder.rs`
-- [ ] T042 [US2] Implement replay reader over raw and normalized files in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-store/src/replay.rs`
-- [ ] T043 [US2] Implement `hls record` command in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/src/commands/record.rs`
-- [ ] T044 [US2] Implement `hls replay` command in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/src/commands/replay.rs`
-- [ ] T045 [US2] Integrate optional recording flags into `hls live` in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/src/commands/live.rs`
+- [x] T037 [US2] Implement raw market message model and writer in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-store/src/raw.rs`
+- [x] T038 [US2] Implement normalized event file writers in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-store/src/normalized.rs`
+- [x] T039 [US2] Implement SQLite metadata registry for symbols, files, runs, and data gaps in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-store/src/metadata.rs`
+- [x] T040 [US2] Implement data gap model and state propagation in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/src/data_gap.rs`
+- [x] T041 [US2] Implement recorder task orchestration with bounded channels and clean shutdown in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-store/src/recorder.rs`
+- [x] T042 [US2] Implement replay reader over raw and normalized files in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-store/src/replay.rs`
+- [x] T043 [US2] Implement `hls record` command in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/src/commands/record.rs`
+- [x] T044 [US2] Implement `hls replay` command in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/src/commands/replay.rs`
+- [x] T045 [US2] Integrate optional recording flags into `hls live` in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/src/commands/live.rs`
 
 **Checkpoint**: User Story 2 complete when a fixture recording writes raw/normalized files, metadata is committed, and replay rebuilds expected screen rows.
 

@@ -15,7 +15,7 @@ The intended crate boundaries are:
 
 No crate owns private keys, wallet permissions, order placement, leverage, or execution.
 
-## Implemented Data Path
+## Implemented Data Paths
 
 Current US1 mock-live flow:
 
@@ -25,4 +25,13 @@ Current US1 mock-live flow:
 4. `hls-tui::app::render_main_table` renders a stable read-only terminal table.
 5. `hls-cli live --fixture-file ... --once` runs the mock-live path without live network access.
 
-Real WebSocket connection, reconnect, recording, replay, and interactive TUI work remain separate later slices.
+Current US2 fixture recording/replay flow:
+
+1. `hls-store::recorder` records fixture public WebSocket lines through a bounded raw-writer channel.
+2. `hls-store::raw` writes compressed raw `.ndjson.zst` files under the configured local data directory.
+3. `hls-store::normalized` writes deterministic replayable JSONL `MarketEvent` rows.
+4. `hls-store::metadata` records runs, files, symbols, and data gaps in local `hls.sqlite`.
+5. `hls-store::replay` rebuilds feature snapshots from normalized local files.
+6. `hls-cli record`, `hls-cli replay`, and fixture-backed `hls live --record` expose the flow without live network access.
+
+Real WebSocket connection, reconnect, true Parquet output, health/API surfaces, and interactive TUI work remain separate later slices.

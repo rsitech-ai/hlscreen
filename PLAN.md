@@ -118,3 +118,64 @@
 - What changed: Implemented US1 mock-live pipeline from public WebSocket fixture envelopes through typed events, subscription budget checks, live market state, feature snapshots, stable terminal table rendering, and `hls live --fixture-file ... --once`.
 - Validation run: `cargo test -p hls-hyperliquid --test ws_parser`; `cargo test -p hls-features --test formulas`; `cargo test -p hls-tui --test main_table_golden`; `cargo test -p hls-cli --test live_mock`; `cargo fmt --check`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`; `cargo build --workspace`; `./target/debug/hls live --symbols @107 --fixture-file tests/fixtures/hyperliquid/ws_mock_live.ndjson --once`; read-only boundary scan.
 - Follow-ups: Pushed commit `40c8718` to `origin/feat/andrzej_hlscreen_foundation`. US2 recording/replay starts at T033. Real WebSocket connection/reconnect and health behavior remain open for US4/T060 rather than being claimed by this fixture-backed slice.
+
+## 2026-07-07 US2 Recording/Replay Slice
+
+### Task
+- Objective: Implement the next US2 fixture-backed local recording and replay path: compressed raw public messages, normalized event files, SQLite metadata registry, recorder orchestration, replay snapshots, and `hls record`/`hls replay`.
+- Owner repo(s): standalone `hlscreen/` repository only.
+- Capital impact: research-only / read-only public market data. No wallet, private-key, order, exchange, or live trading surfaces.
+
+### Context
+- Background: US1 mock-live is complete and pushed. US2 starts at T033 with local storage tests and ends when a fixture recording writes raw/normalized files, registry metadata, and replay rebuilds screen rows.
+- Inputs: `contracts/data-files.md`, `data-model.md`, `quickstart.md`, and the existing `ws_mock_live.ndjson` fixture.
+- Outputs: Store crate modules, CLI record/replay commands, tests, docs/memory updates, validation evidence, and pushed commit(s).
+
+### Assumptions
+- The first normalized writer can use deterministic newline-delimited JSON for replayable `MarketEvent` rows while the Parquet-specific writer remains a storage-hardening follow-up. Do not claim Parquet completion unless real Parquet writing exists.
+- Raw writer uses compressed `.ndjson.zst` files to match the raw capture contract.
+- SQLite registry is local-only and stores no secrets.
+
+### Constraints
+- Technical: preserve exact enough raw payloads for parser replay; keep file metadata unique and committed before reporting clean shutdown.
+- Operational: keep parent `rsibot` untouched; push only the standalone `hlscreen` branch after validation.
+- Risk/capital: no private/user streams, wallet inputs, order parameters, or execution actions.
+
+### Options Considered
+1. Implement only raw writer and registry.
+   - Pros: small, low-risk.
+   - Cons: does not satisfy the US2 replay checkpoint.
+2. Implement fixture-backed record and replay across raw, normalized events, metadata, and CLI.
+   - Pros: proves US2 operator workflow without live network.
+   - Cons: normalized Parquet is deferred and must be documented honestly.
+
+### Chosen Approach
+- Choice: option 2.
+- Why: it creates a user-visible recording/replay flow while keeping storage semantics reproducible and read-only.
+
+### Execution Plan
+1. Add failing tests for raw writer rotation/flush, normalized event writer, SQLite metadata registry, and replay equivalence.
+2. Implement `hls-core::data_gap` and `hls-store` raw/normalized/metadata/recorder/replay modules.
+3. Wire `hls record` and `hls replay` with fixture-backed deterministic commands.
+4. Add optional record integration to fixture-backed `hls live`.
+5. Run fmt, clippy, tests, record/replay smoke, and read-only audit.
+6. Update task markers, docs, memory, commit, and push.
+
+### Test Plan
+- Unit: `cargo test -p hls-store --test raw_writer`; `cargo test -p hls-store --test normalized_writer`; `cargo test -p hls-store --test metadata_registry`.
+- Integration/smoke: `cargo test -p hls-cli --test record_replay`; `./target/debug/hls record --symbols @107 --fixture-file tests/fixtures/hyperliquid/ws_mock_live.ndjson --raw --normalized --data-dir <tmp>`; `./target/debug/hls replay --data-dir <tmp> --run-id <id>`.
+- Regression/audit: `cargo fmt --check`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`; read-only boundary scan.
+
+### Risks and Rollback
+- Risks: normalized files are JSONL rather than Parquet in this slice; replay from compressed raw and normalized files must not hide parsing errors; SQLite bundled dependency can add compile time.
+- Rollback: revert the US2 commit while preserving the US1 branch.
+
+### Memory Impact
+- Add/update in `MEMORY.md`: raw file format command, registry path, record/replay smoke commands, and Parquet deferral.
+
+### Final Notes
+- What changed: Implemented fixture-backed US2 local recording/replay. Added compressed raw public message writing, deterministic normalized replay JSONL, SQLite metadata for runs/files/symbols/data gaps, bounded raw-writer channel orchestration with clean shutdown, replay snapshot rebuilding, `hls record`, `hls replay`, and fixture-backed `hls live --record`.
+- Validation run: `cargo test -p hls-store --test raw_writer`; `cargo test -p hls-store --test normalized_writer`; `cargo test -p hls-store --test metadata_registry`; `cargo test -p hls-cli --test record_replay`; `cargo fmt --check`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`; `cargo build --workspace`; record smoke under `<tmp>`; replay smoke under `<tmp>`; live-record smoke under `<tmp>`; `git diff --check`; read-only boundary scan.
+- Tradeoffs: Normalized events are JSONL in this slice, not Parquet. The CLI rejects `--parquet` until a real Parquet writer exists.
+- Rollback: revert the US2 implementation commit(s); the pushed US1 branch remains usable.
+- Follow-ups: US3 screening DSL/presets or a storage-hardening slice for true Parquet and live network recording.

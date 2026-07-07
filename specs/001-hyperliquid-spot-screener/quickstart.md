@@ -12,9 +12,9 @@ This is the validation guide for the planned v1. It describes the checks impleme
 ## Setup
 
 ```bash
-cargo build
+cargo build --workspace
 ./target/debug/hls init --data-dir ~/.hls
-./target/debug/hls doctor
+./target/debug/hls doctor --data-dir ~/.hls
 ```
 
 Expected outcome:
@@ -38,13 +38,12 @@ Expected outcome:
 ## One-Symbol Live Ingestion Smoke
 
 ```bash
-./target/debug/hls live --symbols @107 --record --raw --parquet
+./target/debug/hls live --symbols @107 --fixture-file tests/fixtures/hyperliquid/ws_mock_live.ndjson --record --raw --normalized --run-id quickstart-live --data-dir /tmp/hlscreen-quickstart --once
 ```
 
 Expected outcome:
 
-- TUI displays one live row.
-- Health pane shows connection and subscription state.
+- Table displays one fixture-backed live row.
 - Raw and normalized local files are written.
 - Shutdown flushes file metadata and marks the run clean.
 
@@ -63,7 +62,7 @@ Expected outcome:
 ## Recorder-Only Smoke
 
 ```bash
-./target/debug/hls record --symbols @107 --raw --parquet --duration 60s
+./target/debug/hls record --symbols @107 --fixture-file tests/fixtures/hyperliquid/ws_mock_live.ndjson --raw --normalized --run-id quickstart-record --data-dir /tmp/hlscreen-quickstart
 ```
 
 Expected outcome:
@@ -75,7 +74,7 @@ Expected outcome:
 ## Replay Smoke
 
 ```bash
-./target/debug/hls replay --from 2026-07-07T12:00:00Z --to 2026-07-07T12:10:00Z --speed 10x
+./target/debug/hls replay --data-dir /tmp/hlscreen-quickstart --run-id quickstart-record
 ```
 
 Expected outcome:

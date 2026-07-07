@@ -69,3 +69,23 @@
 
 - [x] Commit and push US1 slice
   DoD: validated commits are pushed to `origin/feat/andrzej_hlscreen_foundation`.
+
+## 2026-07-07 US2 Recording/Replay Slice
+
+- [x] Add storage/replay tests
+  DoD: raw writer, normalized writer, SQLite registry, and CLI record/replay tests fail before implementation and pass after.
+
+- [x] Implement raw, normalized, metadata, data-gap, recorder, and replay modules
+  DoD: fixture recording produces compressed raw files, normalized event files, SQLite metadata, and replay snapshots.
+
+- [x] Implement `hls record` and `hls replay`
+  DoD: CLI smoke commands record fixture data and replay rows without network.
+
+- [x] Integrate fixture-backed recording flags into `hls live`
+  DoD: `hls live --fixture-file ... --record --raw --normalized --data-dir ... --once` writes files and still renders the table.
+
+- [x] Run validation and read-only audit
+  DoD: fmt, clippy, workspace tests, record/replay smoke, and boundary scan pass.
+
+- [ ] Commit and push US2 slice
+  DoD: validated commits are pushed to `origin/feat/andrzej_hlscreen_foundation`.
