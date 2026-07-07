@@ -8,5 +8,9 @@ license.workspace = true
 [dependencies]
 hls-core.workspace = true
 
+[dev-dependencies]
+hls-features.workspace = true
+hls-hyperliquid.workspace = true
+
 [lints]
 workspace = true

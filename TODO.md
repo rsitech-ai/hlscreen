@@ -49,3 +49,23 @@
 
 - [x] Close implementation notes
   DoD: `PLAN.md`, `TODO.md`, `MEMORY.md`, and Spec Kit `tasks.md` reflect actual state.
+
+## 2026-07-07 US1 Live Screener Slice
+
+- [x] Add US1 parser fixtures and tests
+  DoD: `trades`, `bbo`, `allMids`, `activeAssetCtx`, and `candle` fixture messages are covered by failing-then-passing tests.
+
+- [x] Implement WS event parsing and subscription budget checks
+  DoD: `hls-hyperliquid` returns typed public market events and rejects unsafe subscription budgets.
+
+- [x] Implement live market state and feature snapshots
+  DoD: fixed fixture events produce price, TOB, return, volatility/anomaly, score, and stale-state fields.
+
+- [x] Implement TUI table rendering and fixture-backed live command
+  DoD: golden table and CLI mock-live tests pass with a visible read-only banner.
+
+- [x] Run validation and read-only audit
+  DoD: fmt, clippy, workspace tests, live fixture smoke, and boundary scan pass.
+
+- [-] Commit and push US1 slice
+  DoD: validated commits are pushed to `origin/feat/andrzej_hlscreen_foundation`.

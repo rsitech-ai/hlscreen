@@ -7,7 +7,8 @@ Current implemented slice:
 - Cargo workspace with `hls-core`, `hls-hyperliquid`, `hls-cli`, and placeholder crates for later store/features/screen/TUI/server work.
 - Validated config loading and read-only safety guardrails.
 - Hyperliquid public REST metadata parsing for `spotMeta` and `spotMetaAndAssetCtxs`.
-- Fixture-backed `hls init`, `hls doctor`, and `hls symbols`.
+- Public WebSocket fixture parsing for trades, BBO, all-mids, active asset context, and candles.
+- Fixture-backed `hls init`, `hls doctor`, `hls symbols`, and `hls live --once`.
 
 Out of scope for v1:
 
@@ -32,6 +33,8 @@ cargo test --workspace
 ./target/debug/hls init --data-dir /tmp/hlscreen-smoke
 ./target/debug/hls doctor --data-dir /tmp/hlscreen-smoke
 ./target/debug/hls symbols --top 2 --asset-contexts-file tests/fixtures/hyperliquid/spot_meta_and_asset_ctxs.json
+./target/debug/hls live --symbols @107 --fixture-file tests/fixtures/hyperliquid/ws_mock_live.ndjson --once
 ```
 
 The fixture-backed `symbols` command must print `READ-ONLY` and preserve both display symbols and Hyperliquid feed identifiers such as `HYPE/USDC` and `@107`.
+The fixture-backed `live` command renders a read-only table from deterministic public market-data messages.
