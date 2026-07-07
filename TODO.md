@@ -89,3 +89,20 @@
 
 - [x] Commit and push US2 slice
   DoD: validated commits are pushed to `origin/feat/andrzej_hlscreen_foundation`.
+
+## 2026-07-07 US3 Screening Rules Slice
+
+- [x] Add screening tests
+  DoD: DSL parser, evaluator, preset, and CLI screen tests fail before implementation and pass after.
+
+- [x] Implement `hls-screen` parser, evaluator, presets, and engine
+  DoD: fixed `FeatureSnapshot` rows can be filtered and sorted by built-in presets and custom expressions.
+
+- [x] Implement `hls screen` and live screening integration
+  DoD: CLI screen over fixture/replay data and `hls live --preset/--where/--sort` both use the shared engine.
+
+- [x] Run validation and read-only audit
+  DoD: fmt, clippy, workspace tests, screen smoke, live preset smoke, and boundary scan pass.
+
+- [ ] Commit and push US3 slice
+  DoD: validated commits are pushed to `origin/feat/andrzej_hlscreen_foundation`.

@@ -50,7 +50,8 @@ Expected outcome:
 ## Preset Screen Smoke
 
 ```bash
-./target/debug/hls live --top 50 --preset volume_anomaly
+./target/debug/hls screen --fixture-file tests/fixtures/hyperliquid/ws_mock_live.ndjson --preset thin_books
+./target/debug/hls live --symbols @107 --fixture-file tests/fixtures/hyperliquid/ws_mock_live.ndjson --preset thin_books --once
 ```
 
 Expected outcome:

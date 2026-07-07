@@ -14,6 +14,7 @@
 - Fixture smoke: `./target/debug/hls symbols --top 2 --asset-contexts-file tests/fixtures/hyperliquid/spot_meta_and_asset_ctxs.json`.
 - Mock-live smoke: `./target/debug/hls live --symbols @107 --fixture-file tests/fixtures/hyperliquid/ws_mock_live.ndjson --once`.
 - Record/replay smoke: `./target/debug/hls record --symbols @107 --fixture-file tests/fixtures/hyperliquid/ws_mock_live.ndjson --raw --normalized --run-id smoke --data-dir /tmp/hlscreen-smoke.<id>` then `./target/debug/hls replay --data-dir /tmp/hlscreen-smoke.<id> --run-id smoke`.
+- Screen smoke: `./target/debug/hls screen --fixture-file tests/fixtures/hyperliquid/ws_mock_live.ndjson --preset thin_books`; custom filters use `--where '<expr>'` and `--sort field:desc`.
 - Local quickstart smoke: `./target/debug/hls init --data-dir /tmp/hlscreen-smoke.<id>` then `./target/debug/hls doctor --data-dir /tmp/hlscreen-smoke.<id>`.
 
 ## Architecture Notes
@@ -23,6 +24,7 @@
 - Foundation implementation covers config/symbol/time primitives, fixture-backed Hyperliquid REST metadata parsing, and CLI `init`/`doctor`/`symbols`.
 - US1 mock-live implementation covers public WebSocket fixture parsing, subscription budgeting, live market state, feature snapshots, stable terminal table rendering, and fixture-backed `hls live --once`; real network connection/reconnect, DSL, and full interactive TUI are still future tasks.
 - US2 record/replay implementation covers fixture-backed compressed raw `.ndjson.zst`, deterministic normalized JSONL, local SQLite metadata, bounded raw-writer channel orchestration, replay snapshots, `hls record`, `hls replay`, and `hls live --record`; true Parquet output and live network recording remain future tasks.
+- US3 screening implementation covers deterministic DSL parsing/evaluation, built-in presets, filtering/sorting over `FeatureSnapshot`, `hls screen`, and fixture-backed `hls live --preset/--where/--sort`; keyboard-driven interactive TUI filter editing remains future work.
 
 ## Conventions
 - Use honest top-of-book naming (`TOB depth`, `TOB imbalance`) because v1 excludes `l2Book`.
@@ -32,6 +34,7 @@
 - Hyperliquid spot symbols require careful mapping between display names and `hl_coin` identifiers such as `@107` and `PURR/USDC`.
 - Recorder and TUI work must not block the WebSocket read loop; bounded channels and clean shutdown are first-class design constraints.
 - `--parquet` is intentionally rejected in the current US2 CLI; use `--normalized` for replayable JSONL until a real Parquet writer exists.
+- Screen presets are row-inspection heuristics only, not signals, recommendations, predictions, or profitability claims.
 
 ## Decision Log
 - 2026-07-07: Initialize Spec Kit locally in `hlscreen/` for the read-only Hyperliquid spot screener plan. This keeps planning artifacts isolated from existing dirty `rsibot` parent work.

@@ -179,3 +179,65 @@
 - Tradeoffs: Normalized events are JSONL in this slice, not Parquet. The CLI rejects `--parquet` until a real Parquet writer exists.
 - Rollback: revert the US2 implementation commit(s); the pushed US1 branch remains usable.
 - Follow-ups: Pushed commit `764bacc` to `origin/feat/andrzej_hlscreen_foundation`. US3 screening DSL/presets or a storage-hardening slice for true Parquet and live network recording remain open.
+
+## 2026-07-07 US3 Screening Rules Slice
+
+### Task
+- Objective: Implement US3 filtering and sorting over feature snapshots with a small safe DSL, built-in presets, CLI `hls screen`, and live table screening integration.
+- Owner repo(s): standalone `hlscreen/` repository only.
+- Capital impact: research-only / read-only public market-data screening. No wallet, private-key, order, exchange, or live trading surfaces.
+
+### Context
+- Background: US1 live fixture rows and US2 replay snapshots are complete and pushed. US3 starts at T046 and should make those rows screenable by preset or custom rule.
+- Inputs: `contracts/screen-rule-dsl.md`, `data-model.md`, `tasks.md`, existing `FeatureSnapshot` rows, and existing record/replay/live fixture paths.
+- Outputs: `hls-screen` parser/evaluator/presets/engine, CLI `screen` command, live command screening integration, tests, docs/memory updates, validation evidence, and pushed commit(s).
+
+### Assumptions
+- The first `hls screen` command can operate over local replay data and hidden deterministic fixtures; live network screening remains covered by `hls live` and later real-network work.
+- Presets are deterministic heuristics for row inspection only and must not be described as trading signals or predictions.
+- Invalid rule expressions should return clear errors and must not mutate the library's active screen state.
+
+### Constraints
+- Technical: keep DSL deterministic, small, and dependency-light; use public `FeatureSnapshot` fields; keep TUI/CLI as adapters over `hls-screen`.
+- Operational: keep parent `rsibot` untouched; push only the standalone `hlscreen` branch after validation.
+- Risk/capital: no exchange actions, no predictive edge claims, no private/user streams.
+
+### Options Considered
+1. Implement only preset names as hard-coded filters in the CLI.
+   - Pros: fastest visible result.
+   - Cons: misses the DSL contract and makes TUI/CLI duplicate behavior.
+2. Implement `hls-screen` as the shared parser/evaluator/preset engine and call it from CLI/live rendering.
+   - Pros: one tested behavior boundary for CLI and TUI surfaces.
+   - Cons: larger slice than CLI-only filtering.
+
+### Chosen Approach
+- Choice: option 2.
+- Why: US3 is explicitly about reusable rules and presets; a shared library avoids false parity between commands.
+
+### Execution Plan
+1. Add failing tests for DSL parsing, DSL evaluation, and built-in presets.
+2. Implement screen row/field/sort models and parser/evaluator modules.
+3. Implement built-in presets and filtering/sorting engine.
+4. Add `hls screen` over replayed or fixture events.
+5. Route `hls live --preset/--where/--sort` through the shared screen engine and TUI renderer.
+6. Run fmt, clippy, targeted tests, workspace tests, smoke commands, and read-only audit.
+7. Update task markers, docs, memory, commit, and push.
+
+### Test Plan
+- Unit: `cargo test -p hls-screen --test dsl_parser`; `cargo test -p hls-screen --test dsl_evaluator`; `cargo test -p hls-screen --test presets`.
+- Integration/smoke: `cargo test -p hls-cli --test screen_command`; fixture-backed `hls screen --fixture-file ...`; fixture-backed `hls live --preset ...`.
+- Regression/audit: `cargo fmt --check`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`; read-only boundary scan.
+
+### Risks and Rollback
+- Risks: DSL parser can grow too broad; missing numeric fields must not accidentally match; preset names could be mistaken for strategy recommendations.
+- Rollback: revert the US3 commit(s) while preserving US1/US2.
+
+### Memory Impact
+- Add/update in `MEMORY.md`: supported DSL syntax, built-in preset command examples, and rule/preset boundary as screening heuristics only.
+
+### Final Notes
+- What changed: Implemented US3 screening rules with `hls-screen` DSL AST/parser/evaluator, row field extraction, sort models, built-in presets, filtering/sorting engine, session state that keeps active rows when invalid expressions fail, `hls screen`, and fixture-backed `hls live --preset/--where/--sort`.
+- Validation run: `cargo test -p hls-screen --test dsl_parser`; `cargo test -p hls-screen --test dsl_evaluator`; `cargo test -p hls-screen --test presets`; `cargo test -p hls-cli --test screen_command`; `cargo test -p hls-cli --test live_mock`; `cargo fmt --check`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`; `cargo build --workspace`; custom screen smoke; preset screen smoke; replay-backed screen smoke; live preset smoke; `git diff --check`; read-only/no-prediction boundary scan.
+- Tradeoffs: `hls screen` is fixture/replay backed in this slice. Real live network screening waits on the later network connection work, and interactive keyboard filter editing remains future TUI work.
+- Rollback: revert the US3 commit(s); US1/US2 remain usable.
+- Follow-ups: US4 health/safety, real network connection/reconnect, interactive TUI editing, or true Parquet storage remain open.
