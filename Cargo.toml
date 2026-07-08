@@ -14,8 +14,14 @@ resolver = "2"
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.88"
 license = "MIT"
+repository = "https://github.com/s1korrrr/hlscreen"
+homepage = "https://github.com/s1korrrr/hlscreen"
+readme = "README.md"
+description = "Read-only Hyperliquid spot market-data recorder, feature engine, and terminal screener."
+keywords = ["hyperliquid", "market-data", "screener", "rust", "cli"]
+categories = ["command-line-utilities", "finance"]
 
 [workspace.dependencies]
 anyhow = "1.0"

@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Read-only health JSON terminal screenshot" viewBox="0 0 976 788" width="976" height="788">
+<defs>
+<linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+<stop offset="0" stop-color="#101418"/>
+<stop offset="1" stop-color="#1d242c"/>
+</linearGradient>
+</defs>
+<rect width="976" height="788" rx="10" fill="url(#bg)"/>
+<circle cx="24" cy="24" r="6" fill="#ff5f57"/>
+<circle cx="44" cy="24" r="6" fill="#ffbd2e"/>
+<circle cx="64" cy="24" r="6" fill="#28c840"/>
+<text x="24" y="40" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="700">Read-only health JSON</text>
+<text x="24" y="60" fill="#98c379" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">$ ./target/debug/hls doctor --live --json --simulate-health healthy</text>
+<text x="24" y="80" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">{</text>
+<text x="24" y="100" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">  &quot;config_error&quot;: null,</text>
+<text x="24" y="120" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">  &quot;config_path&quot;: &quot;.hls/config.toml&quot;,</text>
+<text x="24" y="140" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">  &quot;config_readable&quot;: false,</text>
+<text x="24" y="160" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">  &quot;data_dir_writable&quot;: true,</text>
+<text x="24" y="180" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">  &quot;health&quot;: {</text>
+<text x="24" y="200" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">    &quot;connections&quot;: [</text>
+<text x="24" y="220" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">      {</text>
+<text x="24" y="240" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">        &quot;connected_at_ms&quot;: 1000,</text>
+<text x="24" y="260" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">        &quot;gap_count&quot;: 0,</text>
+<text x="24" y="280" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">        &quot;last_message_at_ms&quot;: 500,</text>
+<text x="24" y="300" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">        &quot;last_reconnect_backoff_ms&quot;: null,</text>
+<text x="24" y="320" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">        &quot;reconnect_count&quot;: 0,</text>
+<text x="24" y="340" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">        &quot;state&quot;: &quot;connected&quot;</text>
+<text x="24" y="360" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">      }</text>
+<text x="24" y="380" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">    ],</text>
+<text x="24" y="400" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">    &quot;degraded_reasons&quot;: [],</text>
+<text x="24" y="420" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">    &quot;gap_count&quot;: 0,</text>
+<text x="24" y="440" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">    &quot;lag_ms&quot;: 20,</text>
+<text x="24" y="460" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">    &quot;last_message_age_ms&quot;: 500,</text>
+<text x="24" y="480" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">    &quot;read_only&quot;: true,</text>
+<text x="24" y="500" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">    &quot;reconnect_count&quot;: 0,</text>
+<text x="24" y="520" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">    &quot;recording&quot;: {</text>
+<text x="24" y="540" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">      &quot;clean_shutdown&quot;: null,</text>
+<text x="24" y="560" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">      &quot;enabled&quot;: false</text>
+<text x="24" y="580" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">    },</text>
+<text x="24" y="600" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">    &quot;rows_written&quot;: 0,</text>
+<text x="24" y="620" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">    &quot;status&quot;: &quot;healthy&quot;,</text>
+<text x="24" y="640" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">    &quot;subscription_count&quot;: 2,</text>
+<text x="24" y="660" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">    &quot;writer_backlog&quot;: 0</text>
+<text x="24" y="680" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">  },</text>
+<text x="24" y="700" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">  &quot;live_rest&quot;: null,</text>
+<text x="24" y="720" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">  &quot;read_only&quot;: true</text>
+<text x="24" y="740" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">}</text>
+</svg>
