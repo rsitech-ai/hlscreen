@@ -20,7 +20,7 @@ fn renders_read_only_main_table_for_fixture_snapshot() {
     assert!(table.contains("┌ Hyperliquid Spot Microstructure Workstation"));
     assert!(table.contains("REC ready"));
     assert!(table.contains("LIVE ●"));
-    assert!(table.contains("p95 local"));
+    assert!(table.contains("p95 row age"));
     assert!(table.contains("filter: READ-ONLY Hyperliquid spot live screen"));
     assert!(table.contains("mode: top-1 by screen rank"));
     assert!(table.contains("│ symbol"));
@@ -126,9 +126,37 @@ fn missing_quote_depth_marks_quality_partial() {
     let table = render_main_table(&snapshots);
 
     assert!(table.contains("│ @107"));
+    assert!(table.contains("quality partial"));
     assert!(table.contains("unknown"));
     assert!(table.contains("Bid/Ask        - / -"));
     assert!(table.contains("Top book       - / -"));
+}
+
+#[test]
+fn partial_quote_depth_coverage_marks_quality_partial() {
+    let events = parse_ws_ndjson(include_str!(
+        "../../../tests/fixtures/hyperliquid/ws_mock_live.ndjson"
+    ))
+    .expect("fixture parses");
+    let mut state = LiveMarketState::new(["@107".to_owned()]);
+    for event in events {
+        state.apply(event).expect("event applies");
+    }
+    let mut snapshots = FeatureEngine::default().snapshots(&state, 1_710_000_066_000);
+    let mut second = snapshots[0].clone();
+    second.symbol = "@108".to_owned();
+    second.bid_px = None;
+    second.bid_sz = None;
+    second.ask_px = None;
+    second.ask_sz = None;
+    second.spread_bps = None;
+    second.tob_depth_usd = None;
+    second.tob_imbalance = None;
+    snapshots.push(second);
+
+    let table = render_main_table(&snapshots);
+
+    assert!(table.contains("mode: top-2 by screen rank | quality partial"));
 }
 
 #[test]

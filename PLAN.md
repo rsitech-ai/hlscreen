@@ -1401,3 +1401,63 @@
 - What changed: Ran a fresh all-symbol public Hyperliquid smoke, replayed and screened the captured run, generated a real-data TUI PNG, audited the source against official REST/WebSocket/rate-limit/heartbeat docs, fixed the misleading TUI confidence counter label from `gap` to `window`, regenerated committed screenshots, and wrote `docs/reports/2026-07-08-all-data-e2e-audit.md`.
 - Validation run: 180s all-symbol live capture `allpairs-e2e-20260708-195413` with 308 symbols, 924 subscriptions, 59,384 WS messages, 67,192 normalized events, clean shutdown, 0 reconnects, and 0 data gaps; replay parity baseline then pass; `thin_books` and `flow_pressure` screen commands over the captured run; `doctor --live --json`; `server --print-health`; negative probes for invalid DSL, unknown preset, missing fixture, and unsupported Parquet; post-fix 60s all-symbol live capture `allpairs-postfix-20260708-195842` with 18,470 WS messages, 26,156 normalized events, clean shutdown, 0 reconnects, and 0 data gaps; `cargo test -p hls-tui --test main_table_golden --test confidence_pane`; `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`; `cargo build --release --workspace --all-features`; `scripts/check-release-packaging.sh`; `python3 scripts/generate-screenshots.py`; `git diff --check`; read-only/private-surface and TODO/debug scans.
 - Follow-ups: Automatic public REST backfill after reconnect, true Parquet output, long-running HTTP server mode, keyboard-driven interactive TUI, and multi-day soak testing remain separate future work. Current live proof is public read-only data only and uses top-of-book proxies honestly.
+
+## 2026-07-08 Production Docs And Live Readiness Refresh
+
+### Task
+- Objective: Refresh `hlscreen` toward truthful production/open-source readiness by validating all currently available public spot data, updating docs to match the latest implementation, adding architecture diagrams, and capturing current TUI screenshot evidence.
+- Owner repo(s): standalone `hlscreen/` repository only.
+- Capital impact: research-only / read-only public market-data tooling. No private streams, wallet access, signing, order placement, trading execution, or capital-changing action.
+
+### Context
+- Background: `main` already has compact workstation TUI, all-symbol live proof, recorder/replay, confidence, metadata, benchmark, metrics, release draft, and open-source docs. The operator wants the whole codebase/docs to read as production-ready according to truth, with current all-pair live validation and architecture diagrams.
+- Inputs: current `main` at `45b9e7c`, official Hyperliquid public API docs, `specs/002-microstructure-workstation/plan.md`, README/docs, TUI screenshots, live all-symbol commands, CI/release gates.
+- Outputs: updated README/docs, diagrammed architecture doc, production-readiness doc/report, current all-symbol smoke evidence, TUI screenshot artifact(s), validation matrix, and any focused fixes found during audit.
+
+### Assumptions
+- "Production ready" means deployable for read-only public-data recording/screening with explicit caveats, not a capital-touching trading system.
+- A bounded all-symbol smoke is acceptable current proof; multi-day soak, external hosting, and release-tag publishing remain separate gates unless explicitly requested.
+- Mermaid diagrams in Markdown are the right architecture-diagram format for open-source docs because they live cleanly in git and render on GitHub.
+
+### Constraints
+- Technical: no mock data in live proof; deterministic fixtures remain only for tests/docs screenshots; no fake metrics or unsupported precision in TUI copy.
+- Operational: keep changes scoped to `hlscreen/`; leave no background services running; do not mutate GitHub release state or external systems beyond public read-only API calls.
+- Risk/capital: no account addresses, credentials, private endpoints, order APIs, recommendations, or profitability claims.
+
+### Options Considered
+1. Only update docs from previous audit evidence.
+   - Pros: fast and low risk.
+   - Cons: does not validate current live data or catch drift.
+2. Run fresh all-symbol validation, then update docs/architecture around the new evidence.
+   - Pros: current truth, better open-source credibility, catches runtime/doc drift.
+   - Cons: takes longer and depends on public network stability.
+
+### Chosen Approach
+- Choice: option 2.
+- Why: The request is centered on current live-data production readiness. Docs should be updated from fresh evidence, not just memory.
+
+### Execution Plan
+1. Refresh official-doc alignment for public REST, WebSocket subscriptions, heartbeat, and rate limits.
+2. Run bounded all-symbol public live capture with raw and normalized recording.
+3. Inspect SQLite/file counts, replay parity, screen presets, health output, and TUI screenshot output from the captured run.
+4. Audit code/docs for production-readiness gaps, dead language, stale links, and untruthful readiness claims.
+5. Update README/docs with current readiness labels, deployment/runbook guidance, architecture Mermaid diagrams, and the latest validation report.
+6. Run focused docs/link checks, screenshot generation, full Rust gates, release packaging, diff/read-only scans, and summarize remaining blockers honestly.
+
+### Test Plan
+- Live: `./target/debug/hls live --all-symbols --duration-secs <bounded> --refresh-secs 30 --tui --record --raw --normalized --run-id <id> --data-dir <tmp>`.
+- Replay/screen: `hls replay --verify-parity`, `hls screen --preset thin_books`, `hls screen --preset flow_pressure`, and registry/file-count checks over the captured run.
+- Health/docs: `hls doctor --live --json`, `hls server --print-health`, screenshot generation, Markdown/link checks.
+- Regression: `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`; `cargo build --release --workspace --all-features`; `scripts/check-release-packaging.sh`; `git diff --check`.
+
+### Risks and Rollback
+- Risks: live public data can be temporarily quiet; a short run cannot prove multi-day uptime; diagram/doc changes can overstate readiness if not tied to evidence.
+- Rollback: revert this branch's docs/report/fix changes. No external market/account/release state is modified.
+
+### Memory Impact
+- Add/update in `MEMORY.md`: current production-readiness command set, latest all-symbol smoke evidence, and durable docs/diagram caveats.
+
+### Final Notes
+- What changed: Ran fresh all-symbol public Hyperliquid validation, replayed and screened the capture, checked health and negative paths, generated a real-data TUI screenshot, and refreshed README/docs around the current read-only production boundary. Replaced the stale architecture prose with Mermaid diagrams for system boundaries, crate ownership, live/replay flows, command surfaces, and deploy-readiness gates. Fixed one audit finding in `hls-tui`: row quality now reports `partial` when any visible row is missing spread or top-of-book depth evidence, and the header says `p95 row age` instead of the misleading `p95 local`.
+- Validation run: Primary 300s all-symbol live capture `allpairs-prodreadiness-20260708-201752` completed with 308 symbols, 924 subscriptions, 99,162 raw WebSocket messages, 106,980 normalized events, 5 raw files, 1 normalized file, clean shutdown, 0 reconnects, and 0 data gaps. Replay parity wrote a baseline then passed with 0 confidence drift/missing/extra rows. `thin_books` and `flow_pressure` screened the captured run with clean stderr; `doctor --live --json` and `server --print-health` reported healthy read-only state; invalid DSL, unknown preset, missing fixture, and unsupported Parquet probes failed closed. Post-fix 60s all-symbol live capture `allpairs-prodreadiness-postfix-20260708-202420` completed with 18,791 WebSocket messages, 26,455 normalized events, clean shutdown, 0 reconnects, 0 data gaps, `p95 row age`, and `quality partial` on sparse visible coverage. Full gate passed: `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`; `cargo build --release --workspace --all-features`; `scripts/check-release-packaging.sh`; `python3 scripts/generate-screenshots.py`; Markdown local-link check; `rsvg-convert docs/assets/screenshots/live-screen.svg -o /tmp/hlscreen-prodreadiness-preview-live.png`; `git diff --check`; read-only/private-surface and TODO/debug scans.
+- Follow-ups: Multi-day soak, deploy-host supervision, long-running HTTP server mode, automatic public REST backfill after reconnect, true Parquet output, keyboard-driven interactive TUI, and tagged release artifact publication remain future gates. Current readiness is a local deployable, public-data, read-only release candidate; it is not trading execution software.
