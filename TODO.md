@@ -356,7 +356,7 @@
 - [x] Run validation gates
   DoD: Focused tests, full Rust gates, screenshot generation, `git diff --check`, and bounded public live smoke pass or exact blockers are recorded.
 
-- [-] Review, PR, merge, and close out
+- [x] Review, PR, merge, and close out
   DoD: Diff is reviewed, branch is pushed, PR checks pass, merge to `main` occurs only if stable, and memory/reflection notes are complete.
 
 ## 2026-07-08 US2 Liquidity Resilience TUI
