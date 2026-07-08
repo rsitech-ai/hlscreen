@@ -24,9 +24,10 @@ fn live_once_renders_fixture_backed_read_only_table() {
         ))
         .stdout(predicate::str::contains("@107"))
         .stdout(predicate::str::contains("35.2000"))
-        .stdout(predicate::str::contains("fresh"))
-        .stdout(predicate::str::contains("wallet").not())
-        .stdout(predicate::str::contains("order").not());
+        .stdout(predicate::str::contains("● FRESH"))
+        .stdout(predicate::str::contains("No wallet"))
+        .stdout(predicate::str::contains("no order routes"))
+        .stdout(predicate::str::contains("private key").not());
 }
 
 #[test]
