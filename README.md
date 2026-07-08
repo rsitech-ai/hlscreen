@@ -20,7 +20,7 @@ Implemented today:
 - Public WebSocket parsing for trades, BBO, all-mids, active asset context, and candles, with deterministic fixtures kept for tests.
 - Bounded public WebSocket live screen with duration-based shutdown, heartbeat pings, reconnect/resubscribe, optional raw/normalized recording, and all-symbol subscription budgeting.
 - Bounded live recording through a fail-closed writer queue so disk I/O does not silently drop or stall market-data ingestion.
-- Adaptive Ratatui live cockpit for TTY sessions and `--tui` smoke captures, with watchlist, detail, real 1m OHLC/volume chart, book, tape, status bar, color, resize-aware layouts, and keyboard controls for row focus, view tabs, density, help, pause state, and clean quit.
+- Adaptive Ratatui live cockpit for TTY sessions and `--tui` smoke captures, with watchlist, detail, real 1m OHLC/volume chart, book, tape, status bar, color, resize-aware layouts, keyboard controls, and command-palette editing for filters, presets, and sort order.
 - Deterministic non-TTY terminal rendering for market rows, scan KPIs, selected-pair microstructure detail, read-only safety state, operations health, and keyboard command rail.
 - Confidence-aware feature snapshots and TUI rows for fresh, sparse, duplicate, and explicit gap/parser/backlog quality inputs.
 - Persisted confidence baselines plus `hls replay --verify-parity` drift detection for local replay checks.
@@ -36,7 +36,7 @@ Implemented today:
 Not implemented yet:
 
 - Automatic REST backfill for missed public data after a reconnect. Reconnect gaps are recorded explicitly.
-- In-TUI command palette and editable filter/preset/sort/timeframe controls. Current keyboard support covers row focus, view tabs, density, help, pause state, and clean quit.
+- Pane-focus mouse support and persisted TUI preferences. Current TUI support covers row focus, view tabs, chart-window cycling, command-palette filter/preset/sort editing, density, help, pause state, and clean quit.
 - Long-running localhost HTTP server loop.
 - True Parquet writer.
 - Published release binaries from a reviewed `v*` tag run.
@@ -175,10 +175,17 @@ TTY keyboard controls for the Ratatui `hls live --tui` cockpit:
 - `↑`/`↓` or `k`/`j`: move focused row.
 - `PgUp`/`PgDn`, `Home`, `End`: jump through the visible board.
 - `Tab` / `Shift+Tab`: cycle detail views: overview, flow, quality, metadata, explain.
+- `/`: open the validated filter editor; `Enter` applies, `Esc` cancels, empty input clears the custom filter.
+- `p`: open the preset editor; `Enter` applies, `Esc` cancels, empty input clears the preset.
+- `s`: open the sort editor; `Enter` applies, `Esc` cancels, empty input clears the custom sort.
+- `t`: cycle chart window: 1m, 5m, 15m, 30m, 60m.
 - `d`: cycle row density.
 - `?` or `F1`: show/hide help.
 - `Space`: toggle paused UI state while ingestion remains read-only public data.
 - `q` or `Esc`: cleanly stop the bounded live run.
+
+Color is enabled when the terminal advertises color support. If your shell inherits
+`NO_COLOR=1` or `TERM=dumb`, run with `HLS_FORCE_COLOR=1` to force the Ratatui theme.
 
 `hlscreen` keeps Hyperliquid's transport IDs separate from user-facing symbols.
 For example, live `spotMeta` currently maps display `HYPE/USDC` to feed ID
