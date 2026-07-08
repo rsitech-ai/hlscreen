@@ -32,6 +32,7 @@ cargo test -p hls-core --test extension_contract --test metrics_contract
 cargo test -p hls-store --test benchmark_manifest
 cargo test -p hls-cli --test bench_command --test metrics_output
 scripts/check-release-packaging.sh
+/tmp/hlscreen-dist/bin/dist plan
 cargo fmt --check
 cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo test --workspace --all-features
@@ -42,9 +43,9 @@ git diff --check
 ./target/debug/hls doctor --live --json --simulate-health writer-lag --data-dir /tmp/hlscreen-us5-doctor-smoke
 ```
 
-Local `dist plan` was not run because the pinned `dist` CLI is not installed on
-this machine. The repository now includes CI and documentation that install the
-pinned cargo-dist version before running release-plan/build commands.
+Local `dist plan` was run with pinned cargo-dist 0.32.0 installed under
+`/tmp/hlscreen-dist`. It planned macOS, Linux, and Windows archives, shell and
+PowerShell installers, a Homebrew formula, checksums, and a source archive.
 
 ## Known Remaining Gaps
 
