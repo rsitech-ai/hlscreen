@@ -10,30 +10,33 @@ It is built for operators and researchers who want a local-first way to inspect 
 
 ## Status
 
-Current state: v0.1 public-readiness branch.
+Current state: v0.1 live public-data hardening branch.
 
 Implemented today:
 
 - Public Hyperliquid REST metadata parsing for `spotMeta` and `spotMetaAndAssetCtxs`.
-- Public WebSocket fixture parsing for trades, BBO, all-mids, active asset context, and candles.
-- Bounded public WebSocket live screen with duration-based shutdown, heartbeat pings, optional raw/normalized recording, and all-symbol subscription budgeting.
-- Fixture-backed live screen, record, replay, screen rules, and health commands.
+- Public WebSocket parsing for trades, BBO, all-mids, active asset context, and candles, with deterministic fixtures kept for tests.
+- Bounded public WebSocket live screen with duration-based shutdown, heartbeat pings, reconnect/resubscribe, optional raw/normalized recording, and all-symbol subscription budgeting.
+- Bounded live recording through a fail-closed writer queue so disk I/O does not silently drop or stall market-data ingestion.
+- Live terminal refresh for TTY sessions and `--tui` smoke captures.
 - Compressed raw public message recording, normalized replay JSONL, and local SQLite metadata.
 - Deterministic screening DSL and built-in screen presets.
 - Health snapshots, reconnect simulation, TUI health rendering, and read-only local API helpers.
 
 Not implemented yet:
 
-- Automatic live WebSocket reconnect/resubscribe and gap backfill after server-side disconnects.
+- Automatic REST backfill for missed public data after a reconnect. Reconnect gaps are recorded explicitly.
 - Long-running localhost HTTP server loop.
 - True Parquet writer.
 - Release binaries.
 
 ## Screenshots
 
+These committed SVGs are deterministic terminal captures used for documentation regression. Real public WebSocket smoke evidence is tracked in the dated reports under [docs/reports](docs/reports/).
+
 ### Live Screen
 
-![Fixture-backed live screen](docs/assets/screenshots/live-screen.svg)
+![Terminal live screen test capture](docs/assets/screenshots/live-screen.svg)
 
 ### Record And Replay
 
@@ -103,7 +106,39 @@ Fetch read-only public spot metadata:
 ./target/debug/hls symbols --top 5
 ```
 
-Run fixture-backed live screen:
+Run bounded public live screen for the current spot universe:
+
+```bash
+tmpdir="$(mktemp -d /tmp/hlscreen-live.XXXXXX)"
+./target/debug/hls live \
+  --all-symbols \
+  --duration-secs 900 \
+  --refresh-secs 60 \
+  --tui \
+  --record \
+  --raw \
+  --normalized \
+  --run-id allpairs-15m \
+  --data-dir "$tmpdir"
+./target/debug/hls replay --data-dir "$tmpdir" --run-id allpairs-15m
+```
+
+Run a short public live smoke for one symbol:
+
+```bash
+./target/debug/hls live \
+  --symbols @107 \
+  --duration-secs 30 \
+  --refresh-secs 5 \
+  --tui \
+  --record \
+  --raw \
+  --normalized \
+  --run-id one-symbol-live \
+  --data-dir "$(mktemp -d /tmp/hlscreen-live.XXXXXX)"
+```
+
+Run deterministic fixture commands for tests or offline docs:
 
 ```bash
 ./target/debug/hls live \
@@ -113,23 +148,7 @@ Run fixture-backed live screen:
   --once
 ```
 
-Run bounded public live screen for the current spot universe:
-
-```bash
-tmpdir="$(mktemp -d /tmp/hlscreen-live.XXXXXX)"
-./target/debug/hls live \
-  --all-symbols \
-  --duration-secs 900 \
-  --refresh-secs 60 \
-  --record \
-  --raw \
-  --normalized \
-  --run-id allpairs-15m \
-  --data-dir "$tmpdir"
-./target/debug/hls replay --data-dir "$tmpdir" --run-id allpairs-15m
-```
-
-Record and replay fixture data:
+Record and replay deterministic fixture data:
 
 ```bash
 tmpdir="$(mktemp -d /tmp/hlscreen-smoke.XXXXXX)"
@@ -143,7 +162,7 @@ tmpdir="$(mktemp -d /tmp/hlscreen-smoke.XXXXXX)"
 ./target/debug/hls replay --data-dir "$tmpdir" --run-id smoke
 ```
 
-Screen fixture rows:
+Screen deterministic fixture rows:
 
 ```bash
 ./target/debug/hls screen \
@@ -208,6 +227,7 @@ Examples are in [examples/screen-rules.md](examples/screen-rules.md).
 - [Roadmap](docs/ROADMAP.md)
 - [Release checklist](docs/RELEASING.md)
 - [Open source checklist](docs/OPEN_SOURCE_CHECKLIST.md)
+- [Live production hardening report](docs/reports/2026-07-08-live-production-hardening.md)
 - [Live smoke report](docs/reports/2026-07-08-live-smoke.md)
 - [Pre-merge audit](docs/reports/2026-07-08-pre-merge-audit.md)
 

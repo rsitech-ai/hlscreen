@@ -88,6 +88,27 @@ impl MarketEvent {
             Self::Candle(event) => Some(&event.hl_coin),
         }
     }
+
+    pub fn with_recv_ts_ns(mut self, recv_ts_ns: u64) -> Self {
+        match &mut self {
+            Self::Trade(event) => event.recv_ts_ns = recv_ts_ns,
+            Self::TopOfBook(event) => event.recv_ts_ns = recv_ts_ns,
+            Self::AssetContext(event) => event.recv_ts_ns = recv_ts_ns,
+            Self::AllMids(event) => event.recv_ts_ns = recv_ts_ns,
+            Self::Candle(event) => event.recv_ts_ns = recv_ts_ns,
+        }
+        self
+    }
+
+    pub fn recv_ts_ns(&self) -> u64 {
+        match self {
+            Self::Trade(event) => event.recv_ts_ns,
+            Self::TopOfBook(event) => event.recv_ts_ns,
+            Self::AssetContext(event) => event.recv_ts_ns,
+            Self::AllMids(event) => event.recv_ts_ns,
+            Self::Candle(event) => event.recv_ts_ns,
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -147,10 +168,14 @@ impl LiveMarketState {
     pub fn apply(&mut self, event: MarketEvent) -> HlsResult<()> {
         match event {
             MarketEvent::AllMids(event) => {
+                let recv_ms = i64::try_from(event.recv_ts_ns / 1_000_000).unwrap_or(i64::MAX);
                 for (hl_coin, mid) in event.mids_by_hl_coin {
                     if let Some(state) = self.states.get_mut(&hl_coin) {
                         state.mid_px = Some(mid);
-                        state.last_update_ms = Some(state.last_update_ms.unwrap_or(0).max(0));
+                        if recv_ms > 0 {
+                            state.last_update_ms =
+                                Some(state.last_update_ms.unwrap_or(0).max(recv_ms));
+                        }
                     }
                 }
             }
@@ -259,10 +284,14 @@ impl SymbolMarketState {
     }
 
     fn apply_asset_context(&mut self, event: AssetContextEvent) {
+        let recv_ms = i64::try_from(event.recv_ts_ns / 1_000_000).unwrap_or(i64::MAX);
         self.day_ntl_vlm = event.day_ntl_vlm;
         self.prev_day_px = event.prev_day_px;
         self.mark_px = event.mark_px;
         self.mid_px = self.mid_px.or(event.mid_px);
+        if recv_ms > 0 {
+            self.last_update_ms = Some(self.last_update_ms.unwrap_or(0).max(recv_ms));
+        }
     }
 
     fn apply_candle(&mut self, event: CandleEvent) {
