@@ -39,6 +39,27 @@ impl<'a> ScreenRow<'a> {
             Field::BidPx => optional_number(self.snapshot.bid_px),
             Field::AskPx => optional_number(self.snapshot.ask_px),
             Field::SpreadBps => optional_number(self.snapshot.spread_bps),
+            Field::ConfidenceScore => FieldValue::Number(f64::from(self.snapshot.confidence.score)),
+            Field::ConfidenceState => {
+                FieldValue::String(self.snapshot.confidence.level.as_str().to_owned())
+            }
+            Field::SpreadShockBps => optional_number(self.snapshot.spread_shock_bps),
+            Field::SpreadRecoveryMs => self
+                .snapshot
+                .spread_recovery_ms
+                .map(|value| FieldValue::Number(value as f64))
+                .unwrap_or(FieldValue::Missing),
+            Field::ResilienceState => {
+                FieldValue::String(self.snapshot.resilience_state.as_str().to_owned())
+            }
+            Field::TradeabilityState => {
+                FieldValue::String(self.snapshot.tradeability_state.as_str().to_owned())
+            }
+            Field::AdverseSelectionProxy => {
+                FieldValue::String(self.snapshot.adverse_selection_proxy.as_str().to_owned())
+            }
+            Field::SignedNotionalFlow30s => optional_number(self.snapshot.signed_notional_flow_30s),
+            Field::BboOfiProxy30s => optional_number(self.snapshot.bbo_ofi_proxy_30s),
             Field::TobDepthUsd => optional_number(self.snapshot.tob_depth_usd),
             Field::TobImbalance => optional_number(self.snapshot.tob_imbalance),
             Field::Ret1m => optional_number(self.snapshot.ret_1m),

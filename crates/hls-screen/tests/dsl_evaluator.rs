@@ -1,6 +1,9 @@
 use hls_core::{
     confidence::DataConfidenceSnapshot,
-    market_state::{FeatureSnapshot, StalenessState},
+    market_state::{
+        AdverseSelectionProxy, FeatureSnapshot, LiquidityResilienceState, StalenessState,
+        TradeabilityState,
+    },
 };
 use hls_screen::{ScreenEngine, ScreenRequest, ScreenSession};
 
@@ -99,6 +102,13 @@ fn row(
         ask_px: Some(1.01),
         ask_sz: Some(10.0),
         spread_bps,
+        spread_shock_bps: None,
+        spread_recovery_ms: None,
+        resilience_state: LiquidityResilienceState::Unknown,
+        tradeability_state: TradeabilityState::Unknown,
+        adverse_selection_proxy: AdverseSelectionProxy::Unknown,
+        signed_notional_flow_30s: None,
+        bbo_ofi_proxy_30s: None,
         tob_depth_usd: Some(1_000.0),
         tob_imbalance: Some(0.0),
         ret_1m: Some(0.0),

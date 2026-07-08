@@ -1,13 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" role="img" xml:space="preserve" aria-label="Operations health panel terminal screenshot" viewBox="0 0 1286 396" width="1286" height="396">
+<svg xmlns="http://www.w3.org/2000/svg" role="img" xml:space="preserve" aria-label="Operations health panel terminal screenshot" viewBox="0 0 1324 396" width="1324" height="396">
 <defs>
 <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
 <stop offset="0" stop-color="#0d1117"/>
 <stop offset="1" stop-color="#18212b"/>
 </linearGradient>
 </defs>
-<rect width="1286" height="396" rx="8" fill="url(#bg)"/>
-<rect x="0" y="0" width="1286" height="50" rx="8" fill="#141b24"/>
-<rect x="0" y="42" width="1286" height="8" fill="#141b24"/>
+<rect width="1324" height="396" rx="8" fill="url(#bg)"/>
+<rect x="0" y="0" width="1324" height="50" rx="8" fill="#141b24"/>
+<rect x="0" y="42" width="1324" height="8" fill="#141b24"/>
 <circle cx="24" cy="24" r="6" fill="#ff5f57"/>
 <circle cx="44" cy="24" r="6" fill="#ffbd2e"/>
 <circle cx="64" cy="24" r="6" fill="#28c840"/>
