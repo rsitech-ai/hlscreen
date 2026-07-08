@@ -36,7 +36,7 @@ fn fixture_full_pipeline_smoke_covers_live_record_replay_screen_and_health() {
             "READ-ONLY Hyperliquid spot live screen",
         ))
         .stdout(predicate::str::contains("UNIVERSE"))
-        .stdout(predicate::str::contains("rows 1 | fresh 1 (100%)"))
+        .stdout(predicate::str::contains("rows 1 | fresh 1/1"))
         .stdout(predicate::str::contains("@107"))
         .stdout(predicate::str::contains("No wallet"))
         .stdout(predicate::str::contains("no order routes"))
@@ -53,7 +53,7 @@ fn fixture_full_pipeline_smoke_covers_live_record_replay_screen_and_health() {
             "READ-ONLY Hyperliquid spot replay",
         ))
         .stdout(predicate::str::contains("@107"))
-        .stdout(predicate::str::contains("● FRESH"));
+        .stdout(predicate::str::contains("● fresh"));
 
     Command::cargo_bin("hls")
         .expect("hls binary")
