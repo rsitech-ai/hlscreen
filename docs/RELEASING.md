@@ -50,13 +50,13 @@ cargo install cargo-dist --version 0.32.0 --locked
 Preview the release plan:
 
 ```bash
-cargo dist plan
+dist plan
 ```
 
 Build local distributable artifacts:
 
 ```bash
-cargo dist build
+dist build
 ```
 
 No release secrets are required for the local dry run or pull-request release
