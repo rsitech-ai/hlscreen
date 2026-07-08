@@ -26,10 +26,21 @@ tasks.
 codes such as reconnect gaps, stale quotes, sparse trades, duplicate events,
 parser drops, writer backlog, and incomplete feature windows.
 
-The contract is intentionally separate from the feature engine. The engine and
-replay code will attach and compute confidence in the US1 implementation slice,
-while this foundation slice defines the serializable shape and deterministic
-penalty semantics.
+`FeatureSnapshot` rows now carry this confidence snapshot, and
+`hls-features::FeatureEngine` computes the default row state from:
+
+- quote freshness
+- sparse trade evidence for return/volatility windows
+- duplicate trade observations that were deduped before feature calculation
+- explicit runtime quality inputs for reconnect gaps, parser drops, and writer
+  backlog
+
+The deterministic terminal board renders confidence in the header strip, each
+market row, and the selected-symbol detail pane. Confidence is data-quality
+evidence only; it is not a risk model, trade signal, or profitability claim.
+
+Persisted confidence baselines and `hls replay --verify-parity` drift detection
+are still pending in the US1 replay-parity slice.
 
 ### Score Breakdowns
 

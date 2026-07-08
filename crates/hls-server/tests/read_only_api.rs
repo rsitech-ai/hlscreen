@@ -1,4 +1,5 @@
 use hls_core::{
+    confidence::DataConfidenceSnapshot,
     health::HealthInputs,
     market_state::{FeatureSnapshot, StalenessState},
 };
@@ -78,6 +79,7 @@ fn rows() -> Vec<FeatureSnapshot> {
 fn row(symbol: &str, price: f64) -> FeatureSnapshot {
     FeatureSnapshot {
         symbol: symbol.to_owned(),
+        confidence: DataConfidenceSnapshot::new(symbol),
         price: Some(price),
         mid_px: Some(price),
         mark_px: Some(price),
