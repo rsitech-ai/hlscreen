@@ -1,10 +1,11 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, time::Duration};
 
 use hls_core::{HlsError, HlsResult, symbol::MarketSymbol};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
 const DEFAULT_INFO_BASE_URL: &str = "https://api.hyperliquid.xyz";
+const DEFAULT_REST_TIMEOUT: Duration = Duration::from_secs(10);
 
 #[derive(Clone, Debug)]
 pub struct HyperliquidRestClient {
@@ -22,7 +23,7 @@ impl HyperliquidRestClient {
     pub fn new(base_url: impl Into<String>) -> Self {
         Self {
             base_url: base_url.into(),
-            client: reqwest::Client::new(),
+            client: default_http_client(),
         }
     }
 
@@ -56,6 +57,13 @@ impl HyperliquidRestClient {
             HlsError::External(format!("Hyperliquid REST response read failed: {err}"))
         })
     }
+}
+
+fn default_http_client() -> reqwest::Client {
+    reqwest::Client::builder()
+        .timeout(DEFAULT_REST_TIMEOUT)
+        .build()
+        .expect("static reqwest client timeout configuration should build")
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
