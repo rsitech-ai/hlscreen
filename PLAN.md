@@ -120,6 +120,66 @@
 - Tradeoffs: Release publication is still unproven until the first reviewed `v*` tag workflow succeeds; no release tag was created in this slice. Cargo-dist CI was regenerated with pinned 0.32.0 instead of maintaining a divergent hand-written release workflow.
 - Rollback: revert the US5 commit(s); no external release, tag, package, token, plugin runtime, or live-capital state was modified.
 
+## 2026-07-08 Next-Gen Keyboard-Interactive TUI
+
+### Task
+- Objective: Upgrade the live terminal workstation into a keyboard-interactive, adaptive operator interface while preserving the existing deterministic screenshot path and read-only public-data boundary.
+- Owner repo(s): standalone `hlscreen/` repository only.
+- Capital impact: research-only / read-only public Hyperliquid spot market-data UI. No wallet, private stream, order, execution, leverage, or capital-touching control.
+
+### Context
+- Background: The compact workstation renderer now matches the requested mock shape, but it is still a static table refreshed by the live loop. The operator wants a more advanced hedge-fund-style TUI with keyboard interaction, dynamic focus, richer surface hierarchy, and current live data for all visible pairs.
+- Inputs: Current `hls-tui` deterministic renderer, `hls live` public WebSocket loop, existing `FeatureSnapshot` fields, screenshot generator, Ratatui app-architecture guidance, and direct Crossterm event handling.
+- Outputs: Tested interaction state, richer workstation frame, keyboard controls for row focus/view mode/density/pause/help, CLI wiring for live progress rendering, regenerated screenshots, and docs that state what is implemented truthfully.
+
+### Assumptions
+- The stable documentation screenshots should remain ANSI-free SVG captures generated from deterministic CLI output.
+- True terminal keyboard handling can use Crossterm-style polling while the existing public WebSocket loop remains the live data source.
+- `--tui` should continue to work for automated smoke captures; interactive controls must not make non-TTY runs hang.
+
+### Constraints
+- Technical: separate pure TUI state/actions from terminal I/O; do not block the WebSocket read loop; do not introduce fake data fields; keep CLI stdout machine-readable and render live progress on stderr.
+- Operational: do not publish releases or mutate parent `rsibot`; do not start long-running services beyond bounded live smokes.
+- Risk/capital: UI controls may change display focus/filter/view only; they must not create trading/execution semantics or private-data integrations.
+
+### Options Considered
+1. Replace the renderer with a full Ratatui alternate-screen app.
+   - Pros: strongest native terminal capabilities.
+   - Cons: high blast radius, harder deterministic screenshots, and more risk to the existing live smoke/CI path.
+2. Add an interaction state machine and adaptive workstation frame around the current renderer, then poll keys opportunistically during live progress.
+   - Pros: preserves deterministic screenshots/tests, wires into the real live data loop, and gives immediate keyboard utility without destabilizing ingestion.
+   - Cons: not yet a full widget-grid Ratatui app with mouse support or async event channel.
+
+### Chosen Approach
+- Choice: option 2.
+- Why: the project already values deterministic output and live-data truth. A state-machine-first TUI adds real interaction while keeping low-latency ingestion and screenshot regression stable.
+
+### Execution Plan
+1. Add `hls-tui` interaction model with tabs/view modes, density, focused row, pause/help flags, keyboard action mapping, and deterministic rendering helpers.
+2. Extend the workstation renderer so selected row and UI mode can be supplied externally, while default rendering remains compatible.
+3. Wire `hls live --tui` progress rendering to maintain interactive state and poll keyboard input only for real terminals.
+4. Add focused tests for keyboard actions, selected-row rendering, help overlay, and fixture/CLI smoke behavior.
+5. Regenerate screenshots and update README/docs with the implemented controls and current truth boundary.
+6. Run fmt, clippy, workspace tests, screenshot generation, diff check, and a bounded public live smoke.
+
+### Test Plan
+- Unit/golden: `cargo test -p hls-tui --test main_table_golden --test interactive_tui`.
+- CLI/integration: `cargo test -p hls-cli --test live_mock`.
+- Regression/audit: `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`; `python3 scripts/generate-screenshots.py`; `git diff --check`.
+- Smoke: bounded public `hls live --symbols hype-usdc --duration-secs 10 --refresh-secs 5 --tui` after implementation.
+
+### Risks and Rollback
+- Risks: terminal key polling can behave differently in CI/non-TTY shells; richer rendering can break line wrapping; adding controls can imply unsupported trading behavior if copy is sloppy.
+- Rollback: revert this branch; the previous deterministic compact workstation remains intact on `main`.
+
+### Memory Impact
+- Add/update in `MEMORY.md`: implemented keyboard controls, deterministic screenshot command, and any terminal-interaction caveats.
+
+### Final Notes
+- What changed: Added `hls-tui::interaction` with tested row focus, view tabs, density, help, pause, and quit state; extended the deterministic workstation renderer with a command rail, selected-row marker, view-specific detail panes, and external UI state; wired `hls live --tui` to direct Crossterm raw-mode key polling only for real TTY sessions; attached public metadata to live progress frames so `HYPE/USDC` display names are consistent during refresh and final output; regenerated deterministic SVG screenshots; updated README and architecture docs.
+- Validation run: `cargo test -p hls-tui --test interactive_tui --test main_table_golden`; `cargo test -p hls-cli --test live_mock`; `python3 scripts/generate-screenshots.py`; `rsvg-convert docs/assets/screenshots/live-screen.svg -o /tmp/hlscreen-nextgen-tui-preview/live-screen.png`; `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`; `cargo build --release --workspace --all-features`; `scripts/check-release-packaging.sh`; `git diff --check`; public smoke `./target/debug/hls live --symbols hype-usdc --duration-secs 10 --refresh-secs 5 --tui` completed with 61 WebSocket messages, 105 market events, 0 reconnects, 0 data gaps, and display-name-correct TUI progress/final output.
+- Follow-ups: A full alternate-screen Ratatui widget-grid with mouse support, async input channel, and persistent multi-pane layout remains a future enhancement. Current implementation is keyboard-interactive for real TTY `hls live --tui` while preserving deterministic stdout/screenshots.
+
 ## 2026-07-07 US1 Live Screener Slice
 
 ### Task
