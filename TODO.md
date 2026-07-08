@@ -181,5 +181,5 @@
 - [x] Run 15-minute all-pairs pipeline
   DoD: `hls live --all-symbols --duration-secs 900 ...` exits cleanly or records an exact external/network blocker, then replay/screen evidence is inspected.
 
-- [-] Review, PR, merge, and close out
+- [x] Review, PR, merge, and close out
   DoD: Diff is reviewed, stable branch is pushed, PR is merged only if checks and live evidence are acceptable, and plan/TODO/memory/reflection are complete.
