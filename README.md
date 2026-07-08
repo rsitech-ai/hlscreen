@@ -20,6 +20,8 @@ Implemented today:
 - Bounded live recording through a fail-closed writer queue so disk I/O does not silently drop or stall market-data ingestion.
 - Live terminal refresh for TTY sessions and `--tui` smoke captures.
 - Modern deterministic terminal rendering for market rows, scan KPIs, selected-symbol microstructure detail, read-only safety state, and operations health.
+- Confidence-aware feature snapshots and TUI rows for fresh, sparse, duplicate, and explicit gap/parser/backlog quality inputs.
+- Persisted confidence baselines plus `hls replay --verify-parity` drift detection for local replay checks.
 - Compressed raw public message recording, normalized replay JSONL, and local SQLite metadata.
 - Deterministic screening DSL and built-in screen presets.
 - Health snapshots, reconnect simulation, TUI health rendering, and read-only local API helpers.
@@ -38,6 +40,10 @@ These committed SVGs are deterministic terminal captures generated from the curr
 ### Live Market Board
 
 ![Live market board](docs/assets/screenshots/live-screen.svg)
+
+### Data Confidence Pane
+
+![Data confidence pane](docs/assets/screenshots/confidence-degraded.svg)
 
 ### Record And Replay
 
@@ -126,6 +132,7 @@ tmpdir="$(mktemp -d /tmp/hlscreen-live.XXXXXX)"
   --run-id allpairs-15m \
   --data-dir "$tmpdir"
 ./target/debug/hls replay --data-dir "$tmpdir" --run-id allpairs-15m
+./target/debug/hls replay --data-dir "$tmpdir" --run-id allpairs-15m --verify-parity
 ```
 
 Run a short public live smoke for one symbol:
@@ -165,6 +172,7 @@ tmpdir="$(mktemp -d /tmp/hlscreen-smoke.XXXXXX)"
   --run-id smoke \
   --data-dir "$tmpdir"
 ./target/debug/hls replay --data-dir "$tmpdir" --run-id smoke
+./target/debug/hls replay --data-dir "$tmpdir" --run-id smoke --verify-parity
 ```
 
 Screen deterministic fixture rows:

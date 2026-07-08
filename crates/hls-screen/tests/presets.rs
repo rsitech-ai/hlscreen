@@ -1,4 +1,7 @@
-use hls_core::market_state::{FeatureSnapshot, StalenessState};
+use hls_core::{
+    confidence::DataConfidenceSnapshot,
+    market_state::{FeatureSnapshot, StalenessState},
+};
 use hls_screen::{ScreenEngine, ScreenRequest, presets::builtin_presets};
 
 #[test]
@@ -128,6 +131,7 @@ fn row(
 ) -> FeatureSnapshot {
     FeatureSnapshot {
         symbol: symbol.to_owned(),
+        confidence: DataConfidenceSnapshot::new(symbol),
         price: Some(1.0),
         mid_px: Some(1.0),
         mark_px: Some(1.0),

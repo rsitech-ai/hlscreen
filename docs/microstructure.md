@@ -14,10 +14,10 @@ The foundation slice defines shared contracts before runtime behavior changes:
 - metrics definitions with low-cardinality label validation
 - benchmark fixture manifests
 
-User-story implementations build on these contracts. Confidence computation,
-replay parity checks, why-ranked panes, resilience analytics, metadata
-enrichment, metrics output, and extension execution are implemented in later
-tasks.
+User-story implementations build on these contracts. Confidence computation and
+replay parity are implemented for US1. Why-ranked panes, resilience analytics,
+metadata enrichment, metrics output, and extension execution are implemented in
+later tasks.
 
 ### Data Confidence
 
@@ -26,10 +26,40 @@ tasks.
 codes such as reconnect gaps, stale quotes, sparse trades, duplicate events,
 parser drops, writer backlog, and incomplete feature windows.
 
-The contract is intentionally separate from the feature engine. The engine and
-replay code will attach and compute confidence in the US1 implementation slice,
-while this foundation slice defines the serializable shape and deterministic
-penalty semantics.
+`FeatureSnapshot` rows now carry this confidence snapshot, and
+`hls-features::FeatureEngine` computes the default row state from:
+
+- quote freshness
+- sparse trade evidence for return/volatility windows
+- duplicate trade observations that were deduped before feature calculation
+- explicit runtime quality inputs for reconnect gaps, parser drops, and writer
+  backlog
+
+The deterministic terminal board renders confidence in the header strip, each
+market row, and the selected-symbol detail pane. Confidence is data-quality
+evidence only; it is not a risk model, trade signal, or profitability claim.
+
+### Replay Parity
+
+`hls replay --verify-parity` compares the replayed confidence snapshots against
+a local SQLite baseline for the same recording run and replay timestamp. The
+first verification for a run writes the baseline. Later verifications compare
+the recomputed replay confidence against the persisted baseline and fail with a
+non-zero exit when confidence drifts, a symbol is missing, or a baseline row no
+longer has a replayed row.
+
+Replay parity covers data-quality state, not profitability or trading behavior.
+It is designed to detect changes such as:
+
+- recorded reconnect gaps no longer degrading confidence
+- sparse trade windows silently becoming trusted
+- duplicate-event evidence disappearing from replay
+- parser-drop or writer-backlog inputs changing confidence unexpectedly
+
+The replay command prints machine-readable summary lines such as
+`replay_parity=passed`, `confidence_drift=0`, and
+`confidence_summary=high:1 medium:0 low:0 untrusted:0 min:100 reasons:0` before
+the human-readable terminal board.
 
 ### Score Breakdowns
 

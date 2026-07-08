@@ -45,9 +45,9 @@ Current foundation reason codes:
 - `writer_backlog`: local recording pressure could affect durability.
 - `incomplete_window`: one or more feature windows are not valid yet.
 
-User-facing ranking work must keep this confidence state visible next to the
-score. A low-confidence row must not silently look equivalent to a fully trusted
-row.
+The terminal market board keeps this confidence state visible next to the row
+score and in the selected-symbol detail pane. A low-confidence row must not
+silently look equivalent to a fully trusted row.
 
 ## Score Breakdowns
 

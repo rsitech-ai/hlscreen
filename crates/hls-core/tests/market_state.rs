@@ -29,6 +29,7 @@ fn duplicate_trade_ids_are_idempotent_across_replay_or_reconnect() {
 
     let symbol = state.symbol_state("@107").expect("symbol state exists");
     assert_eq!(symbol.trades.len(), 1);
+    assert_eq!(symbol.duplicate_trade_count, 1);
     assert_eq!(symbol.last_trade_price, Some(35.0));
 }
 

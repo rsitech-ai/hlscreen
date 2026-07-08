@@ -1,0 +1,2 @@
+{"channel":"bbo","data":{"coin":"@107","time":1710000000500,"bbo":[{"px":"34.90","sz":"0.5","n":1},{"px":"35.40","sz":"0.4","n":1}]}}
+{"channel":"trades","data":[{"coin":"@107","side":"B","px":"35.00","sz":"0.1","hash":"0xsparse","time":1710000001000,"tid":21,"users":["0xbuyer","0xseller"]}]}
