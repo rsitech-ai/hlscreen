@@ -17,13 +17,10 @@ fn renders_degraded_confidence_in_market_board_and_detail_pane() {
 
     let table = render_main_table(&snapshots);
 
-    assert!(table.contains("CONFIDENCE"));
-    assert!(table.contains("high 0 | medium 0 | low 1 | untrusted 0"));
-    assert!(table.contains("L060"));
+    assert!(table.contains("Hyperliquid Spot Microstructure Workstation"));
+    assert!(table.contains("conf"));
+    assert!(table.contains("0.60"));
     assert!(table.contains("low confidence"));
-    assert!(table.contains("confidence | low 60"));
-    assert!(table.contains("reasons sparse_trades,incomplete_window"));
-    assert!(
-        table.contains("incomplete windows returns,realized_volatility,microstructure_windows")
-    );
+    assert!(table.contains("Confidence     gap:3 stale:0 sparse:1 reconnect:0 parser_drop:0"));
+    assert!(table.contains("missing:return_window"));
 }

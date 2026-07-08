@@ -20,12 +20,16 @@ fn live_once_renders_fixture_backed_read_only_table() {
         .assert()
         .success()
         .stdout(predicate::str::contains(
-            "READ-ONLY Hyperliquid spot live screen",
+            "Hyperliquid Spot Microstructure Workstation",
+        ))
+        .stdout(predicate::str::contains("REC ready"))
+        .stdout(predicate::str::contains(
+            "filter: READ-ONLY Hyperliquid spot live screen",
         ))
         .stdout(predicate::str::contains("@107"))
         .stdout(predicate::str::contains("35.2000"))
-        .stdout(predicate::str::contains("● fresh"))
-        .stdout(predicate::str::contains("PAIR DETAIL CARDS"))
+        .stdout(predicate::str::contains("Selected: @107"))
+        .stdout(predicate::str::contains("Bid/Ask"))
         .stdout(predicate::str::contains("No wallet"))
         .stdout(predicate::str::contains("no order routes"))
         .stdout(predicate::str::contains("private key").not());
@@ -48,8 +52,11 @@ fn live_once_applies_screen_preset_before_rendering() {
         .assert()
         .success()
         .stdout(predicate::str::contains(
-            "READ-ONLY Hyperliquid spot live screen",
+            "Hyperliquid Spot Microstructure Workstation",
         ))
+        .stdout(predicate::str::contains("REC ready"))
+        .stdout(predicate::str::contains("filter: thin_books"))
+        .stdout(predicate::str::contains("mode: top-1 by tob_depth_usd asc"))
         .stdout(predicate::str::contains("@107"))
         .stdout(predicate::str::contains("35.2000"));
 }

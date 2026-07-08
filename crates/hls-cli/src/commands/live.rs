@@ -166,7 +166,7 @@ async fn run_fixture_live(args: LiveArgs, fixture_file: &PathBuf) -> anyhow::Res
         "{}",
         render_screened_table(
             &snapshots,
-            "READ-ONLY Hyperliquid spot live screen",
+            live_table_title(args.record),
             &ScreenRequest {
                 preset: args.preset,
                 where_expr: args.r#where,
@@ -288,7 +288,7 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
         "{}",
         render_screened_table(
             &snapshots,
-            "READ-ONLY Hyperliquid spot live screen",
+            live_table_title(record_summary.is_some()),
             &screen_request
         )?
     );
@@ -880,6 +880,14 @@ fn render_live_progress(
     }
 
     Ok(())
+}
+
+fn live_table_title(recording_active: bool) -> &'static str {
+    if recording_active {
+        "RECORDING Hyperliquid spot live screen"
+    } else {
+        "READ-ONLY Hyperliquid spot live screen"
+    }
 }
 
 async fn sleep_for_backoff_until_deadline(backoff: Duration, deadline: tokio::time::Instant) {
