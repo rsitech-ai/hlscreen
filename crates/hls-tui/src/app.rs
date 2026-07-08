@@ -197,6 +197,15 @@ pub fn render_table_with_title(rows: &[FeatureSnapshot], title: &str) -> String 
             format_confidence_reasons(&selected.confidence.reasons),
             format_confidence_windows(&selected.confidence.incomplete_windows),
         ));
+        if let Some(breakdown) = &selected.score_breakdown {
+            output.push_str(&format!(
+                "why ranked | score {} adjusted from raw {} | confidence penalty {} | components {}\n",
+                format_score(Some(breakdown.adjusted_total)),
+                format_score(Some(breakdown.raw_total)),
+                format_signed_score(breakdown.confidence_penalty()),
+                breakdown.components.len(),
+            ));
+        }
     }
 
     output.push_str(
@@ -416,7 +425,21 @@ fn format_score(value: Option<f64>) -> String {
 }
 
 fn format_score_pair(row: &FeatureSnapshot) -> String {
-    format!("{:.1}/{:.1}", row.liquidity_score, row.momentum_score)
+    row.score_breakdown.as_ref().map_or_else(
+        || format!("{:.1}/{:.1}", row.liquidity_score, row.momentum_score),
+        |breakdown| format!("{:.1}/{:.1}", breakdown.adjusted_total, breakdown.raw_total),
+    )
+}
+
+fn format_signed_score(value: f64) -> String {
+    if !value.is_finite() {
+        return "-".to_owned();
+    }
+    if value >= 0.0 {
+        format!("+{value:.1}")
+    } else {
+        format!("{value:.1}")
+    }
 }
 
 fn format_confidence_chip(row: &FeatureSnapshot) -> String {

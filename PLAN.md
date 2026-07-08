@@ -916,3 +916,63 @@
 - Live smoke: `./target/debug/hls live --symbols @107 --duration-secs 10 --refresh-secs 5 --tui` completed against the public Hyperliquid WebSocket with 1 symbol, 4 public subscriptions, 79 WebSocket messages, 106 market events, 0 reconnects, 0 data gaps, high confidence, and live resilience/tradeability/proxy fields rendered in the TUI.
 - Tradeoffs: `bbo_ofi_proxy_30s` and `adverse_selection_proxy` are explicitly BBO/top-of-book proxies. They do not claim full order-book depth, hidden liquidity, fill quality, profitability, or execution safety. BBO history is bounded to 256 recent quote observations per symbol for deterministic local memory use.
 - Follow-ups: The full v2 objective remains active. Next unchecked slices are US3 why-ranked explanations, US4 metadata enrichment, US5 operations/packaging/extension work, and remaining polish/report tasks.
+
+## 2026-07-08 US3 Why-Ranked TUI Detail
+
+### Task
+- Objective: Make the TUI feel production-grade by adding deterministic why-ranked score explanations, exposing score components to screen filters/sorts, adding `hls explain`, and regenerating screenshots from the real binary.
+- Owner repo(s): standalone `hlscreen/` repository only.
+- Capital impact: research-only / read-only public market-data explanation. No wallet, private stream, signing, order placement, exchange action, execution route, or advice semantics.
+
+### Context
+- Background: US2 resilience/tradeability fields are merged. The next visible quality gap is explainability: ranked rows show scores but do not explain positive, negative, or confidence-adjusted contributions.
+- Inputs: `specs/002-microstructure-workstation/tasks.md` T046-T057, `contracts/cli-tui.md`, `contracts/confidence-and-scoring.md`, current `FeatureSnapshot`, `hls-features`, `hls-screen`, `hls-tui`, `hls-cli`, and screenshot generator.
+- Outputs: score-component fixture, score model/tests, generated score breakdowns, screen DSL fields, why-ranked pane, `hls explain`, docs, screenshots, validation evidence, and PR/merge if stable.
+
+### Assumptions
+- Score components are deterministic screen heuristics computed from public BBO/trade/context fields already present in `FeatureSnapshot`.
+- Missing evidence must be surfaced explicitly instead of silently imputing fake values.
+- The deterministic text renderer remains the right v1 UI contract because it is CI-testable, screenshot-friendly, and works over replay without a live terminal.
+
+### Constraints
+- Technical: preserve backward-compatible score constructors where practical; avoid hidden network calls in `hls explain`; keep filters deterministic and missing values non-matching.
+- Operational: screenshots may be fixture-backed, but they must use the same parser/state/feature/TUI path as live public data.
+- Risk/capital: score explanations must say "screen heuristic" and "not advice"; no order/private/user/account wording.
+
+### Options Considered
+1. Visual-only restyling of the existing table.
+   - Pros: smaller diff.
+   - Cons: does not explain rankings and fails the US3 contract.
+2. Add score breakdowns at the feature boundary and render a dedicated why-ranked pane.
+   - Pros: makes CLI, TUI, replay, screen filters, and screenshots share one truthful explanation model.
+   - Cons: touches shared snapshot contracts and requires broad test updates.
+
+### Chosen Approach
+- Choice: option 2.
+- Why: the TUI looks and behaves more professional when it exposes real evidence and caveats instead of only adding decoration.
+
+### Execution Plan
+1. Extend score component modeling with signed contribution metadata and unavailable evidence.
+2. Attach score breakdowns to feature snapshots from real public microstructure fields.
+3. Expose `score_total`, `score_raw_total`, `score_confidence_penalty`, and `score_component.<name>` through `hls-screen`.
+4. Add `hls-tui::detail::render_why_ranked_pane` and use it in a new `hls explain` command.
+5. Add fixtures/tests/docs and regenerate screenshots, including a why-ranked screenshot.
+6. Mark T046-T057 only after behavior and validation pass.
+
+### Test Plan
+- Focused: `cargo test -p hls-core --test score_breakdown`; `cargo test -p hls-features --test formulas`; `cargo test -p hls-screen --test dsl_evaluator`; `cargo test -p hls-tui --test why_ranked_pane --test main_table_golden`; `cargo test -p hls-cli --test explain_command --test screen_command`.
+- Screenshot/docs: `python3 scripts/generate-screenshots.py`; render PNG previews of updated SVGs where available.
+- Regression: `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`; `git diff --check`.
+- Safety: read-only scan for private/order/execution surfaces and docs review for score-as-screen-heuristic wording only.
+
+### Risks and Rollback
+- Risks: component weights can look like trading advice if labels are careless; adding `score_breakdown` to `FeatureSnapshot` requires updating manual test rows; dynamic `score_component.<name>` parsing can break existing field parsing if not tested.
+- Rollback: revert this branch/PR; no storage migration, live external mutation, or config change is expected.
+
+### Memory Impact
+- Add/update in `MEMORY.md`: score explanation boundary, `hls explain` command, and deterministic screenshot command if confirmed.
+
+### Final Notes
+- What changed: Completed Spec Kit US3 tasks T046-T057. Added a richer score component contract with direction, raw/normalized values, weights, signed contributions, evidence windows, and unavailable evidence; attached deterministic `ScoreBreakdown` values to feature snapshots; exposed `score_total`, `score_raw_total`, `score_confidence_penalty`, and `score_component.<name>` through the screen DSL; added `hls-tui::detail::render_why_ranked_pane`; added `hls explain` text/JSON output over replayed or fixture-backed data; updated docs and regenerated screenshots including `docs/assets/screenshots/why-ranked.svg`.
+- Validation run: focused green `cargo test -p hls-core --test score_breakdown`, `cargo test -p hls-features --test formulas`, `cargo test -p hls-screen --test dsl_parser --test dsl_evaluator`, `cargo test -p hls-tui --test why_ranked_pane --test main_table_golden`, and `cargo test -p hls-cli --test explain_command --test screen_command`; `python3 scripts/generate-screenshots.py`; PNG visual preview of `why-ranked.svg`; `cargo fmt --check`; `git diff --check`; read-only/safety scan; fixed clippy too-many-arguments finding; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`.
+- Follow-ups: US3 is complete. Remaining v2 work starts at US4 metadata enrichment T058-T068, then US5 operations/packaging/extension tasks and final polish/report tasks.

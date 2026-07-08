@@ -3,6 +3,7 @@ use std::collections::{HashMap, HashSet};
 use serde::{Deserialize, Serialize};
 
 use crate::confidence::DataConfidenceSnapshot;
+use crate::score::ScoreBreakdown;
 use crate::{HlsError, HlsResult};
 
 const MAX_BBO_EVENTS_PER_SYMBOL: usize = 256;
@@ -218,6 +219,7 @@ pub struct FeatureSnapshot {
     pub liquidity_score: f64,
     pub momentum_score: f64,
     pub mean_reversion_score: f64,
+    pub score_breakdown: Option<ScoreBreakdown>,
     pub updated_ms_ago: Option<i64>,
     pub staleness_state: StalenessState,
     pub incomplete_window_reason: Option<String>,

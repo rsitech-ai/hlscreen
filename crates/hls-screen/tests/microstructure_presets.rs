@@ -118,6 +118,7 @@ fn row(
         liquidity_score: 75.0,
         momentum_score: 50.0,
         mean_reversion_score: 50.0,
+        score_breakdown: None,
         updated_ms_ago: Some(0),
         staleness_state: StalenessState::Fresh,
         incomplete_window_reason: None,
