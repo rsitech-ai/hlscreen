@@ -8,7 +8,7 @@ use std::{
 };
 
 use anyhow::{Context, bail};
-use clap::Args;
+use clap::{Args, ValueEnum};
 use crossterm::{
     event::{
         self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEvent, KeyEventKind,
@@ -88,6 +88,10 @@ pub struct LiveArgs {
     #[arg(long)]
     pub tui: bool,
 
+    /// TUI color policy: auto follows terminal/env detection, always forces ANSI color, never disables it.
+    #[arg(long, value_enum, default_value_t = LiveTuiColor::Auto)]
+    pub color: LiveTuiColor,
+
     #[arg(long, default_value_t = DEFAULT_MAX_SUBSCRIPTIONS)]
     pub max_subscriptions: usize,
 
@@ -129,6 +133,13 @@ pub struct LiveArgs {
 
     #[arg(long, hide = true)]
     pub once: bool,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, ValueEnum)]
+pub enum LiveTuiColor {
+    Auto,
+    Always,
+    Never,
 }
 
 pub async fn run(args: LiveArgs) -> anyhow::Result<()> {
@@ -187,6 +198,7 @@ async fn run_fixture_live(args: LiveArgs, fixture_file: &PathBuf) -> anyhow::Res
         where_expr: args.r#where,
         sort: args.sort,
     };
+    let color_mode = live_ratatui_color_mode(args.color);
     if args.tui {
         let model = live_tui_model(
             &snapshots,
@@ -202,6 +214,7 @@ async fn run_fixture_live(args: LiveArgs, fixture_file: &PathBuf) -> anyhow::Res
                 width: 160,
                 height: 48,
             }),
+            color_mode,
         )?;
         print!("{table}");
     } else {
@@ -261,6 +274,7 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
     let mut metadata = selection.metadata;
     metadata.extend(load_metadata_enrichments(args.metadata_file.as_ref())?);
     let render_live_tui = args.tui || io::stderr().is_terminal();
+    let color_mode = live_ratatui_color_mode(args.color);
     let keyboard_interactive =
         render_live_tui && io::stdin().is_terminal() && io::stderr().is_terminal();
     let _terminal_mode = LiveTuiGuard::enable(keyboard_interactive)?;
@@ -285,6 +299,7 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
         &mut screen_request,
         &metadata,
         render_live_tui,
+        color_mode,
         keyboard_interactive,
         tui_state.as_mut(),
         recorder.as_ref(),
@@ -352,7 +367,7 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
                 ),
             ),
         );
-        render_live_tui_snapshot(&model, None)?
+        render_live_tui_snapshot(&model, None, color_mode)?
     } else {
         render_screened_table(
             &snapshots,
@@ -437,6 +452,17 @@ struct LiveDriveSummary {
     row_count: usize,
 }
 
+struct LiveProgressContext<'a> {
+    state: &'a LiveMarketState,
+    screen_request: &'a ScreenRequest,
+    metadata: &'a [MetadataEnrichment],
+    render_live_tui: bool,
+    color_mode: RatatuiColorMode,
+    tui_state: Option<&'a WorkstationUiState>,
+    started: Instant,
+    summary: &'a LiveDriveSummary,
+}
+
 #[derive(Debug)]
 enum ConnectionOutcome {
     DurationElapsed,
@@ -467,6 +493,7 @@ async fn drive_live_ws(
     screen_request: &mut ScreenRequest,
     metadata: &[MetadataEnrichment],
     render_live_tui: bool,
+    color_mode: RatatuiColorMode,
     keyboard_interactive: bool,
     mut tui_state: Option<&mut WorkstationUiState>,
     recorder: Option<&LiveRecorder>,
@@ -489,6 +516,7 @@ async fn drive_live_ws(
             screen_request,
             metadata,
             render_live_tui,
+            color_mode,
             keyboard_interactive,
             tui_state.as_deref_mut(),
             recorder,
@@ -561,6 +589,7 @@ async fn drive_live_connection(
     screen_request: &mut ScreenRequest,
     metadata: &[MetadataEnrichment],
     render_live_tui: bool,
+    color_mode: RatatuiColorMode,
     keyboard_interactive: bool,
     mut tui_state: Option<&mut WorkstationUiState>,
     recorder: Option<&LiveRecorder>,
@@ -618,29 +647,31 @@ async fn drive_live_connection(
                 return Ok(ConnectionOutcome::DurationElapsed);
             }
             _ = progress.tick() => {
-                render_live_progress(
+                render_live_progress(LiveProgressContext {
                     state,
                     screen_request,
                     metadata,
                     render_live_tui,
-                    tui_state.as_deref(),
+                    color_mode,
+                    tui_state: tui_state.as_deref(),
                     started,
                     summary,
-                )?;
+                })?;
             }
             _ = ui_events.tick(), if keyboard_interactive => {
                 if let Some(ui_state) = tui_state.as_deref_mut()
                     && apply_pending_tui_actions(ui_state, state, screen_request)?
                 {
-                    render_live_progress(
+                    render_live_progress(LiveProgressContext {
                         state,
                         screen_request,
                         metadata,
                         render_live_tui,
-                        Some(ui_state),
+                        color_mode,
+                        tui_state: Some(ui_state),
                         started,
                         summary,
-                    )?;
+                    })?;
                     if ui_state.quit_requested() {
                         let _ = write.send(Message::Close(None)).await;
                         return Ok(ConnectionOutcome::DurationElapsed);
@@ -971,46 +1002,38 @@ impl LiveRecorderWorker {
     }
 }
 
-fn render_live_progress(
-    state: &LiveMarketState,
-    screen_request: &ScreenRequest,
-    metadata: &[MetadataEnrichment],
-    render_live_tui: bool,
-    tui_state: Option<&WorkstationUiState>,
-    started: Instant,
-    summary: &LiveDriveSummary,
-) -> anyhow::Result<()> {
-    if render_live_tui {
-        let mut snapshots = FeatureEngine::default().snapshots(state, now_ms_i64()?);
-        attach_metadata(&mut snapshots, metadata.to_vec());
+fn render_live_progress(ctx: LiveProgressContext<'_>) -> anyhow::Result<()> {
+    if ctx.render_live_tui {
+        let mut snapshots = FeatureEngine::default().snapshots(ctx.state, now_ms_i64()?);
+        attach_metadata(&mut snapshots, ctx.metadata.to_vec());
         let model = live_tui_model(
             &snapshots,
             "READ-ONLY Hyperliquid spot live screen",
-            screen_request,
-            tui_state,
-            live_tui_candles(state),
+            ctx.screen_request,
+            ctx.tui_state,
+            live_tui_candles(ctx.state),
             LiveTuiStatus::new(
                 "LIVE",
                 "REC ready",
                 format!(
                     "{}s ws={} events={} reconnects={} gaps={}",
-                    started.elapsed().as_secs(),
-                    summary.ws_messages,
-                    summary.market_events,
-                    summary.reconnects,
-                    summary.data_gaps
+                    ctx.started.elapsed().as_secs(),
+                    ctx.summary.ws_messages,
+                    ctx.summary.market_events,
+                    ctx.summary.reconnects,
+                    ctx.summary.data_gaps
                 ),
             ),
         );
-        draw_live_tui_frame(&model)?;
+        draw_live_tui_frame(&model, ctx.color_mode)?;
     } else {
         eprintln!(
             "live progress: elapsed_secs={} ws_messages={} market_events={} reconnects={} data_gaps={}",
-            started.elapsed().as_secs(),
-            summary.ws_messages,
-            summary.market_events,
-            summary.reconnects,
-            summary.data_gaps
+            ctx.started.elapsed().as_secs(),
+            ctx.summary.ws_messages,
+            ctx.summary.market_events,
+            ctx.summary.reconnects,
+            ctx.summary.data_gaps
         );
     }
 
@@ -1020,11 +1043,12 @@ fn render_live_progress(
 fn render_live_tui_snapshot(
     model: &RatatuiFrameModel,
     viewport: Option<RatatuiViewport>,
+    color_mode: RatatuiColorMode,
 ) -> anyhow::Result<String> {
     render_ratatui_snapshot_for_test(
         model,
         viewport.unwrap_or_else(live_ratatui_viewport),
-        live_ratatui_color_mode(),
+        color_mode,
     )
     .map_err(Into::into)
 }
@@ -1074,13 +1098,16 @@ fn live_tui_candles(state: &LiveMarketState) -> Vec<CandleEvent> {
         .collect()
 }
 
-fn draw_live_tui_frame(model: &RatatuiFrameModel) -> anyhow::Result<()> {
+fn draw_live_tui_frame(
+    model: &RatatuiFrameModel,
+    color_mode: RatatuiColorMode,
+) -> anyhow::Result<()> {
     let stderr = io::stderr();
     let backend = CrosstermBackend::new(stderr);
     let mut terminal = Terminal::new(backend)?;
     terminal.clear()?;
     terminal.draw(|frame| {
-        hls_tui::ratatui_app::render_ratatui_frame(frame, model, live_ratatui_color_mode());
+        hls_tui::ratatui_app::render_ratatui_frame(frame, model, color_mode);
     })?;
     terminal.backend_mut().flush()?;
     Ok(())
@@ -1091,21 +1118,37 @@ fn live_ratatui_viewport() -> RatatuiViewport {
     RatatuiViewport { width, height }
 }
 
-fn live_ratatui_color_mode() -> RatatuiColorMode {
-    if live_terminal_color_enabled() {
-        RatatuiColorMode::Color
-    } else {
-        RatatuiColorMode::NoColor
+fn live_ratatui_color_mode(color: LiveTuiColor) -> RatatuiColorMode {
+    resolve_live_ratatui_color_mode(color, live_terminal_color_enabled())
+}
+
+fn resolve_live_ratatui_color_mode(color: LiveTuiColor, auto_enabled: bool) -> RatatuiColorMode {
+    match color {
+        LiveTuiColor::Auto if auto_enabled => RatatuiColorMode::Color,
+        LiveTuiColor::Auto | LiveTuiColor::Never => RatatuiColorMode::NoColor,
+        LiveTuiColor::Always => RatatuiColorMode::Color,
     }
 }
 
 fn live_terminal_color_enabled() -> bool {
+    if live_terminal_color_forced() {
+        true
+    } else {
+        live_terminal_color_auto_enabled()
+    }
+}
+
+fn live_terminal_color_forced() -> bool {
     if env_flag_enabled("HLS_FORCE_COLOR")
         || env_flag_enabled("CLICOLOR_FORCE")
         || env_flag_enabled("FORCE_COLOR")
     {
         return true;
     }
+    false
+}
+
+fn live_terminal_color_auto_enabled() -> bool {
     if std::env::var_os("NO_COLOR").is_some() {
         return false;
     }
@@ -1665,6 +1708,26 @@ mod tests {
         assert!(!env_flag_value_enabled(Some("false")));
         assert!(!env_flag_value_enabled(Some("")));
         assert!(!env_flag_value_enabled(None));
+    }
+
+    #[test]
+    fn live_tui_color_flag_resolves_auto_always_and_never() {
+        assert_eq!(
+            resolve_live_ratatui_color_mode(LiveTuiColor::Auto, true),
+            RatatuiColorMode::Color
+        );
+        assert_eq!(
+            resolve_live_ratatui_color_mode(LiveTuiColor::Auto, false),
+            RatatuiColorMode::NoColor
+        );
+        assert_eq!(
+            resolve_live_ratatui_color_mode(LiveTuiColor::Always, false),
+            RatatuiColorMode::Color
+        );
+        assert_eq!(
+            resolve_live_ratatui_color_mode(LiveTuiColor::Never, true),
+            RatatuiColorMode::NoColor
+        );
     }
 
     #[test]
