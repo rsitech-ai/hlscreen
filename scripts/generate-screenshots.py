@@ -326,11 +326,11 @@ def render_svg(title: str, lines: list[str]) -> str:
 def line_style(line: str) -> tuple[str, str]:
     if line.startswith("$ "):
         return "#7ee787", "700"
-    if "HLSCREEN" in line:
+    if "HLSCREEN" in line or "Hyperliquid Spot Microstructure Workstation" in line:
         return "#79c0ff", "700"
-    if line.startswith(("╭", "├", "╰", "─")):
+    if line.startswith(("╭", "├", "╰", "─", "┌", "└")):
         return "#53616f", "400"
-    if line.startswith(("#   SYMBOL", "#  SYMBOL")):
+    if line.startswith(("#   SYMBOL", "#  SYMBOL", "│ symbol")):
         return "#ffa657", "700"
     if "NEW+SEED" in line or "metadata |" in line:
         return "#a5d6ff", "600"
@@ -350,8 +350,8 @@ def line_style(line: str) -> tuple[str, str]:
         )
     ):
         return "#f2cc60", "700"
-    if "PAIR DETAIL CARDS" in line:
-        return "#79c0ff", "700"
+    if line.startswith(("Selected:", "Bid/Ask", "Top book", "Signed flow", "Confidence", "Why ranked", "Metadata")):
+        return "#a5d6ff", "600"
     if "● fresh" in line or "PASS" in line or "TRADE" in line:
         return "#7ee787", "600"
     if "● FRESH" in line:
