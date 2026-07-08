@@ -1,6 +1,6 @@
 use hls_core::{HlsError, HlsResult};
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Field {
     Symbol,
     Price,
@@ -32,6 +32,10 @@ pub enum Field {
     LiquidityScore,
     MomentumScore,
     MeanReversionScore,
+    ScoreTotal,
+    ScoreRawTotal,
+    ScoreConfidencePenalty,
+    ScoreComponent(String),
     UpdatedMsAgo,
 }
 
@@ -68,6 +72,18 @@ impl Field {
             "liquidity_score" => Ok(Self::LiquidityScore),
             "momentum_score" => Ok(Self::MomentumScore),
             "mean_reversion_score" => Ok(Self::MeanReversionScore),
+            "score_total" => Ok(Self::ScoreTotal),
+            "score_raw_total" => Ok(Self::ScoreRawTotal),
+            "score_confidence_penalty" => Ok(Self::ScoreConfidencePenalty),
+            component if component.starts_with("score_component.") => {
+                let name = component.trim_start_matches("score_component.");
+                if name.trim().is_empty() {
+                    return Err(HlsError::Config(
+                        "score component field requires a component name".to_owned(),
+                    ));
+                }
+                Ok(Self::ScoreComponent(name.to_owned()))
+            }
             "updated_ms_ago" => Ok(Self::UpdatedMsAgo),
             other => Err(HlsError::Config(format!("unknown field '{other}'"))),
         }

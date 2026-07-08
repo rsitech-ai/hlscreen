@@ -291,7 +291,7 @@ fn read_ident(chars: &[char], start: usize) -> (String, usize) {
     let mut index = start;
     while matches!(
         chars.get(index),
-        Some('_' | 'a'..='z' | 'A'..='Z' | '0'..='9')
+        Some('_' | '.' | 'a'..='z' | 'A'..='Z' | '0'..='9')
     ) {
         index += 1;
     }
