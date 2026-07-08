@@ -203,4 +203,5 @@ Update README and memory with the new TUI behavior, command, key bindings, and v
 - [x] Add a visual score/factor stack to the Ratatui detail and explain panes.
 - [x] Add selected-symbol public recent trades to the Ratatui tape pane while preserving no-fills/no-private-stream safety copy.
 - [x] Add row-level `SIG` score and `BIAS` leading-factor columns to the wide Ratatui market board.
+- [x] Add row-level visual `EDGE` heat bars to the wide Ratatui market board.
 - Consider deeper order-book/tape interactions and persisted TUI preferences after the focused-pane state is stable.
