@@ -9,7 +9,7 @@ use ratatui::{
     widgets::{Block, Borders, Cell, Clear, Paragraph, Row, Table, Wrap},
 };
 
-use crate::interaction::{WorkstationUiState, WorkstationView};
+use crate::interaction::{WorkstationCommand, WorkstationUiState, WorkstationView};
 
 const MAX_CHART_CANDLES: usize = 48;
 
@@ -162,6 +162,7 @@ fn render_wide(
     render_book(frame, right[0], model, color_mode);
     render_tape(frame, right[1], model, color_mode);
     render_help_overlay(frame, area, model, color_mode);
+    render_command_palette(frame, area, model, color_mode);
 }
 
 fn render_medium(
@@ -194,6 +195,7 @@ fn render_medium(
     render_detail(frame, center[0], model, "MICROSTRUCTURE", color_mode);
     render_chart(frame, center[1], model, color_mode);
     render_help_overlay(frame, area, model, color_mode);
+    render_command_palette(frame, area, model, color_mode);
 }
 
 fn render_narrow(
@@ -216,6 +218,7 @@ fn render_narrow(
     render_detail(frame, root[2], model, "DETAIL", color_mode);
     render_status_bar(frame, root[3], model, color_mode);
     render_help_overlay(frame, area, model, color_mode);
+    render_command_palette(frame, area, model, color_mode);
 }
 
 fn render_header(
@@ -238,9 +241,8 @@ fn render_header(
             Style::default().fg(success(color_mode)),
         ),
         Span::raw(format!(
-            "  filter: {filter}  view:{} density:{}  keys: j/k tab / p s t ? space q",
-            model.ui_state.view().label(),
-            model.ui_state.density().label(),
+            "  filter: {filter}  {}  keys: j/k tab / p s t ? space q",
+            ui_mode_label(&model.ui_state),
         )),
     ])];
     frame.render_widget(
@@ -515,8 +517,8 @@ fn render_help_overlay(
         )]),
         Line::from("j/k or arrows  move selected market"),
         Line::from("tab / shift-tab  cycle overview, flow, quality, metadata, explain"),
+        Line::from("/ filter  |  p preset  |  s sort  |  t chart window"),
         Line::from("d  density  |  space  pause display  |  ?  help  |  q  quit"),
-        Line::from("/ p s t are reserved for the next command/filter slice"),
         Line::from("Display only: no wallet, private streams, or order routes."),
     ];
     frame.render_widget(
@@ -526,6 +528,64 @@ fn render_help_overlay(
             .style(Style::default().fg(text(color_mode))),
         popup,
     );
+}
+
+fn render_command_palette(
+    frame: &mut Frame<'_>,
+    area: Rect,
+    model: &RatatuiFrameModel,
+    color_mode: RatatuiColorMode,
+) {
+    let Some(command) = model.ui_state.command() else {
+        return;
+    };
+    let popup = centered_rect(74, 24, area);
+    frame.render_widget(Clear, popup);
+    frame.render_widget(
+        Paragraph::new(command_palette_lines(command, model))
+            .wrap(Wrap { trim: true })
+            .block(panel("COMMAND", color_mode))
+            .style(Style::default().fg(text(color_mode))),
+        popup,
+    );
+}
+
+fn command_palette_lines(
+    command: &WorkstationCommand,
+    model: &RatatuiFrameModel,
+) -> Vec<Line<'static>> {
+    let input = if command.input().is_empty() {
+        "<empty>"
+    } else {
+        command.input()
+    };
+    let mut lines = vec![
+        Line::from(format!("{} > {input}", command.prompt())),
+        Line::from(match command.target().label() {
+            "filter" => "Enter apply filter | Esc cancel | empty clears custom filter",
+            "preset" => "Enter apply preset | Esc cancel | empty clears preset",
+            "sort" => "Enter apply sort | Esc cancel | empty clears custom sort",
+            _ => "Enter apply | Esc cancel",
+        }),
+    ];
+    if let Some(error) = model.ui_state.command_error() {
+        lines.push(Line::from(format!("error: {error}")));
+    }
+    lines
+}
+
+fn ui_mode_label(state: &WorkstationUiState) -> String {
+    let command = state
+        .command()
+        .map(|command| format!(" command:{}", command.target().label()))
+        .unwrap_or_default();
+    format!(
+        "view:{} density:{} chart:{}{}",
+        state.view().label(),
+        state.density().label(),
+        state.chart_window().label(),
+        command
+    )
 }
 
 fn centered_rect(percent_x: u16, percent_y: u16, area: Rect) -> Rect {
@@ -562,7 +622,12 @@ fn render_chart(
         );
         return;
     };
-    let candles = selected_candles(model, &row.symbol, area.width.saturating_sub(4) as usize);
+    let candles = selected_candles(
+        model,
+        &row.symbol,
+        area.width.saturating_sub(4) as usize,
+        model.ui_state.chart_window().candle_limit(),
+    );
     let Some(latest) = candles.last() else {
         frame.render_widget(
             Paragraph::new(vec![
@@ -577,7 +642,8 @@ fn render_chart(
     };
 
     let title = format!(
-        "CANDLES 1m  O {} H {} L {} C {} VOL {}",
+        "CANDLES 1m/{}  O {} H {} L {} C {} VOL {}",
+        model.ui_state.chart_window().label(),
         format_plain_number(latest.open),
         format_plain_number(latest.high),
         format_plain_number(latest.low),
@@ -598,8 +664,9 @@ fn selected_candles<'a>(
     model: &'a RatatuiFrameModel,
     symbol: &str,
     width_limit: usize,
+    window_limit: usize,
 ) -> Vec<&'a CandleEvent> {
-    let limit = width_limit.clamp(8, MAX_CHART_CANDLES);
+    let limit = width_limit.min(window_limit).clamp(1, MAX_CHART_CANDLES);
     let mut candles = model
         .candles
         .iter()

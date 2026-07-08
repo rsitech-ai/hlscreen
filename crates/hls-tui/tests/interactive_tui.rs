@@ -4,7 +4,9 @@ use hls_hyperliquid::ws::parser::parse_ws_ndjson;
 use hls_screen::ScreenRequest;
 use hls_tui::{
     app::{RenderOptions, render_screened_table_with_options, render_screened_table_with_state},
-    interaction::{WorkstationAction, WorkstationUiState, WorkstationView},
+    interaction::{
+        WorkstationAction, WorkstationCommandTarget, WorkstationUiState, WorkstationView,
+    },
 };
 
 fn fixture_snapshots() -> Vec<hls_core::market_state::FeatureSnapshot> {
@@ -46,8 +48,46 @@ fn workstation_state_handles_keyboard_actions() {
     state.apply(WorkstationAction::TogglePause, 3);
     assert!(state.paused());
 
+    assert_eq!(state.chart_window().label(), "15m");
+    state.apply(WorkstationAction::CycleChartWindow, 3);
+    assert_eq!(state.chart_window().label(), "30m");
+
     state.apply(WorkstationAction::Quit, 3);
     assert!(state.quit_requested());
+}
+
+#[test]
+fn workstation_state_handles_command_entry_without_changing_market_focus() {
+    let mut state = WorkstationUiState::default();
+    state.apply(WorkstationAction::Down, 3);
+    state.apply(WorkstationAction::CycleFilter, 3);
+
+    let command = state.command().expect("filter command opens");
+    assert_eq!(command.target(), WorkstationCommandTarget::Filter);
+    assert_eq!(command.input(), "");
+    assert_eq!(state.selected_index(3), Some(1));
+
+    for ch in "spread_bps < 20".chars() {
+        state.apply(WorkstationAction::CommandChar(ch), 3);
+    }
+    assert_eq!(
+        state.command().expect("command remains open").input(),
+        "spread_bps < 20"
+    );
+
+    state.apply(WorkstationAction::CommandBackspace, 3);
+    assert_eq!(
+        state.command().expect("command remains open").input(),
+        "spread_bps < 2"
+    );
+
+    state.set_command_error("expected value".to_owned());
+    assert_eq!(state.command_error(), Some("expected value"));
+
+    state.apply(WorkstationAction::CancelCommand, 3);
+    assert!(state.command().is_none());
+    assert_eq!(state.command_error(), None);
+    assert_eq!(state.selected_index(3), Some(1));
 }
 
 #[test]

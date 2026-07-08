@@ -32,6 +32,39 @@ fn fixture_snapshots() -> Vec<hls_core::market_state::FeatureSnapshot> {
     snapshots
 }
 
+#[test]
+fn cockpit_renders_command_palette_with_validation_error() {
+    let snapshots = fixture_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(WorkstationAction::CycleFilter, snapshots.len());
+    for ch in "symbol > 10".chars() {
+        state.apply(WorkstationAction::CommandChar(ch), snapshots.len());
+    }
+    state.set_command_error("type-incompatible comparison".to_owned());
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    );
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 140,
+            height: 40,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders");
+
+    assert!(rendered.contains("COMMAND"));
+    assert!(rendered.contains("filter"));
+    assert!(rendered.contains("symbol > 10"));
+    assert!(rendered.contains("type-incompatible comparison"));
+    assert!(rendered.contains("Enter apply"));
+}
+
 fn fixture_candles() -> Vec<CandleEvent> {
     parse_ws_ndjson(include_str!(
         "../../../tests/fixtures/hyperliquid/ws_mock_live.ndjson"
@@ -141,6 +174,7 @@ fn cockpit_reflects_keyboard_view_pause_density_and_help_state() {
     state.apply(WorkstationAction::ToggleDensity, snapshots.len());
     state.apply(WorkstationAction::TogglePause, snapshots.len());
     state.apply(WorkstationAction::ToggleHelp, snapshots.len());
+    state.apply(WorkstationAction::CycleChartWindow, snapshots.len());
     let model = RatatuiFrameModel::new(
         snapshots,
         "READ-ONLY Hyperliquid spot live screen",
@@ -160,9 +194,12 @@ fn cockpit_reflects_keyboard_view_pause_density_and_help_state() {
 
     assert!(rendered.contains("view:flow"));
     assert!(rendered.contains("density:dense"));
+    assert!(rendered.contains("chart:30m"));
     assert!(rendered.contains("display paused"));
     assert!(rendered.contains("HELP"));
     assert!(rendered.contains("Command Deck"));
+    assert!(rendered.contains("/ filter"));
+    assert!(!rendered.contains("reserved"));
 }
 
 #[test]

@@ -10,7 +10,7 @@ use std::{
 use anyhow::{Context, bail};
 use clap::Args;
 use crossterm::{
-    event::{self, Event, KeyCode, KeyEvent, KeyEventKind},
+    event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers},
     execute,
     terminal::{
         EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode,
@@ -42,7 +42,7 @@ use hls_store::{
 };
 use hls_tui::{
     app::{render_confidence_summary, render_screened_table},
-    interaction::{WorkstationAction, WorkstationUiState},
+    interaction::{WorkstationAction, WorkstationCommandTarget, WorkstationUiState},
     ratatui_app::{
         RatatuiColorMode, RatatuiFrameModel, RatatuiViewport, render_ratatui_snapshot_for_test,
     },
@@ -248,7 +248,7 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
     } else {
         None
     };
-    let screen_request = ScreenRequest {
+    let mut screen_request = ScreenRequest {
         preset: args.preset.clone(),
         where_expr: args.r#where.clone(),
         sort: args.sort.clone(),
@@ -277,7 +277,7 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
         Duration::from_secs(args.duration_secs),
         Duration::from_secs(args.refresh_secs.max(1)),
         &mut state,
-        &screen_request,
+        &mut screen_request,
         &metadata,
         render_live_tui,
         keyboard_interactive,
@@ -459,7 +459,7 @@ async fn drive_live_ws(
     duration: Duration,
     refresh_interval: Duration,
     state: &mut LiveMarketState,
-    screen_request: &ScreenRequest,
+    screen_request: &mut ScreenRequest,
     metadata: &[MetadataEnrichment],
     render_live_tui: bool,
     keyboard_interactive: bool,
@@ -553,7 +553,7 @@ async fn drive_live_connection(
     started: Instant,
     refresh_interval: Duration,
     state: &mut LiveMarketState,
-    screen_request: &ScreenRequest,
+    screen_request: &mut ScreenRequest,
     metadata: &[MetadataEnrichment],
     render_live_tui: bool,
     keyboard_interactive: bool,
@@ -1095,16 +1095,37 @@ fn live_ratatui_color_mode() -> RatatuiColorMode {
 }
 
 fn live_terminal_color_enabled() -> bool {
+    if env_flag_enabled("HLS_FORCE_COLOR")
+        || env_flag_enabled("CLICOLOR_FORCE")
+        || env_flag_enabled("FORCE_COLOR")
+    {
+        return true;
+    }
     if std::env::var_os("NO_COLOR").is_some() {
         return false;
     }
     !matches!(std::env::var("TERM").as_deref(), Ok("dumb"))
 }
 
+fn env_flag_enabled(name: &str) -> bool {
+    std::env::var(name)
+        .map(|value| env_flag_value_enabled(Some(value.as_str())))
+        .unwrap_or(false)
+}
+
+fn env_flag_value_enabled(value: Option<&str>) -> bool {
+    value
+        .map(|value| {
+            let value = value.trim();
+            !value.is_empty() && value != "0" && !value.eq_ignore_ascii_case("false")
+        })
+        .unwrap_or(false)
+}
+
 fn apply_pending_tui_actions(
     ui_state: &mut WorkstationUiState,
     state: &LiveMarketState,
-    screen_request: &ScreenRequest,
+    screen_request: &mut ScreenRequest,
 ) -> anyhow::Result<bool> {
     let mut actions = Vec::new();
     while event::poll(Duration::from_millis(0))? {
@@ -1114,7 +1135,7 @@ fn apply_pending_tui_actions(
         if key.kind != KeyEventKind::Press {
             continue;
         }
-        if let Some(action) = key_to_workstation_action(key) {
+        if let Some(action) = key_to_workstation_action(key, ui_state) {
             actions.push(action);
         }
     }
@@ -1123,14 +1144,30 @@ fn apply_pending_tui_actions(
         return Ok(false);
     }
 
-    let row_count = current_screened_row_count(state, screen_request)?;
     for action in actions {
-        ui_state.apply(action, row_count);
+        apply_live_tui_action(action, ui_state, state, screen_request)?;
     }
     Ok(true)
 }
 
-fn key_to_workstation_action(key: KeyEvent) -> Option<WorkstationAction> {
+fn key_to_workstation_action(
+    key: KeyEvent,
+    ui_state: &WorkstationUiState,
+) -> Option<WorkstationAction> {
+    if ui_state.command().is_some() {
+        return match key.code {
+            KeyCode::Enter => Some(WorkstationAction::SubmitCommand),
+            KeyCode::Esc => Some(WorkstationAction::CancelCommand),
+            KeyCode::Backspace => Some(WorkstationAction::CommandBackspace),
+            KeyCode::Char(ch)
+                if key.modifiers.is_empty() || key.modifiers == KeyModifiers::SHIFT =>
+            {
+                Some(WorkstationAction::CommandChar(ch))
+            }
+            _ => None,
+        };
+    }
+
     match key.code {
         KeyCode::Up | KeyCode::Char('k') => Some(WorkstationAction::Up),
         KeyCode::Down | KeyCode::Char('j') => Some(WorkstationAction::Down),
@@ -1140,11 +1177,88 @@ fn key_to_workstation_action(key: KeyEvent) -> Option<WorkstationAction> {
         KeyCode::End => Some(WorkstationAction::End),
         KeyCode::Tab => Some(WorkstationAction::NextView),
         KeyCode::BackTab => Some(WorkstationAction::PreviousView),
+        KeyCode::Char('/') => Some(WorkstationAction::CycleFilter),
+        KeyCode::Char('p') | KeyCode::Char('P') => Some(WorkstationAction::CyclePreset),
+        KeyCode::Char('s') | KeyCode::Char('S') => Some(WorkstationAction::CycleSort),
+        KeyCode::Char('t') | KeyCode::Char('T') => Some(WorkstationAction::CycleChartWindow),
         KeyCode::Char('d') | KeyCode::Char('D') => Some(WorkstationAction::ToggleDensity),
         KeyCode::Char('?') | KeyCode::F(1) => Some(WorkstationAction::ToggleHelp),
         KeyCode::Char(' ') => Some(WorkstationAction::TogglePause),
         KeyCode::Esc | KeyCode::Char('q') | KeyCode::Char('Q') => Some(WorkstationAction::Quit),
         _ => None,
+    }
+}
+
+fn apply_live_tui_action(
+    action: WorkstationAction,
+    ui_state: &mut WorkstationUiState,
+    state: &LiveMarketState,
+    screen_request: &mut ScreenRequest,
+) -> anyhow::Result<()> {
+    match action {
+        WorkstationAction::SubmitCommand => {
+            submit_live_command(ui_state, state, screen_request)?;
+        }
+        _ => {
+            let row_count = current_screened_row_count(state, screen_request)?;
+            ui_state.apply(action, row_count);
+        }
+    }
+    Ok(())
+}
+
+fn submit_live_command(
+    ui_state: &mut WorkstationUiState,
+    state: &LiveMarketState,
+    screen_request: &mut ScreenRequest,
+) -> anyhow::Result<bool> {
+    let Some(command) = ui_state.command().cloned() else {
+        return Ok(false);
+    };
+    let input = command.input().trim();
+    let mut candidate = screen_request.clone();
+
+    match command.target() {
+        WorkstationCommandTarget::Filter => {
+            candidate.preset = None;
+            candidate.where_expr = non_empty_command_value(input);
+        }
+        WorkstationCommandTarget::Preset => {
+            candidate.preset = match input {
+                "" | "none" | "clear" => None,
+                value => Some(value.to_owned()),
+            };
+            candidate.where_expr = None;
+            candidate.sort = None;
+        }
+        WorkstationCommandTarget::Sort => {
+            candidate.sort = non_empty_command_value(input);
+        }
+    }
+
+    let snapshots = FeatureEngine::default().snapshots(state, now_ms_i64()?);
+    match hls_screen::ScreenEngine.apply(&snapshots, &candidate) {
+        Ok(_) => {
+            *screen_request = candidate;
+            ui_state.close_command();
+        }
+        Err(err) => {
+            ui_state.set_command_error(live_command_error_message(&err));
+        }
+    }
+    Ok(true)
+}
+
+fn non_empty_command_value(input: &str) -> Option<String> {
+    (!input.trim().is_empty()).then(|| input.trim().to_owned())
+}
+
+fn live_command_error_message(err: &HlsError) -> String {
+    let message = err.to_string();
+    if message.contains("type-incompatible comparison") {
+        "type-incompatible comparison between string and number".to_owned()
+    } else {
+        message
     }
 }
 
@@ -1267,6 +1381,7 @@ fn now_ms_i64() -> HlsResult<i64> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
     use hls_core::{
         metadata::{COHORT_UNKNOWN_METADATA, MetadataEnrichmentInput},
         symbol::MarketSymbol,
@@ -1281,6 +1396,133 @@ mod tests {
         assert_eq!(reconnect_backoff(1), Duration::from_millis(2_000));
         assert_eq!(reconnect_backoff(5), Duration::from_millis(30_000));
         assert_eq!(reconnect_backoff(100), Duration::from_millis(30_000));
+    }
+
+    #[test]
+    fn live_tui_control_keys_map_to_screen_actions() {
+        let state = WorkstationUiState::default();
+        assert_eq!(
+            key_to_workstation_action(
+                KeyEvent::new(KeyCode::Char('/'), KeyModifiers::NONE),
+                &state
+            ),
+            Some(WorkstationAction::CycleFilter)
+        );
+        assert_eq!(
+            key_to_workstation_action(
+                KeyEvent::new(KeyCode::Char('p'), KeyModifiers::NONE),
+                &state
+            ),
+            Some(WorkstationAction::CyclePreset)
+        );
+        assert_eq!(
+            key_to_workstation_action(
+                KeyEvent::new(KeyCode::Char('s'), KeyModifiers::NONE),
+                &state
+            ),
+            Some(WorkstationAction::CycleSort)
+        );
+        assert_eq!(
+            key_to_workstation_action(
+                KeyEvent::new(KeyCode::Char('t'), KeyModifiers::NONE),
+                &state
+            ),
+            Some(WorkstationAction::CycleChartWindow)
+        );
+
+        let mut command_state = WorkstationUiState::default();
+        command_state.apply(WorkstationAction::CycleFilter, 1);
+        assert_eq!(
+            key_to_workstation_action(
+                KeyEvent::new(KeyCode::Char('q'), KeyModifiers::NONE),
+                &command_state
+            ),
+            Some(WorkstationAction::CommandChar('q'))
+        );
+        assert_eq!(
+            key_to_workstation_action(
+                KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE),
+                &command_state
+            ),
+            Some(WorkstationAction::SubmitCommand)
+        );
+    }
+
+    #[test]
+    fn live_tui_force_color_env_flags_are_explicit() {
+        assert!(env_flag_value_enabled(Some("1")));
+        assert!(env_flag_value_enabled(Some("true")));
+        assert!(!env_flag_value_enabled(Some("0")));
+        assert!(!env_flag_value_enabled(Some("false")));
+        assert!(!env_flag_value_enabled(Some("")));
+        assert!(!env_flag_value_enabled(None));
+    }
+
+    #[test]
+    fn live_tui_command_submission_preserves_active_request_on_invalid_filter() {
+        let mut state = LiveMarketState::new(["@107".to_owned()]);
+        for event in parse_ws_ndjson(include_str!(
+            "../../../../tests/fixtures/hyperliquid/ws_mock_live.ndjson"
+        ))
+        .expect("fixture parses")
+        {
+            state.apply(event).expect("event applies");
+        }
+        let mut request = ScreenRequest::default();
+        let mut ui_state = WorkstationUiState::default();
+
+        ui_state.apply(WorkstationAction::CycleFilter, 1);
+        for ch in "spread_bps < 20".chars() {
+            ui_state.apply(WorkstationAction::CommandChar(ch), 1);
+        }
+        assert!(submit_live_command(&mut ui_state, &state, &mut request).expect("valid applies"));
+        assert_eq!(request.where_expr.as_deref(), Some("spread_bps < 20"));
+        assert!(ui_state.command().is_none());
+
+        ui_state.apply(WorkstationAction::CycleFilter, 1);
+        for ch in "symbol > 10".chars() {
+            ui_state.apply(WorkstationAction::CommandChar(ch), 1);
+        }
+        assert!(submit_live_command(&mut ui_state, &state, &mut request).expect("invalid handled"));
+
+        assert_eq!(request.where_expr.as_deref(), Some("spread_bps < 20"));
+        assert_eq!(
+            ui_state.command_error(),
+            Some("type-incompatible comparison between string and number")
+        );
+        assert!(ui_state.command().is_some());
+    }
+
+    #[test]
+    fn live_tui_command_submission_applies_preset_and_sort() {
+        let mut state = LiveMarketState::new(["@107".to_owned()]);
+        for event in parse_ws_ndjson(include_str!(
+            "../../../../tests/fixtures/hyperliquid/ws_mock_live.ndjson"
+        ))
+        .expect("fixture parses")
+        {
+            state.apply(event).expect("event applies");
+        }
+        let mut request = ScreenRequest::default();
+        let mut ui_state = WorkstationUiState::default();
+
+        ui_state.apply(WorkstationAction::CyclePreset, 1);
+        for ch in "thin_books".chars() {
+            ui_state.apply(WorkstationAction::CommandChar(ch), 1);
+        }
+        assert!(submit_live_command(&mut ui_state, &state, &mut request).expect("preset applies"));
+        assert_eq!(request.preset.as_deref(), Some("thin_books"));
+        assert!(request.where_expr.is_none());
+        assert!(request.sort.is_none());
+
+        ui_state.apply(WorkstationAction::CycleSort, 1);
+        for ch in "spread_bps:asc".chars() {
+            ui_state.apply(WorkstationAction::CommandChar(ch), 1);
+        }
+        assert!(submit_live_command(&mut ui_state, &state, &mut request).expect("sort applies"));
+        assert_eq!(request.preset.as_deref(), Some("thin_books"));
+        assert_eq!(request.sort.as_deref(), Some("spread_bps:asc"));
+        assert!(ui_state.command().is_none());
     }
 
     #[test]
