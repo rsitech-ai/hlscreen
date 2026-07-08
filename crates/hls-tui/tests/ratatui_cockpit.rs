@@ -104,6 +104,13 @@ fn wide_cockpit_renders_all_primary_trading_workstation_regions() {
     assert!(rendered.contains("CHART"));
     assert!(rendered.contains("TAPE"));
     assert!(rendered.contains("BOOK"));
+    assert!(rendered.contains("BID"));
+    assert!(rendered.contains("ASK"));
+    assert!(rendered.contains("notional"));
+    assert!(rendered.contains("imbalance"));
+    assert!(rendered.contains("Selected flow"));
+    assert!(rendered.contains("Flow leaderboard"));
+    assert!(rendered.contains("OFI"));
     assert!(rendered.contains("HYPE/USDC"));
     assert!(rendered.contains("confidence"));
     assert!(rendered.contains("No wallet"));
