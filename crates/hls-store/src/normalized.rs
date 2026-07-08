@@ -75,3 +75,62 @@ pub fn read_normalized_events(path: impl AsRef<Path>) -> HlsResult<Vec<MarketEve
         })
         .collect()
 }
+
+pub struct StreamingNormalizedWriter {
+    file: File,
+    relative_path: String,
+    rows: u64,
+    bytes: u64,
+    run_id: String,
+}
+
+impl StreamingNormalizedWriter {
+    pub fn new(data_dir: impl AsRef<Path>, run_id: impl Into<String>) -> HlsResult<Self> {
+        let run_id = run_id.into();
+        let data_dir = data_dir.as_ref().to_path_buf();
+        let relative_path = format!("normalized/events/run={run_id}/part-000000.ndjson");
+        let full_path = data_dir.join(&relative_path);
+        if let Some(parent) = full_path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+
+        Ok(Self {
+            file: File::create(&full_path)?,
+            relative_path,
+            rows: 0,
+            bytes: 0,
+            run_id,
+        })
+    }
+
+    pub fn write_event(&mut self, event: &MarketEvent) -> HlsResult<()> {
+        let line = serde_json::to_string(event)
+            .map_err(|err| HlsError::Parse(format!("serialize normalized event: {err}")))?;
+        self.file.write_all(line.as_bytes())?;
+        self.file.write_all(b"\n")?;
+        self.rows += 1;
+        self.bytes += u64::try_from(line.len() + 1).map_err(|_| {
+            HlsError::Parse("normalized event line length overflowed u64".to_owned())
+        })?;
+        Ok(())
+    }
+
+    pub fn finish(mut self) -> HlsResult<Option<FileRegistryEntry>> {
+        self.file.flush()?;
+        if self.rows == 0 {
+            return Ok(None);
+        }
+
+        Ok(Some(FileRegistryEntry {
+            path: self.relative_path,
+            event_type: "normalized_jsonl".to_owned(),
+            symbol: None,
+            start_ts_ms: None,
+            end_ts_ms: None,
+            rows: self.rows,
+            bytes: self.bytes,
+            created_at_ms: 0,
+            run_id: self.run_id,
+        }))
+    }
+}
