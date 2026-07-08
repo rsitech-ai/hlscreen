@@ -1,6 +1,11 @@
 use std::{collections::HashMap, time::Duration};
 
-use hls_core::{HlsError, HlsResult, symbol::MarketSymbol};
+use hls_core::{
+    HlsError, HlsResult,
+    metadata::{MetadataEnrichment, MetadataEnrichmentInput},
+    symbol::MarketSymbol,
+    time::{now_millis, parse_utc_datetime_millis},
+};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
@@ -36,7 +41,33 @@ impl HyperliquidRestClient {
         let body = self
             .post_info(json!({ "type": "spotMetaAndAssetCtxs" }))
             .await?;
-        parse_spot_meta_and_asset_ctxs(&body)
+        let fetched_at_ms = now_ms_i64()?;
+        parse_spot_meta_and_asset_ctxs_at(&body, fetched_at_ms, fetched_at_ms)
+    }
+
+    pub async fn token_details(&self, token_id: &str) -> HlsResult<PublicTokenDetails> {
+        let body = self
+            .post_info(json!({ "type": "tokenDetails", "tokenId": token_id }))
+            .await?;
+        parse_token_details(token_id, &body)
+    }
+
+    pub async fn spot_metadata_enrichments(
+        &self,
+        token_detail_limit: usize,
+    ) -> HlsResult<Vec<MetadataEnrichment>> {
+        let body = self
+            .post_info(json!({ "type": "spotMetaAndAssetCtxs" }))
+            .await?;
+        let fetched_at_ms = now_ms_i64()?;
+        let token_ids = base_token_ids_from_spot_meta_and_asset_ctxs(&body)?;
+        let mut details = HashMap::new();
+        for token_id in token_ids.into_iter().take(token_detail_limit) {
+            if let Ok(detail) = self.token_details(&token_id).await {
+                details.insert(token_id, detail);
+            }
+        }
+        metadata_enrichments_from_public_info(&body, &details, fetched_at_ms, fetched_at_ms)
     }
 
     async fn post_info(&self, request: Value) -> HlsResult<String> {
@@ -69,6 +100,7 @@ fn default_http_client() -> reqwest::Client {
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct SpotMarketContext {
     pub symbol: MarketSymbol,
+    pub metadata: MetadataEnrichment,
     pub day_ntl_vlm: Option<f64>,
     pub prev_day_px: Option<f64>,
     pub mark_px: Option<f64>,
@@ -76,7 +108,7 @@ pub struct SpotMarketContext {
     pub circulating_supply: Option<f64>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 struct SpotMetaResponse {
     tokens: Vec<SpotToken>,
     universe: Vec<SpotUniverseEntry>,
@@ -90,9 +122,11 @@ struct SpotToken {
     wei_decimals: u32,
     #[serde(default)]
     is_canonical: bool,
+    #[serde(default)]
+    token_id: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct SpotUniverseEntry {
     name: String,
@@ -102,6 +136,33 @@ struct SpotUniverseEntry {
     is_canonical: bool,
 }
 
+#[derive(Debug, Deserialize)]
+struct MetadataEnrichmentBundle {
+    #[serde(alias = "fetchedAtMs")]
+    fetched_at_ms: i64,
+    #[serde(alias = "nowMs")]
+    now_ms: i64,
+    #[serde(rename = "spotMetaAndAssetCtxs", alias = "spot_meta_and_asset_ctxs")]
+    spot_meta_and_asset_ctxs: Value,
+    #[serde(
+        default,
+        rename = "tokenDetailsByTokenId",
+        alias = "token_details_by_token_id"
+    )]
+    token_details_by_token_id: HashMap<String, Value>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize)]
+pub struct PublicTokenDetails {
+    pub token_id: String,
+    pub name: Option<String>,
+    pub deployer: Option<String>,
+    pub deploy_time_ms: Option<i64>,
+    pub seeded_usdc: Option<f64>,
+    pub max_supply: Option<f64>,
+    pub circulating_supply: Option<f64>,
+}
+
 pub fn parse_spot_meta(raw: &str) -> HlsResult<Vec<MarketSymbol>> {
     let meta: SpotMetaResponse = serde_json::from_str(raw)
         .map_err(|err| HlsError::Parse(format!("invalid spotMeta JSON: {err}")))?;
@@ -109,37 +170,126 @@ pub fn parse_spot_meta(raw: &str) -> HlsResult<Vec<MarketSymbol>> {
 }
 
 pub fn parse_spot_meta_and_asset_ctxs(raw: &str) -> HlsResult<Vec<SpotMarketContext>> {
+    parse_spot_meta_and_asset_ctxs_at(raw, 0, 0)
+}
+
+pub fn parse_spot_meta_and_asset_ctxs_at(
+    raw: &str,
+    fetched_at_ms: i64,
+    now_ms: i64,
+) -> HlsResult<Vec<SpotMarketContext>> {
+    parse_spot_meta_and_asset_ctxs_with_details(raw, &HashMap::new(), fetched_at_ms, now_ms)
+}
+
+pub fn parse_spot_meta_and_asset_ctxs_with_details(
+    raw: &str,
+    token_details: &HashMap<String, PublicTokenDetails>,
+    fetched_at_ms: i64,
+    now_ms: i64,
+) -> HlsResult<Vec<SpotMarketContext>> {
     let root: Value = serde_json::from_str(raw)
         .map_err(|err| HlsError::Parse(format!("invalid spotMetaAndAssetCtxs JSON: {err}")))?;
-    let parts = root.as_array().ok_or_else(|| {
-        HlsError::Parse("spotMetaAndAssetCtxs response must be a two-element array".to_owned())
-    })?;
-    let meta_value = parts.first().ok_or_else(|| {
-        HlsError::Parse("spotMetaAndAssetCtxs response is missing spot metadata".to_owned())
-    })?;
-    let context_values = parts.get(1).and_then(Value::as_array).ok_or_else(|| {
-        HlsError::Parse("spotMetaAndAssetCtxs response is missing asset contexts".to_owned())
-    })?;
-    let meta: SpotMetaResponse = serde_json::from_value(meta_value.clone())
-        .map_err(|err| HlsError::Parse(format!("invalid embedded spot metadata: {err}")))?;
-    let symbols = symbols_from_meta(meta)?;
+    let (meta, context_values) = spot_meta_and_contexts_from_value(&root)?;
+    let symbols = symbols_from_meta(meta.clone())?;
+    let tokens_by_index: HashMap<u32, SpotToken> = meta
+        .tokens
+        .into_iter()
+        .map(|token| (token.index, token))
+        .collect();
 
     symbols
         .into_iter()
         .enumerate()
         .map(|(index, symbol)| {
             let context = context_values.get(index).unwrap_or(&Value::Null);
+            let entry = meta.universe.get(index).ok_or_else(|| {
+                HlsError::Parse(format!("missing universe entry for context index {index}"))
+            })?;
+            let base_token = tokens_by_index
+                .get(&symbol.base_token_index)
+                .ok_or_else(|| {
+                    HlsError::Parse(format!(
+                        "spot universe entry '{}' references unknown base token {}",
+                        entry.name, symbol.base_token_index
+                    ))
+                })?;
+            let detail = base_token
+                .token_id
+                .as_ref()
+                .and_then(|token_id| token_details.get(token_id));
+            let circulating_supply = detail
+                .and_then(|detail| detail.circulating_supply)
+                .or(numeric_field(context, "circulatingSupply")?);
 
             Ok(SpotMarketContext {
+                metadata: MetadataEnrichment::from_public_input(MetadataEnrichmentInput {
+                    symbol: symbol.hl_coin.clone(),
+                    display_name: symbol.display_name.clone(),
+                    feed_identifier: symbol.hl_coin.clone(),
+                    spot_index: symbol.spot_index,
+                    base_token_index: symbol.base_token_index,
+                    quote_token_index: symbol.quote_token_index,
+                    metadata_source: if detail.is_some() {
+                        "spotMetaAndAssetCtxs+tokenDetails".to_owned()
+                    } else {
+                        "spotMetaAndAssetCtxs".to_owned()
+                    },
+                    metadata_fetched_at_ms: fetched_at_ms,
+                    deploy_time_ms: detail.and_then(|detail| detail.deploy_time_ms),
+                    deployer: detail.and_then(|detail| detail.deployer.clone()),
+                    seeded_usdc: detail.and_then(|detail| detail.seeded_usdc),
+                    max_supply: detail.and_then(|detail| detail.max_supply),
+                    circulating_supply,
+                    now_ms,
+                }),
                 symbol,
                 day_ntl_vlm: numeric_field(context, "dayNtlVlm")?,
                 prev_day_px: numeric_field(context, "prevDayPx")?,
                 mark_px: numeric_field(context, "markPx")?,
                 mid_px: numeric_field(context, "midPx")?,
-                circulating_supply: numeric_field(context, "circulatingSupply")?,
+                circulating_supply,
             })
         })
         .collect()
+}
+
+pub fn metadata_enrichments_from_public_info(
+    raw_spot_meta_and_asset_ctxs: &str,
+    token_details: &HashMap<String, PublicTokenDetails>,
+    fetched_at_ms: i64,
+    now_ms: i64,
+) -> HlsResult<Vec<MetadataEnrichment>> {
+    Ok(parse_spot_meta_and_asset_ctxs_with_details(
+        raw_spot_meta_and_asset_ctxs,
+        token_details,
+        fetched_at_ms,
+        now_ms,
+    )?
+    .into_iter()
+    .map(|market| market.metadata)
+    .collect())
+}
+
+pub fn parse_metadata_enrichment_bundle(raw: &str) -> HlsResult<Vec<MetadataEnrichment>> {
+    let root: MetadataEnrichmentBundle = serde_json::from_str(raw)
+        .map_err(|err| HlsError::Parse(format!("invalid metadata enrichment bundle: {err}")))?;
+    let mut token_details = HashMap::new();
+    for (token_id, value) in root.token_details_by_token_id {
+        let detail = parse_token_details_value(&token_id, &value)?;
+        token_details.insert(token_id, detail);
+    }
+    metadata_enrichments_from_public_info(
+        &root.spot_meta_and_asset_ctxs.to_string(),
+        &token_details,
+        root.fetched_at_ms,
+        root.now_ms,
+    )
+}
+
+pub fn parse_token_details(token_id: &str, raw: &str) -> HlsResult<PublicTokenDetails> {
+    let value: Value = serde_json::from_str(raw)
+        .map_err(|err| HlsError::Parse(format!("invalid tokenDetails JSON: {err}")))?;
+    parse_token_details_value(token_id, &value)
 }
 
 pub fn select_universe(
@@ -214,6 +364,77 @@ fn symbols_from_meta(meta: SpotMetaResponse) -> HlsResult<Vec<MarketSymbol>> {
         .collect()
 }
 
+fn spot_meta_and_contexts_from_value(root: &Value) -> HlsResult<(SpotMetaResponse, Vec<Value>)> {
+    let parts = root.as_array().ok_or_else(|| {
+        HlsError::Parse("spotMetaAndAssetCtxs response must be a two-element array".to_owned())
+    })?;
+    let meta_value = parts.first().ok_or_else(|| {
+        HlsError::Parse("spotMetaAndAssetCtxs response is missing spot metadata".to_owned())
+    })?;
+    let context_values = parts.get(1).and_then(Value::as_array).ok_or_else(|| {
+        HlsError::Parse("spotMetaAndAssetCtxs response is missing asset contexts".to_owned())
+    })?;
+    let meta: SpotMetaResponse = serde_json::from_value(meta_value.clone())
+        .map_err(|err| HlsError::Parse(format!("invalid embedded spot metadata: {err}")))?;
+    Ok((meta, context_values.clone()))
+}
+
+fn base_token_ids_from_spot_meta_and_asset_ctxs(raw: &str) -> HlsResult<Vec<String>> {
+    let root: Value = serde_json::from_str(raw)
+        .map_err(|err| HlsError::Parse(format!("invalid spotMetaAndAssetCtxs JSON: {err}")))?;
+    let (meta, _) = spot_meta_and_contexts_from_value(&root)?;
+    let tokens_by_index: HashMap<u32, SpotToken> = meta
+        .tokens
+        .into_iter()
+        .map(|token| (token.index, token))
+        .collect();
+    let mut token_ids = Vec::new();
+
+    for entry in meta.universe {
+        let Some(base_token_index) = entry.tokens.first() else {
+            continue;
+        };
+        if let Some(token_id) = tokens_by_index
+            .get(base_token_index)
+            .and_then(|token| token.token_id.clone())
+        {
+            token_ids.push(token_id);
+        }
+    }
+
+    token_ids.sort();
+    token_ids.dedup();
+    Ok(token_ids)
+}
+
+fn parse_token_details_value(token_id: &str, value: &Value) -> HlsResult<PublicTokenDetails> {
+    Ok(PublicTokenDetails {
+        token_id: token_id.to_owned(),
+        name: value
+            .get("name")
+            .and_then(Value::as_str)
+            .map(ToOwned::to_owned),
+        deployer: value
+            .get("deployer")
+            .and_then(Value::as_str)
+            .filter(|text| !text.trim().is_empty())
+            .map(ToOwned::to_owned),
+        deploy_time_ms: match value.get("deployTime").and_then(Value::as_str) {
+            Some(text) if !text.trim().is_empty() => Some(
+                i64::try_from(
+                    parse_utc_datetime_millis(text)
+                        .map_err(|err| HlsError::Parse(format!("invalid deployTime: {err}")))?,
+                )
+                .map_err(|err| HlsError::Parse(format!("deployTime out of range: {err}")))?,
+            ),
+            _ => None,
+        },
+        seeded_usdc: numeric_field(value, "seededUsdc")?,
+        max_supply: numeric_field(value, "maxSupply")?,
+        circulating_supply: numeric_field(value, "circulatingSupply")?,
+    })
+}
+
 fn numeric_field(value: &Value, field: &str) -> HlsResult<Option<f64>> {
     let Some(raw) = value.get(field) else {
         return Ok(None);
@@ -235,6 +456,11 @@ fn numeric_field(value: &Value, field: &str) -> HlsResult<Option<f64>> {
             "field '{field}' must be a number or numeric string, got {other}"
         ))),
     }
+}
+
+fn now_ms_i64() -> HlsResult<i64> {
+    i64::try_from(now_millis()?)
+        .map_err(|err| HlsError::Time(format!("current timestamp exceeds i64: {err}")))
 }
 
 fn matches_any(symbol: &MarketSymbol, selectors: &[String]) -> bool {

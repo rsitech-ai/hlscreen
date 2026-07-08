@@ -1,4 +1,5 @@
 use hls_core::data_gap::DataGap;
+use hls_core::metadata::{COHORT_FRESH_LIQUIDITY, MetadataEnrichment, MetadataEnrichmentInput};
 use hls_store::metadata::{FileRegistryEntry, MetadataRegistry, RecordingRun, SymbolRegistryEntry};
 
 #[test]
@@ -68,4 +69,42 @@ fn metadata_registry_tracks_runs_files_and_data_gaps() {
     let gaps = registry.list_gaps("run-meta").expect("gaps");
     assert_eq!(gaps.len(), 1);
     assert_eq!(gaps[0].reason, "fixture gap");
+}
+
+#[test]
+fn metadata_registry_persists_enrichment_freshness() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let registry = MetadataRegistry::open(temp.path().join("hls.sqlite")).expect("open registry");
+    let metadata = MetadataEnrichment::from_public_input(MetadataEnrichmentInput {
+        symbol: "@107".to_owned(),
+        display_name: "HYPE/USDC".to_owned(),
+        feed_identifier: "@107".to_owned(),
+        spot_index: 107,
+        base_token_index: 150,
+        quote_token_index: 0,
+        metadata_source: "spotMetaAndAssetCtxs+tokenDetails".to_owned(),
+        metadata_fetched_at_ms: 1_710_000_100_000,
+        deploy_time_ms: Some(1_709_400_000_000),
+        deployer: Some("0x1234567890abcdef1234567890abcdef12345678".to_owned()),
+        seeded_usdc: Some(1_250_000.0),
+        max_supply: Some(1_000_000_000.0),
+        circulating_supply: Some(100_000_000.0),
+        now_ms: 1_710_000_100_000,
+    });
+
+    registry
+        .upsert_metadata_enrichment(&metadata)
+        .expect("insert metadata");
+
+    let cached = registry
+        .get_metadata_enrichment("@107")
+        .expect("read metadata")
+        .expect("metadata exists");
+    assert_eq!(cached.metadata_fetched_at_ms, 1_710_000_100_000);
+    assert_eq!(cached.metadata.display_name, "HYPE/USDC");
+    assert!(cached.metadata.has_tag(COHORT_FRESH_LIQUIDITY));
+
+    let all = registry.list_metadata_enrichments().expect("list metadata");
+    assert_eq!(all.len(), 1);
+    assert_eq!(all[0].symbol, "@107");
 }

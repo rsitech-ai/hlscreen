@@ -105,6 +105,7 @@ fn fixture_events_produce_feature_snapshot_with_freshness_state() {
         momentum_score: 0.0,
         mean_reversion_score: 0.0,
         score_breakdown: None,
+        metadata: None,
         updated_ms_ago: Some(6_000),
         staleness_state: StalenessState::Fresh,
         incomplete_window_reason: None,

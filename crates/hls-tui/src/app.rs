@@ -4,6 +4,7 @@ use hls_core::{
         AdverseSelectionProxy, FeatureSnapshot, LiquidityResilienceState, StalenessState,
         TradeabilityState,
     },
+    metadata::{COHORT_FRESH_LIQUIDITY, COHORT_NEW_LISTING, COHORT_UNKNOWN_METADATA},
 };
 use hls_screen::{ScreenEngine, ScreenRequest};
 
@@ -114,6 +115,18 @@ pub fn render_table_with_title(rows: &[FeatureSnapshot], title: &str) -> String 
         ),
         stats.resilience_status(),
     ));
+    output.push_str(&panel_line(
+        "METADATA",
+        &format!(
+            "complete {} | partial {} | missing {} | new {} | fresh liquidity {}",
+            stats.metadata_complete,
+            stats.metadata_partial,
+            stats.metadata_missing,
+            stats.metadata_new_listing,
+            stats.metadata_fresh_liquidity,
+        ),
+        stats.metadata_status(),
+    ));
     output.push_str(&bottom_border());
     output.push_str(&section_rule("MARKET BOARD"));
 
@@ -125,12 +138,12 @@ pub fn render_table_with_title(rows: &[FeatureSnapshot], title: &str) -> String 
         return output;
     }
 
-    output.push_str("#  SYMBOL        STATE      CONF   TRAD   RESIL    PRICE     SPRD    SHOCK    DEPTH    FLOW30    OFI30    SCORE    AGE  OBSERVATION\n");
-    output.push_str("── ────────────  ─────────  ─────  ─────  ───────  ───────── ─────── ─────── ──────── ──────── ──────── ───────── ───── ───────────────\n");
+    output.push_str("#  SYMBOL        STATE      CONF   TRAD   RESIL    PRICE     SPRD    SHOCK    DEPTH    FLOW30    OFI30    SCORE    AGE   META     OBSERVATION\n");
+    output.push_str("── ────────────  ─────────  ─────  ─────  ───────  ───────── ─────── ─────── ──────── ──────── ──────── ───────── ───── ──────── ───────────────────\n");
 
     for (index, row) in rows.iter().enumerate() {
         output.push_str(&format!(
-            "{:>02} {:<12}  {:<9}  {:<5}  {:<5}  {:<7} {:>9} {:>7} {:>7} {:>8} {:>8} {:>8} {:>9} {:>5} {}\n",
+            "{:>02} {:<12}  {:<9}  {:<5}  {:<5}  {:<7} {:>9} {:>7} {:>7} {:>8} {:>8} {:>8} {:>9} {:>5} {:<8} {}\n",
             index + 1,
             row.symbol,
             format_state(&row.staleness_state),
@@ -145,7 +158,8 @@ pub fn render_table_with_title(rows: &[FeatureSnapshot], title: &str) -> String 
             format_signed_usd(row.bbo_ofi_proxy_30s),
             format_score_pair(row),
             format_age(row.updated_ms_ago),
-            truncate_chars(&format_row_observation(row), 20),
+            format_metadata_chip(row),
+            truncate_chars(&format_row_observation(row), 28),
         ));
     }
 
@@ -179,6 +193,47 @@ pub fn render_table_with_title(rows: &[FeatureSnapshot], title: &str) -> String 
             "flow proxy | signed notional 30s {} | BBO OFI 30s {} | top-of-book proxy only\n",
             format_signed_usd(selected.signed_notional_flow_30s),
             format_signed_usd(selected.bbo_ofi_proxy_30s),
+        ));
+        output.push_str(&format!(
+            "metadata | {} | listing age {} | seeded {} | source {}\n",
+            format_metadata_tags(selected),
+            format_listing_age(
+                selected
+                    .metadata
+                    .as_ref()
+                    .and_then(|metadata| metadata.listing_age_ms)
+            ),
+            format_usd(
+                selected
+                    .metadata
+                    .as_ref()
+                    .and_then(|metadata| metadata.seeded_usdc)
+            ),
+            selected
+                .metadata
+                .as_ref()
+                .map(|metadata| metadata.metadata_source.as_str())
+                .unwrap_or("missing"),
+        ));
+        output.push_str(&format!(
+            "metadata detail | deployer {} | unknown fields {}\n",
+            format_deployer(
+                selected
+                    .metadata
+                    .as_ref()
+                    .and_then(|metadata| metadata.deployer.as_deref())
+            ),
+            selected
+                .metadata
+                .as_ref()
+                .map(|metadata| {
+                    if metadata.unknown_fields.is_empty() {
+                        "none".to_owned()
+                    } else {
+                        metadata.unknown_fields.join(",")
+                    }
+                })
+                .unwrap_or_else(|| "all".to_owned()),
         ));
         output.push_str(&format!(
             "state | {} | age {} | incomplete {} | observation {}\n",
@@ -239,6 +294,11 @@ struct TableStats {
     resilience_brittle: usize,
     resilience_active: usize,
     max_spread_shock_bps: Option<f64>,
+    metadata_complete: usize,
+    metadata_partial: usize,
+    metadata_missing: usize,
+    metadata_new_listing: usize,
+    metadata_fresh_liquidity: usize,
 }
 
 impl TableStats {
@@ -318,6 +378,39 @@ impl TableStats {
                 })
                 .count(),
             max_spread_shock_bps: max_value(rows.iter().filter_map(|row| row.spread_shock_bps)),
+            metadata_complete: rows
+                .iter()
+                .filter(|row| {
+                    row.metadata
+                        .as_ref()
+                        .is_some_and(|metadata| metadata.is_complete())
+                })
+                .count(),
+            metadata_partial: rows
+                .iter()
+                .filter(|row| {
+                    row.metadata
+                        .as_ref()
+                        .is_some_and(|metadata| !metadata.is_complete())
+                })
+                .count(),
+            metadata_missing: rows.iter().filter(|row| row.metadata.is_none()).count(),
+            metadata_new_listing: rows
+                .iter()
+                .filter(|row| {
+                    row.metadata
+                        .as_ref()
+                        .is_some_and(|metadata| metadata.has_tag(COHORT_NEW_LISTING))
+                })
+                .count(),
+            metadata_fresh_liquidity: rows
+                .iter()
+                .filter(|row| {
+                    row.metadata
+                        .as_ref()
+                        .is_some_and(|metadata| metadata.has_tag(COHORT_FRESH_LIQUIDITY))
+                })
+                .count(),
         }
     }
 
@@ -367,6 +460,16 @@ impl TableStats {
             "PARTIAL"
         } else {
             "GOOD"
+        }
+    }
+
+    fn metadata_status(&self) -> &'static str {
+        if self.metadata_missing > 0 || self.metadata_partial > 0 {
+            "PARTIAL"
+        } else if self.metadata_new_listing > 0 || self.metadata_fresh_liquidity > 0 {
+            "PUBLIC"
+        } else {
+            "READY"
         }
     }
 }
@@ -440,6 +543,68 @@ fn format_signed_score(value: f64) -> String {
     } else {
         format!("{value:.1}")
     }
+}
+
+fn format_metadata_chip(row: &FeatureSnapshot) -> String {
+    let Some(metadata) = &row.metadata else {
+        return "UNKNOWN".to_owned();
+    };
+    if metadata.has_tag(COHORT_NEW_LISTING) && metadata.has_tag(COHORT_FRESH_LIQUIDITY) {
+        "NEW+SEED".to_owned()
+    } else if metadata.has_tag(COHORT_NEW_LISTING) {
+        "NEW".to_owned()
+    } else if metadata.has_tag(COHORT_FRESH_LIQUIDITY) {
+        "SEEDED".to_owned()
+    } else if metadata.has_tag(COHORT_UNKNOWN_METADATA) {
+        "UNKNOWN".to_owned()
+    } else {
+        "PUBLIC".to_owned()
+    }
+}
+
+fn format_metadata_tags(row: &FeatureSnapshot) -> String {
+    match &row.metadata {
+        Some(metadata) => format!("tags {}", metadata.cohort_label()),
+        None => "tags unknown_metadata".to_owned(),
+    }
+}
+
+fn format_listing_age(value: Option<i64>) -> String {
+    value.map_or_else(
+        || "-".to_owned(),
+        |value| {
+            let value = value.max(0);
+            if value < 60 * 60 * 1_000 {
+                format!("{:.0}m", value as f64 / (60.0 * 1_000.0))
+            } else if value < 48 * 60 * 60 * 1_000 {
+                format!("{:.1}h", value as f64 / (60.0 * 60.0 * 1_000.0))
+            } else {
+                format!("{:.1}d", value as f64 / (24.0 * 60.0 * 60.0 * 1_000.0))
+            }
+        },
+    )
+}
+
+fn format_deployer(value: Option<&str>) -> String {
+    value.map_or_else(
+        || "-".to_owned(),
+        |value| {
+            if value.chars().count() <= 14 {
+                value.to_owned()
+            } else {
+                let prefix: String = value.chars().take(8).collect();
+                let suffix: String = value
+                    .chars()
+                    .rev()
+                    .take(6)
+                    .collect::<Vec<_>>()
+                    .into_iter()
+                    .rev()
+                    .collect();
+                format!("{prefix}…{suffix}")
+            }
+        },
+    )
 }
 
 fn format_confidence_chip(row: &FeatureSnapshot) -> String {
@@ -594,57 +759,68 @@ fn format_row_observation(row: &FeatureSnapshot) -> String {
     }
 }
 
-fn observation_parts(row: &FeatureSnapshot) -> Vec<&'static str> {
+fn observation_parts(row: &FeatureSnapshot) -> Vec<String> {
     let mut parts = Vec::new();
 
     if matches!(row.staleness_state, StalenessState::Stale) {
-        parts.push("stale feed");
+        parts.push("stale feed".to_owned());
     } else if matches!(row.staleness_state, StalenessState::Incomplete) {
-        parts.push("partial data");
+        parts.push("partial data".to_owned());
     }
 
     match row.confidence.level {
-        ConfidenceLevel::Low => parts.push("low confidence"),
-        ConfidenceLevel::Untrusted => parts.push("untrusted data"),
+        ConfidenceLevel::Low => parts.push("low confidence".to_owned()),
+        ConfidenceLevel::Untrusted => parts.push("untrusted data".to_owned()),
         ConfidenceLevel::High | ConfidenceLevel::Medium => {}
     }
 
     match row.tradeability_state {
-        TradeabilityState::Thin => parts.push("thin tradeability"),
-        TradeabilityState::Costly => parts.push("costly tradeability"),
-        TradeabilityState::Stale => parts.push("stale tradeability"),
+        TradeabilityState::Thin => parts.push("thin tradeability".to_owned()),
+        TradeabilityState::Costly => parts.push("costly tradeability".to_owned()),
+        TradeabilityState::Stale => parts.push("stale tradeability".to_owned()),
         TradeabilityState::Unknown | TradeabilityState::Tradeable => {}
     }
 
     match row.resilience_state {
-        LiquidityResilienceState::Shock => parts.push("spread shock"),
-        LiquidityResilienceState::Recovering => parts.push("recovering book"),
-        LiquidityResilienceState::Brittle => parts.push("brittle book"),
+        LiquidityResilienceState::Shock => parts.push("spread shock".to_owned()),
+        LiquidityResilienceState::Recovering => parts.push("recovering book".to_owned()),
+        LiquidityResilienceState::Brittle => parts.push("brittle book".to_owned()),
         LiquidityResilienceState::Unknown | LiquidityResilienceState::Normal => {}
     }
 
     match row.adverse_selection_proxy {
-        AdverseSelectionProxy::Watch => parts.push("flow watch"),
-        AdverseSelectionProxy::Brittle => parts.push("adverse proxy"),
+        AdverseSelectionProxy::Watch => parts.push("flow watch".to_owned()),
+        AdverseSelectionProxy::Brittle => parts.push("adverse proxy".to_owned()),
         AdverseSelectionProxy::Unknown | AdverseSelectionProxy::Normal => {}
     }
 
     if row.tob_depth_usd.is_some_and(|depth| depth < 1_000.0) {
-        parts.push("thin book");
+        parts.push("thin book".to_owned());
     }
     if row.spread_bps.is_some_and(|spread| spread >= 50.0) {
-        parts.push("wide spread");
+        parts.push("wide spread".to_owned());
     } else if row.spread_bps.is_some_and(|spread| spread <= 10.0) {
-        parts.push("tight spread");
+        parts.push("tight spread".to_owned());
     }
     if row.ret_1m.is_some_and(|ret| ret.abs() >= 0.005) {
-        parts.push("move active");
+        parts.push("move active".to_owned());
     }
     if row
         .tob_imbalance
         .is_some_and(|imbalance| imbalance.abs() >= 0.4)
     {
-        parts.push("imbalanced");
+        parts.push("imbalanced".to_owned());
+    }
+    if let Some(metadata) = &row.metadata {
+        if metadata.has_tag(COHORT_NEW_LISTING) {
+            parts.push("new listing".to_owned());
+        }
+        if metadata.has_tag(COHORT_FRESH_LIQUIDITY) {
+            parts.push("fresh liquidity".to_owned());
+        }
+        if metadata.has_tag(COHORT_UNKNOWN_METADATA) {
+            parts.push("metadata partial".to_owned());
+        }
     }
 
     parts

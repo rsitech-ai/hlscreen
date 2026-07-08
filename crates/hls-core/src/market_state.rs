@@ -3,6 +3,7 @@ use std::collections::{HashMap, HashSet};
 use serde::{Deserialize, Serialize};
 
 use crate::confidence::DataConfidenceSnapshot;
+use crate::metadata::MetadataEnrichment;
 use crate::score::ScoreBreakdown;
 use crate::{HlsError, HlsResult};
 
@@ -220,6 +221,7 @@ pub struct FeatureSnapshot {
     pub momentum_score: f64,
     pub mean_reversion_score: f64,
     pub score_breakdown: Option<ScoreBreakdown>,
+    pub metadata: Option<MetadataEnrichment>,
     pub updated_ms_ago: Option<i64>,
     pub staleness_state: StalenessState,
     pub incomplete_window_reason: Option<String>,
