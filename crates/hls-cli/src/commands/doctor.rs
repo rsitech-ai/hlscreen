@@ -7,6 +7,7 @@ use anyhow::Context;
 use clap::Args;
 use hls_core::config::{default_config_for_data_dir, load_config};
 use hls_hyperliquid::rest::HyperliquidRestClient;
+use hls_tui::health::render_health_pane;
 use serde_json::json;
 
 use crate::commands::health::require_live_health;
@@ -96,11 +97,8 @@ pub async fn run(args: DoctorArgs) -> anyhow::Result<()> {
         if let Some(live_ok) = live_rest_ok {
             println!("live REST: {}", if live_ok { "ok" } else { "fail" });
         }
-        if let Some(health) = health {
-            println!("health: {}", health.status.as_str());
-            for reason in health.degraded_reasons {
-                println!("health reason: {reason}");
-            }
+        if let Some(health) = &health {
+            print!("{}", render_health_pane(health));
         }
     }
 
