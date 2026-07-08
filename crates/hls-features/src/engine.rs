@@ -196,6 +196,7 @@ impl FeatureEngine {
             momentum_score,
             mean_reversion_score,
             score_breakdown: Some(score_breakdown),
+            metadata: None,
             updated_ms_ago,
             staleness_state,
             incomplete_window_reason,

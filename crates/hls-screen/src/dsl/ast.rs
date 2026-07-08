@@ -36,6 +36,16 @@ pub enum Field {
     ScoreRawTotal,
     ScoreConfidencePenalty,
     ScoreComponent(String),
+    MetadataState,
+    MetadataSource,
+    MetadataFetchedAtMs,
+    ListingAgeMs,
+    Deployer,
+    DeployTimeMs,
+    SeededUsdc,
+    MaxSupply,
+    CirculatingSupply,
+    CohortTag,
     UpdatedMsAgo,
 }
 
@@ -84,6 +94,16 @@ impl Field {
                 }
                 Ok(Self::ScoreComponent(name.to_owned()))
             }
+            "metadata_state" => Ok(Self::MetadataState),
+            "metadata_source" => Ok(Self::MetadataSource),
+            "metadata_fetched_at_ms" => Ok(Self::MetadataFetchedAtMs),
+            "listing_age_ms" => Ok(Self::ListingAgeMs),
+            "deployer" => Ok(Self::Deployer),
+            "deploy_time_ms" => Ok(Self::DeployTimeMs),
+            "seeded_usdc" => Ok(Self::SeededUsdc),
+            "max_supply" => Ok(Self::MaxSupply),
+            "circulating_supply" => Ok(Self::CirculatingSupply),
+            "cohort_tag" => Ok(Self::CohortTag),
             "updated_ms_ago" => Ok(Self::UpdatedMsAgo),
             other => Err(HlsError::Config(format!("unknown field '{other}'"))),
         }

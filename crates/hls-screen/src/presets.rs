@@ -47,6 +47,21 @@ pub fn builtin_presets() -> Vec<ScreenPreset> {
             where_expr: "abs(signed_notional_flow_30s) > 1000",
             sort: "abs(signed_notional_flow_30s):desc",
         },
+        ScreenPreset {
+            name: "new_listings",
+            where_expr: "cohort_tag == \"new_listing\"",
+            sort: "listing_age_ms:asc",
+        },
+        ScreenPreset {
+            name: "fresh_liquidity",
+            where_expr: "cohort_tag == \"fresh_liquidity\"",
+            sort: "seeded_usdc:desc",
+        },
+        ScreenPreset {
+            name: "metadata_unknown",
+            where_expr: "cohort_tag == \"unknown_metadata\"",
+            sort: "metadata_fetched_at_ms:desc",
+        },
     ]
 }
 

@@ -1,4 +1,4 @@
-pub(crate) const PANEL_WIDTH: usize = 132;
+pub(crate) const PANEL_WIDTH: usize = 152;
 
 pub(crate) fn top_border() -> String {
     format!("╭{}╮\n", "─".repeat(PANEL_WIDTH - 2))
