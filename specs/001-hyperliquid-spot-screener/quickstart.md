@@ -38,12 +38,12 @@ Expected outcome:
 ## One-Symbol Live Ingestion Smoke
 
 ```bash
-./target/debug/hls live --symbols @107 --fixture-file tests/fixtures/hyperliquid/ws_mock_live.ndjson --record --raw --normalized --run-id quickstart-live --data-dir /tmp/hlscreen-quickstart --once
+./target/debug/hls live --symbols @107 --duration-secs 30 --refresh-secs 5 --tui --record --raw --normalized --run-id quickstart-live --data-dir /tmp/hlscreen-quickstart
 ```
 
 Expected outcome:
 
-- Table displays one fixture-backed live row.
+- Table displays one live public WebSocket row.
 - Raw and normalized local files are written.
 - Shutdown flushes file metadata and marks the run clean.
 
@@ -51,7 +51,7 @@ Expected outcome:
 
 ```bash
 ./target/debug/hls screen --fixture-file tests/fixtures/hyperliquid/ws_mock_live.ndjson --preset thin_books
-./target/debug/hls live --symbols @107 --fixture-file tests/fixtures/hyperliquid/ws_mock_live.ndjson --preset thin_books --once
+./target/debug/hls live --symbols @107 --duration-secs 30 --refresh-secs 5 --tui --preset thin_books
 ```
 
 Expected outcome:

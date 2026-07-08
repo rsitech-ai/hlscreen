@@ -6,7 +6,7 @@
 
 - Public REST metadata parsing.
 - Fixture-backed public WebSocket parsing.
-- Bounded public WebSocket live mode with heartbeat pings, duration-based shutdown, and optional raw/normalized recording.
+- Bounded public WebSocket live mode with heartbeat pings, reconnect/resubscribe, duration-based shutdown, optional raw/normalized recording, and fail-closed writer backpressure.
 - Local compressed raw recording.
 - Normalized replay JSONL.
 - SQLite metadata registry.
@@ -16,10 +16,9 @@
 
 ## Next Candidate Slices
 
-1. Live WebSocket recovery hardening.
-   - Automatic reconnect and resubscribe after server-side disconnects.
-   - Gap recording and public REST backfill where docs provide a matching info request.
-   - Bounded writer queues under sustained all-symbol load.
+1. Public data backfill after reconnect.
+   - Gap-aware public REST backfill where docs provide a matching info request.
+   - Feature-window invalidation until enough fresh post-gap data arrives.
 2. True Parquet writer.
    - Stable schemas.
    - Local replay compatibility.

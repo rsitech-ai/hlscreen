@@ -60,7 +60,9 @@ impl FeatureEngine {
         let rv_1h = window_realized_volatility_since(&state.trades, now_ms, ONE_HOUR_MS);
         let volume_z_1h = latest_candle_volume_z(&state.candles);
         let trade_count_z_1h = latest_candle_trade_count_z(&state.candles);
-        let updated_ms_ago = state.last_update_ms.map(|last| now_ms.saturating_sub(last));
+        let updated_ms_ago = state
+            .last_update_ms
+            .map(|last| now_ms.saturating_sub(last).max(0));
         let staleness_state = match updated_ms_ago {
             Some(age) if age <= self.stale_after_ms => StalenessState::Fresh,
             Some(_) => StalenessState::Stale,
