@@ -58,21 +58,21 @@
 
 ### Tests for User Story 1
 
-- [ ] T020 [P] [US1] Add reconnect-gap fixture in `/Users/s1kor/dev/trading/rsibot/hlscreen/tests/fixtures/microstructure/gap_replay.ndjson`
-- [ ] T021 [P] [US1] Add sparse-trade fixture in `/Users/s1kor/dev/trading/rsibot/hlscreen/tests/fixtures/microstructure/sparse_trades.ndjson`
-- [ ] T022 [P] [US1] Add duplicate-event confidence tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/tests/confidence_state.rs`
+- [x] T020 [P] [US1] Add reconnect-gap fixture in `/Users/s1kor/dev/trading/rsibot/hlscreen/tests/fixtures/microstructure/gap_replay.ndjson`
+- [x] T021 [P] [US1] Add sparse-trade fixture in `/Users/s1kor/dev/trading/rsibot/hlscreen/tests/fixtures/microstructure/sparse_trades.ndjson`
+- [x] T022 [P] [US1] Add duplicate-event confidence tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/tests/confidence_state.rs`
 - [ ] T023 [P] [US1] Add replay parity tests for confidence snapshots in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-store/tests/replay_parity.rs`
 - [ ] T024 [P] [US1] Add CLI replay parity test in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/tests/replay_parity_command.rs`
-- [ ] T025 [P] [US1] Add TUI confidence rendering golden test in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-tui/tests/confidence_pane.rs`
+- [x] T025 [P] [US1] Add TUI confidence rendering golden test in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-tui/tests/confidence_pane.rs`
 
 ### Implementation for User Story 1
 
-- [ ] T026 [US1] Attach confidence snapshots to feature snapshots in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/src/market_state.rs`
-- [ ] T027 [US1] Compute confidence from gaps, freshness, sparse data, duplicates, parser drops, and writer backlog in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-features/src/engine.rs`
+- [x] T026 [US1] Attach confidence snapshots to feature snapshots in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/src/market_state.rs`
+- [x] T027 [US1] Compute confidence from gaps, freshness, sparse data, duplicates, parser drops, and writer backlog in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-features/src/engine.rs`
 - [ ] T028 [US1] Persist confidence snapshot metadata in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-store/src/metadata.rs`
 - [ ] T029 [US1] Implement replay parity checker in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-store/src/replay.rs`
 - [ ] T030 [US1] Add `--verify-parity` replay flag in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/src/commands/replay.rs`
-- [ ] T031 [US1] Render confidence state in market board rows in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-tui/src/app.rs`
+- [x] T031 [US1] Render confidence state in market board rows in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-tui/src/app.rs`
 - [ ] T032 [US1] Include confidence summary in live/replay command output in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/src/commands/live.rs`
 - [ ] T033 [US1] Document confidence states and replay parity in `/Users/s1kor/dev/trading/rsibot/hlscreen/docs/microstructure.md`
 
