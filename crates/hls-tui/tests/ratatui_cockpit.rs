@@ -401,6 +401,40 @@ fn book_pane_renders_bid_ask_share_and_notional_bars() {
 }
 
 #[test]
+fn book_pane_flow_view_renders_depth_flow_mode() {
+    let snapshots = fixture_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Book),
+        snapshots.len(),
+    );
+    state.apply(WorkstationAction::NextView, snapshots.len());
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    );
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 120,
+            height: 36,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders book flow mode");
+
+    assert!(rendered.contains("view:flow"));
+    assert!(rendered.contains("[FOCUS] BOOK"));
+    assert!(rendered.contains("BOOK FLOW MODE"));
+    assert!(rendered.contains("depth skew"));
+    assert!(rendered.contains("spread gate"));
+    assert!(rendered.contains("Public top-book only"));
+}
+
+#[test]
 fn tape_pane_renders_flow_pulse_and_net_pressure_bars() {
     let snapshots = directional_snapshots();
     let mut state = WorkstationUiState::default();

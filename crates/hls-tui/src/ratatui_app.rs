@@ -1231,7 +1231,7 @@ fn render_book(
     let content_height = area.height.saturating_sub(2) as usize;
     let lines = selected_row(&rows, model).map_or_else(
         || vec![Line::from("No book data")],
-        |row| book_lines(row, color_mode, content_height),
+        |row| book_lines(row, color_mode, content_height, model.ui_state.view()),
     );
     frame.render_widget(
         Paragraph::new(lines)
@@ -1245,6 +1245,7 @@ fn book_lines(
     row: &FeatureSnapshot,
     color_mode: RatatuiColorMode,
     content_height: usize,
+    view: WorkstationView,
 ) -> Vec<Line<'static>> {
     let bid_notional = notional(row.bid_px, row.bid_sz);
     let ask_notional = notional(row.ask_px, row.ask_sz);
@@ -1301,6 +1302,49 @@ fn book_lines(
             ),
         ]),
     ];
+
+    if view == WorkstationView::Flow {
+        lines.extend([
+            Line::from(vec![
+                Span::styled(
+                    "BOOK FLOW MODE ",
+                    Style::default()
+                        .fg(accent(color_mode))
+                        .add_modifier(Modifier::BOLD),
+                ),
+                Span::raw("Public top-book only"),
+            ]),
+            Line::from(format!(
+                "depth skew {}  bid {} / ask {}",
+                signed_meter(row.tob_imbalance.unwrap_or(0.0)),
+                format_usd(bid_notional),
+                format_usd(ask_notional)
+            )),
+            Line::from(format!(
+                "spread gate {} bps  OFI {}",
+                format_optional(row.spread_bps, 1),
+                format_usd_signed(row.bbo_ofi_proxy_30s)
+            )),
+        ]);
+        if content_height > 7 {
+            lines.extend([
+                Line::from(vec![
+                    Span::styled("bid wall ", Style::default().fg(success(color_mode))),
+                    Span::raw(format!("{bid_bar} {}", format_usd(bid_notional))),
+                ]),
+                Line::from(vec![
+                    Span::styled("ask wall ", Style::default().fg(danger(color_mode))),
+                    Span::raw(format!("{ask_bar} {}", format_usd(ask_notional))),
+                ]),
+                Line::from(format!(
+                    "state {} / {}",
+                    row.tradeability_state.as_str(),
+                    row.resilience_state.as_str()
+                )),
+            ]);
+        }
+        return lines;
+    }
 
     if content_height <= 7 {
         lines.extend([

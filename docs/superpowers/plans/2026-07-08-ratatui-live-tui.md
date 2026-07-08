@@ -205,4 +205,5 @@ Update README and memory with the new TUI behavior, command, key bindings, and v
 - [x] Add row-level `SIG` score and `BIAS` leading-factor columns to the wide Ratatui market board.
 - [x] Add row-level visual `EDGE` heat bars to the wide Ratatui market board.
 - [x] Add selected-symbol `LIQUIDITY RADAR` bars to the detail pane from public BBO, depth, imbalance, and flow fields.
+- [x] Add a focused BOOK flow mode that reacts to the existing `tab` view cycle and renders top-book depth skew, spread gate, and OFI context.
 - Consider deeper order-book/tape interactions and persisted TUI preferences after the focused-pane state is stable.
