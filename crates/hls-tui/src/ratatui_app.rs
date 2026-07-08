@@ -306,6 +306,7 @@ fn render_watchlist(
         .ui_state
         .selected_index(rows.len())
         .unwrap_or_default();
+    let compact = area.width < 52;
     let table_rows = rows
         .iter()
         .take(model.ui_state.visible_row_limit())
@@ -321,37 +322,71 @@ fn render_watchlist(
             } else {
                 market_row_style(row, color_mode)
             };
-            Row::new(vec![
-                Cell::from(format!("{:02}", index + 1)),
-                Cell::from(display_symbol(row).to_owned()),
-                Cell::from(format_price(row.price)),
-                Cell::from(trend_label(row.ret_1m)),
-                Cell::from(format_usd_signed(row.signed_notional_flow_30s)),
-                Cell::from(format_usd(row.tob_depth_usd)),
-                Cell::from(quality_badge(row)),
-            ])
-            .style(style)
+            if compact {
+                Row::new(vec![
+                    Cell::from(format!("{:02}", index + 1)),
+                    Cell::from(display_symbol(row).to_owned()),
+                    Cell::from(format_board_price(row.price)),
+                    Cell::from(trend_label(row.ret_1m)),
+                    Cell::from(format_usd_signed(row.signed_notional_flow_30s)),
+                    Cell::from(quality_badge(row)),
+                ])
+                .style(style)
+            } else {
+                Row::new(vec![
+                    Cell::from(format!("{:02}", index + 1)),
+                    Cell::from(display_symbol(row).to_owned()),
+                    Cell::from(format_price(row.price)),
+                    Cell::from(trend_label(row.ret_1m)),
+                    Cell::from(format_usd_signed(row.signed_notional_flow_30s)),
+                    Cell::from(format_usd(row.tob_depth_usd)),
+                    Cell::from(quality_badge(row)),
+                ])
+                .style(style)
+            }
         });
 
-    let table = Table::new(
-        table_rows,
-        [
-            Constraint::Length(4),
-            Constraint::Min(9),
-            Constraint::Length(10),
-            Constraint::Length(7),
-            Constraint::Length(8),
-            Constraint::Length(7),
-            Constraint::Length(3),
-        ],
-    )
-    .header(
-        Row::new(["RANK", "CODE", "PRICE", "1M", "FLOW30", "DEPTH", "Q"]).style(
-            Style::default()
-                .fg(accent(color_mode))
-                .add_modifier(Modifier::BOLD),
-        ),
-    )
+    let table = if compact {
+        Table::new(
+            table_rows,
+            [
+                Constraint::Length(3),
+                Constraint::Min(8),
+                Constraint::Length(7),
+                Constraint::Length(8),
+                Constraint::Length(7),
+                Constraint::Length(1),
+            ],
+        )
+        .header(
+            Row::new(["RK", "CODE", "PX", "1M", "FLOW", "Q"]).style(
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+        )
+    } else {
+        Table::new(
+            table_rows,
+            [
+                Constraint::Length(4),
+                Constraint::Min(10),
+                Constraint::Length(10),
+                Constraint::Length(8),
+                Constraint::Length(8),
+                Constraint::Length(7),
+                Constraint::Length(1),
+            ],
+        )
+        .header(
+            Row::new(["RANK", "CODE", "PRICE", "1M", "FLOW30", "DEPTH", "Q"]).style(
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+        )
+    }
+    .column_spacing(1)
     .block(panel_for(
         "WATCHLIST",
         WorkstationPane::Watchlist,
@@ -383,6 +418,24 @@ fn trend_label(value: Option<f64>) -> String {
                 "FL"
             };
             format!("{direction}{:+.2}%", value * 100.0)
+        },
+    )
+}
+
+fn format_board_price(value: Option<f64>) -> String {
+    value.map_or_else(
+        || "-".to_owned(),
+        |value| {
+            let abs = value.abs();
+            if abs >= 10_000.0 {
+                format!("{value:.0}")
+            } else if abs >= 1_000.0 {
+                format!("{value:.1}")
+            } else if abs >= 1.0 {
+                format!("{value:.2}")
+            } else {
+                format!("{value:.4}")
+            }
         },
     )
 }
