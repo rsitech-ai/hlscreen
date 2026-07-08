@@ -117,6 +117,7 @@ struct SpotMetaResponse {
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct SpotToken {
+    name: String,
     index: u32,
     sz_decimals: u32,
     wei_decimals: u32,
@@ -191,6 +192,18 @@ pub fn parse_spot_meta_and_asset_ctxs_with_details(
         .map_err(|err| HlsError::Parse(format!("invalid spotMetaAndAssetCtxs JSON: {err}")))?;
     let (meta, context_values) = spot_meta_and_contexts_from_value(&root)?;
     let symbols = symbols_from_meta(meta.clone())?;
+    let contexts_have_coin = context_values
+        .iter()
+        .any(|context| context.get("coin").and_then(Value::as_str).is_some());
+    let contexts_by_coin: HashMap<String, Value> = context_values
+        .iter()
+        .filter_map(|context| {
+            context
+                .get("coin")
+                .and_then(Value::as_str)
+                .map(|coin| (coin.to_owned(), context.clone()))
+        })
+        .collect();
     let tokens_by_index: HashMap<u32, SpotToken> = meta
         .tokens
         .into_iter()
@@ -201,7 +214,13 @@ pub fn parse_spot_meta_and_asset_ctxs_with_details(
         .into_iter()
         .enumerate()
         .map(|(index, symbol)| {
-            let context = context_values.get(index).unwrap_or(&Value::Null);
+            let context = if contexts_have_coin {
+                contexts_by_coin
+                    .get(&symbol.hl_coin)
+                    .unwrap_or(&Value::Null)
+            } else {
+                context_values.get(index).unwrap_or(&Value::Null)
+            };
             let entry = meta.universe.get(index).ok_or_else(|| {
                 HlsError::Parse(format!("missing universe entry for context index {index}"))
             })?;
@@ -350,9 +369,16 @@ fn symbols_from_meta(meta: SpotMetaResponse) -> HlsResult<Vec<MarketSymbol>> {
                     entry.name, base_token_index
                 ))
             })?;
+            let quote_token = tokens_by_index.get(&quote_token_index).ok_or_else(|| {
+                HlsError::Parse(format!(
+                    "spot universe entry '{}' references unknown quote token {}",
+                    entry.name, quote_token_index
+                ))
+            })?;
+            let display_name = format!("{}/{}", base_token.name, quote_token.name);
 
             MarketSymbol::new(
-                entry.name,
+                display_name,
                 entry.index,
                 base_token_index,
                 quote_token_index,

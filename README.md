@@ -158,7 +158,7 @@ Run a short public live smoke for one symbol:
 
 ```bash
 ./target/debug/hls live \
-  --symbols @107 \
+  --symbols HYPE/USDC \
   --duration-secs 30 \
   --refresh-secs 5 \
   --tui \
@@ -168,6 +168,13 @@ Run a short public live smoke for one symbol:
   --run-id one-symbol-live \
   --data-dir "$(mktemp -d /tmp/hlscreen-live.XXXXXX)"
 ```
+
+`hlscreen` keeps Hyperliquid's transport IDs separate from user-facing symbols.
+For example, live `spotMeta` currently maps display `HYPE/USDC` to feed ID
+`@107`, and `UETH/USDC` to `@151`. The `live` command accepts display pairs
+case-insensitively with either slash or hyphen separators, e.g. `HYPE/USDC` or
+`hype-usdc`, and subscribes to the correct feed ID internally. Use `hls symbols`
+to inspect the current mapping.
 
 Run deterministic fixture commands for tests or offline docs:
 
