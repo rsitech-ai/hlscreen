@@ -40,6 +40,10 @@ The local SQLite registry lives at:
 hls.sqlite
 ```
 
-It tracks `runs`, `files`, `symbols`, and `data_gaps`. The registry is local-only and stores no secrets.
+It tracks `runs`, `files`, `symbols`, `data_gaps`, and
+`confidence_snapshots`. Confidence snapshots are keyed by recording run, replay
+timestamp, and symbol so `hls replay --verify-parity` can compare recomputed
+data-quality state against a persisted local baseline. The registry is
+local-only and stores no secrets.
 
 True Parquet output is not implemented in the current slice. The CLI rejects `--parquet` and asks for `--normalized` until the Parquet writer is added.
