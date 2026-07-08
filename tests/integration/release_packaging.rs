@@ -33,8 +33,10 @@ fn release_workflow_is_pull_request_plan_and_tag_publish_only() {
     assert!(workflow.contains("pull_request:"));
     assert!(workflow.contains("tags:"));
     assert!(workflow.contains("v*"));
-    assert!(workflow.contains("cargo dist plan"));
-    assert!(workflow.contains("cargo dist build"));
+    assert!(workflow.contains("run: dist plan"));
+    assert!(workflow.contains("run: dist build"));
+    assert!(!workflow.contains("cargo dist plan"));
+    assert!(!workflow.contains("cargo dist build"));
     assert!(!workflow.contains("pull_request_target"));
     assert!(!workflow.contains("${{ secrets."));
 }
@@ -43,8 +45,10 @@ fn release_workflow_is_pull_request_plan_and_tag_publish_only() {
 fn release_docs_explain_local_dry_run_and_no_secrets_boundary() {
     let docs = read("docs/RELEASING.md");
 
-    assert!(docs.contains("cargo dist plan"));
-    assert!(docs.contains("cargo dist build"));
+    assert!(docs.contains("dist plan"));
+    assert!(docs.contains("dist build"));
+    assert!(!docs.contains("cargo dist plan"));
+    assert!(!docs.contains("cargo dist build"));
     assert!(docs.contains("No release secrets"));
     assert!(docs.contains("git tag -a v"));
 }

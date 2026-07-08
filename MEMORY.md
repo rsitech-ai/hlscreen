@@ -18,7 +18,7 @@
 - Explain smoke: `./target/debug/hls explain --fixture-file tests/fixtures/microstructure/resilience_shock.ndjson --symbol @107`; JSON output is available with `--json`, and replay-backed explanations use `--data-dir <dir> --run-id <id> --symbol <symbol>`.
 - Health/API smoke: `./target/debug/hls doctor --live --json` and `./target/debug/hls server --print-health`; hidden `--simulate-health <healthy|writer-lag|interrupted>` is used only for deterministic tests.
 - Benchmark smoke: `./target/debug/hls bench --manifest tests/fixtures/microstructure/benchmark_gap_replay.json --repo-root . --json`; expected hashes are drift guards and should only change with reviewed evidence.
-- Release packaging check: `scripts/check-release-packaging.sh` compiles and runs the standalone release packaging test harness. `cargo dist plan` needs the pinned cargo-dist version from `docs/RELEASING.md`; it was not installed locally during the US5 slice.
+- Release packaging check: `scripts/check-release-packaging.sh` compiles and runs the standalone release packaging test harness. `dist plan` needs the pinned cargo-dist version from `docs/RELEASING.md`; it was not installed locally during the US5 slice.
 - Screenshot generation: `python3 scripts/generate-screenshots.py` rebuilds `hls-cli`, runs deterministic fixture/offline commands, redacts temp paths to `<tmp>`, and writes committed SVGs under `docs/assets/screenshots/`.
 - Screenshot visual preview: `rsvg-convert docs/assets/screenshots/live-screen.svg -o /tmp/hlscreen-tui-preview/live-screen.png` can render a local PNG preview without adding it to git.
 - Local quickstart smoke: `./target/debug/hls init --data-dir /tmp/hlscreen-smoke.<id>` then `./target/debug/hls doctor --data-dir /tmp/hlscreen-smoke.<id>`.
@@ -53,7 +53,7 @@
 - Screen presets are row-inspection heuristics only, not signals, recommendations, predictions, or profitability claims.
 - The local API helper intentionally exposes read-only JSON response contracts only. Do not add wallet, private, order, or trading routes.
 - Benchmark expected hashes are contract gates. Do not update `expected_hash` values just to make a test pass; inspect the canonical output and record why the behavioral change is acceptable.
-- `cargo dist` was not installed locally during the US5 slice. CI and release docs install pinned `cargo-dist` 0.32.0 before `cargo dist plan`/`cargo dist build`.
+- `dist` was not installed locally during the US5 slice. CI and release docs install pinned `cargo-dist` 0.32.0 before `dist plan`/`dist build`.
 - Hyperliquid live spot runtime payloads differ from the docs in important ways: spot asset context updates can arrive on channel `activeSpotAssetCtx` after subscribing with type `activeAssetCtx`, and asset-context/candle numeric fields can be string-encoded. Keep parser tests for those live shapes.
 - All-symbol live mode must budget subscriptions before connecting. On 2026-07-08 public REST returned 308 spot markets; four streams per market would be 1,232 subscriptions, so `--all-symbols` used three public streams (`trades`, `bbo`, `activeAssetCtx`) for 924 subscriptions under the 980 configured headroom.
 
