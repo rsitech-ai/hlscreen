@@ -1222,3 +1222,63 @@
 - What changed: Completed a repo-wide source/runtime audit and recorded it in `docs/reports/2026-07-08-e2e-audit-after-pair-cards.md`. Fixed a TUI truthfulness bug where missing spread/depth evidence could still show `QUALITY ... GOOD`; missing quote/depth evidence now reports `PARTIAL` and is covered by `missing_quote_depth_marks_quality_partial`. Fixed screenshot reproducibility by normalizing volatile `generated_at_ms` values in `scripts/generate-screenshots.py`, and regenerated `docs/assets/screenshots/health-json.svg`.
 - Validation run: official-doc/code review of public Hyperliquid WS/REST integration; fixture matrix under `/tmp/hlscreen-e2e-audit.1c4dZD` with zero non-empty stderr logs; negative probes for invalid DSL, fixture live without `--once`, deterministic record without fixture, and private benchmark path; public live smoke `./target/debug/hls live --symbols @107 --duration-secs 15 --refresh-secs 5 --tui` with 92 WS messages, 129 market events, 0 reconnects, 0 data gaps; public multi-symbol live smoke after the fix with 60 WS messages, 135 market events, 0 reconnects, 0 data gaps, and `QUALITY ... PARTIAL` for missing spread/depth evidence; PNG previews with `rsvg-convert`; final `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`; `cargo build --release --workspace --all-features`; `scripts/check-release-packaging.sh`; `python3 scripts/generate-screenshots.py`; `git diff --check`; read-only/private/dead-code scans.
 - Follow-ups: PR #25 merged into `main` at `b6a188a` after PR checks passed; post-merge `main` CI run `28959783411` passed format, clippy, tests, release build, release packaging check, and diff hygiene. Residual caveats remain documented: no automatic REST backfill after reconnect, no long-running HTTP server loop, and no installed `cargo audit`/`cargo deny`/`cargo machete` result claimed.
+
+## 2026-07-08 CI/CD and Dependabot PR Hygiene
+
+### Task
+- Objective: Verify current CI/CD and open PR status, identify any red PRs, and prevent known unsupported automated dependency updates from repeatedly opening failing PRs.
+- Owner repo(s): standalone `hlscreen/` repository only.
+- Capital impact: research-only / repository operations. No market, private-account, order, or execution behavior changes.
+
+### Context
+- Background: `main` is green after PR #25/#26, but the open PR list still includes Dependabot updates. User asked to ensure pipelines are good and PRs are green.
+- Inputs: GitHub Actions run state, open PR check rollups, `.github/workflows/ci.yml`, `.github/workflows/release.yml`, `.github/dependabot.yml`, pinned Rust `1.88`, pinned cargo-dist `0.32.0`, and GitHub Dependabot ignore documentation.
+- Outputs: scoped Dependabot ignore policy for unsupported update classes, validation evidence, and PR/merge if stable.
+
+### Assumptions
+- The repo should keep Rust 1.88 MSRV unless a dedicated dependency-upgrade slice explicitly changes it.
+- The generated cargo-dist release workflow should remain managed by pinned cargo-dist, not manual workflow edits that `dist plan` rejects.
+- Green automated dependency PRs can remain open for normal review; unsupported red dependency PRs should be closed or superseded after the policy lands.
+
+### Constraints
+- Technical: do not weaken CI gates, release packaging checks, or `dist plan` validation.
+- Operational: GitHub branch-protection API is unavailable while the repo is private on the current account tier; verify run status and workflow behavior instead.
+- Risk/capital: CI changes must not touch runtime market-data behavior or any trading-capable surface.
+
+### Options Considered
+1. Rerun the red PR checks.
+   - Pros: no code/config changes.
+   - Cons: failures are deterministic and would waste CI minutes.
+2. Raise MSRV and/or cargo-dist version immediately to satisfy Dependabot major/minor updates.
+   - Pros: could make red PRs mergeable.
+   - Cons: changes repo support policy and release generation in a broader slice than requested.
+3. Add targeted Dependabot ignores for the unsupported update classes while preserving current CI and release gates.
+   - Pros: keeps `main` green, documents why red PRs are invalid under current policy, and avoids recurring false-red PRs.
+   - Cons: requires revisiting when the repo intentionally upgrades Rust MSRV or cargo-dist.
+
+### Chosen Approach
+- Choice: option 3.
+- Why: the current `main` pipeline is already green; the risk is automated noise from updates that conflict with explicit repo constraints.
+
+### Execution Plan
+1. Inspect GitHub auth, workflows, current `main` Actions, open PRs, and failing PR logs.
+2. Add Dependabot ignore policy for `rusqlite` semver-minor updates under Rust 1.88 and `actions/checkout` semver-major updates while cargo-dist 0.32.0 owns release workflow generation.
+3. Validate YAML, release packaging, CI-equivalent local gates, and GitHub checks.
+4. Close or supersede unsupported red Dependabot PRs after the policy PR lands so remaining open PRs are green.
+
+### Test Plan
+- GitHub: `gh pr list --state open --json ...`, failing-check inspection for PR #4/#7, `gh run list --branch main --limit 10 --json ...`.
+- Local config: Ruby YAML parse for `.github/dependabot.yml`.
+- Gates: `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --release --workspace --all-features`; `scripts/check-release-packaging.sh`; `git diff --check`.
+
+### Risks and Rollback
+- Risks: overly broad ignore rules can hide useful dependency work; comments may drift when MSRV/cargo-dist policy changes.
+- Rollback: remove the two ignore entries and rerun Dependabot after a reviewed Rust/cargo-dist upgrade.
+
+### Memory Impact
+- Add/update in `MEMORY.md`: record the CI/Dependabot policy and exact red PR root causes if validated.
+
+### Final Notes
+- What changed: Added scoped Dependabot ignore rules for two unsupported automated update classes: `rusqlite` semver-minor updates while the repo MSRV is Rust 1.88, and `actions/checkout` semver-major updates while pinned cargo-dist 0.32.0 owns the generated release workflow. This keeps the current CI/CD contract strict instead of allowing known-invalid automation PRs to stay red.
+- Validation run: `gh auth status`; `gh repo view --json nameWithOwner,defaultBranchRef,url,isPrivate`; `gh pr list --state open --json ...`; `gh run list --branch main --limit 10 --json ...`; failing-check inspection for PR #4 and #7; `.github/workflows/ci.yml`, `.github/workflows/release.yml`, and `.github/dependabot.yml` review; Ruby YAML parse; `cargo fmt --check`; `scripts/check-release-packaging.sh`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --release --workspace --all-features`; `git diff --check`.
+- Follow-ups: PR #4 (`actions/checkout@v7`) and PR #7 (`rusqlite@0.40.1`) should be closed or superseded after this policy lands; remaining open Dependabot PRs are green by check rollup. GitHub branch-protection API returned `403` while the repo is private on the current account tier, so enforcement could not be API-verified until the repo is public or upgraded.
