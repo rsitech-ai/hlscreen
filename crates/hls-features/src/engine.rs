@@ -2,8 +2,15 @@ use hls_core::market_state::{FeatureSnapshot, LiveMarketState, StalenessState, S
 
 use crate::{
     formulas::{bounded_score, spread_bps, tob_depth_usd, tob_imbalance},
-    windows::{window_realized_volatility, window_return},
+    windows::{
+        latest_candle_trade_count_z, latest_candle_volume_z, window_realized_volatility_since,
+        window_return_since,
+    },
 };
+
+const ONE_MINUTE_MS: u64 = 60_000;
+const FIVE_MINUTES_MS: u64 = 5 * ONE_MINUTE_MS;
+const ONE_HOUR_MS: u64 = 60 * ONE_MINUTE_MS;
 
 #[derive(Clone, Debug)]
 pub struct FeatureEngine {
@@ -45,8 +52,14 @@ impl FeatureEngine {
             }
             _ => None,
         };
-        let ret = window_return(&state.trades);
-        let rv = window_realized_volatility(&state.trades);
+        let ret_1m = window_return_since(&state.trades, now_ms, ONE_MINUTE_MS);
+        let ret_5m = window_return_since(&state.trades, now_ms, FIVE_MINUTES_MS);
+        let ret_1h = window_return_since(&state.trades, now_ms, ONE_HOUR_MS);
+        let rv_1m = window_realized_volatility_since(&state.trades, now_ms, ONE_MINUTE_MS);
+        let rv_5m = window_realized_volatility_since(&state.trades, now_ms, FIVE_MINUTES_MS);
+        let rv_1h = window_realized_volatility_since(&state.trades, now_ms, ONE_HOUR_MS);
+        let volume_z_1h = latest_candle_volume_z(&state.candles);
+        let trade_count_z_1h = latest_candle_trade_count_z(&state.candles);
         let updated_ms_ago = state.last_update_ms.map(|last| now_ms.saturating_sub(last));
         let staleness_state = match updated_ms_ago {
             Some(age) if age <= self.stale_after_ms => StalenessState::Fresh,
@@ -59,8 +72,9 @@ impl FeatureEngine {
             None
         };
         let liquidity_score = bounded_score(tob_depth_usd.unwrap_or_default() / 100.0);
-        let momentum_score = bounded_score(50.0 + ret.unwrap_or_default() * 100.0);
-        let mean_reversion_score = bounded_score(50.0 - ret.unwrap_or_default() * 100.0);
+        let score_return = ret_5m.or(ret_1m).or(ret_1h).unwrap_or_default();
+        let momentum_score = bounded_score(50.0 + score_return * 100.0);
+        let mean_reversion_score = bounded_score(50.0 - score_return * 100.0);
 
         FeatureSnapshot {
             symbol: state.hl_coin.clone(),
@@ -75,14 +89,14 @@ impl FeatureEngine {
             spread_bps,
             tob_depth_usd,
             tob_imbalance,
-            ret_1m: ret,
-            ret_5m: ret,
-            ret_1h: ret,
-            rv_1m: rv,
-            rv_5m: rv,
-            rv_1h: rv,
-            volume_z_1h: Some(0.0),
-            trade_count_z_1h: Some(0.0),
+            ret_1m,
+            ret_5m,
+            ret_1h,
+            rv_1m,
+            rv_5m,
+            rv_1h,
+            volume_z_1h,
+            trade_count_z_1h,
             liquidity_score,
             momentum_score,
             mean_reversion_score,

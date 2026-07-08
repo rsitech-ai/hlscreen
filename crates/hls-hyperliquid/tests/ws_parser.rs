@@ -96,3 +96,18 @@ fn subscription_plan_counts_public_channels_and_preserves_headroom() {
         .expect_err("budget violation is rejected");
     assert!(err.to_string().contains("subscription budget"));
 }
+
+#[test]
+fn default_subscription_budget_covers_default_top_universe_with_headroom() {
+    let symbols = (0..150).map(|index| format!("@{index}")).collect();
+    let plan = SubscriptionPlan::new(symbols);
+
+    assert_eq!(plan.subscription_count(), 600);
+    assert!(plan.validate().is_ok());
+
+    let too_many_symbols = (0..246).map(|index| format!("@{index}")).collect();
+    let too_many = SubscriptionPlan::new(too_many_symbols);
+
+    assert_eq!(too_many.subscription_count(), 984);
+    assert!(too_many.validate().is_err());
+}

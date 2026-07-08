@@ -123,3 +123,23 @@
 
 - [x] Commit and push US4 slice
   DoD: validated commits are pushed to `origin/feat/andrzej_hlscreen_foundation`.
+
+## 2026-07-08 End-to-End Audit / PR Merge Gate
+
+- [x] Confirm GitHub/base-branch state and audit scope
+  DoD: Remote branch/default state and PR strategy are recorded in `PLAN.md`.
+
+- [x] Review code against official docs and Spec Kit contracts
+  DoD: REST, WebSocket, heartbeat, rate-limit, CLI, API, data-file, and read-only contracts have explicit pass/fail notes.
+
+- [x] Run expanded static/runtime validation
+  DoD: fmt, clippy, tests, build, smokes, edge probes, and scans pass or findings are fixed.
+
+- [x] Fix findings and rerun gates
+  DoD: Any correctness, security, maintainability, or docs gaps have focused fixes/tests and fresh green evidence.
+
+- [-] Create PR, review, and merge to `main` if stable
+  DoD: PR diff/checks are reviewed, no blocking findings remain, and `main` is pushed/merged only after validation.
+
+- [ ] Final close-out
+  DoD: Audit report, `PLAN.md`, `TODO.md`, `MEMORY.md`, daily memory, and lesson stores reflect actual state.

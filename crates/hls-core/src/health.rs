@@ -16,6 +16,14 @@ impl HealthStatus {
             Self::Interrupted => "interrupted",
         }
     }
+
+    fn severity(self) -> u8 {
+        match self {
+            Self::Healthy => 0,
+            Self::Degraded => 1,
+            Self::Interrupted => 2,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -155,21 +163,21 @@ impl HealthInputs {
         let read_only = self.safety.is_ok();
 
         if !read_only {
-            status = HealthStatus::Interrupted;
+            raise_status(&mut status, HealthStatus::Interrupted);
             degraded_reasons.push("read-only safety violation".to_owned());
         }
 
         match self.connection.state {
             ConnectionState::Disconnected => {
-                status = HealthStatus::Interrupted;
+                raise_status(&mut status, HealthStatus::Interrupted);
                 degraded_reasons.push("connection disconnected".to_owned());
             }
             ConnectionState::Reconnecting => {
-                status = HealthStatus::Degraded;
+                raise_status(&mut status, HealthStatus::Degraded);
                 degraded_reasons.push("connection reconnecting".to_owned());
             }
             ConnectionState::Stale => {
-                status = HealthStatus::Degraded;
+                raise_status(&mut status, HealthStatus::Degraded);
                 degraded_reasons.push("connection stale".to_owned());
             }
             ConnectionState::Connecting
@@ -178,9 +186,7 @@ impl HealthInputs {
         }
 
         if self.writer.warn_at > 0 && self.writer.backlog > self.writer.warn_at {
-            if status == HealthStatus::Healthy {
-                status = HealthStatus::Degraded;
-            }
+            raise_status(&mut status, HealthStatus::Degraded);
             degraded_reasons.push("writer backlog high".to_owned());
         }
 
@@ -188,22 +194,18 @@ impl HealthInputs {
             .last_message_age_ms
             .is_some_and(|age_ms| age_ms >= 60_000)
         {
-            if status == HealthStatus::Healthy {
-                status = HealthStatus::Degraded;
-            }
+            raise_status(&mut status, HealthStatus::Degraded);
             degraded_reasons.push("stale inbound data".to_owned());
         }
 
         if self.lag_ms.is_some_and(|lag_ms| lag_ms >= 10_000) {
-            if status == HealthStatus::Healthy {
-                status = HealthStatus::Degraded;
-            }
+            raise_status(&mut status, HealthStatus::Degraded);
             degraded_reasons.push("data lag high".to_owned());
         }
 
         let gap_count = self.gap_count.max(self.connection.gap_count);
-        if gap_count > 0 && status == HealthStatus::Healthy {
-            status = HealthStatus::Degraded;
+        if gap_count > 0 {
+            raise_status(&mut status, HealthStatus::Degraded);
             degraded_reasons.push("data gaps detected".to_owned());
         }
 
@@ -221,6 +223,12 @@ impl HealthInputs {
             reconnect_count: self.connection.reconnect_count,
             degraded_reasons,
         }
+    }
+}
+
+fn raise_status(status: &mut HealthStatus, candidate: HealthStatus) {
+    if candidate.severity() > status.severity() {
+        *status = candidate;
     }
 }
 

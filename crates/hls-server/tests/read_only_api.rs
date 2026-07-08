@@ -52,6 +52,25 @@ fn unsafe_or_unknown_routes_are_not_exposed() {
     assert!(!response.body.contains("private"));
 }
 
+#[test]
+fn encoded_symbol_paths_round_trip_and_malformed_queries_return_400() {
+    let mut rows = rows();
+    rows.push(row("HYPÉ/USDC", 3.0));
+    let state = ApiState::new(HealthInputs::healthy_fixture().snapshot(), rows);
+
+    let response = handle_get("/symbol/HYP%C3%89%2FUSDC", "", &state).expect("symbol response");
+    assert_eq!(response.status_code, 200);
+    assert!(response.body.contains("HYPÉ/USDC"));
+
+    let response = handle_get("/screen", "where=%ZZ", &state).expect("bad query response");
+    assert_eq!(response.status_code, 400);
+    assert!(response.body.contains("invalid percent escape"));
+
+    let response = handle_get("/symbol/%FF", "", &state).expect("bad path response");
+    assert_eq!(response.status_code, 400);
+    assert!(response.body.contains("invalid UTF-8"));
+}
+
 fn rows() -> Vec<FeatureSnapshot> {
     vec![row("AAA/USDC", 2.0), row("BBB/USDC", 1.0)]
 }

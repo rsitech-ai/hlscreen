@@ -1,5 +1,8 @@
 use hls_core::{HlsError, HlsResult};
 
+const OFFICIAL_WS_SUBSCRIPTION_LIMIT: usize = 1_000;
+const DEFAULT_SUBSCRIPTION_HEADROOM: usize = 20;
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum StreamKind {
     Trades,
@@ -25,7 +28,7 @@ impl SubscriptionPlan {
                 StreamKind::ActiveAssetCtx,
                 StreamKind::Candle1m,
             ],
-            max_subscriptions: 500,
+            max_subscriptions: OFFICIAL_WS_SUBSCRIPTION_LIMIT - DEFAULT_SUBSCRIPTION_HEADROOM,
         }
     }
 

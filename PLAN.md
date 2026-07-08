@@ -303,3 +303,65 @@
 - Tradeoffs: US4 validates deterministic reconnect behavior and pure read-only API response helpers. A long-running localhost HTTP server loop and real external WebSocket I/O remain future work.
 - Rollback: revert the US4 implementation commit(s); US1-US3 stay usable because the new surfaces are additive.
 - Follow-ups: Future work can add the real WebSocket connection loop and long-running localhost API process using the shared health/router contracts.
+
+## 2026-07-08 End-to-End Audit / PR Merge Gate
+
+### Task
+- Objective: Audit the full implementation against official Hyperliquid documentation, Spec Kit contracts, repo standards, Rust best practices, runtime behavior, and security/read-only boundaries; fix any findings; create and review a PR; merge/push to `main` only if stable.
+- Owner repo(s): standalone `hlscreen/` repository only.
+- Capital impact: research-only / read-only market-data infrastructure. No wallet, private-key, order, exchange action, live trading, or credential changes.
+
+### Context
+- Background: All Spec Kit tasks T001-T075 are currently marked complete on `feat/andrzej_hlscreen_foundation`, but the remote has no `main` branch yet. GitHub reports `feat/andrzej_hlscreen_foundation` as the default branch.
+- Inputs: Official Hyperliquid docs for `POST /info`, spot symbol naming, WebSocket subscriptions, heartbeat/pong behavior, and rate limits; Spec Kit plan/spec/contracts/tasks; current Rust code and CLI behavior.
+- Outputs: Audit evidence, any bug fixes, docs/memory updates, PR, and a stable `main` branch if all gates pass.
+
+### Assumptions
+- If `origin/main` is absent, the merge flow must first establish a sane `main` baseline before opening a PR. Do not silently force-push or discard history.
+- Official docs are the source of truth when fixtures or assumptions differ.
+- Runtime verification should use read-only public REST and deterministic fixture flows only.
+
+### Constraints
+- Technical: do not add unrelated features during audit; prefer small targeted fixes and tests for any discovered bug.
+- Operational: parent `rsibot/` is dirty and must remain untouched; all GitHub writes stay inside `s1korrrr/hlscreen`.
+- Risk/capital: no exchange endpoint, signing, wallet, private/user streams, or order-capable API may be introduced.
+
+### Options Considered
+1. Treat current green tests as enough and open/merge immediately.
+   - Pros: fastest.
+   - Cons: does not satisfy the requested end-to-end audit or official-doc verification.
+2. Perform a full requirement/doc/code/runtime review, fix findings, then PR/merge.
+   - Pros: gives defensible merge evidence and catches hidden contract drift.
+   - Cons: slower and may require an audit-only commit.
+
+### Chosen Approach
+- Choice: option 2.
+- Why: the user explicitly asked to go beyond tests and merge only when confirmed stable.
+
+### Execution Plan
+1. Establish base/default branch state and PR constraints.
+2. Compare implementation to official Hyperliquid docs and Spec Kit contracts.
+3. Review code path by path: REST, WebSocket parsing/subscriptions, state/features, store/replay, DSL, TUI, health/API, CLI.
+4. Run expanded validation: fmt, clippy, tests, build, runtime smokes, edge-case probes, output/log checks, security/read-only scans, dependency/license sanity.
+5. Fix any findings with focused tests and rerun affected/full gates.
+6. Write audit report and close local memory/lesson artifacts.
+7. Create PR to `main`, review it, resolve issues, merge/push `main` if all gates pass.
+
+### Test Plan
+- Static: `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`; `cargo build --release --workspace`; `git diff --check`; read-only/security scans.
+- Runtime: fresh temp-dir `hls init`/`doctor`; live public `hls symbols --top 20`; fixture-backed live, record, replay, screen, health/API commands; invalid input probes.
+- GitHub: inspect PR diff and checks before merge.
+
+### Risks and Rollback
+- Risks: no existing remote `main`; live public REST could fail due to network; hidden fixture mismatch with current docs; audit-only files can create noise.
+- Rollback: keep fixes in branch until validation passes; if merged, revert merge commit on `main` if a post-merge issue appears.
+
+### Memory Impact
+- Add/update `MEMORY.md`, `docs/agent-memory/*.jsonl`, and daily memory with durable audit findings and confirmed commands.
+
+### Final Notes
+- What changed: Completed official-doc/spec/code/runtime audit and fixed eight audit findings: explicit REST timeout, subscription budget aligned with the documented 1,000 WebSocket subscription limit, monotonic health severity, duplicate trade idempotency, timestamp-bounded feature windows, candle anomaly baselines, fail-closed doctor handling for invalid existing configs, and robust local API percent decoding/400 responses. Added regression tests and `docs/reports/2026-07-08-pre-merge-audit.md`.
+- Validation run: `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`; `cargo build --release --workspace`; `git diff --check`; `cargo tree -d`; read-only/security scan; temp-dir init/doctor; live read-only REST `hls symbols --top 5`; live doctor JSON; fixture-backed live/record/replay/screen; invalid rule probe; `hls server --print-health`; negative live-network probe.
+- Tradeoffs: `cargo-audit` and `cargo-deny` are not installed, so advisory/license gates could not be claimed. Real live WebSocket network mode and long-running HTTP service remain intentionally fail-closed/out of scope for this slice.
+- PR strategy: `origin/main` was absent and GitHub default branch was `feat/andrzej_hlscreen_foundation`; establish `main` from a reviewed baseline before opening the PR, then merge only after PR diff/check review.
+- Rollback: before merge, revert the audit commit on the feature branch; after merge, revert the merge commit on `main`.
