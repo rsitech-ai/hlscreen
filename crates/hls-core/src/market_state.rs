@@ -8,6 +8,7 @@ use crate::score::ScoreBreakdown;
 use crate::{HlsError, HlsResult};
 
 const MAX_BBO_EVENTS_PER_SYMBOL: usize = 256;
+const MAX_CANDLE_EVENTS_PER_SYMBOL: usize = 512;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum TradeSide {
@@ -384,7 +385,23 @@ impl SymbolMarketState {
     }
 
     fn apply_candle(&mut self, event: CandleEvent) {
-        self.last_update_ms = Some(event.close_ts_ms);
+        self.last_update_ms = Some(
+            self.last_update_ms
+                .unwrap_or(event.close_ts_ms)
+                .max(event.close_ts_ms),
+        );
+        if let Some(existing) = self.candles.iter_mut().find(|candle| {
+            candle.interval == event.interval && candle.open_ts_ms == event.open_ts_ms
+        }) {
+            *existing = event;
+            return;
+        }
+
         self.candles.push(event);
+        self.candles.sort_by_key(|candle| candle.open_ts_ms);
+        if self.candles.len() > MAX_CANDLE_EVENTS_PER_SYMBOL {
+            let overflow = self.candles.len() - MAX_CANDLE_EVENTS_PER_SYMBOL;
+            self.candles.drain(0..overflow);
+        }
     }
 }
