@@ -442,5 +442,5 @@
 - [x] Write audit report and apply fixes if needed
   DoD: `docs/reports/2026-07-08-e2e-audit-after-pair-cards.md` records findings, evidence, risks, and code-review decision.
 
-- [-] Review, PR, merge, and close out
+- [x] Review, PR, merge, and close out
   DoD: Diff is reviewed, branch is pushed, PR checks pass, merge to `main` occurs only if stable, post-merge CI passes, and memory/reflection notes are complete.
