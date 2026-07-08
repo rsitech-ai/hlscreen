@@ -143,3 +143,20 @@
 
 - [x] Final close-out
   DoD: Audit report, `PLAN.md`, `TODO.md`, `MEMORY.md`, daily memory, and lesson stores reflect actual state.
+
+## 2026-07-08 Open Source Readiness
+
+- [x] Add OSS/community files and GitHub automation
+  DoD: License, contributing/security/conduct/support/release docs, issue/PR templates, CI, and dependency automation exist.
+
+- [x] Add deterministic screenshots
+  DoD: README embeds committed screenshot assets generated from current CLI output.
+
+- [x] Refresh README and supporting docs
+  DoD: Public-facing docs explain value, scope, install/build, safety, screenshots, commands, roadmap, and contribution path without overclaiming live trading readiness.
+
+- [x] Run validation and link checks
+  DoD: Rust checks pass, fixture screenshot commands run, and local Markdown/image links resolve.
+
+- [-] PR, review, merge, and close out
+  DoD: OSS-readiness branch is reviewed/merged to `main`; plan, TODO, memory, and daily notes reflect final state.
