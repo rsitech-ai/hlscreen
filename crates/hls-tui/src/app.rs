@@ -102,7 +102,7 @@ fn render_workstation(
         "REC ready"
     };
     let status = format!(
-        "{recorder_status}  {stream_status}  p95 local {}",
+        "{recorder_status}  {stream_status}  p95 row age {}",
         format_age(stats.p95_age_ms)
     );
 
@@ -403,9 +403,12 @@ fn char_count(value: &str) -> usize {
 }
 
 struct TableStats {
+    row_count: usize,
     stale: usize,
     incomplete: usize,
+    spread_count: usize,
     median_spread_bps: Option<f64>,
+    depth_count: usize,
     top_tob_depth_usd: Option<f64>,
     p95_age_ms: Option<i64>,
     confidence_high: usize,
@@ -418,6 +421,7 @@ struct TableStats {
 
 impl TableStats {
     fn from_rows(rows: &[FeatureSnapshot]) -> Self {
+        let spreads = finite_values(rows.iter().filter_map(|row| row.spread_bps));
         let depths = finite_values(rows.iter().filter_map(|row| row.tob_depth_usd));
         let ages = rows
             .iter()
@@ -425,6 +429,7 @@ impl TableStats {
             .collect::<Vec<_>>();
 
         Self {
+            row_count: rows.len(),
             stale: rows
                 .iter()
                 .filter(|row| row.staleness_state == StalenessState::Stale)
@@ -433,7 +438,9 @@ impl TableStats {
                 .iter()
                 .filter(|row| row.staleness_state == StalenessState::Incomplete)
                 .count(),
-            median_spread_bps: median(finite_values(rows.iter().filter_map(|row| row.spread_bps))),
+            spread_count: spreads.len(),
+            median_spread_bps: median(spreads),
+            depth_count: depths.len(),
             top_tob_depth_usd: max_value(depths.iter().copied()),
             p95_age_ms: percentile_i64(ages.iter().copied(), 0.95),
             confidence_high: rows
@@ -461,7 +468,12 @@ impl TableStats {
         if self.incomplete > 0 {
             return "CHECK";
         }
-        if self.median_spread_bps.is_none() || self.top_tob_depth_usd.is_none() {
+        if self.row_count == 0
+            || self.median_spread_bps.is_none()
+            || self.top_tob_depth_usd.is_none()
+            || self.spread_count < self.row_count
+            || self.depth_count < self.row_count
+        {
             return "PARTIAL";
         }
 

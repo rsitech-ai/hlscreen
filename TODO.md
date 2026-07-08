@@ -504,3 +504,26 @@
 
 - [x] Review PR readiness and defer merge verification to operator handoff
   DoD: Diff is reviewed, branch is pushed, PR checks pass, and merge/post-merge CI verification is recorded after GitHub completes the external merge step.
+
+## 2026-07-08 Production Docs And Live Readiness Refresh
+
+- [x] Confirm scope, branch, and official-doc alignment
+  DoD: `PLAN.md` records current branch/base, read-only boundary, and official Hyperliquid doc surfaces.
+
+- [x] Run fresh all-symbol live validation
+  DoD: Current public WebSocket run captures all available spot symbols with raw and normalized recording, clean shutdown, and no leftover process.
+
+- [x] Replay, screen, health-check, and screenshot captured data
+  DoD: Replay parity, screen presets, health output, registry/file counts, and TUI PNG/SVG artifacts are reviewed.
+
+- [x] Update production/open-source docs and architecture diagrams
+  DoD: README/docs reflect current implementation truth, deployment/runbook caveats, and Mermaid architecture/data-flow diagrams.
+
+- [x] Audit code/docs/readiness gaps and fix blockers
+  DoD: Source/docs scans find no hidden private/order paths, stale major docs, or untruthful readiness claims; any blocking finding has a focused fix.
+
+- [x] Run validation gates
+  DoD: Full Rust gates, release packaging, screenshot generation, doc/link checks, negative probes, and diff hygiene pass or blockers are explicit.
+
+- [x] Close continuity notes
+  DoD: Report, `PLAN.md`, `TODO.md`, `MEMORY.md`, daily memory, and lesson stores reflect actual evidence and remaining risks.
