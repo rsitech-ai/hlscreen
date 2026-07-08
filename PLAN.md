@@ -366,3 +366,63 @@
 - PR strategy: `origin/main` was absent and GitHub default branch was `feat/andrzej_hlscreen_foundation`; establish `main` from a reviewed baseline before opening the PR, then merge only after PR diff/check review.
 - Rollback: before merge, revert the audit commit on the feature branch; after merge, revert the merge commit on `main`.
 - PR/Merge result: PR #1 (`https://github.com/s1korrrr/hlscreen/pull/1`) was reviewed as mergeable with no configured checks, merged to `main` at `73ebdaa`, and the GitHub default branch was changed to `main`.
+
+## 2026-07-08 Open Source Readiness
+
+### Task
+- Objective: Make `hlscreen` ready to be public/open source later by adding professional repository docs, community files, CI/dependency hygiene, screenshots, and clear public-safety positioning.
+- Owner repo(s): standalone `hlscreen/` repository only.
+- Capital impact: research-only / read-only market-data infrastructure. No live trading, wallet, credential, order, or exchange-action surfaces.
+
+### Context
+- Background: `main` now contains the validated v1 implementation and audit closeout. The repo still needs the public-facing OSS package layer: license file, contribution/security/support docs, GitHub templates, CI, screenshots, and a stronger README.
+- Inputs: Current README/docs, audit report, CLI smoke output, project memory, and user request to make the repo fully professional and public-ready.
+- Outputs: OSS docs/community files, README refresh with screenshots, generated screenshot assets, CI/dependency automation, memory/TODO updates, validation evidence, and a PR to `main`.
+
+### Assumptions
+- Use MIT because `Cargo.toml` already declares `license = "MIT"`.
+- Screenshots can be deterministic terminal-style SVG assets generated from current fixture-backed CLI output.
+- The repo may stay private for now; public-readiness files should not require repo-public state.
+
+### Constraints
+- Technical: do not change runtime logic unless validation exposes a packaging blocker.
+- Operational: keep generated screenshots deterministic and committed; avoid secrets, personal data, or private endpoints.
+- Risk/capital: preserve explicit read-only/no-financial-advice/no-order-surface messaging.
+
+### Options Considered
+1. Only add a LICENSE and a short README note.
+   - Pros: small.
+   - Cons: not enough for a professional public repo.
+2. Add full OSS readiness package: README, license, contributing, security, conduct, support, release, issue/PR templates, CI, dependabot, screenshots, and docs index.
+   - Pros: makes the repo public-ready and reviewable.
+   - Cons: larger docs/config diff.
+
+### Chosen Approach
+- Choice: option 2.
+- Why: the user explicitly asked for a professional open-source package with screenshots and everything needed before making the repo public.
+
+### Execution Plan
+1. Add OSS/community files and GitHub templates/workflows.
+2. Generate deterministic terminal screenshot assets from current CLI output.
+3. Rewrite README around public positioning, install/build, safety, screenshots, commands, docs, roadmap, and contribution path.
+4. Add or update supporting docs for release, security/privacy/threat model, examples, and open-source checklist.
+5. Run formatting, tests/builds, README/screenshot link checks, and git diff checks.
+6. Commit, push, open PR, review, and merge if stable.
+
+### Test Plan
+- Static: `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`; `git diff --check`.
+- Docs/assets: verify screenshot files exist, README links resolve locally, and `.github` YAML files parse structurally where feasible.
+- Runtime: rerun fixture-backed commands used for screenshots.
+
+### Risks and Rollback
+- Risks: docs could overclaim live WebSocket/server readiness; screenshots can drift from CLI output; CI can fail if it assumes unavailable tooling.
+- Rollback: revert the OSS-readiness commit/PR; no runtime behavior should be affected.
+
+### Memory Impact
+- Add/update `MEMORY.md`, daily memory, and agent lessons with public-readiness files and validation commands.
+
+### Final Notes
+- What changed: Added the public open-source package: MIT license, contribution/security/support/conduct/changelog docs, GitHub CI/dependabot/templates, release/privacy/threat-model/roadmap/open-source checklist docs, example screen rules, docs index, deterministic screenshot generator, committed SVG screenshots, README refresh, package metadata, and truthful Rust 1.88 MSRV/toolchain/CI configuration.
+- Validation run: `python3 scripts/generate-screenshots.py`; `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`; `cargo build --release --workspace --all-features`; `git diff --check`; local required-file check; local Markdown link check; YAML parse check for `.github/**/*.yml`.
+- Tradeoffs: Screenshots are deterministic SVG terminal captures rather than bitmap desktop screenshots. This keeps them reproducible and GitHub-renderable without adding image tooling.
+- Follow-ups: After merge, confirm GitHub Actions status on `main` once Actions run for the now-public-ready repo.

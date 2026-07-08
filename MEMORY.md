@@ -6,11 +6,11 @@
 - Repo ownership boundaries: keep `hlscreen/` self-contained; do not mutate `hummingbot/`, `hummingbot-api/`, or `quants-lab/` for this planning slice.
 
 ## Commands
-- Setup/install: `cargo build --workspace`.
+- Setup/install: `cargo build --workspace --all-features`.
 - Format: `cargo fmt --check`.
-- Lint: `cargo clippy --workspace --all-targets -- -D warnings`.
+- Lint: `cargo clippy --workspace --all-targets --all-features -- -D warnings`.
 - Typecheck: no separate typecheck configured; use `cargo build --workspace` plus clippy/tests.
-- Tests: `cargo test --workspace`.
+- Tests: `cargo test --workspace --all-features`.
 - Fixture smoke: `./target/debug/hls symbols --top 2 --asset-contexts-file tests/fixtures/hyperliquid/spot_meta_and_asset_ctxs.json`.
 - Mock-live smoke: `./target/debug/hls live --symbols @107 --fixture-file tests/fixtures/hyperliquid/ws_mock_live.ndjson --once`.
 - Record/replay smoke: `./target/debug/hls record --symbols @107 --fixture-file tests/fixtures/hyperliquid/ws_mock_live.ndjson --raw --normalized --run-id smoke --data-dir /tmp/hlscreen-smoke.<id>` then `./target/debug/hls replay --data-dir /tmp/hlscreen-smoke.<id> --run-id smoke`.
@@ -22,7 +22,7 @@
 ## Architecture Notes
 - This project is read-only market-data infrastructure: REST/WS ingestion, local raw capture, normalized events, rolling features, screening DSL, TUI/CLI, and replay.
 - No wallet, private-key, trading, order-routing, or execution surface belongs in v1.
-- New Rust crates use edition 2024 with `rust-version = "1.85"`.
+- Rust crates use edition 2024 with `rust-version = "1.88"` because the current lockfile includes dependencies that require Rust 1.88 or newer.
 - Foundation implementation covers config/symbol/time primitives, fixture-backed Hyperliquid REST metadata parsing, and CLI `init`/`doctor`/`symbols`.
 - US1 mock-live implementation covers public WebSocket fixture parsing, subscription budgeting, live market state, feature snapshots, stable terminal table rendering, and fixture-backed `hls live --once`; real network connection/reconnect, DSL, and full interactive TUI are still future tasks.
 - US2 record/replay implementation covers fixture-backed compressed raw `.ndjson.zst`, deterministic normalized JSONL, local SQLite metadata, bounded raw-writer channel orchestration, replay snapshots, `hls record`, `hls replay`, and `hls live --record`; true Parquet output and live network recording remain future tasks.
@@ -52,3 +52,4 @@
 - 2026-07-07: Implemented and validated US4 health/safety slice. Confirmed commands: `cargo test -p hls-core --test health_state`, `cargo test -p hls-hyperliquid --test reconnect_heartbeat`, `cargo test -p hls-server --test read_only_api`, `cargo test -p hls-tui --test health_pane`, `cargo test -p hls-cli --test health_commands`, `cargo fmt --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace`, `cargo build --workspace`, quickstart smokes under `/tmp/hlscreen-quickstart-us4.Phs2mp`, `hls doctor --live --json`, and `hls server --print-health`.
 - 2026-07-08: Pre-merge audit fixed REST timeout, subscription budget, health severity, duplicate trade handling, feature windows/anomaly baselines, fail-closed doctor diagnostics, and API percent decoding. Validation passed with all pre-merge audit gates; `cargo-audit`/`cargo-deny` were unavailable in the environment and were not claimed.
 - 2026-07-08: PR #1 merged `feat/andrzej_hlscreen_foundation` into `main` at `73ebdaa`; GitHub default branch is now `main`.
+- 2026-07-08: Open-source readiness package added: MIT `LICENSE`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, `SUPPORT.md`, `CHANGELOG.md`, GitHub CI/templates/dependabot, release/privacy/threat-model/roadmap docs, deterministic screenshot generator, and committed SVG screenshots under `docs/assets/screenshots/`.
