@@ -184,6 +184,6 @@ Update README and memory with the new TUI behavior, command, key bindings, and v
 
 ## Follow-Up Scope
 
-- Carry true candle/OHLC history into the live presentation model before rendering real candlesticks.
+- [x] Carry true candle/OHLC history into the live presentation model before rendering real candlesticks.
 - Add in-TUI command palette and editable filter/preset/sort/timeframe controls.
 - Consider a richer pane-focus model after command editing exists; the current shipped contract keeps the existing view-tab keyboard model.

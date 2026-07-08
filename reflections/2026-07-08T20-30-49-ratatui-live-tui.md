@@ -24,8 +24,11 @@
 - Routed terminal live runs through the Ratatui final render path as well, so TTY sessions no longer get Ratatui progress followed by the old string table.
 - Made the Ratatui cockpit reflect existing UI state: selected row, view tabs, density, help overlay, and display pause.
 - Removed the earlier legacy string-renderer ANSI color patch; color now belongs to the Ratatui path.
+- Added real 1m candle history to the Ratatui frame model and replaced the synthetic chart with selected-symbol OHLC/volume rendering.
+- Updated `LiveMarketState` to upsert current interval candles and bound per-symbol candle history, so live candle updates do not duplicate bars indefinitely.
 
 ## Closeout For This Slice
 - Worked: focused Ratatui tests pass; full workspace tests/build pass; fixture `--once --tui` renders the new cockpit; short public `--top 10` smoke completed with 10 symbols, 40 subscriptions, 275 WS messages, 525 market events, zero reconnects, and zero gaps.
-- Still incomplete against the full objective: chart is a microstructure sparkline from current snapshot fields, not true OHLC candles; command palette/filter/preset/sort/timeframe editors are not implemented yet; old string-renderer tests still exist for deterministic non-TTY output.
+- Later candle-chart validation: fixture `--once --tui` rendered `CANDLES 1m  O 34.5000 H 35.2000 L 34.4000 C 35.0000 VOL 1200`; short public `--top 10 --duration-secs 8` smoke completed with 208 WS messages, 458 market events, zero reconnects, and zero gaps.
+- Still incomplete against the full objective: command palette/filter/preset/sort/timeframe editors are not implemented yet; old string-renderer tests still exist for deterministic non-TTY output.
 - Reuse: keep all future TUI work behind Ratatui snapshot tests plus one bounded public live smoke.

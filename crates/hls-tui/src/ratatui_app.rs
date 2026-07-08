@@ -1,4 +1,4 @@
-use hls_core::market_state::{FeatureSnapshot, StalenessState};
+use hls_core::market_state::{CandleEvent, FeatureSnapshot, StalenessState};
 use hls_screen::{ScreenEngine, ScreenRequest, presets::find_preset};
 use ratatui::{
     Frame, Terminal,
@@ -6,10 +6,12 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, Cell, Clear, Paragraph, Row, Sparkline, Table, Wrap},
+    widgets::{Block, Borders, Cell, Clear, Paragraph, Row, Table, Wrap},
 };
 
 use crate::interaction::{WorkstationUiState, WorkstationView};
+
+const MAX_CHART_CANDLES: usize = 48;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum RatatuiColorMode {
@@ -27,6 +29,7 @@ pub struct RatatuiViewport {
 #[derive(Clone, Debug)]
 pub struct RatatuiFrameModel {
     rows: Vec<FeatureSnapshot>,
+    candles: Vec<CandleEvent>,
     title: String,
     request: ScreenRequest,
     ui_state: WorkstationUiState,
@@ -44,6 +47,7 @@ impl RatatuiFrameModel {
     ) -> Self {
         Self {
             rows,
+            candles: Vec::new(),
             title: title.into(),
             request,
             ui_state,
@@ -62,6 +66,11 @@ impl RatatuiFrameModel {
         self.stream_status = stream_status.into();
         self.recorder_status = recorder_status.into();
         self.health_status = health_status.into();
+        self
+    }
+
+    pub fn with_candles(mut self, candles: Vec<CandleEvent>) -> Self {
+        self.candles = candles;
         self
     }
 }
@@ -553,16 +562,139 @@ fn render_chart(
         );
         return;
     };
-    let mut data = vec![1, 2, 3, 4, 5, 6, 7, 8];
-    if let Some(ret) = row.ret_1m {
-        let base = (ret.abs() * 1_000.0).round() as u64;
-        data = (0..32).map(|index| 1 + ((base + index * 3) % 18)).collect();
+    let candles = selected_candles(model, &row.symbol, area.width.saturating_sub(4) as usize);
+    let Some(latest) = candles.last() else {
+        frame.render_widget(
+            Paragraph::new(vec![
+                Line::from("Waiting for public 1m candle frames."),
+                Line::from("No synthetic candles are rendered."),
+            ])
+            .wrap(Wrap { trim: true })
+            .block(panel("CHART  1m OHLC", color_mode)),
+            area,
+        );
+        return;
+    };
+
+    let title = format!(
+        "CANDLES 1m  O {} H {} L {} C {} VOL {}",
+        format_plain_number(latest.open),
+        format_plain_number(latest.high),
+        format_plain_number(latest.low),
+        format_plain_number(latest.close),
+        format_volume(latest.volume_base)
+    );
+    let chart_lines = candle_chart_lines(&candles, area.height.saturating_sub(4) as usize);
+    frame.render_widget(
+        Paragraph::new(chart_lines)
+            .wrap(Wrap { trim: false })
+            .block(panel(&title, color_mode))
+            .style(Style::default().fg(success(color_mode))),
+        area,
+    );
+}
+
+fn selected_candles<'a>(
+    model: &'a RatatuiFrameModel,
+    symbol: &str,
+    width_limit: usize,
+) -> Vec<&'a CandleEvent> {
+    let limit = width_limit.clamp(8, MAX_CHART_CANDLES);
+    let mut candles = model
+        .candles
+        .iter()
+        .filter(|candle| candle.hl_coin == symbol && candle.interval == "1m")
+        .collect::<Vec<_>>();
+    candles.sort_by_key(|candle| candle.open_ts_ms);
+    if candles.len() > limit {
+        candles.drain(0..candles.len() - limit);
     }
-    let sparkline = Sparkline::default()
-        .block(panel("CHART  1m | 5m | 15m | 30m | 60m", color_mode))
-        .data(&data)
-        .style(Style::default().fg(success(color_mode)));
-    frame.render_widget(sparkline, area);
+    candles
+}
+
+fn candle_chart_lines(candles: &[&CandleEvent], chart_height: usize) -> Vec<Line<'static>> {
+    if candles.is_empty() {
+        return vec![Line::from("No 1m candles")];
+    }
+    let high = candles
+        .iter()
+        .map(|candle| candle.high)
+        .fold(f64::NEG_INFINITY, f64::max);
+    let low = candles
+        .iter()
+        .map(|candle| candle.low)
+        .fold(f64::INFINITY, f64::min);
+    let height = chart_height.clamp(4, 18);
+    let mut lines = Vec::with_capacity(height + 2);
+
+    for row in 0..height {
+        let level = price_level(high, low, row, height);
+        let mut body = String::with_capacity(candles.len());
+        for candle in candles {
+            body.push(candle_glyph(candle, level));
+        }
+        lines.push(Line::from(body));
+    }
+
+    lines.push(Line::from(format!(
+        "range {} - {}   candles {}",
+        format_plain_number(low),
+        format_plain_number(high),
+        candles.len()
+    )));
+    lines.push(Line::from(volume_bar(candles)));
+    lines
+}
+
+fn price_level(high: f64, low: f64, row: usize, height: usize) -> f64 {
+    if height <= 1 || (high - low).abs() < f64::EPSILON {
+        return high;
+    }
+    high - ((high - low) * row as f64 / (height - 1) as f64)
+}
+
+fn candle_glyph(candle: &CandleEvent, level: f64) -> char {
+    let body_high = candle.open.max(candle.close);
+    let body_low = candle.open.min(candle.close);
+    if level <= body_high && level >= body_low {
+        if candle.close >= candle.open {
+            '█'
+        } else {
+            '▓'
+        }
+    } else if level <= candle.high && level >= candle.low {
+        '│'
+    } else {
+        ' '
+    }
+}
+
+fn volume_bar(candles: &[&CandleEvent]) -> String {
+    let max_volume = candles
+        .iter()
+        .map(|candle| candle.volume_base)
+        .fold(0.0_f64, f64::max);
+    if max_volume <= 0.0 {
+        return "vol -".to_owned();
+    }
+    let bars = candles
+        .iter()
+        .map(|candle| volume_glyph(candle.volume_base / max_volume))
+        .collect::<String>();
+    format!("vol {bars}")
+}
+
+fn volume_glyph(ratio: f64) -> char {
+    match (ratio * 8.0).ceil() as u8 {
+        0 | 1 => '▁',
+        2 => '▂',
+        3 => '▃',
+        4 => '▄',
+        5 => '▅',
+        6 => '▆',
+        7 => '▇',
+        _ => '█',
+    }
 }
 
 fn render_book(
@@ -701,6 +833,22 @@ fn format_price(value: Option<f64>) -> String {
 
 fn format_optional(value: Option<f64>, decimals: usize) -> String {
     value.map_or_else(|| "-".to_owned(), |value| format!("{value:.decimals$}"))
+}
+
+fn format_plain_number(value: f64) -> String {
+    format!("{value:.4}")
+}
+
+fn format_volume(value: f64) -> String {
+    if value >= 1_000_000.0 {
+        format!("{:.1}M", value / 1_000_000.0)
+    } else if value >= 10_000.0 {
+        format!("{:.1}K", value / 1_000.0)
+    } else if value.fract().abs() < f64::EPSILON {
+        format!("{value:.0}")
+    } else {
+        format!("{value:.1}")
+    }
 }
 
 fn format_conf(value: u8) -> String {
