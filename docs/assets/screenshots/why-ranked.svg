@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" role="img" xml:space="preserve" aria-label="Why ranked detail terminal screenshot" viewBox="0 0 1324 476" width="1324" height="476">
+<defs>
+<linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+<stop offset="0" stop-color="#0d1117"/>
+<stop offset="1" stop-color="#18212b"/>
+</linearGradient>
+</defs>
+<rect width="1324" height="476" rx="8" fill="url(#bg)"/>
+<rect x="0" y="0" width="1324" height="50" rx="8" fill="#141b24"/>
+<rect x="0" y="42" width="1324" height="8" fill="#141b24"/>
+<circle cx="24" cy="24" r="6" fill="#ff5f57"/>
+<circle cx="44" cy="24" r="6" fill="#ffbd2e"/>
+<circle cx="64" cy="24" r="6" fill="#28c840"/>
+<text x="24" y="40" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="700">Why ranked detail</text>
+<text x="24" y="68" fill="#7ee787" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="700">$ ./target/debug/hls explain --fixture-file tests/fixtures/microstructure/resilience_shock.ndjson --symbol @107</text>
+<text x="24" y="88" fill="#53616f" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮</text>
+<text x="24" y="108" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">│ WHY RANKED @107 score explanation | read-only screen heuristic                                                            DETAIL │</text>
+<text x="24" y="128" fill="#53616f" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">├──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤</text>
+<text x="24" y="148" fill="#f2cc60" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="600">│ TOTAL      adjusted 56.9 | raw 56.9 | confidence 100 | penalty +0.0                                                        WATCH │</text>
+<text x="24" y="168" fill="#f2cc60" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="700">│ QUALITY    confidence high 100 | reasons none | incomplete none                                                             HIGH │</text>
+<text x="24" y="188" fill="#53616f" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯</text>
+<text x="24" y="208" fill="#53616f" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">──────────────────────────────────────────────────────────── COMPONENTS ────────────────────────────────────────────────────────────</text>
+<text x="24" y="228" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">NAME                      KIND             DIR       RAW        NORM     WEIGHT   CONTRIB   WINDOW</text>
+<text x="24" y="248" fill="#53616f" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">────────────────────────  ───────────────  ────────  ─────────  ───────  ───────  ────────  ───────────────</text>
+<text x="24" y="268" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">liquidity_resilience      resilience       positive      10.5K    100.0    0.40x     +40.0  top_of_book</text>
+<text x="24" y="288" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">momentum                  momentum         positive    -0.0500     50.0    0.25x     +12.5  returns_1m_5m_1h</text>
+<text x="24" y="308" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">mean_reversion_context    mean_reversion   positive    -0.0500     50.0    0.10x      +5.0  returns_1m_5m_1h</text>
+<text x="24" y="328" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">signed_flow               signed_flow      positive      601.9      6.0    0.10x      +0.6  trades_30s</text>
+<text x="24" y="348" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">spread_cost               spread_cost      negative       12.0     -1.2    1.00x      -1.2  bbo_latest</text>
+<text x="24" y="368" fill="#53616f" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">───────────────────────────────────────────────────────────── EVIDENCE ─────────────────────────────────────────────────────────────</text>
+<text x="24" y="388" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">unavailable evidence | none</text>
+<text x="24" y="408" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">public evidence | spread 12.0 bps | top depth $10.5K | signed flow 30s +$602 | BBO OFI 30s -$515</text>
+<text x="24" y="428" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">caveat | BBO/top-of-book proxy only | no fill model | screen heuristic, not advice | version score_breakdown.v1</text>
+</svg>

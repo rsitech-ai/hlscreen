@@ -46,3 +46,22 @@ fn parses_sort_fields_and_rejects_unknown_identifiers() {
     let err = parse_filter("sqrt(ret_5m) > 0").expect_err("unknown function rejected");
     assert!(err.to_string().contains("unknown function"));
 }
+
+#[test]
+fn parses_score_component_fields_with_dot_notation() {
+    assert_eq!(
+        parse_filter("score_component.spread_cost < 0").expect("filter parses"),
+        Expr::Compare {
+            left: ValueExpr::Field(Field::ScoreComponent("spread_cost".to_owned())),
+            op: CmpOp::Lt,
+            right: ValueExpr::Number(0.0),
+        }
+    );
+    assert_eq!(
+        parse_sort("score_total:desc").expect("sort parses"),
+        SortField {
+            value: ValueExpr::Field(Field::ScoreTotal),
+            direction: SortDirection::Desc,
+        }
+    );
+}

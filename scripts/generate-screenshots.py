@@ -88,6 +88,20 @@ def main() -> None:
                 ],
             ),
             Screenshot(
+                filename="why-ranked.svg",
+                title="Why ranked detail",
+                commands=[
+                    [
+                        str(HLS),
+                        "explain",
+                        "--fixture-file",
+                        "tests/fixtures/microstructure/resilience_shock.ndjson",
+                        "--symbol",
+                        "@107",
+                    ]
+                ],
+            ),
+            Screenshot(
                 filename="record-replay.svg",
                 title="Record and replay",
                 commands=[
