@@ -189,4 +189,5 @@ Update README and memory with the new TUI behavior, command, key bindings, and v
 - [x] Add a free-text in-TUI command palette/editor for arbitrary screen DSL filters with validation before mutation.
 - [x] Add explicit keyboard pane focus state after command editing exists.
 - [x] Add first pane-specific actions for watchlist row movement, detail view cycling, and chart-window cycling.
+- [x] Keep book/tape reachable in adaptive layouts: medium terminals show compact book/tape panels, and narrow terminals render focused hidden panes as drilldowns.
 - Consider deeper order-book/tape interactions and persisted TUI preferences after the focused-pane state is stable.
