@@ -1,4 +1,4 @@
-use hls_core::score::{ScoreBreakdown, ScoreComponent, ScoreComponentKind};
+use hls_core::score::{ScoreBreakdown, ScoreComponent, ScoreComponentKind, ScoreDirection};
 
 #[test]
 fn score_breakdown_sums_named_components_and_applies_confidence() {
@@ -17,7 +17,9 @@ fn score_breakdown_sums_named_components_and_applies_confidence() {
     assert_eq!(breakdown.adjusted_total, 48.0);
     assert_eq!(breakdown.confidence_score, 80);
     assert_eq!(breakdown.confidence_penalty(), -12.0);
-    assert!(breakdown.component("liquidity").is_some());
+    let liquidity = breakdown.component("liquidity").expect("liquidity");
+    assert_eq!(liquidity.signed_contribution, 45.0);
+    assert_eq!(liquidity.direction, ScoreDirection::Positive);
 }
 
 #[test]
@@ -60,4 +62,75 @@ fn duplicate_component_names_are_rejected() {
     .expect_err("duplicate component names should fail");
 
     assert!(err.to_string().contains("duplicate score component"));
+}
+
+#[test]
+fn weighted_components_explain_direction_and_unavailable_evidence() {
+    let breakdown = ScoreBreakdown::from_components(
+        "@107",
+        50,
+        vec![
+            ScoreComponent::weighted(
+                "liquidity_resilience",
+                ScoreComponentKind::Resilience,
+                5_000.0,
+                60.0,
+                0.40,
+                "top_of_book",
+            ),
+            ScoreComponent::weighted(
+                "spread_cost",
+                ScoreComponentKind::SpreadCost,
+                75.0,
+                -12.0,
+                1.0,
+                "bbo_latest",
+            ),
+        ],
+    )
+    .with_unavailable_evidence(vec![
+        "metadata.cohort_tag".to_owned(),
+        "metadata.cohort_tag".to_owned(),
+    ]);
+
+    assert_eq!(breakdown.version, "score_breakdown.v1");
+    assert_eq!(breakdown.raw_total, 12.0);
+    assert_eq!(breakdown.adjusted_total, 6.0);
+    assert_eq!(breakdown.confidence_penalty(), -6.0);
+    assert_eq!(
+        breakdown
+            .component("spread_cost")
+            .expect("spread cost")
+            .direction,
+        ScoreDirection::Negative
+    );
+    assert_eq!(
+        breakdown.unavailable_evidence,
+        vec!["metadata.cohort_tag".to_owned()]
+    );
+}
+
+#[test]
+fn score_breakdown_fixture_matches_serialized_contract() {
+    let breakdown: ScoreBreakdown = serde_json::from_str(include_str!(
+        "../../../tests/fixtures/microstructure/explainable_scores.json"
+    ))
+    .expect("score fixture parses");
+
+    assert_eq!(breakdown.symbol, "@107");
+    assert_eq!(breakdown.raw_total, 45.0);
+    assert_eq!(breakdown.adjusted_total, 36.0);
+    assert_eq!(breakdown.confidence_score, 80);
+    assert_eq!(breakdown.components.len(), 3);
+    assert_eq!(
+        breakdown
+            .component("spread_cost")
+            .expect("spread")
+            .direction,
+        ScoreDirection::Negative
+    );
+    assert_eq!(
+        breakdown.unavailable_evidence,
+        vec!["metadata.cohort_tag".to_owned()]
+    );
 }

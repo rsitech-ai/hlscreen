@@ -29,7 +29,7 @@ impl<'a> ScreenRow<'a> {
         Self { snapshot }
     }
 
-    pub fn value(&self, field: Field) -> FieldValue {
+    pub fn value(&self, field: &Field) -> FieldValue {
         match field {
             Field::Symbol => FieldValue::String(self.snapshot.symbol.clone()),
             Field::Price => optional_number(self.snapshot.price),
@@ -73,6 +73,31 @@ impl<'a> ScreenRow<'a> {
             Field::LiquidityScore => FieldValue::Number(self.snapshot.liquidity_score),
             Field::MomentumScore => FieldValue::Number(self.snapshot.momentum_score),
             Field::MeanReversionScore => FieldValue::Number(self.snapshot.mean_reversion_score),
+            Field::ScoreTotal => self
+                .snapshot
+                .score_breakdown
+                .as_ref()
+                .map(|breakdown| FieldValue::Number(breakdown.adjusted_total))
+                .unwrap_or(FieldValue::Missing),
+            Field::ScoreRawTotal => self
+                .snapshot
+                .score_breakdown
+                .as_ref()
+                .map(|breakdown| FieldValue::Number(breakdown.raw_total))
+                .unwrap_or(FieldValue::Missing),
+            Field::ScoreConfidencePenalty => self
+                .snapshot
+                .score_breakdown
+                .as_ref()
+                .map(|breakdown| FieldValue::Number(breakdown.confidence_penalty()))
+                .unwrap_or(FieldValue::Missing),
+            Field::ScoreComponent(name) => self
+                .snapshot
+                .score_breakdown
+                .as_ref()
+                .and_then(|breakdown| breakdown.component(name))
+                .map(|component| FieldValue::Number(component.signed_contribution))
+                .unwrap_or(FieldValue::Missing),
             Field::UpdatedMsAgo => self
                 .snapshot
                 .updated_ms_ago

@@ -104,6 +104,7 @@ fn fixture_events_produce_feature_snapshot_with_freshness_state() {
         liquidity_score: 0.0,
         momentum_score: 0.0,
         mean_reversion_score: 0.0,
+        score_breakdown: None,
         updated_ms_ago: Some(6_000),
         staleness_state: StalenessState::Fresh,
         incomplete_window_reason: None,
@@ -157,6 +158,15 @@ fn fixture_events_produce_feature_snapshot_with_freshness_state() {
     assert_close(snapshot.liquidity_score, 2.451);
     assert_close(snapshot.momentum_score, 50.57142857142857);
     assert_close(snapshot.mean_reversion_score, 49.42857142857143);
+    let score = snapshot
+        .score_breakdown
+        .as_ref()
+        .expect("score breakdown exists");
+    assert_eq!(score.symbol, "@107");
+    assert!(score.component("liquidity_resilience").is_some());
+    assert!(score.component("spread_cost").is_some());
+    assert!(score.component("signed_flow").is_some());
+    assert!(score.confidence_penalty().abs() < 1e-9);
 }
 
 #[test]

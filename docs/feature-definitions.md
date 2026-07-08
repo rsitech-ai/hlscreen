@@ -106,9 +106,15 @@ opaque number. `ScoreBreakdown` records:
 - confidence score used for adjustment
 - named components such as liquidity, momentum, spread cost, signed flow,
   resilience, metadata, or custom components
+- per-component raw values, normalized values, weights, signed contributions,
+  direction, and evidence windows
+- unavailable evidence names when a public row cannot support a component
 
-This supports why-ranked views and replay parity. Score breakdowns remain screen
-heuristics; they are not orders, trade recommendations, or performance proof.
+The screen DSL exposes `score_total`, `score_raw_total`,
+`score_confidence_penalty`, and `score_component.<name>`. `hls explain` renders
+the same model as the TUI why-ranked pane. Score breakdowns remain screen
+heuristics; they are not orders, trade recommendations, execution simulations,
+or performance proof.
 
 ## Metrics Contract
 

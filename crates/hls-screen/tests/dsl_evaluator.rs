@@ -4,6 +4,7 @@ use hls_core::{
         AdverseSelectionProxy, FeatureSnapshot, LiquidityResilienceState, StalenessState,
         TradeabilityState,
     },
+    score::{ScoreBreakdown, ScoreComponent, ScoreComponentKind},
 };
 use hls_screen::{ScreenEngine, ScreenRequest, ScreenSession};
 
@@ -69,6 +70,53 @@ fn type_incompatible_comparisons_are_rejected() {
     assert!(err.to_string().contains("type-incompatible comparison"));
 }
 
+#[test]
+fn score_fields_filter_sort_and_keep_missing_components_out() {
+    let mut rows = fixture_rows();
+    rows[0].score_breakdown = Some(ScoreBreakdown::from_components(
+        "AAA/USDC",
+        80,
+        vec![
+            ScoreComponent::new("momentum", ScoreComponentKind::Momentum, 40.0),
+            ScoreComponent::new("spread_cost", ScoreComponentKind::SpreadCost, -5.0),
+        ],
+    ));
+    rows[1].score_breakdown = Some(ScoreBreakdown::from_components(
+        "BBB/USDC",
+        100,
+        vec![ScoreComponent::new(
+            "momentum",
+            ScoreComponentKind::Momentum,
+            20.0,
+        )],
+    ));
+
+    let visible = ScreenEngine
+        .apply(
+            &rows,
+            &ScreenRequest {
+                where_expr: Some("score_component.momentum >= 20 and score_total > 15".to_owned()),
+                sort: Some("score_total:desc".to_owned()),
+                ..ScreenRequest::default()
+            },
+        )
+        .expect("score fields apply");
+
+    assert_eq!(symbols(&visible), vec!["AAA/USDC", "BBB/USDC"]);
+
+    let spread_cost_rows = ScreenEngine
+        .apply(
+            &rows,
+            &ScreenRequest {
+                where_expr: Some("score_component.spread_cost < 0".to_owned()),
+                ..ScreenRequest::default()
+            },
+        )
+        .expect("component filter applies");
+
+    assert_eq!(symbols(&spread_cost_rows), vec!["AAA/USDC"]);
+}
+
 fn symbols(rows: &[FeatureSnapshot]) -> Vec<String> {
     rows.iter().map(|row| row.symbol.clone()).collect()
 }
@@ -122,6 +170,7 @@ fn row(
         liquidity_score,
         momentum_score,
         mean_reversion_score,
+        score_breakdown: None,
         updated_ms_ago: Some(0),
         staleness_state: StalenessState::Fresh,
         incomplete_window_reason: None,

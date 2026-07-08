@@ -41,6 +41,8 @@ fn renders_read_only_main_table_for_fixture_snapshot() {
     assert!(table.contains("bid 34.9000 x 3.0000"));
     assert!(table.contains("ask 35.1000 x 4.0000"));
     assert!(table.contains("confidence | high 100 | reasons none"));
+    assert!(table.contains("why ranked | score"));
+    assert!(table.contains("components 5"));
     assert!(table.contains("No wallet"));
     assert!(table.contains("Scores are screen heuristics, not orders or advice."));
 }
