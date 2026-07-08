@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "fixture_id": "gap_replay_v1",
+  "description": "Public reconnect-gap replay benchmark over BBO plus trades.",
+  "input_files": ["tests/fixtures/microstructure/gap_replay.ndjson"],
+  "expected_hash": "sha256:99ab7c75a7bdb03865307dcf0e6181d0901d672638eb33a8fb7351415d0364d6",
+  "max_feature_latency_us": 100000,
+  "tags": ["public", "gap", "replay", "microstructure"]
+}
