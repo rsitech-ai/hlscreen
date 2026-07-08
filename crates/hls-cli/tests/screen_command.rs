@@ -25,8 +25,9 @@ fn screen_filters_fixture_rows_with_custom_rule() {
         ))
         .stdout(predicate::str::contains("@107"))
         .stdout(predicate::str::contains("35.2000"))
-        .stdout(predicate::str::contains("wallet").not())
-        .stdout(predicate::str::contains("order").not());
+        .stdout(predicate::str::contains("No wallet"))
+        .stdout(predicate::str::contains("no order routes"))
+        .stdout(predicate::str::contains("private key").not());
 }
 
 #[test]

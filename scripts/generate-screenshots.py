@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 OUT_DIR = ROOT / "docs" / "assets" / "screenshots"
 HLS = ROOT / "target" / "debug" / "hls"
 FIXTURE = "tests/fixtures/hyperliquid/ws_mock_live.ndjson"
-MAX_COLS = 108
+MAX_COLS = 128
 CHAR_WIDTH = 8.6
 LINE_HEIGHT = 20
 PADDING_X = 24
@@ -40,7 +40,7 @@ def main() -> None:
         screenshots = [
             Screenshot(
                 filename="live-screen.svg",
-                title="Terminal live screen test capture",
+                title="Live market board",
                 commands=[
                     [
                         str(HLS),
@@ -248,11 +248,21 @@ def line_style(line: str) -> tuple[str, str]:
         return "#79c0ff", "700"
     if line.startswith(("╭", "├", "╰", "─")):
         return "#53616f", "400"
+    if line.startswith("#   SYMBOL"):
+        return "#ffa657", "700"
+    if line.startswith("│ SAFETY") or line.startswith("│ UNIVERSE"):
+        return "#7ee787", "700"
+    if line.startswith("│ INGEST") or line.startswith("│ STORAGE") or line.startswith("│ QUALITY"):
+        return "#f2cc60", "700"
     if "● fresh" in line or "PASS" in line:
+        return "#7ee787", "600"
+    if "● FRESH" in line:
         return "#7ee787", "600"
     if "DEGRADED" in line or "WATCH" in line or line.startswith("- "):
         return "#f2cc60", "600"
-    if line.startswith("Read-only screen"):
+    if line.startswith("  • "):
+        return "#f2cc60", "600"
+    if line.startswith("No wallet") or line.startswith("Read-only screen"):
         return "#a7b3c2", "400"
     if "READ-ONLY" in line:
         return "#ffa657", "700"

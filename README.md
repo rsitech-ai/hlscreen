@@ -35,9 +35,9 @@ Not implemented yet:
 
 These committed SVGs are deterministic terminal captures used for documentation regression. Real public WebSocket smoke evidence is tracked in the dated reports under [docs/reports](docs/reports/).
 
-### Live Screen
+### Live Market Board
 
-![Terminal live screen test capture](docs/assets/screenshots/live-screen.svg)
+![Live market board](docs/assets/screenshots/live-screen.svg)
 
 ### Record And Replay
 
