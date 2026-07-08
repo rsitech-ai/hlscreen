@@ -31,14 +31,24 @@ pub async fn run(args: DoctorArgs) -> anyhow::Result<()> {
         .with_context(|| format!("create data directory {}", args.data_dir.display()))?;
 
     let config_path = args.data_dir.join("config.toml");
-    let config = match load_config(&config_path) {
-        Ok(config) => config,
-        Err(_) => default_config_for_data_dir(args.data_dir.clone()),
+    let (config, config_readable, config_error) = match load_config(&config_path) {
+        Ok(config) => (config, true, None),
+        Err(error) if config_path.exists() => (
+            default_config_for_data_dir(args.data_dir.clone()),
+            false,
+            Some(error.to_string()),
+        ),
+        Err(_) => (
+            default_config_for_data_dir(args.data_dir.clone()),
+            false,
+            None,
+        ),
     };
-    let config_readable = config_path.exists() && load_config(&config_path).is_ok();
     let data_dir_writable = check_writable(&args.data_dir)?;
-    let read_only_ok =
-        config.safety.read_only && !config.safety.wallet_enabled && !config.safety.trading_enabled;
+    let read_only_ok = config_error.is_none()
+        && config.safety.read_only
+        && !config.safety.wallet_enabled
+        && !config.safety.trading_enabled;
     let live_rest_ok = if args.live && args.simulate_health.is_none() {
         Some(HyperliquidRestClient::default().spot_meta().await.is_ok())
     } else {
@@ -52,6 +62,7 @@ pub async fn run(args: DoctorArgs) -> anyhow::Result<()> {
             serde_json::to_string_pretty(&json!({
                 "config_path": config_path,
                 "config_readable": config_readable,
+                "config_error": config_error,
                 "data_dir_writable": data_dir_writable,
                 "read_only": read_only_ok,
                 "live_rest": live_rest_ok,
@@ -62,8 +73,17 @@ pub async fn run(args: DoctorArgs) -> anyhow::Result<()> {
         println!("config: {}", config_path.display());
         println!(
             "config readable: {}",
-            if config_readable { "ok" } else { "missing" }
+            if config_readable {
+                "ok"
+            } else if config_path.exists() {
+                "fail"
+            } else {
+                "missing"
+            }
         );
+        if let Some(config_error) = config_error {
+            println!("config error: {config_error}");
+        }
         println!(
             "data-dir writable: {}",
             if data_dir_writable { "ok" } else { "fail" }

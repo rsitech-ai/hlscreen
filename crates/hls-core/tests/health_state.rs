@@ -79,6 +79,37 @@ fn health_snapshot_classifies_healthy_degraded_and_interrupted_states() {
 }
 
 #[test]
+fn interrupted_safety_status_is_not_downgraded_by_reconnecting_state() {
+    let snapshot = HealthInputs {
+        safety: ReadOnlySafety {
+            read_only: false,
+            wallet_enabled: true,
+            trading_enabled: false,
+        },
+        connection: ConnectionHealth {
+            state: ConnectionState::Reconnecting,
+            reconnect_count: 3,
+            last_reconnect_backoff_ms: Some(2_000),
+            ..ConnectionHealth::connected(0, 500)
+        },
+        ..HealthInputs::healthy_fixture()
+    }
+    .snapshot();
+
+    assert_eq!(snapshot.status, HealthStatus::Interrupted);
+    assert!(
+        snapshot
+            .degraded_reasons
+            .contains(&"read-only safety violation".to_owned())
+    );
+    assert!(
+        snapshot
+            .degraded_reasons
+            .contains(&"connection reconnecting".to_owned())
+    );
+}
+
+#[test]
 fn telemetry_window_measures_lag_percentiles() {
     let window = TelemetryWindow::from_samples(vec![
         LatencySample::new(1_000, 1_050, 1_070, 1_090),
