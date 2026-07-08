@@ -158,5 +158,5 @@
 - [x] Run validation and link checks
   DoD: Rust checks pass, fixture screenshot commands run, and local Markdown/image links resolve.
 
-- [-] PR, review, merge, and close out
+- [x] PR, review, merge, and close out
   DoD: OSS-readiness branch is reviewed/merged to `main`; plan, TODO, memory, and daily notes reflect final state.

@@ -53,3 +53,4 @@
 - 2026-07-08: Pre-merge audit fixed REST timeout, subscription budget, health severity, duplicate trade handling, feature windows/anomaly baselines, fail-closed doctor diagnostics, and API percent decoding. Validation passed with all pre-merge audit gates; `cargo-audit`/`cargo-deny` were unavailable in the environment and were not claimed.
 - 2026-07-08: PR #1 merged `feat/andrzej_hlscreen_foundation` into `main` at `73ebdaa`; GitHub default branch is now `main`.
 - 2026-07-08: Open-source readiness package added: MIT `LICENSE`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, `SUPPORT.md`, `CHANGELOG.md`, GitHub CI/templates/dependabot, release/privacy/threat-model/roadmap docs, deterministic screenshot generator, and committed SVG screenshots under `docs/assets/screenshots/`.
+- 2026-07-08: PR #3 merged the open-source readiness package into `main` at `1f93af8`; GitHub Actions passed before merge.
