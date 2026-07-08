@@ -192,10 +192,20 @@ fn render_medium(
 
     let center = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Length(10), Constraint::Min(10)])
+        .constraints([
+            Constraint::Length(8),
+            Constraint::Min(10),
+            Constraint::Length(9),
+        ])
         .split(body[1]);
     render_detail(frame, center[0], model, "MICROSTRUCTURE", color_mode);
     render_chart(frame, center[1], model, color_mode);
+    let lower = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+        .split(center[2]);
+    render_book(frame, lower[0], model, color_mode);
+    render_tape(frame, lower[1], model, color_mode);
     render_help_overlay(frame, area, model, color_mode);
     render_command_palette(frame, area, model, color_mode);
 }
@@ -217,10 +227,26 @@ fn render_narrow(
         .split(area);
     render_header(frame, root[0], model, color_mode);
     render_watchlist(frame, root[1], model, color_mode);
-    render_detail(frame, root[2], model, "DETAIL", color_mode);
+    render_narrow_drilldown(frame, root[2], model, color_mode);
     render_status_bar(frame, root[3], model, color_mode);
     render_help_overlay(frame, area, model, color_mode);
     render_command_palette(frame, area, model, color_mode);
+}
+
+fn render_narrow_drilldown(
+    frame: &mut Frame<'_>,
+    area: Rect,
+    model: &RatatuiFrameModel,
+    color_mode: RatatuiColorMode,
+) {
+    match model.ui_state.focused_pane() {
+        WorkstationPane::Chart => render_chart(frame, area, model, color_mode),
+        WorkstationPane::Book => render_book(frame, area, model, color_mode),
+        WorkstationPane::Tape => render_tape(frame, area, model, color_mode),
+        WorkstationPane::Watchlist | WorkstationPane::Detail | WorkstationPane::Status => {
+            render_detail(frame, area, model, "DETAIL", color_mode);
+        }
+    }
 }
 
 fn render_header(
