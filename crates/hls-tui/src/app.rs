@@ -8,6 +8,7 @@ use hls_core::{
 };
 use hls_screen::{ScreenEngine, ScreenRequest, presets::find_preset};
 
+use crate::interaction::{WorkstationDensity, WorkstationUiState, WorkstationView};
 use crate::theme::truncate_chars;
 
 const WORKSTATION_COLS: [(&str, usize); 9] = [
@@ -76,33 +77,61 @@ pub fn render_screened_table(
     request: &ScreenRequest,
 ) -> hls_core::HlsResult<String> {
     let rows = ScreenEngine.apply(rows, request)?;
-    Ok(render_workstation(&rows, title, Some(request)))
+    Ok(render_workstation(&rows, title, Some(request), None))
+}
+
+pub fn render_screened_table_with_state(
+    rows: &[FeatureSnapshot],
+    title: &str,
+    request: &ScreenRequest,
+    ui_state: &WorkstationUiState,
+) -> hls_core::HlsResult<String> {
+    let rows = ScreenEngine.apply(rows, request)?;
+    Ok(render_workstation(
+        &rows,
+        title,
+        Some(request),
+        Some(ui_state),
+    ))
 }
 
 pub fn render_table_with_title(rows: &[FeatureSnapshot], title: &str) -> String {
-    render_workstation(rows, title, None)
+    render_workstation(rows, title, None, None)
 }
 
 fn render_workstation(
     rows: &[FeatureSnapshot],
     title: &str,
     request: Option<&ScreenRequest>,
+    ui_state: Option<&WorkstationUiState>,
 ) -> String {
     let stats = TableStats::from_rows(rows);
     let mut output = String::new();
+    let selected_index = selected_index(rows, ui_state);
+    let view = ui_state.map_or(WorkstationView::Overview, WorkstationUiState::view);
+    let density = ui_state.map_or(WorkstationDensity::Dense, WorkstationUiState::density);
 
     let stream_status = if title.to_ascii_lowercase().contains("replay") {
         "REPLAY ●"
     } else {
         "LIVE ●"
     };
+    let ui_status = ui_state
+        .map(|state| {
+            if state.paused() {
+                "UI PAUSED"
+            } else {
+                "UI ACTIVE"
+            }
+        })
+        .unwrap_or("UI READY");
     let recorder_status = if title.to_ascii_lowercase().contains("recording") {
         "REC ●"
     } else {
         "REC ready"
     };
     let status = format!(
-        "{recorder_status}  {stream_status}  p95 row age {}",
+        "{recorder_status}  {stream_status}  {ui_status}  p95 row age {}",
         format_age(stats.p95_age_ms)
     );
 
@@ -118,6 +147,28 @@ fn render_workstation(
             stats.quality_status().to_ascii_lowercase()
         ),
     ));
+    output.push_str(&workstation_full_line(
+        &format!(
+            "ui: {} · row {} · {} · n={}",
+            view.label(),
+            focus_label(selected_index, rows.len()),
+            density_short_label(density),
+            rows.len()
+        ),
+        "keys arrows/jk · tab · d · ? · space · q",
+    ));
+    if let Some(state) = ui_state
+        && state.help_open()
+    {
+        output.push_str(&workstation_full_line(
+            "command deck: ↑/↓ row · PgUp/PgDn jump · Home/End edge · Shift+Tab previous view",
+            "",
+        ));
+        output.push_str(&workstation_full_line(
+            "display only: controls change focus, density, help, and view; ingestion stays public/read-only",
+            "",
+        ));
+    }
     output.push_str(&workstation_border("├", "┬", "┤"));
     output.push_str(&workstation_header_row());
     output.push_str(&workstation_border("├", "┼", "┤"));
@@ -134,46 +185,25 @@ fn render_workstation(
         return output;
     }
 
-    for row in rows {
-        output.push_str(&workstation_data_row(row));
+    let visible = visible_range(rows.len(), selected_index.unwrap_or_default(), ui_state);
+    for (row_index, row) in rows
+        .iter()
+        .enumerate()
+        .take(visible.end)
+        .skip(visible.start)
+    {
+        output.push_str(&workstation_data_row(
+            row,
+            selected_index == Some(row_index),
+            ui_state.is_some(),
+        ));
     }
 
     output.push_str(&workstation_border("└", "┴", "┘"));
 
-    let selected = &rows[0];
+    let selected = &rows[selected_index.unwrap_or_default()];
     output.push('\n');
-    output.push_str(&format!("Selected: {}\n", display_symbol(selected)));
-    output.push_str(&format!(
-        "Bid/Ask        {:<21} Micro-BBO      {:<12} Mark-Mid basis {}\n",
-        format_bid_ask(selected),
-        format_optional(selected.mid_px, 4),
-        format_basis_bps(selected),
-    ));
-    output.push_str(&format!(
-        "Top book       {:<21} OFI 30s        {:<12} Spread recovery {}\n",
-        format_top_book(selected),
-        format_signed_usd(selected.bbo_ofi_proxy_30s),
-        format_recovery(selected.spread_recovery_ms),
-    ));
-    output.push_str(&format!(
-        "Signed flow    5s:-  30s:{} 1m:-       RV 1m/5m/1h   {}\n",
-        format_signed_usd(selected.signed_notional_flow_30s),
-        format_volatility_compact_triplet(selected),
-    ));
-    output.push_str(&format!(
-        "Confidence     {}\n",
-        format_confidence_counters(selected)
-    ));
-    output.push_str(&format!(
-        "Why ranked     {} | tradeability {} | resilience {}\n",
-        format_why_ranked_tokens(selected),
-        format_tradeability_state(selected.tradeability_state),
-        format_resilience_state(selected.resilience_state),
-    ));
-    output.push_str(&format!(
-        "Metadata       {}\n",
-        format_metadata_summary(selected)
-    ));
+    render_selected_detail(&mut output, selected, view);
 
     output.push_str(
         "\nNo wallet, no private streams, no order routes. Scores are screen heuristics, not orders or advice.\n",
@@ -221,9 +251,18 @@ fn workstation_header_row() -> String {
     workstation_row(&cells, true)
 }
 
-fn workstation_data_row(row: &FeatureSnapshot) -> String {
+fn workstation_data_row(row: &FeatureSnapshot, selected: bool, interactive: bool) -> String {
+    let symbol = if interactive {
+        format!(
+            "{} {}",
+            if selected { "▶" } else { " " },
+            display_symbol(row)
+        )
+    } else {
+        display_symbol(row).to_owned()
+    };
     let cells = vec![
-        display_symbol(row).to_owned(),
+        symbol,
         format_optional(row.price, 4),
         format_bps_value(row.spread_bps),
         format_imbalance_cell(row.tob_imbalance),
@@ -234,6 +273,164 @@ fn workstation_data_row(row: &FeatureSnapshot) -> String {
         format_why_now(row),
     ];
     workstation_row(&cells, false)
+}
+
+fn selected_index(
+    rows: &[FeatureSnapshot],
+    ui_state: Option<&WorkstationUiState>,
+) -> Option<usize> {
+    ui_state
+        .and_then(|state| state.selected_index(rows.len()))
+        .or_else(|| (!rows.is_empty()).then_some(0))
+}
+
+fn visible_range(
+    row_count: usize,
+    selected_index: usize,
+    ui_state: Option<&WorkstationUiState>,
+) -> std::ops::Range<usize> {
+    let Some(ui_state) = ui_state else {
+        return 0..row_count;
+    };
+    let limit = ui_state.visible_row_limit().max(1).min(row_count);
+    let half = limit / 2;
+    let start = selected_index
+        .saturating_sub(half)
+        .min(row_count.saturating_sub(limit));
+    start..start + limit
+}
+
+fn focus_label(selected_index: Option<usize>, row_count: usize) -> String {
+    selected_index.map_or_else(
+        || "-/-".to_owned(),
+        |index| format!("{}/{}", index + 1, row_count),
+    )
+}
+
+fn density_short_label(density: WorkstationDensity) -> &'static str {
+    match density {
+        WorkstationDensity::Compact => "cmp",
+        WorkstationDensity::Balanced => "bal",
+        WorkstationDensity::Dense => "dns",
+    }
+}
+
+fn render_selected_detail(output: &mut String, selected: &FeatureSnapshot, view: WorkstationView) {
+    output.push_str(&format!(
+        "Selected: {}  | view {}\n",
+        display_symbol(selected),
+        view.label()
+    ));
+
+    match view {
+        WorkstationView::Overview => {
+            output.push_str(&format!(
+                "Bid/Ask        {:<21} Micro-BBO      {:<12} Mark-Mid basis {}\n",
+                format_bid_ask(selected),
+                format_optional(selected.mid_px, 4),
+                format_basis_bps(selected),
+            ));
+            output.push_str(&format!(
+                "Top book       {:<21} OFI 30s        {:<12} Spread recovery {}\n",
+                format_top_book(selected),
+                format_signed_usd(selected.bbo_ofi_proxy_30s),
+                format_recovery(selected.spread_recovery_ms),
+            ));
+            output.push_str(&format!(
+                "Signed flow    5s:-  30s:{} 1m:-       RV 1m/5m/1h   {}\n",
+                format_signed_usd(selected.signed_notional_flow_30s),
+                format_volatility_compact_triplet(selected),
+            ));
+            output.push_str(&format!(
+                "Confidence     {}\n",
+                format_confidence_counters(selected)
+            ));
+            output.push_str(&format!(
+                "Why ranked     {} | tradeability {} | resilience {}\n",
+                format_why_ranked_tokens(selected),
+                format_tradeability_state(selected.tradeability_state),
+                format_resilience_state(selected.resilience_state),
+            ));
+            output.push_str(&format!(
+                "Metadata       {}\n",
+                format_metadata_summary(selected)
+            ));
+        }
+        WorkstationView::Flow => {
+            output.push_str(&format!(
+                "Flow tape      signed30 {:<12} ofi30 {:<12} adverse proxy {}\n",
+                format_signed_usd(selected.signed_notional_flow_30s),
+                format_signed_usd(selected.bbo_ofi_proxy_30s),
+                selected.adverse_selection_proxy.as_str(),
+            ));
+            output.push_str(&format!(
+                "Volatility     rv1m/5m/1h {:<18} ret1m/5m/1h {}\n",
+                format_volatility_compact_triplet(selected),
+                format_return_triplet(selected),
+            ));
+            output.push_str(&format!(
+                "Liquidity      spread {} bps | depth {} | imbalance {}\n",
+                format_bps_value(selected.spread_bps),
+                format_usd(selected.tob_depth_usd),
+                format_imbalance_cell(selected.tob_imbalance),
+            ));
+        }
+        WorkstationView::Quality => {
+            output.push_str(&format!(
+                "Confidence     level {} | score {} | {}\n",
+                selected.confidence.level.as_str(),
+                selected.confidence.score,
+                format_confidence_counters(selected),
+            ));
+            output.push_str(&format!(
+                "Freshness      row age {} | staleness {:?} | parser drops {}\n",
+                format_age(selected.updated_ms_ago),
+                selected.staleness_state,
+                reason_count(selected, ConfidenceReason::ParserDrops),
+            ));
+            output.push_str(
+                "Boundary       quality changes display trust only; it is not an execution gate.\n",
+            );
+        }
+        WorkstationView::Metadata => {
+            output.push_str(&format!(
+                "Metadata       {}\n",
+                format_metadata_summary(selected)
+            ));
+            output.push_str(&format!(
+                "Identifiers    display {} | feed {}\n",
+                display_symbol(selected),
+                selected.symbol,
+            ));
+            output.push_str(
+                "Boundary       metadata is public discovery context; missing fields stay explicit.\n",
+            );
+        }
+        WorkstationView::Explain => {
+            output.push_str(&format!(
+                "Why ranked     {} | score {}\n",
+                format_why_ranked_tokens(selected),
+                format_score_pair(selected),
+            ));
+            if let Some(breakdown) = &selected.score_breakdown {
+                output.push_str(&format!(
+                    "Score totals   adjusted {} | raw {} | confidence penalty {}\n",
+                    format_score(Some(breakdown.adjusted_total)),
+                    format_score(Some(breakdown.raw_total)),
+                    format_score(Some(breakdown.confidence_penalty())),
+                ));
+                if !breakdown.unavailable_evidence.is_empty() {
+                    output.push_str(&format!(
+                        "Unavailable   {}\n",
+                        breakdown.unavailable_evidence.join(", ")
+                    ));
+                }
+            }
+            output.push_str(
+                "Boundary       score components are screen heuristics, not advice or order intent.\n",
+            );
+        }
+    }
 }
 
 fn display_symbol(row: &FeatureSnapshot) -> &str {
@@ -553,6 +750,19 @@ fn format_volatility_compact_triplet(row: &FeatureSnapshot) -> String {
         format_volatility_compact(row.rv_5m),
         format_volatility_compact(row.rv_1h),
     )
+}
+
+fn format_return_triplet(row: &FeatureSnapshot) -> String {
+    format!(
+        "{}/{}/{}",
+        format_percent(row.ret_1m),
+        format_percent(row.ret_5m),
+        format_percent(row.ret_1h),
+    )
+}
+
+fn format_percent(value: Option<f64>) -> String {
+    value.map_or_else(|| "-".to_owned(), |value| format!("{:+.2}%", value * 100.0))
 }
 
 fn format_amihud_proxy(row: &FeatureSnapshot) -> String {

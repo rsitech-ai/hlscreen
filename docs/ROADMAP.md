@@ -31,7 +31,7 @@
    - Bind to localhost only by default.
    - Read-only routes only.
    - Health and screen endpoints backed by live/replay state.
-4. Interactive TUI.
+4. Advanced interactive TUI beyond the current row/view keyboard controls.
    - Keyboard-driven filter editing.
    - Preset switching.
    - Health panel and recording status.
