@@ -296,6 +296,7 @@ fn cockpit_reflects_keyboard_view_pause_density_and_help_state() {
     assert!(rendered.contains("HELP"));
     assert!(rendered.contains("Command Deck"));
     assert!(rendered.contains("[ / ]"));
+    assert!(rendered.contains("1-6 panes"));
     assert!(rendered.contains("/ filter"));
     assert!(!rendered.contains("reserved"));
 }
