@@ -132,7 +132,7 @@ fn render_wide(
     let root = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(3),
+            Constraint::Length(4),
             Constraint::Min(12),
             Constraint::Length(2),
         ])
@@ -176,7 +176,7 @@ fn render_medium(
     let root = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(3),
+            Constraint::Length(4),
             Constraint::Min(12),
             Constraint::Length(2),
         ])
@@ -219,7 +219,7 @@ fn render_narrow(
     let root = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(3),
+            Constraint::Length(4),
             Constraint::Percentage(48),
             Constraint::Min(8),
             Constraint::Length(2),
@@ -256,23 +256,34 @@ fn render_header(
     color_mode: RatatuiColorMode,
 ) {
     let filter = filter_label(&model.title, &model.request);
-    let text = vec![Line::from(vec![
-        Span::styled(
-            "HLSCREEN ",
-            Style::default()
-                .fg(accent(color_mode))
-                .add_modifier(Modifier::BOLD),
-        ),
-        Span::raw(format!("{}  ", model.stream_status)),
-        Span::styled(
-            model.recorder_status.clone(),
-            Style::default().fg(success(color_mode)),
-        ),
-        Span::raw(format!(
-            "  filter: {filter}  {}  keys: j/k 1-6 tab / p s t ? q",
-            ui_mode_label(&model.ui_state),
-        )),
-    ])];
+    let text = vec![
+        Line::from(vec![
+            Span::styled(
+                "STATUS ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(format!("{}  ", model.stream_status)),
+            Span::styled(
+                model.recorder_status.clone(),
+                Style::default().fg(success(color_mode)),
+            ),
+            Span::raw(format!(
+                "  {}  filter:{filter}",
+                compact_ui_mode_label(&model.ui_state)
+            )),
+        ]),
+        Line::from(vec![
+            Span::styled(
+                "CONTROLS ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw("j/k row  1-6 panes  tab views  / filter  p preset  s sort  t chart  ? q"),
+        ]),
+    ];
     frame.render_widget(
         Paragraph::new(text).block(
             Block::default()
@@ -609,13 +620,13 @@ fn command_palette_lines(
     lines
 }
 
-fn ui_mode_label(state: &WorkstationUiState) -> String {
+fn compact_ui_mode_label(state: &WorkstationUiState) -> String {
     let command = state
         .command()
-        .map(|command| format!(" command:{}", command.target().label()))
+        .map(|command| format!(" cmd:{}", command.target().label()))
         .unwrap_or_default();
     format!(
-        "view:{} pane:{} density:{} chart:{}{}",
+        "view:{} pane:{} dens:{} chart:{}{}",
         state.view().label(),
         state.focused_pane().label(),
         state.density().label(),
