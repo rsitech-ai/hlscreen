@@ -22,6 +22,55 @@ The v1 feature set is a transparent screener surface, not a prediction engine.
 
 These scores are screen ordering aids only. They are not predictions, recommendations, or profitability claims.
 
+## Data Confidence
+
+The microstructure workstation uses `DataConfidenceSnapshot` as the shared
+contract for row-level data quality. It starts at `100` and degrades when the
+pipeline observes evidence that a row should not be fully trusted.
+
+Confidence levels:
+
+- `high`: score `90..100`
+- `medium`: score `70..89`
+- `low`: score `30..69`
+- `untrusted`: score below `30`
+
+Current foundation reason codes:
+
+- `reconnect_gap`: a reconnect or missed interval affected the row.
+- `stale_quote`: quote freshness is outside the accepted window.
+- `sparse_trades`: there are not enough trades for a windowed calculation.
+- `duplicate_events`: duplicate events were observed or deduped.
+- `parser_drops`: parser failures affected available evidence.
+- `writer_backlog`: local recording pressure could affect durability.
+- `incomplete_window`: one or more feature windows are not valid yet.
+
+User-facing ranking work must keep this confidence state visible next to the
+score. A low-confidence row must not silently look equivalent to a fully trusted
+row.
+
+## Score Breakdowns
+
+The microstructure score contract stores named components rather than a single
+opaque number. `ScoreBreakdown` records:
+
+- raw component total, clamped to `0..100`
+- confidence-adjusted total, also clamped to `0..100`
+- confidence score used for adjustment
+- named components such as liquidity, momentum, spread cost, signed flow,
+  resilience, metadata, or custom components
+
+This supports why-ranked views and replay parity. Score breakdowns remain screen
+heuristics; they are not orders, trade recommendations, or performance proof.
+
+## Metrics Contract
+
+Metric definitions use `hls_`-prefixed names and low-cardinality labels. Labels
+such as `symbol`, `run_id`, account, wallet, address, transaction hash, and
+trade id are rejected by the foundation contract. Symbol-level detail belongs in
+TUI rows, structured logs, replay artifacts, or top-N summaries, not in every
+histogram label.
+
 ## Screening Rules
 
 `hls-screen` supports a small deterministic rule language over `FeatureSnapshot` fields:
