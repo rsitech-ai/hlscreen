@@ -671,3 +671,65 @@
 - Live smoke: `./target/debug/hls live --symbols @107 --duration-secs 10 --refresh-secs 5 --tui` completed against the public Hyperliquid WebSocket with 1 symbol, 4 public subscriptions, 56 WebSocket messages, 81 market events, 0 reconnects, and 0 data gaps.
 - Tradeoffs: This remains a deterministic renderer and live-refresh surface, not a full keyboard-driven alternate-screen Ratatui app. That larger interactive shell remains a future slice.
 - Rollback: revert this refinement commit; no schema, storage, or runtime migration is involved.
+
+## 2026-07-08 Microstructure Foundation Contracts
+
+### Task
+- Objective: Implement Spec Kit v2 foundation tasks T001-T019 for the Hyperliquid Microstructure Workstation: fixture/doc scaffolding, confidence contracts, score breakdown contracts, metrics label validation, benchmark manifest model, exports, safety regression tests, and terminology docs.
+- Owner repo(s): standalone `hlscreen/` repository only.
+- Capital impact: research-only / read-only public market-data contracts. No wallet, private stream, signing, order placement, exchange action, execution route, or profitability claim.
+
+### Context
+- Background: PR #14 merged `specs/002-microstructure-workstation` with 92 tasks derived from the pasted product brief. All v2 implementation tasks are still unchecked; Phase 2 blocks every user story, so the next correct slice is the shared foundation.
+- Inputs: `specs/002-microstructure-workstation/tasks.md` T001-T019, `contracts/confidence-and-scoring.md`, `contracts/metrics.md`, `data-model.md`, and existing v1 health/telemetry/store patterns.
+- Outputs: New contract modules under `hls-core`, a benchmark manifest module under `hls-store`, fixture/doc scaffolding, tests, checked task markers for T001-T019, validation evidence, and a PR/merge if stable.
+
+### Assumptions
+- The first confidence contract should be data-quality state and reason aggregation, not full feature-engine confidence computation; US1 owns attaching and computing it from live/replay state.
+- The first score contract should define named components and confidence-adjusted totals, not change current ranking formulas yet; US3 owns full why-ranked UI/CLI.
+- Metrics labels must reject high-cardinality labels such as symbol/run id at the contract boundary.
+- Benchmark manifests can be JSON because fixture metadata is already serde-based and should be readable from committed test fixtures.
+
+### Constraints
+- Technical: keep contracts small, serializable, and dependency-light; use existing `serde`/`HlsError` patterns; no broad feature-engine rewrites in this slice.
+- Operational: keep runtime market-data captures out of git; do not touch parent `rsibot/`.
+- Risk/capital: read-only language must remain visible; no trading/execution objects or advice semantics.
+
+### Options Considered
+1. Only create placeholder files/directories.
+   - Pros: completes setup tasks quickly.
+   - Cons: leaves the blocking foundation unimplemented and does not move toward the user's "solve tasks one by one" request.
+2. Implement T001-T019 as a single foundation PR.
+   - Pros: creates real shared contracts and tests while keeping scope below US1 runtime behavior.
+   - Cons: touches several crates and docs, requiring full validation.
+
+### Chosen Approach
+- Choice: option 2.
+- Why: every user story depends on the foundation contracts, and they are small enough to validate coherently in one PR.
+
+### Execution Plan
+1. Add setup directories and documentation/README stubs for microstructure fixtures and golden outputs.
+2. Add failing foundation tests for confidence state, score breakdowns, metrics contracts, benchmark manifest parsing, and CLI safety regression.
+3. Implement `hls-core::{confidence, score, metrics}` and wire exports.
+4. Implement `hls-store::benchmark` and wire exports.
+5. Update feature definitions and `docs/microstructure.md` with confidence/score terminology.
+6. Mark T001-T019 complete in `specs/002-microstructure-workstation/tasks.md`.
+7. Run focused tests, full Rust gates, diff/read-only scans, update memory/reflection, commit, push, PR, and merge only if stable.
+
+### Test Plan
+- Focused: `cargo test -p hls-core --test confidence_state --test score_breakdown --test metrics_contract`; `cargo test -p hls-store --test benchmark_manifest`; `cargo test -p hls-cli --test microstructure_safety`.
+- Regression: `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`; `git diff --check`.
+- Safety: read-only scan for order/exchange/private-key surfaces and review of docs for advice/profitability language.
+
+### Risks and Rollback
+- Risks: score/confidence names may need adjustment when US1/US3 implementation starts; benchmark manifest shape may need migration once real benchmark packs exist; tests can overfit early field names.
+- Rollback: revert the foundation PR; no persisted data migration is introduced.
+
+### Memory Impact
+- Add/update in `MEMORY.md`: foundation contract scope, confirmed test commands, and contract boundaries.
+
+### Final Notes
+- What changed: Completed T001-T019 from `specs/002-microstructure-workstation/tasks.md`. Added tracked microstructure fixture/golden directories, `docs/microstructure.md`, foundation tests, `hls-core::{confidence, score, metrics}`, `hls-store::benchmark`, `hls-features::microstructure` contract reexports, a CLI command-registration boundary comment, and confidence/score/metrics terminology in `docs/feature-definitions.md`.
+- Validation run: red/green focused tests for `cargo test -p hls-core --test confidence_state --test score_breakdown --test metrics_contract`; `cargo test -p hls-store --test benchmark_manifest`; `cargo test -p hls-cli --test microstructure_safety`; `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`; `git diff --check`; task-ID format check; read-only surface scan.
+- Tradeoffs: Foundation contracts define serializable shapes and validation only. Confidence computation, replay parity flags, why-ranked rendering, resilience metrics, metadata enrichment, metrics output, extension execution, and packaging remain unchecked later tasks.
+- Rollback: revert this foundation commit/PR; no runtime schema migration or recorded data migration is introduced.
