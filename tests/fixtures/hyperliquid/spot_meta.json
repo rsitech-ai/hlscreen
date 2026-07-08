@@ -41,13 +41,13 @@
       "isCanonical": true
     },
     {
-      "name": "HYPE/USDC",
+      "name": "@107",
       "tokens": [150, 0],
       "index": 107,
       "isCanonical": true
     },
     {
-      "name": "TEST/USDC",
+      "name": "@108",
       "tokens": [151, 0],
       "index": 108,
       "isCanonical": false

@@ -23,7 +23,7 @@ This project is pre-1.0. Use this checklist before tagging a public release.
    ./target/debug/hls init --data-dir "$tmpdir"
    ./target/debug/hls doctor --data-dir "$tmpdir"
    ./target/debug/hls live --symbols @107 --fixture-file tests/fixtures/hyperliquid/ws_mock_live.ndjson --preset thin_books --once
-   ./target/debug/hls live --symbols @107 --duration-secs 15 --refresh-secs 5 --tui --record --raw --normalized --run-id release-live --data-dir "$tmpdir"
+   ./target/debug/hls live --symbols HYPE/USDC --duration-secs 15 --refresh-secs 5 --tui --record --raw --normalized --run-id release-live --data-dir "$tmpdir"
    ./target/debug/hls record --symbols @107 --fixture-file tests/fixtures/hyperliquid/ws_mock_live.ndjson --raw --normalized --run-id release --data-dir "$tmpdir"
    ./target/debug/hls replay --data-dir "$tmpdir" --run-id release
    ```

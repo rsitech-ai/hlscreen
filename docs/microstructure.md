@@ -118,6 +118,13 @@ attached to `FeatureSnapshot` rows by adapter code, not by the hot feature
 calculation path, so WebSocket ingestion does not depend on token-detail
 availability.
 
+Hyperliquid spot metadata separates readable display pairs from feed
+identifiers. Most non-PURR spot markets use `@{spot_index}` as the WebSocket
+`coin`, while the display pair is derived from the base and quote token names in
+`spotMeta`. For example, live metadata maps `HYPE/USDC` to `@107`; UIs should
+prefer `display_name` while storage/replay can continue to use the feed
+identifier.
+
 Rows can carry:
 
 - display name and feed identifier
