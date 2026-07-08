@@ -426,3 +426,4 @@
 - Validation run: `python3 scripts/generate-screenshots.py`; `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`; `cargo build --release --workspace --all-features`; `git diff --check`; local required-file check; local Markdown link check; YAML parse check for `.github/**/*.yml`.
 - Tradeoffs: Screenshots are deterministic SVG terminal captures rather than bitmap desktop screenshots. This keeps them reproducible and GitHub-renderable without adding image tooling.
 - Follow-ups: After merge, confirm GitHub Actions status on `main` once Actions run for the now-public-ready repo.
+- PR/Merge result: PR #3 (`https://github.com/s1korrrr/hlscreen/pull/3`) passed GitHub Actions and merged to `main` at `1f93af8`.
