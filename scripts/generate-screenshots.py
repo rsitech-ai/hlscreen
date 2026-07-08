@@ -16,8 +16,8 @@ ROOT = Path(__file__).resolve().parents[1]
 OUT_DIR = ROOT / "docs" / "assets" / "screenshots"
 HLS = ROOT / "target" / "debug" / "hls"
 FIXTURE = "tests/fixtures/hyperliquid/ws_mock_live.ndjson"
-MAX_COLS = 144
-CHAR_WIDTH = 8.6
+MAX_COLS = 152
+CHAR_WIDTH = 8.4
 LINE_HEIGHT = 20
 PADDING_X = 24
 PADDING_TOP = 68
@@ -66,6 +66,23 @@ def main() -> None:
                         "@107",
                         "--fixture-file",
                         "tests/fixtures/microstructure/sparse_trades.ndjson",
+                        "--once",
+                    ]
+                ],
+            ),
+            Screenshot(
+                filename="resilience-screen.svg",
+                title="Liquidity resilience board",
+                commands=[
+                    [
+                        str(HLS),
+                        "live",
+                        "--symbols",
+                        "@107",
+                        "--fixture-file",
+                        "tests/fixtures/microstructure/resilience_shock.ndjson",
+                        "--preset",
+                        "liquidity_resilience",
                         "--once",
                     ]
                 ],
@@ -275,6 +292,7 @@ def line_style(line: str) -> tuple[str, str]:
             "│ QUALITY",
             "│ LATENCY",
             "│ CONFIDENCE",
+            "│ RESILIENCE",
             "│ CONNECTION",
             "│ RECORDER",
             "│ RUNBOOK",
@@ -283,11 +301,18 @@ def line_style(line: str) -> tuple[str, str]:
         return "#f2cc60", "700"
     if "SELECTED SYMBOL" in line:
         return "#79c0ff", "700"
-    if "● fresh" in line or "PASS" in line:
+    if "● fresh" in line or "PASS" in line or "TRADE" in line:
         return "#7ee787", "600"
     if "● FRESH" in line:
         return "#7ee787", "600"
-    if "DEGRADED" in line or "WATCH" in line or line.startswith("- "):
+    if (
+        "DEGRADED" in line
+        or "WATCH" in line
+        or "BRITTLE" in line
+        or "THIN" in line
+        or "COST" in line
+        or line.startswith("- ")
+    ):
         return "#f2cc60", "600"
     if line.startswith("  • "):
         return "#f2cc60", "600"
