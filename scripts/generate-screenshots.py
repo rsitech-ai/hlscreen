@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import html
+import re
 import shlex
 import subprocess
 import tempfile
@@ -22,6 +23,7 @@ LINE_HEIGHT = 20
 PADDING_X = 24
 PADDING_TOP = 68
 PADDING_BOTTOM = 28
+STABLE_GENERATED_AT_MS = "1710000000000"
 
 
 @dataclass(frozen=True)
@@ -221,7 +223,10 @@ def run_screenshot(screenshot: Screenshot, redactions: list[tuple[str, str]]) ->
         )
         output = completed.stdout.rstrip("\n")
         if output:
-            lines.extend(redact(line, redactions) for line in output.splitlines())
+            lines.extend(
+                normalize_volatile_values(redact(line, redactions))
+                for line in output.splitlines()
+            )
         if completed.returncode != 0:
             raise SystemExit(
                 f"command failed ({completed.returncode}): {display}\n{completed.stdout}"
@@ -249,6 +254,14 @@ def redact(value: str, redactions: list[tuple[str, str]]) -> str:
     for before, after in redactions:
         redacted = redacted.replace(before, after)
     return redacted
+
+
+def normalize_volatile_values(value: str) -> str:
+    return re.sub(
+        r'("generated_at_ms": )\d+',
+        rf"\g<1>{STABLE_GENERATED_AT_MS}",
+        value,
+    )
 
 
 def wrap_lines(lines: list[str]) -> list[str]:
