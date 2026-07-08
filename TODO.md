@@ -519,6 +519,29 @@
 - [x] Update production/open-source docs and architecture diagrams
   DoD: README/docs reflect current implementation truth, deployment/runbook caveats, and Mermaid architecture/data-flow diagrams.
 
+## 2026-07-08 Next-Gen Keyboard-Interactive TUI
+
+- [x] Confirm scope and branch
+  DoD: `PLAN.md` records read-only interactive TUI scope on `feat/andrzej_nextgen_interactive_tui`.
+
+- [x] Add interaction model and focused tests
+  DoD: `hls-tui` tests cover row focus, view/density/help/pause actions, and selected-row rendering without terminal I/O.
+
+- [x] Upgrade workstation renderer for adaptive focus and command surface
+  DoD: Main TUI output shows keyboard controls, active view, density, selected row, and mode state while still using real `FeatureSnapshot` fields.
+
+- [x] Wire live CLI keyboard polling
+  DoD: `hls live --tui` can update focus/view/help/pause from keyboard in a TTY without blocking WebSocket ingestion or hanging non-TTY tests.
+
+- [x] Update docs and screenshots
+  DoD: README/docs state the implemented controls truthfully and committed SVG screenshots are regenerated from the current binary.
+
+- [x] Run validation gates and live smoke
+  DoD: Focused tests, full Rust gates, screenshot generation, `git diff --check`, and bounded public live smoke pass or exact blockers are recorded.
+
+- [-] Review, PR, merge, and close out
+  DoD: Diff is reviewed, branch is pushed, PR checks pass, merge to `main` occurs only if stable, and memory/reflection notes are complete.
+
 - [x] Audit code/docs/readiness gaps and fix blockers
   DoD: Source/docs scans find no hidden private/order paths, stale major docs, or untruthful readiness claims; any blocking finding has a focused fix.
 

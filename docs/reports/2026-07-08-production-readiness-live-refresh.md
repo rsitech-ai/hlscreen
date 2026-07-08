@@ -163,5 +163,5 @@ Local review passes with the fixes above. The current implementation is suitable
 - Automatic public REST backfill after reconnect remains unimplemented.
 - Long-running localhost HTTP server mode remains unimplemented.
 - True Parquet output remains unimplemented.
-- Keyboard-interactive TUI remains future work.
+- Advanced keyboard workflows such as in-TUI filter editing and preset switching remain future work. Basic `hls live --tui` keyboard controls for row focus, view cycling, density, help, pause state, and clean quit are now implemented.
 - First public `v*` release artifacts/checksums remain unproven until a reviewed tag workflow succeeds.

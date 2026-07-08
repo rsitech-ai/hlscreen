@@ -9,6 +9,10 @@ use std::{
 
 use anyhow::{Context, bail};
 use clap::Args;
+use crossterm::{
+    event::{self, Event, KeyCode, KeyEvent, KeyEventKind},
+    terminal::{disable_raw_mode, enable_raw_mode},
+};
 use futures_util::{SinkExt, StreamExt};
 use hls_core::{
     HlsError, HlsResult,
@@ -32,7 +36,10 @@ use hls_store::{
     raw::{RawMarketMessage, RawWriter},
     recorder::{RecordOptions, RecordSummary, record_fixture_ndjson},
 };
-use hls_tui::app::{render_confidence_summary, render_screened_table};
+use hls_tui::{
+    app::{render_confidence_summary, render_screened_table, render_screened_table_with_state},
+    interaction::{WorkstationAction, WorkstationUiState},
+};
 use tokio::time::{interval, sleep_until, timeout_at};
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 
@@ -46,6 +53,7 @@ const DEFAULT_MAX_SUBSCRIPTIONS: usize = 980;
 const LIVE_RECORDER_QUEUE_CAPACITY: usize = 65_536;
 const INITIAL_RECONNECT_BACKOFF_MS: u64 = 1_000;
 const MAX_RECONNECT_BACKOFF_MS: u64 = 30_000;
+const TUI_KEY_POLL_MS: u64 = 100;
 
 #[derive(Debug, Args)]
 pub struct LiveArgs {
@@ -222,7 +230,13 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
         where_expr: args.r#where.clone(),
         sort: args.sort.clone(),
     };
+    let mut metadata = selection.metadata;
+    metadata.extend(load_metadata_enrichments(args.metadata_file.as_ref())?);
     let render_live_tui = args.tui || io::stderr().is_terminal();
+    let keyboard_interactive =
+        render_live_tui && io::stdin().is_terminal() && io::stderr().is_terminal();
+    let _raw_mode = RawModeGuard::enable(keyboard_interactive)?;
+    let mut tui_state = render_live_tui.then(WorkstationUiState::default);
 
     eprintln!(
         "read-only live run: symbols={} subscriptions={} streams_per_symbol={} duration_secs={} ws_url={}",
@@ -241,7 +255,10 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
         Duration::from_secs(args.refresh_secs.max(1)),
         &mut state,
         &screen_request,
+        &metadata,
         render_live_tui,
+        keyboard_interactive,
+        tui_state.as_mut(),
         recorder.as_ref(),
     )
     .await;
@@ -261,8 +278,6 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
 
     let mut summary = drive_result?;
     let mut snapshots = FeatureEngine::default().snapshots(&state, now_ms_i64()?);
-    let mut metadata = selection.metadata;
-    metadata.extend(load_metadata_enrichments(args.metadata_file.as_ref())?);
     attach_metadata(&mut snapshots, metadata);
     summary.row_count = snapshots.len();
 
@@ -396,7 +411,10 @@ async fn drive_live_ws(
     refresh_interval: Duration,
     state: &mut LiveMarketState,
     screen_request: &ScreenRequest,
+    metadata: &[MetadataEnrichment],
     render_live_tui: bool,
+    keyboard_interactive: bool,
+    mut tui_state: Option<&mut WorkstationUiState>,
     recorder: Option<&LiveRecorder>,
 ) -> anyhow::Result<LiveDriveSummary> {
     let started = Instant::now();
@@ -415,7 +433,10 @@ async fn drive_live_ws(
             refresh_interval,
             state,
             screen_request,
+            metadata,
             render_live_tui,
+            keyboard_interactive,
+            tui_state.as_deref_mut(),
             recorder,
             &mut summary,
         )
@@ -484,7 +505,10 @@ async fn drive_live_connection(
     refresh_interval: Duration,
     state: &mut LiveMarketState,
     screen_request: &ScreenRequest,
+    metadata: &[MetadataEnrichment],
     render_live_tui: bool,
+    keyboard_interactive: bool,
+    mut tui_state: Option<&mut WorkstationUiState>,
     recorder: Option<&LiveRecorder>,
     summary: &mut LiveDriveSummary,
 ) -> anyhow::Result<ConnectionOutcome> {
@@ -528,6 +552,8 @@ async fn drive_live_connection(
     heartbeat.tick().await;
     let mut progress = interval(refresh_interval);
     progress.tick().await;
+    let mut ui_events = interval(Duration::from_millis(TUI_KEY_POLL_MS));
+    ui_events.tick().await;
     let mut last_message_recv_ns: Option<u64> = None;
     let mut received_any_message = false;
 
@@ -541,10 +567,31 @@ async fn drive_live_connection(
                 render_live_progress(
                     state,
                     screen_request,
+                    metadata,
                     render_live_tui,
+                    tui_state.as_deref(),
                     started,
                     summary,
                 )?;
+            }
+            _ = ui_events.tick(), if keyboard_interactive => {
+                if let Some(ui_state) = tui_state.as_deref_mut()
+                    && apply_pending_tui_actions(ui_state, state, screen_request)?
+                {
+                    render_live_progress(
+                        state,
+                        screen_request,
+                        metadata,
+                        render_live_tui,
+                        Some(ui_state),
+                        started,
+                        summary,
+                    )?;
+                    if ui_state.quit_requested() {
+                        let _ = write.send(Message::Close(None)).await;
+                        return Ok(ConnectionOutcome::DurationElapsed);
+                    }
+                }
             }
             _ = heartbeat.tick() => {
                 if let Err(err) = write.send(Message::Text(ping_message().to_owned().into())).await {
@@ -873,17 +920,29 @@ impl LiveRecorderWorker {
 fn render_live_progress(
     state: &LiveMarketState,
     screen_request: &ScreenRequest,
+    metadata: &[MetadataEnrichment],
     render_live_tui: bool,
+    tui_state: Option<&WorkstationUiState>,
     started: Instant,
     summary: &LiveDriveSummary,
 ) -> anyhow::Result<()> {
     if render_live_tui {
-        let snapshots = FeatureEngine::default().snapshots(state, now_ms_i64()?);
-        let table = render_screened_table(
-            &snapshots,
-            "READ-ONLY Hyperliquid spot live screen",
-            screen_request,
-        )?;
+        let mut snapshots = FeatureEngine::default().snapshots(state, now_ms_i64()?);
+        attach_metadata(&mut snapshots, metadata.to_vec());
+        let table = if let Some(tui_state) = tui_state {
+            render_screened_table_with_state(
+                &snapshots,
+                "READ-ONLY Hyperliquid spot live screen",
+                screen_request,
+                tui_state,
+            )?
+        } else {
+            render_screened_table(
+                &snapshots,
+                "READ-ONLY Hyperliquid spot live screen",
+                screen_request,
+            )?
+        };
         let mut stderr = io::stderr().lock();
         write!(stderr, "\x1b[2J\x1b[H{table}")?;
         writeln!(
@@ -908,6 +967,84 @@ fn render_live_progress(
     }
 
     Ok(())
+}
+
+fn apply_pending_tui_actions(
+    ui_state: &mut WorkstationUiState,
+    state: &LiveMarketState,
+    screen_request: &ScreenRequest,
+) -> anyhow::Result<bool> {
+    let mut actions = Vec::new();
+    while event::poll(Duration::from_millis(0))? {
+        let Event::Key(key) = event::read()? else {
+            continue;
+        };
+        if key.kind != KeyEventKind::Press {
+            continue;
+        }
+        if let Some(action) = key_to_workstation_action(key) {
+            actions.push(action);
+        }
+    }
+
+    if actions.is_empty() {
+        return Ok(false);
+    }
+
+    let row_count = current_screened_row_count(state, screen_request)?;
+    for action in actions {
+        ui_state.apply(action, row_count);
+    }
+    Ok(true)
+}
+
+fn key_to_workstation_action(key: KeyEvent) -> Option<WorkstationAction> {
+    match key.code {
+        KeyCode::Up | KeyCode::Char('k') => Some(WorkstationAction::Up),
+        KeyCode::Down | KeyCode::Char('j') => Some(WorkstationAction::Down),
+        KeyCode::PageUp => Some(WorkstationAction::PageUp),
+        KeyCode::PageDown => Some(WorkstationAction::PageDown),
+        KeyCode::Home => Some(WorkstationAction::Home),
+        KeyCode::End => Some(WorkstationAction::End),
+        KeyCode::Tab => Some(WorkstationAction::NextView),
+        KeyCode::BackTab => Some(WorkstationAction::PreviousView),
+        KeyCode::Char('d') | KeyCode::Char('D') => Some(WorkstationAction::ToggleDensity),
+        KeyCode::Char('?') | KeyCode::F(1) => Some(WorkstationAction::ToggleHelp),
+        KeyCode::Char(' ') => Some(WorkstationAction::TogglePause),
+        KeyCode::Esc | KeyCode::Char('q') | KeyCode::Char('Q') => Some(WorkstationAction::Quit),
+        _ => None,
+    }
+}
+
+fn current_screened_row_count(
+    state: &LiveMarketState,
+    screen_request: &ScreenRequest,
+) -> anyhow::Result<usize> {
+    let snapshots = FeatureEngine::default().snapshots(state, now_ms_i64()?);
+    Ok(hls_screen::ScreenEngine
+        .apply(&snapshots, screen_request)?
+        .len())
+}
+
+struct RawModeGuard {
+    enabled: bool,
+}
+
+impl RawModeGuard {
+    fn enable(enabled: bool) -> anyhow::Result<Self> {
+        if enabled {
+            enable_raw_mode()?;
+        }
+        Ok(Self { enabled })
+    }
+}
+
+impl Drop for RawModeGuard {
+    fn drop(&mut self) {
+        if self.enabled {
+            let _ = disable_raw_mode();
+        }
+    }
 }
 
 fn live_table_title(recording_active: bool) -> &'static str {
