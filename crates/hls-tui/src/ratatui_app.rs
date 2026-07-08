@@ -24,6 +24,23 @@ pub enum RatatuiColorMode {
     NoColor,
 }
 
+impl RatatuiColorMode {
+    fn label(self) -> &'static str {
+        match self {
+            Self::Auto => "auto",
+            Self::Color => "color",
+            Self::NoColor => "no-color",
+        }
+    }
+
+    fn palette_label(self) -> &'static str {
+        match self {
+            Self::NoColor => "plain",
+            Self::Auto | Self::Color => "ansi",
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct RatatuiViewport {
     pub width: u16,
@@ -1875,7 +1892,11 @@ fn render_status_panel(
             rows.len(),
             pause_label(model)
         )),
-        Line::from("controls j/k rows | 1-6 panes | tab views | / p s t commands"),
+        Line::from(format!(
+            "terminal color {} | --color always | palette {}",
+            color_mode.label(),
+            color_mode.palette_label(),
+        )),
         Line::from("read-only safety: No wallet, no private streams, no order routes."),
         Line::from("Screen output is heuristic context only, not orders or advice."),
     ];
