@@ -424,3 +424,23 @@
 
 - [x] Review, PR, merge, and close out
   DoD: Diff is reviewed, branch is pushed, PR checks pass, merge to `main` occurs only if stable, and memory/reflection notes are complete.
+
+## 2026-07-08 End-to-End Audit After Pair Cards
+
+- [x] Confirm scope, branch, and official-doc references
+  DoD: `PLAN.md` records the audit scope on `feat/andrzej_e2e_audit_20260708` and the docs/contract surfaces being checked.
+
+- [x] Inspect architecture and source modules
+  DoD: Parser, REST, live loop, recorder, features, DSL, TUI, server, benchmark, metrics, extension, docs, CI, and release boundaries are reviewed for correctness and safety.
+
+- [x] Run runtime and edge-case smoke matrix
+  DoD: Fixture, replay, screen, explain, bench, doctor/server, screenshots, invalid-input probes, and public live smoke run cleanly or exact blockers are recorded.
+
+- [x] Run full validation gates
+  DoD: fmt, clippy, workspace tests, debug/release builds, release packaging check, diff check, and scans pass.
+
+- [x] Write audit report and apply fixes if needed
+  DoD: `docs/reports/2026-07-08-e2e-audit-after-pair-cards.md` records findings, evidence, risks, and code-review decision.
+
+- [-] Review, PR, merge, and close out
+  DoD: Diff is reviewed, branch is pushed, PR checks pass, merge to `main` occurs only if stable, post-merge CI passes, and memory/reflection notes are complete.
