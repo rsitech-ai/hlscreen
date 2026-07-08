@@ -81,18 +81,8 @@ fn fixture_candles() -> Vec<CandleEvent> {
 
 #[test]
 fn wide_cockpit_renders_all_primary_trading_workstation_regions() {
-    let mut snapshots = fixture_snapshots();
-    snapshots[0].ret_1m = Some(0.0057);
-    let mut down_row = snapshots[0].clone();
-    down_row.symbol = "DOWN/USDC".to_owned();
-    down_row.metadata = None;
-    down_row.price = Some(12.34);
-    down_row.ret_1m = Some(-0.0123);
-    down_row.signed_notional_flow_30s = Some(-4_200.0);
-    snapshots.push(down_row);
-
     let model = RatatuiFrameModel::new(
-        snapshots,
+        directional_snapshots(),
         "READ-ONLY Hyperliquid spot live screen",
         ScreenRequest::default(),
         WorkstationUiState::default(),
@@ -102,7 +92,7 @@ fn wide_cockpit_renders_all_primary_trading_workstation_regions() {
     let rendered = render_ratatui_snapshot_for_test(
         &model,
         RatatuiViewport {
-            width: 160,
+            width: 200,
             height: 48,
         },
         RatatuiColorMode::NoColor,
@@ -134,6 +124,44 @@ fn wide_cockpit_renders_all_primary_trading_workstation_regions() {
     assert!(rendered.contains("01"));
     assert!(rendered.contains("UP"));
     assert!(rendered.contains("DN"));
+}
+
+fn directional_snapshots() -> Vec<hls_core::market_state::FeatureSnapshot> {
+    let mut snapshots = fixture_snapshots();
+    snapshots[0].ret_1m = Some(0.0057);
+    let mut down_row = snapshots[0].clone();
+    down_row.symbol = "DOWN/USDC".to_owned();
+    down_row.metadata = None;
+    down_row.price = Some(12.34);
+    down_row.ret_1m = Some(-0.0123);
+    down_row.signed_notional_flow_30s = Some(-4_200.0);
+    snapshots.push(down_row);
+    snapshots
+}
+
+#[test]
+fn medium_cockpit_compacts_market_board_without_truncated_signals() {
+    let model = RatatuiFrameModel::new(
+        directional_snapshots(),
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        WorkstationUiState::default(),
+    );
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 120,
+            height: 36,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders");
+
+    assert!(rendered.contains("RK"));
+    assert!(rendered.contains("FLOW"));
+    assert!(rendered.contains("UP+0.57%"));
+    assert!(rendered.contains("DN-1.23%"));
 }
 
 #[test]
