@@ -142,7 +142,7 @@ Production-ready today means:
 - Run locally or in a supervised environment as a read-only public-data process.
 - Capture raw and normalized public data for replay.
 - Fail closed on writer backpressure, invalid configs, parser-private channels, invalid DSL, missing fixtures, unsupported Parquet output, and replay parity drift.
-- Emit deterministic terminal output and low-cardinality health metrics.
+- Emit deterministic terminal output, keyboard-focused live TUI state, and low-cardinality health metrics.
 
 Not production-ready today:
 
@@ -151,7 +151,7 @@ Not production-ready today:
 - Public release binaries from a proven `v*` tag.
 - Public REST backfill after reconnect.
 - True Parquet output.
-- Keyboard-interactive TUI.
+- Full alternate-screen widget-grid or mouse-driven TUI. Current `hls live --tui` supports keyboard row focus, view cycling, density, help, pause state, and clean quit in real terminals.
 - Any live trading, wallet, private stream, or order execution behavior.
 
 See [production-readiness.md](production-readiness.md) for the current validation evidence and deployment checklist.

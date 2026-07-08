@@ -20,8 +20,8 @@ Implemented today:
 - Public WebSocket parsing for trades, BBO, all-mids, active asset context, and candles, with deterministic fixtures kept for tests.
 - Bounded public WebSocket live screen with duration-based shutdown, heartbeat pings, reconnect/resubscribe, optional raw/normalized recording, and all-symbol subscription budgeting.
 - Bounded live recording through a fail-closed writer queue so disk I/O does not silently drop or stall market-data ingestion.
-- Live terminal refresh for TTY sessions and `--tui` smoke captures.
-- Modern deterministic terminal rendering for market rows, scan KPIs, selected-pair microstructure detail, read-only safety state, and operations health.
+- Live terminal refresh for TTY sessions and `--tui` smoke captures, with keyboard controls for row focus, view tabs, density, help, pause state, and clean quit.
+- Modern deterministic terminal rendering for market rows, scan KPIs, selected-pair microstructure detail, read-only safety state, operations health, and keyboard command rail.
 - Confidence-aware feature snapshots and TUI rows for fresh, sparse, duplicate, and explicit gap/parser/backlog quality inputs.
 - Persisted confidence baselines plus `hls replay --verify-parity` drift detection for local replay checks.
 - Deterministic score breakdowns, screen-rule score fields, and `hls explain` why-ranked output for replayed or fixture-backed rows.
@@ -168,6 +168,16 @@ Run a short public live smoke for one symbol:
   --run-id one-symbol-live \
   --data-dir "$(mktemp -d /tmp/hlscreen-live.XXXXXX)"
 ```
+
+TTY keyboard controls for `hls live --tui`:
+
+- `↑`/`↓` or `k`/`j`: move focused row.
+- `PgUp`/`PgDn`, `Home`, `End`: jump through the visible board.
+- `Tab` / `Shift+Tab`: cycle detail views: overview, flow, quality, metadata, explain.
+- `d`: cycle row density.
+- `?` or `F1`: show/hide help.
+- `Space`: toggle paused UI state while ingestion remains read-only public data.
+- `q` or `Esc`: cleanly stop the bounded live run.
 
 `hlscreen` keeps Hyperliquid's transport IDs separate from user-facing symbols.
 For example, live `spotMeta` currently maps display `HYPE/USDC` to feed ID

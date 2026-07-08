@@ -27,6 +27,7 @@ categories = ["command-line-utilities", "finance"]
 anyhow = "1.0"
 assert_cmd = "2.0"
 clap = { version = "4.5", features = ["derive", "env"] }
+crossterm = "0.29"
 hls-core = { path = "crates/hls-core" }
 hls-features = { path = "crates/hls-features" }
 hls-hyperliquid = { path = "crates/hls-hyperliquid" }
