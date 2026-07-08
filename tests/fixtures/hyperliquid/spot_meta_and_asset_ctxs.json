@@ -42,13 +42,13 @@
         "isCanonical": true
       },
       {
-        "name": "HYPE/USDC",
+        "name": "@107",
         "tokens": [150, 0],
         "index": 107,
         "isCanonical": true
       },
       {
-        "name": "TEST/USDC",
+        "name": "@108",
         "tokens": [151, 0],
         "index": 108,
         "isCanonical": false
@@ -57,13 +57,7 @@
   },
   [
     {
-      "dayNtlVlm": "1000000.0",
-      "prevDayPx": "0.1200",
-      "markPx": "0.1250",
-      "midPx": "0.1248",
-      "circulatingSupply": "1000000000"
-    },
-    {
+      "coin": "@107",
       "dayNtlVlm": "25000000.5",
       "prevDayPx": "34.00",
       "markPx": "35.50",
@@ -71,6 +65,15 @@
       "circulatingSupply": "333000000"
     },
     {
+      "coin": "PURR/USDC",
+      "dayNtlVlm": "1000000.0",
+      "prevDayPx": "0.1200",
+      "markPx": "0.1250",
+      "midPx": "0.1248",
+      "circulatingSupply": "1000000000"
+    },
+    {
+      "coin": "@108",
       "dayNtlVlm": "10.0",
       "prevDayPx": "1.00",
       "markPx": "0.95",

@@ -19,7 +19,7 @@ use hls_core::{
 };
 use hls_features::engine::FeatureEngine;
 use hls_hyperliquid::{
-    rest::{HyperliquidRestClient, select_universe},
+    rest::{HyperliquidRestClient, SpotMarketContext, select_universe},
     ws::{
         parser::{parse_ws_message, parse_ws_ndjson},
         subscriptions::{StreamKind, SubscriptionPlan, ping_message},
@@ -304,16 +304,13 @@ struct LiveSymbolSelection {
 
 async fn load_live_symbols(args: &LiveArgs) -> anyhow::Result<LiveSymbolSelection> {
     let explicit_symbols = parse_symbols(args.symbols.as_deref());
-    if !explicit_symbols.is_empty() {
-        return Ok(LiveSymbolSelection {
-            symbols: explicit_symbols,
-            metadata: Vec::new(),
-        });
-    }
-
     let markets = HyperliquidRestClient::default()
         .spot_meta_and_asset_ctxs()
         .await?;
+    if !explicit_symbols.is_empty() {
+        return resolve_explicit_live_symbols(&markets, &explicit_symbols);
+    }
+
     let top_n = if args.all_symbols {
         markets.len()
     } else {
@@ -328,6 +325,37 @@ async fn load_live_symbols(args: &LiveArgs) -> anyhow::Result<LiveSymbolSelectio
             .collect(),
         metadata: selected.into_iter().map(|market| market.metadata).collect(),
     })
+}
+
+fn resolve_explicit_live_symbols(
+    markets: &[SpotMarketContext],
+    selectors: &[String],
+) -> anyhow::Result<LiveSymbolSelection> {
+    let mut symbols = Vec::new();
+    let mut metadata = Vec::new();
+
+    for selector in selectors {
+        let market = markets
+            .iter()
+            .find(|market| market.symbol.matches_selector(selector))
+            .with_context(|| {
+                format!(
+                    "unknown Hyperliquid spot symbol '{selector}'; run `hls symbols --top 50` to inspect display names and feed IDs"
+                )
+            })?;
+
+        if symbols
+            .iter()
+            .any(|symbol| symbol == &market.symbol.hl_coin)
+        {
+            continue;
+        }
+
+        symbols.push(market.symbol.hl_coin.clone());
+        metadata.push(market.metadata.clone());
+    }
+
+    Ok(LiveSymbolSelection { symbols, metadata })
 }
 
 #[derive(Clone, Debug, Default)]
@@ -959,6 +987,10 @@ fn now_ms_i64() -> HlsResult<i64> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use hls_core::{
+        metadata::{COHORT_UNKNOWN_METADATA, MetadataEnrichmentInput},
+        symbol::MarketSymbol,
+    };
     use hls_store::{
         metadata::MetadataRegistry, normalized::read_normalized_events, raw::read_raw_file,
     };
@@ -1029,5 +1061,75 @@ mod tests {
         let gaps = registry.list_gaps("live-worker-test").expect("gaps list");
         assert_eq!(gaps[0].reason, "test reconnect");
         assert_eq!(gaps[0].affected_symbols, vec!["@107".to_owned()]);
+    }
+
+    #[test]
+    fn explicit_live_symbol_selectors_resolve_display_names_to_feed_ids() {
+        let markets = vec![spot_market("HYPE/USDC", "@107", 107, 150, 0)];
+
+        let selection =
+            resolve_explicit_live_symbols(&markets, &["HYPE/USDC".to_owned(), "@107".to_owned()])
+                .expect("selectors resolve");
+
+        assert_eq!(selection.symbols, vec!["@107"]);
+        assert_eq!(selection.metadata[0].display_name, "HYPE/USDC");
+        assert_eq!(selection.metadata[0].feed_identifier, "@107");
+    }
+
+    #[test]
+    fn explicit_live_symbol_selector_errors_on_unknown_pair() {
+        let markets = vec![spot_market("HYPE/USDC", "@107", 107, 150, 0)];
+
+        let err = resolve_explicit_live_symbols(&markets, &["ETH/USDC".to_owned()])
+            .expect_err("unknown selector fails");
+
+        assert!(err.to_string().contains("unknown Hyperliquid spot symbol"));
+    }
+
+    fn spot_market(
+        display_name: &str,
+        feed_identifier: &str,
+        spot_index: u32,
+        base_token_index: u32,
+        quote_token_index: u32,
+    ) -> SpotMarketContext {
+        let symbol = MarketSymbol::new(
+            display_name,
+            spot_index,
+            base_token_index,
+            quote_token_index,
+            2,
+            8,
+            true,
+        )
+        .expect("valid symbol");
+        assert_eq!(symbol.hl_coin, feed_identifier);
+        let metadata = MetadataEnrichment::from_public_input(MetadataEnrichmentInput {
+            symbol: feed_identifier.to_owned(),
+            display_name: display_name.to_owned(),
+            feed_identifier: feed_identifier.to_owned(),
+            spot_index,
+            base_token_index,
+            quote_token_index,
+            metadata_source: "test".to_owned(),
+            metadata_fetched_at_ms: 0,
+            deploy_time_ms: None,
+            deployer: None,
+            seeded_usdc: None,
+            max_supply: None,
+            circulating_supply: None,
+            now_ms: 0,
+        });
+        assert!(metadata.has_tag(COHORT_UNKNOWN_METADATA));
+
+        SpotMarketContext {
+            symbol,
+            metadata,
+            day_ntl_vlm: Some(1.0),
+            prev_day_px: None,
+            mark_px: None,
+            mid_px: None,
+            circulating_supply: None,
+        }
     }
 }

@@ -206,6 +206,8 @@ fn renders_metadata_tags_in_market_board_and_detail_pane() {
 
     let table = render_main_table(&snapshots);
 
+    assert!(table.contains("│ HYPE/USDC"));
+    assert!(table.contains("Selected: HYPE/USDC"));
     assert!(table.contains("metadata | tags fresh_liquidity,low_float,new_listing"));
     assert!(table.contains("listing age 6.3d"));
     assert!(table.contains("seeded $1.2M"));
