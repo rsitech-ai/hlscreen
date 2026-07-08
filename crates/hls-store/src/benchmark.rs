@@ -208,7 +208,24 @@ fn hash_benchmark_output(output: &BenchmarkOutput<'_>) -> HlsResult<String> {
     let encoded = serde_json::to_vec(output)
         .map_err(|err| HlsError::Parse(format!("serialize benchmark output: {err}")))?;
     let digest = Sha256::digest(encoded);
-    Ok(format!("sha256:{digest:x}"))
+    Ok(format!("sha256:{}", lower_hex(digest.as_ref())))
+}
+
+fn lower_hex(bytes: &[u8]) -> String {
+    let mut output = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        output.push(nibble_to_hex(byte >> 4));
+        output.push(nibble_to_hex(byte & 0x0f));
+    }
+    output
+}
+
+fn nibble_to_hex(nibble: u8) -> char {
+    match nibble {
+        0..=9 => char::from(b'0' + nibble),
+        10..=15 => char::from(b'a' + (nibble - 10)),
+        _ => unreachable!("nibble is masked to four bits"),
+    }
 }
 
 fn validate_public_relative_fixture(input: &str) -> HlsResult<()> {
