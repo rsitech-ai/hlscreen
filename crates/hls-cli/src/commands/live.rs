@@ -11,7 +11,7 @@ use anyhow::{Context, bail};
 use clap::Args;
 use crossterm::{
     event::{self, Event, KeyCode, KeyEvent, KeyEventKind},
-    terminal::{disable_raw_mode, enable_raw_mode},
+    terminal::{disable_raw_mode, enable_raw_mode, size as terminal_size},
 };
 use futures_util::{SinkExt, StreamExt};
 use hls_core::{
@@ -37,7 +37,10 @@ use hls_store::{
     recorder::{RecordOptions, RecordSummary, record_fixture_ndjson},
 };
 use hls_tui::{
-    app::{render_confidence_summary, render_screened_table, render_screened_table_with_state},
+    app::{
+        RenderOptions, render_confidence_summary, render_screened_table,
+        render_screened_table_with_options,
+    },
     interaction::{WorkstationAction, WorkstationUiState},
 };
 use tokio::time::{interval, sleep_until, timeout_at};
@@ -170,8 +173,19 @@ async fn run_fixture_live(args: LiveArgs, fixture_file: &PathBuf) -> anyhow::Res
         load_metadata_enrichments(args.metadata_file.as_ref())?,
     );
     println!("{}", render_confidence_summary(&snapshots));
-    print!(
-        "{}",
+    let table = if args.tui {
+        render_screened_table_with_options(
+            &snapshots,
+            live_table_title(args.record),
+            &ScreenRequest {
+                preset: args.preset,
+                where_expr: args.r#where,
+                sort: args.sort,
+            },
+            None,
+            live_render_options(),
+        )?
+    } else {
         render_screened_table(
             &snapshots,
             live_table_title(args.record),
@@ -179,9 +193,10 @@ async fn run_fixture_live(args: LiveArgs, fixture_file: &PathBuf) -> anyhow::Res
                 preset: args.preset,
                 where_expr: args.r#where,
                 sort: args.sort,
-            }
+            },
         )?
-    );
+    };
+    print!("{table}");
 
     Ok(())
 }
@@ -299,14 +314,22 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
         println!("normalized_files={}", record_summary.normalized_files.len());
         println!("clean_shutdown={}", record_summary.clean_shutdown);
     }
-    print!(
-        "{}",
+    let table = if args.tui {
+        render_screened_table_with_options(
+            &snapshots,
+            live_table_title(record_summary.is_some()),
+            &screen_request,
+            tui_state.as_ref(),
+            live_render_options(),
+        )?
+    } else {
         render_screened_table(
             &snapshots,
             live_table_title(record_summary.is_some()),
-            &screen_request
+            &screen_request,
         )?
-    );
+    };
+    print!("{table}");
 
     Ok(())
 }
@@ -930,24 +953,27 @@ fn render_live_progress(
         let mut snapshots = FeatureEngine::default().snapshots(state, now_ms_i64()?);
         attach_metadata(&mut snapshots, metadata.to_vec());
         let table = if let Some(tui_state) = tui_state {
-            render_screened_table_with_state(
+            render_screened_table_with_options(
                 &snapshots,
                 "READ-ONLY Hyperliquid spot live screen",
                 screen_request,
-                tui_state,
+                Some(tui_state),
+                live_render_options(),
             )?
         } else {
-            render_screened_table(
+            render_screened_table_with_options(
                 &snapshots,
                 "READ-ONLY Hyperliquid spot live screen",
                 screen_request,
+                None,
+                live_render_options(),
             )?
         };
         let mut stderr = io::stderr().lock();
         write!(stderr, "\x1b[2J\x1b[H{table}")?;
         writeln!(
             stderr,
-            "live progress: elapsed_secs={} ws_messages={} market_events={} reconnects={} data_gaps={}",
+            "live progress: {}s ws={} events={} reconnects={} gaps={}",
             started.elapsed().as_secs(),
             summary.ws_messages,
             summary.market_events,
@@ -967,6 +993,13 @@ fn render_live_progress(
     }
 
     Ok(())
+}
+
+fn live_render_options() -> RenderOptions {
+    terminal_size()
+        .ok()
+        .map(|(width, _)| RenderOptions::for_live_terminal_width(usize::from(width)))
+        .unwrap_or_default()
 }
 
 fn apply_pending_tui_actions(
