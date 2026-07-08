@@ -160,3 +160,26 @@
 
 - [x] PR, review, merge, and close out
   DoD: OSS-readiness branch is reviewed/merged to `main`; plan, TODO, memory, and daily notes reflect final state.
+
+## 2026-07-08 Live Smoke / TUI Screenshot Slice
+
+- [x] Confirm official docs, scope, and affected files
+  DoD: `PLAN.md` records WebSocket endpoint, heartbeat, subscription budget, live-run scope, and read-only boundary.
+
+- [x] Implement bounded read-only live WebSocket pipeline
+  DoD: Public subscriptions, heartbeat, duration shutdown, raw capture, normalized event handling, and budget validation work without private/order surfaces.
+
+- [x] Add deterministic full-pipeline smoke coverage
+  DoD: A test or smoke helper exercises fixture live -> record -> replay -> screen -> health and fails on parser/store/output regressions.
+
+- [x] Polish TUI/table output and screenshots
+  DoD: Terminal output is screenshot-ready, screenshot assets are regenerated from current CLI output, and README/docs still reference existing files.
+
+- [x] Run validation gates
+  DoD: fmt, clippy, tests, build, diff check, link/screenshot checks, and read-only scans pass or have explicit blockers.
+
+- [x] Run 15-minute all-pairs pipeline
+  DoD: `hls live --all-symbols --duration-secs 900 ...` exits cleanly or records an exact external/network blocker, then replay/screen evidence is inspected.
+
+- [-] Review, PR, merge, and close out
+  DoD: Diff is reviewed, stable branch is pushed, PR is merged only if checks and live evidence are acceptable, and plan/TODO/memory/reflection are complete.

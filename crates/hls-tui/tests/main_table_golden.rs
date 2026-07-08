@@ -20,7 +20,9 @@ fn renders_read_only_main_table_for_fixture_snapshot() {
     assert_eq!(
         table,
         "READ-ONLY Hyperliquid spot live screen\n\
-         symbol        price      spread_bps  tob_depth_usd  ret_1m    liq_score  updated_ms  state\n\
-         @107          35.2000    57.14       245.10         -         2.45       6000        fresh\n"
+         scope: public spot market data only | rows=1 fresh=1 stale=0 incomplete=0\n\
+         symbol        price       spread   TOB depth      ret 1m   score   age ms   state\n\
+         ------------  ----------  -------  -------------  -------  ------  -------  ----------\n\
+         @107             35.2000     57.1            245        -    2.45     6000  fresh\n"
     );
 }

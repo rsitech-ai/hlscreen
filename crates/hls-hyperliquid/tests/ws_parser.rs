@@ -1,7 +1,7 @@
 use hls_core::market_state::{MarketEvent, TradeSide};
 use hls_hyperliquid::ws::{
     parser::{parse_ws_message, parse_ws_ndjson},
-    subscriptions::{StreamKind, SubscriptionPlan},
+    subscriptions::{StreamKind, SubscriptionPlan, ping_message, subscribe_message},
 };
 
 #[test]
@@ -67,6 +67,40 @@ fn parses_public_market_data_channels_from_fixture() {
 }
 
 #[test]
+fn parses_spot_asset_context_runtime_channel_alias() {
+    let events = parse_ws_message(
+        r#"{"channel":"activeSpotAssetCtx","data":{"coin":"@107","ctx":{"dayNtlVlm":"25000000.5","prevDayPx":"34.5","markPx":"35.5","midPx":"35.45","circulatingSupply":"12345.0"}}}"#,
+    )
+    .expect("spot asset context alias parses");
+
+    match &events[0] {
+        MarketEvent::AssetContext(ctx) => {
+            assert_eq!(ctx.hl_coin, "@107");
+            assert_eq!(ctx.day_ntl_vlm, Some(25_000_000.5));
+            assert_eq!(ctx.mark_px, Some(35.5));
+        }
+        other => panic!("expected asset context, got {other:?}"),
+    }
+}
+
+#[test]
+fn parses_single_candle_runtime_payload() {
+    let events = parse_ws_message(
+        r#"{"channel":"candle","data":{"t":1710000000000,"T":1710000059999,"s":"@107","i":"1m","o":"35.0","c":"35.2","h":"35.3","l":"34.9","v":"120.0","n":"42"}}"#,
+    )
+    .expect("single candle parses");
+
+    match &events[0] {
+        MarketEvent::Candle(candle) => {
+            assert_eq!(candle.hl_coin, "@107");
+            assert_eq!(candle.close, 35.2);
+            assert_eq!(candle.trade_count, 42);
+        }
+        other => panic!("expected candle, got {other:?}"),
+    }
+}
+
+#[test]
 fn parse_ws_message_rejects_private_user_channels() {
     let err = parse_ws_message(r#"{"channel":"userFills","data":{"user":"0xabc","fills":[]}}"#)
         .expect_err("private user stream is out of scope");
@@ -74,6 +108,22 @@ fn parse_ws_message_rejects_private_user_channels() {
     assert!(
         err.to_string()
             .contains("unsupported private or trading channel")
+    );
+}
+
+#[test]
+fn parse_ws_message_ignores_control_channels() {
+    assert!(
+        parse_ws_message(
+            r#"{"channel":"subscriptionResponse","data":{"method":"subscribe","subscription":{"type":"trades","coin":"@107"}}}"#
+        )
+        .expect("subscription response parses")
+        .is_empty()
+    );
+    assert!(
+        parse_ws_message(r#"{"channel":"pong"}"#)
+            .expect("pong parses")
+            .is_empty()
     );
 }
 
@@ -95,6 +145,27 @@ fn subscription_plan_counts_public_channels_and_preserves_headroom() {
         .validate()
         .expect_err("budget violation is rejected");
     assert!(err.to_string().contains("subscription budget"));
+}
+
+#[test]
+fn subscription_messages_match_official_public_shape() {
+    assert_eq!(
+        subscribe_message("@107", StreamKind::Trades).expect("subscribe serializes"),
+        r#"{"method":"subscribe","subscription":{"coin":"@107","type":"trades"}}"#
+    );
+    assert_eq!(
+        subscribe_message("@107", StreamKind::Bbo).expect("subscribe serializes"),
+        r#"{"method":"subscribe","subscription":{"coin":"@107","type":"bbo"}}"#
+    );
+    assert_eq!(
+        subscribe_message("@107", StreamKind::ActiveAssetCtx).expect("subscribe serializes"),
+        r#"{"method":"subscribe","subscription":{"coin":"@107","type":"activeAssetCtx"}}"#
+    );
+    assert_eq!(
+        subscribe_message("@107", StreamKind::Candle1m).expect("subscribe serializes"),
+        r#"{"method":"subscribe","subscription":{"coin":"@107","interval":"1m","type":"candle"}}"#
+    );
+    assert_eq!(ping_message(), r#"{"method":"ping"}"#);
 }
 
 #[test]

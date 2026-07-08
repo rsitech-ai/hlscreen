@@ -16,6 +16,7 @@ Implemented today:
 
 - Public Hyperliquid REST metadata parsing for `spotMeta` and `spotMetaAndAssetCtxs`.
 - Public WebSocket fixture parsing for trades, BBO, all-mids, active asset context, and candles.
+- Bounded public WebSocket live screen with duration-based shutdown, heartbeat pings, optional raw/normalized recording, and all-symbol subscription budgeting.
 - Fixture-backed live screen, record, replay, screen rules, and health commands.
 - Compressed raw public message recording, normalized replay JSONL, and local SQLite metadata.
 - Deterministic screening DSL and built-in screen presets.
@@ -23,7 +24,7 @@ Implemented today:
 
 Not implemented yet:
 
-- Real external WebSocket live mode.
+- Automatic live WebSocket reconnect/resubscribe and gap backfill after server-side disconnects.
 - Long-running localhost HTTP server loop.
 - True Parquet writer.
 - Release binaries.
@@ -73,7 +74,7 @@ Scores and presets are screening heuristics only. They are not signals, recommen
 Requirements:
 
 - Rust 1.88 or newer.
-- A network connection only for public REST metadata commands.
+- A network connection for public REST metadata and live public WebSocket commands.
 
 Build:
 
@@ -110,6 +111,22 @@ Run fixture-backed live screen:
   --fixture-file tests/fixtures/hyperliquid/ws_mock_live.ndjson \
   --preset thin_books \
   --once
+```
+
+Run bounded public live screen for the current spot universe:
+
+```bash
+tmpdir="$(mktemp -d /tmp/hlscreen-live.XXXXXX)"
+./target/debug/hls live \
+  --all-symbols \
+  --duration-secs 900 \
+  --refresh-secs 60 \
+  --record \
+  --raw \
+  --normalized \
+  --run-id allpairs-15m \
+  --data-dir "$tmpdir"
+./target/debug/hls replay --data-dir "$tmpdir" --run-id allpairs-15m
 ```
 
 Record and replay fixture data:
@@ -191,6 +208,7 @@ Examples are in [examples/screen-rules.md](examples/screen-rules.md).
 - [Roadmap](docs/ROADMAP.md)
 - [Release checklist](docs/RELEASING.md)
 - [Open source checklist](docs/OPEN_SOURCE_CHECKLIST.md)
+- [Live smoke report](docs/reports/2026-07-08-live-smoke.md)
 - [Pre-merge audit](docs/reports/2026-07-08-pre-merge-audit.md)
 
 ## Contributing

@@ -34,9 +34,11 @@ pub fn parse_ws_message(raw: &str) -> HlsResult<Vec<MarketEvent>> {
         "trades" => parse_trades(envelope.data),
         "bbo" => parse_bbo(envelope.data).map(|event| vec![event]),
         "allMids" => parse_all_mids(envelope.data).map(|event| vec![event]),
-        "activeAssetCtx" => parse_active_asset_ctx(envelope.data).map(|event| vec![event]),
+        "activeAssetCtx" | "activeSpotAssetCtx" => {
+            parse_active_asset_ctx(envelope.data).map(|event| vec![event])
+        }
         "candle" => parse_candles(envelope.data),
-        "subscriptionResponse" => Ok(Vec::new()),
+        "subscriptionResponse" | "pong" => Ok(Vec::new()),
         "userFills" | "userEvents" | "orderUpdates" | "openOrders" | "notification" => {
             Err(HlsError::Parse(format!(
                 "unsupported private or trading channel '{}'",
@@ -126,34 +128,47 @@ fn parse_active_asset_ctx(data: serde_json::Value) -> HlsResult<MarketEvent> {
     Ok(MarketEvent::AssetContext(AssetContextEvent {
         recv_ts_ns: 0,
         hl_coin: ctx.coin,
-        day_ntl_vlm: ctx.ctx.day_ntl_vlm,
-        prev_day_px: ctx.ctx.prev_day_px,
-        mark_px: ctx.ctx.mark_px,
-        mid_px: ctx.ctx.mid_px,
-        circulating_supply: ctx.ctx.circulating_supply,
+        day_ntl_vlm: parse_optional_number(ctx.ctx.day_ntl_vlm, "assetCtx.dayNtlVlm")?,
+        prev_day_px: parse_optional_number(ctx.ctx.prev_day_px, "assetCtx.prevDayPx")?,
+        mark_px: parse_optional_number(ctx.ctx.mark_px, "assetCtx.markPx")?,
+        mid_px: parse_optional_number(ctx.ctx.mid_px, "assetCtx.midPx")?,
+        circulating_supply: parse_optional_number(
+            ctx.ctx.circulating_supply,
+            "assetCtx.circulatingSupply",
+        )?,
     }))
 }
 
 fn parse_candles(data: serde_json::Value) -> HlsResult<Vec<MarketEvent>> {
-    parse_json::<Vec<WsCandle>>(data, "candle")?
+    let candles = if data.is_array() {
+        parse_json::<Vec<WsCandle>>(data, "candle")?
+    } else {
+        vec![parse_json::<WsCandle>(data, "candle")?]
+    };
+
+    candles
         .into_iter()
         .map(|candle| {
-            if candle.t > candle.close_ms {
+            let open_ts_ms = parse_required_i64(candle.t, "candle.t")?;
+            let close_ts_ms = parse_required_i64(candle.close_ms, "candle.T")?;
+            let open = parse_required_f64(candle.o, "candle.o")?;
+            let close = parse_required_f64(candle.c, "candle.c")?;
+            let high = parse_required_f64(candle.h, "candle.h")?;
+            let low = parse_required_f64(candle.l, "candle.l")?;
+            let volume_base = parse_required_f64(candle.v, "candle.v")?;
+            let trade_count = parse_required_u64(candle.n, "candle.n")?;
+
+            if open_ts_ms > close_ts_ms {
                 return Err(HlsError::Parse(
                     "candle open time must be <= close time".to_owned(),
                 ));
             }
-            if candle.o <= 0.0 || candle.c <= 0.0 || candle.h <= 0.0 || candle.l <= 0.0 {
+            if open <= 0.0 || close <= 0.0 || high <= 0.0 || low <= 0.0 {
                 return Err(HlsError::Parse(
                     "candle OHLC values must be positive".to_owned(),
                 ));
             }
-            if candle.h < candle.l
-                || candle.h < candle.o
-                || candle.h < candle.c
-                || candle.l > candle.o
-                || candle.l > candle.c
-            {
+            if high < low || high < open || high < close || low > open || low > close {
                 return Err(HlsError::Parse(
                     "candle OHLC values are internally inconsistent".to_owned(),
                 ));
@@ -161,16 +176,16 @@ fn parse_candles(data: serde_json::Value) -> HlsResult<Vec<MarketEvent>> {
 
             Ok(MarketEvent::Candle(CandleEvent {
                 recv_ts_ns: 0,
-                open_ts_ms: candle.t,
-                close_ts_ms: candle.close_ms,
+                open_ts_ms,
+                close_ts_ms,
                 hl_coin: candle.s,
                 interval: candle.i,
-                open: candle.o,
-                high: candle.h,
-                low: candle.l,
-                close: candle.c,
-                volume_base: candle.v,
-                trade_count: candle.n,
+                open,
+                high,
+                low,
+                close,
+                volume_base,
+                trade_count,
             }))
         })
         .collect()
@@ -191,6 +206,61 @@ fn parse_positive(raw: &str, field: &str) -> HlsResult<f64> {
     }
 
     Ok(parsed)
+}
+
+fn parse_optional_number(raw: Option<serde_json::Value>, field: &str) -> HlsResult<Option<f64>> {
+    let Some(raw) = raw else {
+        return Ok(None);
+    };
+
+    match raw {
+        serde_json::Value::Null => Ok(None),
+        serde_json::Value::Number(number) => number
+            .as_f64()
+            .ok_or_else(|| HlsError::Parse(format!("{field} is not representable as f64")))
+            .map(Some),
+        serde_json::Value::String(text) if text.trim().is_empty() => Ok(None),
+        serde_json::Value::String(text) => text
+            .parse::<f64>()
+            .map(Some)
+            .map_err(|err| HlsError::Parse(format!("{field} must be numeric: {err}"))),
+        other => Err(HlsError::Parse(format!(
+            "{field} must be numeric string, number, or null; got {other}"
+        ))),
+    }
+}
+
+fn parse_required_f64(raw: serde_json::Value, field: &str) -> HlsResult<f64> {
+    parse_optional_number(Some(raw), field)?
+        .ok_or_else(|| HlsError::Parse(format!("{field} must not be null")))
+}
+
+fn parse_required_i64(raw: serde_json::Value, field: &str) -> HlsResult<i64> {
+    match raw {
+        serde_json::Value::Number(number) => number
+            .as_i64()
+            .ok_or_else(|| HlsError::Parse(format!("{field} is not representable as i64"))),
+        serde_json::Value::String(text) => text
+            .parse::<i64>()
+            .map_err(|err| HlsError::Parse(format!("{field} must be an integer: {err}"))),
+        other => Err(HlsError::Parse(format!(
+            "{field} must be integer string or number; got {other}"
+        ))),
+    }
+}
+
+fn parse_required_u64(raw: serde_json::Value, field: &str) -> HlsResult<u64> {
+    match raw {
+        serde_json::Value::Number(number) => number
+            .as_u64()
+            .ok_or_else(|| HlsError::Parse(format!("{field} is not representable as u64"))),
+        serde_json::Value::String(text) => text
+            .parse::<u64>()
+            .map_err(|err| HlsError::Parse(format!("{field} must be an unsigned integer: {err}"))),
+        other => Err(HlsError::Parse(format!(
+            "{field} must be unsigned integer string or number; got {other}"
+        ))),
+    }
 }
 
 fn level_parts(
