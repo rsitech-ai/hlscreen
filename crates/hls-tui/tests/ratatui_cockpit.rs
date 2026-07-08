@@ -178,6 +178,31 @@ fn medium_cockpit_compacts_market_board_without_truncated_signals() {
 }
 
 #[test]
+fn market_board_renders_score_and_bias_columns() {
+    let model = RatatuiFrameModel::new(
+        fixture_snapshots(),
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        WorkstationUiState::default(),
+    );
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 200,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders scored market board");
+
+    assert!(rendered.contains("SIG"));
+    assert!(rendered.contains("BIAS"));
+    assert!(rendered.contains("MOM+"));
+    assert!(rendered.contains("13"));
+}
+
+#[test]
 fn cockpit_header_renders_market_internals_rail() {
     let model = RatatuiFrameModel::new(
         directional_snapshots(),

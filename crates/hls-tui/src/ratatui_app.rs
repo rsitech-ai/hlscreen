@@ -365,7 +365,7 @@ fn render_watchlist(
         .ui_state
         .selected_index(rows.len())
         .unwrap_or_default();
-    let compact = area.width < 52;
+    let compact = area.width < 60;
     let table_rows = rows
         .iter()
         .take(model.ui_state.visible_row_limit())
@@ -395,7 +395,9 @@ fn render_watchlist(
                 Row::new(vec![
                     Cell::from(format!("{:02}", index + 1)),
                     Cell::from(display_symbol(row).to_owned()),
-                    Cell::from(format_price(row.price)),
+                    Cell::from(format_board_price(row.price)),
+                    Cell::from(score_signal_label(row)),
+                    Cell::from(score_bias_label(row)),
                     Cell::from(trend_label(row.ret_1m)),
                     Cell::from(format_usd_signed(row.signed_notional_flow_30s)),
                     Cell::from(format_usd(row.tob_depth_usd)),
@@ -429,16 +431,21 @@ fn render_watchlist(
             table_rows,
             [
                 Constraint::Length(4),
-                Constraint::Min(10),
-                Constraint::Length(10),
+                Constraint::Min(9),
                 Constraint::Length(8),
+                Constraint::Length(3),
+                Constraint::Length(5),
                 Constraint::Length(8),
                 Constraint::Length(7),
+                Constraint::Length(6),
                 Constraint::Length(1),
             ],
         )
         .header(
-            Row::new(["RANK", "CODE", "PRICE", "1M", "FLOW30", "DEPTH", "Q"]).style(
+            Row::new([
+                "RANK", "CODE", "PX", "SIG", "BIAS", "1M", "FLOW30", "DEPTH", "Q",
+            ])
+            .style(
                 Style::default()
                     .fg(accent(color_mode))
                     .add_modifier(Modifier::BOLD),
@@ -510,6 +517,47 @@ fn quality_badge(row: &FeatureSnapshot) -> &'static str {
     } else {
         "Q"
     }
+}
+
+fn score_signal_label(row: &FeatureSnapshot) -> String {
+    row.score_breakdown.as_ref().map_or_else(
+        || {
+            format!(
+                "{:.0}",
+                (row.liquidity_score + row.momentum_score).clamp(0.0, 99.0)
+            )
+        },
+        |breakdown| format!("{:.0}", breakdown.adjusted_total.clamp(0.0, 99.0)),
+    )
+}
+
+fn score_bias_label(row: &FeatureSnapshot) -> String {
+    let Some(breakdown) = row.score_breakdown.as_ref() else {
+        if row.momentum_score.abs() >= row.liquidity_score.abs() {
+            return "MOM+".to_owned();
+        }
+        return "LIQ+".to_owned();
+    };
+    breakdown
+        .components
+        .iter()
+        .max_by(|left, right| {
+            left.signed_contribution
+                .abs()
+                .partial_cmp(&right.signed_contribution.abs())
+                .unwrap_or(std::cmp::Ordering::Equal)
+                .then_with(|| right.name.cmp(&left.name))
+        })
+        .map(|component| {
+            let prefix = compact_factor_name(&component.name).to_ascii_uppercase();
+            let sign = if component.signed_contribution < 0.0 {
+                '-'
+            } else {
+                '+'
+            };
+            format!("{prefix}{sign}")
+        })
+        .unwrap_or_else(|| "-".to_owned())
 }
 
 fn render_detail(
