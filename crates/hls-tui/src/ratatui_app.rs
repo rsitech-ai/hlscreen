@@ -855,7 +855,11 @@ fn render_chart(
         format_plain_number(latest.close),
         format_volume(latest.volume_base)
     );
-    let chart_lines = candle_chart_lines(&candles, area.height.saturating_sub(4) as usize);
+    let chart_lines = candle_chart_lines(
+        &candles,
+        area.height.saturating_sub(2) as usize,
+        model.ui_state.chart_window().label(),
+    );
     frame.render_widget(
         Paragraph::new(chart_lines)
             .wrap(Wrap { trim: false })
@@ -884,7 +888,11 @@ fn selected_candles<'a>(
     candles
 }
 
-fn candle_chart_lines(candles: &[&CandleEvent], chart_height: usize) -> Vec<Line<'static>> {
+fn candle_chart_lines(
+    candles: &[&CandleEvent],
+    content_height: usize,
+    window_label: &'static str,
+) -> Vec<Line<'static>> {
     if candles.is_empty() {
         return vec![Line::from("No 1m candles")];
     }
@@ -896,8 +904,8 @@ fn candle_chart_lines(candles: &[&CandleEvent], chart_height: usize) -> Vec<Line
         .iter()
         .map(|candle| candle.low)
         .fold(f64::INFINITY, f64::min);
-    let height = chart_height.clamp(4, 18);
-    let mut lines = Vec::with_capacity(height + 2);
+    let height = content_height.saturating_sub(3).clamp(4, 18);
+    let mut lines = Vec::with_capacity(height + 3);
 
     for row in 0..height {
         let level = price_level(high, low, row, height);
@@ -905,17 +913,43 @@ fn candle_chart_lines(candles: &[&CandleEvent], chart_height: usize) -> Vec<Line
         for candle in candles {
             body.push(candle_glyph(candle, level));
         }
-        lines.push(Line::from(body));
+        lines.push(Line::from(format!("{} ┤{}", price_axis_label(level), body)));
     }
 
     lines.push(Line::from(format!(
-        "range {} - {}   candles {}",
+        "px axis {} - {}   candles {} window {}",
         format_plain_number(low),
         format_plain_number(high),
-        candles.len()
+        candles.len(),
+        window_label
     )));
-    lines.push(Line::from(volume_bar(candles)));
+    lines.push(Line::from(format!(
+        "OHLC {} / {} / {} / {}",
+        format_plain_number(candles[0].open),
+        format_plain_number(high),
+        format_plain_number(low),
+        format_plain_number(
+            candles
+                .last()
+                .map_or(candles[0].close, |candle| candle.close)
+        )
+    )));
+    lines.push(Line::from(format!(
+        "{} | Public 1m candles only",
+        volume_bar(candles)
+    )));
     lines
+}
+
+fn price_axis_label(value: f64) -> String {
+    let label = if value.abs() >= 1_000.0 {
+        format!("{value:.0}")
+    } else if value.abs() >= 10.0 {
+        format!("{value:.2}")
+    } else {
+        format!("{value:.4}")
+    };
+    format!("{label:>8}")
 }
 
 fn price_level(high: f64, low: f64, row: usize, height: usize) -> f64 {
