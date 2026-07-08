@@ -4,7 +4,7 @@ All paths are relative to the configured local data directory.
 
 ## Raw Messages
 
-Path pattern:
+Planned v1 path pattern:
 
 ```text
 raw/ws/date=YYYY-MM-DD/hour=HH/part-NNNNNN.ndjson.zst
@@ -29,9 +29,13 @@ Requirements:
 - Files rotate by configured time or size.
 - Raw writer must report dropped messages if its bounded queue overflows.
 
+Current US2 implementation note:
+
+- The first record/replay slice writes raw files at `raw/ws/run=<run-id>/part-NNNNNN.ndjson.zst`.
+
 ## Normalized Events
 
-Path patterns:
+Planned v1 Parquet path patterns:
 
 ```text
 parquet/trades/date=YYYY-MM-DD/hour=HH/coin=<coin>/part-NNNNNN.parquet
@@ -47,6 +51,12 @@ Requirements:
 - Event files include receive timestamps and exchange timestamps where available.
 - Numeric market values preserve storage correctness and can be converted to feature calculations.
 - File registry records path, event type, symbol, time range, row count, byte count, creation time, and run ID.
+
+Current US2 implementation note:
+
+- The first record/replay slice writes normalized `MarketEvent` rows as deterministic JSONL at `normalized/events/run=<run-id>/part-000000.ndjson`.
+- The file registry marks these rows with `event_type = "normalized_jsonl"`.
+- `--parquet` is intentionally rejected until a real Parquet writer exists.
 
 ## SQLite Metadata
 

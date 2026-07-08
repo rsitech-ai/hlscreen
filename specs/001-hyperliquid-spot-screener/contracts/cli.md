@@ -70,7 +70,9 @@ Common options:
 - `--sort <field:direction>`
 - `--record`
 - `--raw`
-- `--parquet`
+- `--normalized`
+- `--parquet` (planned; currently rejected)
+- `--run-id <id>`
 - `--data-dir <path>`
 
 ## `hls record`
@@ -80,7 +82,7 @@ Records selected public market data without opening the TUI.
 Required behavior:
 
 - Writes raw frames when `--raw` is enabled.
-- Writes normalized events when `--parquet` is enabled.
+- Writes normalized replay JSONL when `--normalized` is enabled.
 - Updates metadata registry and flushes on shutdown.
 - Prints recording run ID.
 
@@ -89,8 +91,9 @@ Common options:
 - `--top <n>`
 - `--symbols <csv>`
 - `--raw`
-- `--parquet`
-- `--duration <duration>`
+- `--normalized`
+- `--parquet` (planned; currently rejected)
+- `--run-id <id>`
 - `--data-dir <path>`
 
 ## `hls screen`
@@ -124,8 +127,8 @@ Required behavior:
 
 Common options:
 
-- `--from <timestamp>`
-- `--to <timestamp>`
+- `--run-id <id>`
+- `--symbols <csv>`
 - `--speed <factor>`
 - `--preset <name>`
 - `--where <expr>`

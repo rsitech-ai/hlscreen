@@ -9,6 +9,8 @@ use hls_core::config::{default_config_for_data_dir, load_config};
 use hls_hyperliquid::rest::HyperliquidRestClient;
 use serde_json::json;
 
+use crate::commands::health::require_live_health;
+
 #[derive(Debug, Args)]
 pub struct DoctorArgs {
     #[arg(long, default_value = ".hls")]
@@ -19,6 +21,9 @@ pub struct DoctorArgs {
 
     #[arg(long)]
     pub json: bool,
+
+    #[arg(long, hide = true)]
+    pub simulate_health: Option<String>,
 }
 
 pub async fn run(args: DoctorArgs) -> anyhow::Result<()> {
@@ -26,19 +31,30 @@ pub async fn run(args: DoctorArgs) -> anyhow::Result<()> {
         .with_context(|| format!("create data directory {}", args.data_dir.display()))?;
 
     let config_path = args.data_dir.join("config.toml");
-    let config = match load_config(&config_path) {
-        Ok(config) => config,
-        Err(_) => default_config_for_data_dir(args.data_dir.clone()),
+    let (config, config_readable, config_error) = match load_config(&config_path) {
+        Ok(config) => (config, true, None),
+        Err(error) if config_path.exists() => (
+            default_config_for_data_dir(args.data_dir.clone()),
+            false,
+            Some(error.to_string()),
+        ),
+        Err(_) => (
+            default_config_for_data_dir(args.data_dir.clone()),
+            false,
+            None,
+        ),
     };
-    let config_readable = config_path.exists() && load_config(&config_path).is_ok();
     let data_dir_writable = check_writable(&args.data_dir)?;
-    let read_only_ok =
-        config.safety.read_only && !config.safety.wallet_enabled && !config.safety.trading_enabled;
-    let live_rest_ok = if args.live {
+    let read_only_ok = config_error.is_none()
+        && config.safety.read_only
+        && !config.safety.wallet_enabled
+        && !config.safety.trading_enabled;
+    let live_rest_ok = if args.live && args.simulate_health.is_none() {
         Some(HyperliquidRestClient::default().spot_meta().await.is_ok())
     } else {
         None
     };
+    let health = require_live_health(args.live, args.simulate_health.as_deref(), live_rest_ok)?;
 
     if args.json {
         println!(
@@ -46,17 +62,28 @@ pub async fn run(args: DoctorArgs) -> anyhow::Result<()> {
             serde_json::to_string_pretty(&json!({
                 "config_path": config_path,
                 "config_readable": config_readable,
+                "config_error": config_error,
                 "data_dir_writable": data_dir_writable,
                 "read_only": read_only_ok,
                 "live_rest": live_rest_ok,
+                "health": health,
             }))?
         );
     } else {
         println!("config: {}", config_path.display());
         println!(
             "config readable: {}",
-            if config_readable { "ok" } else { "missing" }
+            if config_readable {
+                "ok"
+            } else if config_path.exists() {
+                "fail"
+            } else {
+                "missing"
+            }
         );
+        if let Some(config_error) = config_error {
+            println!("config error: {config_error}");
+        }
         println!(
             "data-dir writable: {}",
             if data_dir_writable { "ok" } else { "fail" }
@@ -68,6 +95,12 @@ pub async fn run(args: DoctorArgs) -> anyhow::Result<()> {
 
         if let Some(live_ok) = live_rest_ok {
             println!("live REST: {}", if live_ok { "ok" } else { "fail" });
+        }
+        if let Some(health) = health {
+            println!("health: {}", health.status.as_str());
+            for reason in health.degraded_reasons {
+                println!("health reason: {reason}");
+            }
         }
     }
 
