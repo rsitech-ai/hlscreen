@@ -195,4 +195,5 @@ Update README and memory with the new TUI behavior, command, key bindings, and v
 - [x] Upgrade the watchlist into a denser market board with rank, UP/DN movement, signed flow, top-book depth, and quality badges.
 - [x] Make the market board width-aware so 120-column terminals use compact columns without clipping movement signals.
 - [x] Render focused status as a real operational drilldown with stream, recorder, health, layout, controls, and read-only safety context.
+- [x] Add explicit `--color auto|always|never` control so terminal/theme behavior is reproducible across shells.
 - Consider deeper order-book/tape interactions and persisted TUI preferences after the focused-pane state is stable.
