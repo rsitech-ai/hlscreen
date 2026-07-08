@@ -163,110 +163,107 @@ pub fn render_table_with_title(rows: &[FeatureSnapshot], title: &str) -> String 
         ));
     }
 
-    if let Some(selected) = rows.first() {
-        output.push_str(&section_rule("SELECTED SYMBOL"));
-        output.push_str(&format!(
-            "{} | {} | {} | mid {} | mark {}\n",
-            selected.symbol,
-            format_px_qty("bid", selected.bid_px, selected.bid_sz),
-            format_px_qty("ask", selected.ask_px, selected.ask_sz),
-            format_optional(selected.mid_px, 4),
-            format_optional(selected.mark_px, 4),
-        ));
-        output.push_str(&format!(
-            "microstructure | spread {} | imbalance {} | top depth {} | ret 1m {} | rv 1m {}\n",
-            format_bps(selected.spread_bps),
-            format_imbalance(selected.tob_imbalance),
-            format_usd(selected.tob_depth_usd),
-            format_percent(selected.ret_1m),
-            format_volatility(selected.rv_1m),
-        ));
-        output.push_str(&format!(
-            "resilience | state {} | shock {} | recovery {} | tradeability {} | adverse proxy {}\n",
-            format_resilience_state(selected.resilience_state),
-            format_bps(selected.spread_shock_bps),
-            format_recovery(selected.spread_recovery_ms),
-            format_tradeability_state(selected.tradeability_state),
-            format_adverse_proxy(selected.adverse_selection_proxy),
-        ));
-        output.push_str(&format!(
-            "flow proxy | signed notional 30s {} | BBO OFI 30s {} | top-of-book proxy only\n",
-            format_signed_usd(selected.signed_notional_flow_30s),
-            format_signed_usd(selected.bbo_ofi_proxy_30s),
-        ));
-        output.push_str(&format!(
-            "metadata | {} | listing age {} | seeded {} | source {}\n",
-            format_metadata_tags(selected),
-            format_listing_age(
-                selected
-                    .metadata
-                    .as_ref()
-                    .and_then(|metadata| metadata.listing_age_ms)
-            ),
-            format_usd(
-                selected
-                    .metadata
-                    .as_ref()
-                    .and_then(|metadata| metadata.seeded_usdc)
-            ),
-            selected
-                .metadata
-                .as_ref()
-                .map(|metadata| metadata.metadata_source.as_str())
-                .unwrap_or("missing"),
-        ));
-        output.push_str(&format!(
-            "metadata detail | deployer {} | unknown fields {}\n",
-            format_deployer(
-                selected
-                    .metadata
-                    .as_ref()
-                    .and_then(|metadata| metadata.deployer.as_deref())
-            ),
-            selected
-                .metadata
-                .as_ref()
-                .map(|metadata| {
-                    if metadata.unknown_fields.is_empty() {
-                        "none".to_owned()
-                    } else {
-                        metadata.unknown_fields.join(",")
-                    }
-                })
-                .unwrap_or_else(|| "all".to_owned()),
-        ));
-        output.push_str(&format!(
-            "state | {} | age {} | incomplete {} | observation {}\n",
-            format_state(&selected.staleness_state),
-            format_age(selected.updated_ms_ago),
-            selected
-                .incomplete_window_reason
-                .as_deref()
-                .unwrap_or("none"),
-            format_observation(selected),
-        ));
-        output.push_str(&format!(
-            "confidence | {} {} | reasons {} | incomplete windows {}\n",
-            format_confidence_level(selected.confidence.level),
-            selected.confidence.score,
-            format_confidence_reasons(&selected.confidence.reasons),
-            format_confidence_windows(&selected.confidence.incomplete_windows),
-        ));
-        if let Some(breakdown) = &selected.score_breakdown {
-            output.push_str(&format!(
-                "why ranked | score {} adjusted from raw {} | confidence penalty {} | components {}\n",
-                format_score(Some(breakdown.adjusted_total)),
-                format_score(Some(breakdown.raw_total)),
-                format_signed_score(breakdown.confidence_penalty()),
-                breakdown.components.len(),
-            ));
-        }
+    output.push_str(&section_rule("PAIR DETAIL CARDS"));
+    for (index, row) in rows.iter().enumerate() {
+        output.push_str(&render_pair_detail_card(index + 1, row));
     }
 
     output.push_str(
         "\nNo wallet, no private streams, no order routes. Scores are screen heuristics, not orders or advice.\n",
     );
 
+    output
+}
+
+fn render_pair_detail_card(index: usize, row: &FeatureSnapshot) -> String {
+    let mut output = String::new();
+    output.push_str(&format!(
+        "{index:>02} {} | px {} | 24h notional {} | {} | {} | mid {} | mark {}\n",
+        row.symbol,
+        format_optional(row.price, 4),
+        format_usd(row.day_ntl_vlm),
+        format_px_qty("bid", row.bid_px, row.bid_sz),
+        format_px_qty("ask", row.ask_px, row.ask_sz),
+        format_optional(row.mid_px, 4),
+        format_optional(row.mark_px, 4),
+    ));
+    output.push_str(&format!(
+        "   micro | spread {} | TOB depth {} | imbalance {} | ret {} | rv {}\n",
+        format_bps(row.spread_bps),
+        format_usd(row.tob_depth_usd),
+        format_imbalance(row.tob_imbalance),
+        format_return_triplet(row),
+        format_volatility_triplet(row),
+    ));
+    output.push_str(&format!(
+        "   activity | volume z {} | trades z {} | liq/mom/mr {} | score {} | flow30 {} | ofi30 {}\n",
+        format_signed_number(row.volume_z_1h),
+        format_signed_number(row.trade_count_z_1h),
+        format_score_triplet(row),
+        format_score_pair(row),
+        format_signed_usd(row.signed_notional_flow_30s),
+        format_signed_usd(row.bbo_ofi_proxy_30s),
+    ));
+    output.push_str(&format!(
+        "   quality | {} age {} | confidence {} {} | incomplete {} | observation {}\n",
+        format_state(&row.staleness_state),
+        format_age(row.updated_ms_ago),
+        format_confidence_level(row.confidence.level),
+        row.confidence.score,
+        row.incomplete_window_reason.as_deref().unwrap_or("none"),
+        format_observation(row),
+    ));
+    output.push_str(&format!(
+        "   resilience | state {} | shock {} | recovery {} | tradeability {} | adverse proxy {}\n",
+        format_resilience_state(row.resilience_state),
+        format_bps(row.spread_shock_bps),
+        format_recovery(row.spread_recovery_ms),
+        format_tradeability_state(row.tradeability_state),
+        format_adverse_proxy(row.adverse_selection_proxy),
+    ));
+    output.push_str(&format!(
+        "   flow | signed notional 30s {} | BBO OFI 30s {} | top-of-book proxy only\n",
+        format_signed_usd(row.signed_notional_flow_30s),
+        format_signed_usd(row.bbo_ofi_proxy_30s),
+    ));
+    output.push_str(&format!(
+        "   metadata | {} | listing age {} | seeded {} | source {}\n",
+        format_metadata_tags(row),
+        format_listing_age(
+            row.metadata
+                .as_ref()
+                .and_then(|metadata| metadata.listing_age_ms)
+        ),
+        format_usd(
+            row.metadata
+                .as_ref()
+                .and_then(|metadata| metadata.seeded_usdc)
+        ),
+        row.metadata
+            .as_ref()
+            .map(|metadata| metadata.metadata_source.as_str())
+            .unwrap_or("missing"),
+    ));
+    output.push_str(&format!(
+        "   metadata detail | deployer {} | unknown fields {}\n",
+        format_deployer(
+            row.metadata
+                .as_ref()
+                .and_then(|metadata| metadata.deployer.as_deref())
+        ),
+        format_unknown_metadata_fields(row),
+    ));
+    output.push_str(&format!(
+        "   confidence | {} {} | reasons {} | incomplete windows {}\n",
+        format_confidence_level(row.confidence.level),
+        row.confidence.score,
+        format_confidence_reasons(&row.confidence.reasons),
+        format_confidence_windows(&row.confidence.incomplete_windows),
+    ));
+    output.push_str(&format!(
+        "   why ranked | {}\n",
+        format_why_ranked_summary(row),
+    ));
     output
 }
 
@@ -523,14 +520,52 @@ fn format_volatility(value: Option<f64>) -> String {
     value.map_or_else(|| "-".to_owned(), |value| format!("{:.2}%", value * 100.0))
 }
 
+fn format_return_triplet(row: &FeatureSnapshot) -> String {
+    format!(
+        "1m {} / 5m {} / 1h {}",
+        format_percent(row.ret_1m),
+        format_percent(row.ret_5m),
+        format_percent(row.ret_1h),
+    )
+}
+
+fn format_volatility_triplet(row: &FeatureSnapshot) -> String {
+    format!(
+        "1m {} / 5m {} / 1h {}",
+        format_volatility(row.rv_1m),
+        format_volatility(row.rv_5m),
+        format_volatility(row.rv_1h),
+    )
+}
+
 fn format_score(value: Option<f64>) -> String {
     value.map_or_else(|| "-".to_owned(), |value| format!("{value:.1}"))
+}
+
+fn format_score_triplet(row: &FeatureSnapshot) -> String {
+    format!(
+        "{:.1}/{:.1}/{:.1}",
+        row.liquidity_score, row.momentum_score, row.mean_reversion_score,
+    )
 }
 
 fn format_score_pair(row: &FeatureSnapshot) -> String {
     row.score_breakdown.as_ref().map_or_else(
         || format!("{:.1}/{:.1}", row.liquidity_score, row.momentum_score),
         |breakdown| format!("{:.1}/{:.1}", breakdown.adjusted_total, breakdown.raw_total),
+    )
+}
+
+fn format_signed_number(value: Option<f64>) -> String {
+    value.map_or_else(
+        || "-".to_owned(),
+        |value| {
+            if value.is_finite() {
+                format!("{value:+.1}")
+            } else {
+                "-".to_owned()
+            }
+        },
     )
 }
 
@@ -567,6 +602,39 @@ fn format_metadata_tags(row: &FeatureSnapshot) -> String {
         Some(metadata) => format!("tags {}", metadata.cohort_label()),
         None => "tags unknown_metadata".to_owned(),
     }
+}
+
+fn format_unknown_metadata_fields(row: &FeatureSnapshot) -> String {
+    row.metadata
+        .as_ref()
+        .map(|metadata| {
+            if metadata.unknown_fields.is_empty() {
+                "none".to_owned()
+            } else {
+                metadata.unknown_fields.join(",")
+            }
+        })
+        .unwrap_or_else(|| "all".to_owned())
+}
+
+fn format_why_ranked_summary(row: &FeatureSnapshot) -> String {
+    row.score_breakdown.as_ref().map_or_else(
+        || {
+            format!(
+                "score {} adjusted from raw - | confidence penalty - | components 0",
+                format_score_pair(row),
+            )
+        },
+        |breakdown| {
+            format!(
+                "score {} adjusted from raw {} | confidence penalty {} | components {}",
+                format_score(Some(breakdown.adjusted_total)),
+                format_score(Some(breakdown.raw_total)),
+                format_signed_score(breakdown.confidence_penalty()),
+                breakdown.components.len(),
+            )
+        },
+    )
 }
 
 fn format_listing_age(value: Option<i64>) -> String {
