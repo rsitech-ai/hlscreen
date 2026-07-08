@@ -1,4 +1,6 @@
-use hls_core::market_state::{CandleEvent, FeatureSnapshot, StalenessState, TradeabilityState};
+use hls_core::market_state::{
+    CandleEvent, FeatureSnapshot, StalenessState, TradeEvent, TradeSide, TradeabilityState,
+};
 use hls_screen::{ScreenEngine, ScreenRequest, presets::find_preset};
 use ratatui::{
     Frame, Terminal,
@@ -32,6 +34,7 @@ pub struct RatatuiViewport {
 pub struct RatatuiFrameModel {
     rows: Vec<FeatureSnapshot>,
     candles: Vec<CandleEvent>,
+    trades: Vec<TradeEvent>,
     title: String,
     request: ScreenRequest,
     ui_state: WorkstationUiState,
@@ -50,6 +53,7 @@ impl RatatuiFrameModel {
         Self {
             rows,
             candles: Vec::new(),
+            trades: Vec::new(),
             title: title.into(),
             request,
             ui_state,
@@ -73,6 +77,11 @@ impl RatatuiFrameModel {
 
     pub fn with_candles(mut self, candles: Vec<CandleEvent>) -> Self {
         self.candles = candles;
+        self
+    }
+
+    pub fn with_trades(mut self, trades: Vec<TradeEvent>) -> Self {
+        self.trades = trades;
         self
     }
 }
@@ -1326,6 +1335,38 @@ fn tape_lines(
             format_optional(selected.spread_bps, 1)
         )));
     }
+
+    let recent_trades = selected_trades(model, &selected.symbol, content_height);
+    if !recent_trades.is_empty() {
+        lines.push(Line::from(vec![
+            Span::styled(
+                "PUBLIC TRADES ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw("time side price notional"),
+        ]));
+
+        let reserved = lines.len() + 1;
+        let available_trades = content_height.saturating_sub(reserved).max(1);
+        let limit = if compact {
+            available_trades.min(3)
+        } else {
+            available_trades.min(8)
+        };
+        lines.extend(
+            recent_trades
+                .into_iter()
+                .take(limit)
+                .map(|trade| trade_tape_line(trade, compact, color_mode)),
+        );
+        lines.push(Line::from(
+            "Public trades only | no fills, no private streams.",
+        ));
+        return lines;
+    }
+
     lines.push(Line::from("Flow leaderboard"));
 
     if compact {
@@ -1361,6 +1402,90 @@ fn tape_lines(
     );
     lines.push(Line::from("Tape proxy only | public BBO/flow; no fills."));
     lines
+}
+
+fn selected_trades<'a>(
+    model: &'a RatatuiFrameModel,
+    symbol: &str,
+    content_height: usize,
+) -> Vec<&'a TradeEvent> {
+    let limit = content_height.clamp(1, 12);
+    let mut trades = model
+        .trades
+        .iter()
+        .filter(|trade| trade.hl_coin == symbol)
+        .collect::<Vec<_>>();
+    trades.sort_by(|left, right| {
+        right
+            .exchange_ts_ms
+            .cmp(&left.exchange_ts_ms)
+            .then_with(|| right.tid.cmp(&left.tid))
+    });
+    if trades.len() > limit {
+        trades.truncate(limit);
+    }
+    trades
+}
+
+fn trade_tape_line(
+    trade: &TradeEvent,
+    compact: bool,
+    color_mode: RatatuiColorMode,
+) -> Line<'static> {
+    let side = match trade.side {
+        TradeSide::Buy => "BUY",
+        TradeSide::Sell => "SELL",
+    };
+    let time = trade_time_label(trade.exchange_ts_ms);
+    if compact {
+        return Line::from(vec![
+            Span::raw(format!("{time} ")),
+            Span::styled(
+                format!("{side:<4}"),
+                Style::default()
+                    .fg(trade_side_color(trade.side, color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(format!(
+                " {} {}",
+                format_plain_number(trade.price),
+                format_usd(Some(trade.notional))
+            )),
+        ]);
+    }
+
+    Line::from(vec![
+        Span::raw(format!("{time} ")),
+        Span::styled(
+            format!("{side:<4}"),
+            Style::default()
+                .fg(trade_side_color(trade.side, color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw(format!(
+            " px {} size {} notional {}",
+            format_plain_number(trade.price),
+            format_size(Some(trade.size)),
+            format_usd(Some(trade.notional))
+        )),
+    ])
+}
+
+fn trade_time_label(exchange_ts_ms: i64) -> String {
+    if exchange_ts_ms <= 0 {
+        return "--:--".to_owned();
+    }
+    let total_secs = exchange_ts_ms.div_euclid(1_000);
+    let minute = total_secs.div_euclid(60).rem_euclid(60);
+    let second = total_secs.rem_euclid(60);
+    format!("{minute:02}:{second:02}")
+}
+
+fn trade_side_color(side: TradeSide, color_mode: RatatuiColorMode) -> Color {
+    match side {
+        TradeSide::Buy => success(color_mode),
+        TradeSide::Sell => danger(color_mode),
+    }
 }
 
 fn tape_leader_line(

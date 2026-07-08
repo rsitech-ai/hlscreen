@@ -1,4 +1,4 @@
-use hls_core::market_state::{CandleEvent, LiveMarketState, MarketEvent};
+use hls_core::market_state::{CandleEvent, LiveMarketState, MarketEvent, TradeEvent};
 use hls_features::engine::FeatureEngine;
 use hls_hyperliquid::{rest::parse_metadata_enrichment_bundle, ws::parser::parse_ws_ndjson};
 use hls_screen::ScreenRequest;
@@ -74,6 +74,19 @@ fn fixture_candles() -> Vec<CandleEvent> {
     .into_iter()
     .filter_map(|event| match event {
         MarketEvent::Candle(candle) => Some(candle),
+        _ => None,
+    })
+    .collect()
+}
+
+fn fixture_trades() -> Vec<TradeEvent> {
+    parse_ws_ndjson(include_str!(
+        "../../../tests/fixtures/hyperliquid/ws_mock_live.ndjson"
+    ))
+    .expect("fixture parses")
+    .into_iter()
+    .filter_map(|event| match event {
+        MarketEvent::Trade(trade) => Some(trade),
         _ => None,
     })
     .collect()
@@ -363,6 +376,40 @@ fn tape_pane_renders_flow_pulse_and_net_pressure_bars() {
     assert!(rendered.contains("Tape proxy only"));
     assert!(rendered.contains("HYPE/USDC"));
     assert!(rendered.contains("DOWN/USDC"));
+}
+
+#[test]
+fn tape_pane_renders_public_recent_trades_when_available() {
+    let snapshots = fixture_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Tape),
+        snapshots.len(),
+    );
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    )
+    .with_trades(fixture_trades());
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 160,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders public trade tape");
+
+    assert!(rendered.contains("[FOCUS] TAPE"));
+    assert!(rendered.contains("PUBLIC TRADES"));
+    assert!(rendered.contains("BUY"));
+    assert!(rendered.contains("SELL"));
+    assert!(rendered.contains("notional"));
+    assert!(rendered.contains("Public trades only | no fills"));
 }
 
 #[test]

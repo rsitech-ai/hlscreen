@@ -24,7 +24,7 @@ use futures_util::{SinkExt, StreamExt};
 use hls_core::{
     HlsError, HlsResult,
     data_gap::DataGap,
-    market_state::{CandleEvent, LiveMarketState, MarketEvent},
+    market_state::{CandleEvent, LiveMarketState, MarketEvent, TradeEvent},
     metadata::MetadataEnrichment,
     time::now_millis,
 };
@@ -206,6 +206,7 @@ async fn run_fixture_live(args: LiveArgs, fixture_file: &PathBuf) -> anyhow::Res
             &screen_request,
             None,
             live_tui_candles(&state),
+            live_tui_trades(&state),
             LiveTuiStatus::new("fixture", "REC ready", "fixture replay"),
         );
         let table = render_live_tui_snapshot(
@@ -351,6 +352,7 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
             &screen_request,
             tui_state.as_ref(),
             live_tui_candles(&state),
+            live_tui_trades(&state),
             LiveTuiStatus::new(
                 "complete",
                 if record_summary.is_some() {
@@ -1012,6 +1014,7 @@ fn render_live_progress(ctx: LiveProgressContext<'_>) -> anyhow::Result<()> {
             ctx.screen_request,
             ctx.tui_state,
             live_tui_candles(ctx.state),
+            live_tui_trades(ctx.state),
             LiveTuiStatus::new(
                 "LIVE",
                 "REC ready",
@@ -1059,6 +1062,7 @@ fn live_tui_model(
     screen_request: &ScreenRequest,
     tui_state: Option<&WorkstationUiState>,
     candles: Vec<CandleEvent>,
+    trades: Vec<TradeEvent>,
     status: LiveTuiStatus,
 ) -> RatatuiFrameModel {
     RatatuiFrameModel::new(
@@ -1068,6 +1072,7 @@ fn live_tui_model(
         tui_state.cloned().unwrap_or_default(),
     )
     .with_candles(candles)
+    .with_trades(trades)
     .with_status(status.stream, status.recorder, status.health)
 }
 
@@ -1095,6 +1100,13 @@ fn live_tui_candles(state: &LiveMarketState) -> Vec<CandleEvent> {
     state
         .states()
         .flat_map(|state| state.candles.iter().cloned())
+        .collect()
+}
+
+fn live_tui_trades(state: &LiveMarketState) -> Vec<TradeEvent> {
+    state
+        .states()
+        .flat_map(|state| state.trades.iter().cloned())
         .collect()
 }
 
