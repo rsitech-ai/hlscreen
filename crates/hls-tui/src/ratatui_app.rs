@@ -634,6 +634,7 @@ fn detail_lines(
                 )),
             ];
             lines.extend(factor_stack_lines(row, color_mode));
+            lines.extend(liquidity_radar_lines(row, color_mode));
             lines.extend([
                 Line::from(format!(
                     "flow30 {} | bbo ofi {} | depth {} | imbalance {}",
@@ -714,6 +715,69 @@ fn detail_lines(
             lines
         }
     }
+}
+
+fn liquidity_radar_lines(
+    row: &FeatureSnapshot,
+    color_mode: RatatuiColorMode,
+) -> Vec<Line<'static>> {
+    let spread_quality = row
+        .spread_bps
+        .filter(|value| value.is_finite())
+        .map(|value| 1.0 - (value / 25.0).clamp(0.0, 1.0))
+        .unwrap_or(0.0);
+    let depth_ratio = row
+        .tob_depth_usd
+        .filter(|value| value.is_finite() && *value > 0.0)
+        .map(|value| (value.log10() / 6.0).clamp(0.0, 1.0))
+        .unwrap_or(0.0);
+    let flow = row.signed_notional_flow_30s.unwrap_or(0.0);
+    let flow_scale = flow
+        .abs()
+        .max(row.tob_depth_usd.unwrap_or(0.0).abs())
+        .max(1.0);
+
+    vec![
+        Line::from(vec![
+            Span::styled(
+                "LIQUIDITY RADAR ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw("Public BBO/flow only"),
+        ]),
+        Line::from(vec![
+            Span::styled("spread cost ", Style::default().fg(warn(color_mode))),
+            Span::raw(format!(
+                "{} {} bps",
+                depth_bar(spread_quality, 10),
+                format_optional(row.spread_bps, 1)
+            )),
+            Span::raw(" | "),
+            Span::styled("depth ", Style::default().fg(success(color_mode))),
+            Span::raw(format!(
+                "{} {}",
+                depth_bar(depth_ratio, 10),
+                format_usd(row.tob_depth_usd)
+            )),
+        ]),
+        Line::from(vec![
+            Span::styled(
+                "imbalance ",
+                Style::default().fg(flow_color(row.tob_imbalance.unwrap_or(0.0), color_mode)),
+            ),
+            Span::raw(signed_meter(row.tob_imbalance.unwrap_or(0.0))),
+            Span::raw(" | "),
+            Span::styled("flow ", Style::default().fg(flow_color(flow, color_mode))),
+            Span::raw(signed_flow_bar(flow, flow_scale, 10)),
+            Span::raw(format!(
+                " {}",
+                format_usd_signed(row.signed_notional_flow_30s)
+            )),
+        ]),
+        Line::from("Public BBO/flow only | screen heuristic, not advice."),
+    ]
 }
 
 fn factor_stack_lines(row: &FeatureSnapshot, color_mode: RatatuiColorMode) -> Vec<Line<'static>> {
