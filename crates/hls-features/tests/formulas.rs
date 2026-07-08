@@ -1,9 +1,12 @@
-use hls_core::market_state::{
-    CandleEvent, FeatureSnapshot, LiveMarketState, MarketEvent, StalenessState, TradeEvent,
-    TradeSide,
+use hls_core::{
+    confidence::{ConfidenceLevel, ConfidenceReason, DataConfidenceSnapshot},
+    market_state::{
+        CandleEvent, FeatureSnapshot, LiveMarketState, MarketEvent, StalenessState, TradeEvent,
+        TradeSide,
+    },
 };
 use hls_features::{
-    engine::FeatureEngine,
+    engine::{ConfidenceInputs, FeatureEngine},
     formulas::{
         bounded_score, percent_return, realized_volatility, spread_bps, tob_depth_usd,
         tob_imbalance, z_score,
@@ -71,6 +74,7 @@ fn fixture_events_produce_feature_snapshot_with_freshness_state() {
 
     let expected_shape = FeatureSnapshot {
         symbol: "@107".to_owned(),
+        confidence: DataConfidenceSnapshot::new("@107"),
         price: Some(35.20),
         mid_px: Some(35.00),
         mark_px: Some(35.50),
@@ -98,6 +102,7 @@ fn fixture_events_produce_feature_snapshot_with_freshness_state() {
         incomplete_window_reason: None,
     };
     assert_eq!(snapshot.symbol, expected_shape.symbol);
+    assert_eq!(snapshot.confidence, expected_shape.confidence);
     assert_eq!(snapshot.price, expected_shape.price);
     assert_eq!(snapshot.mid_px, expected_shape.mid_px);
     assert_eq!(snapshot.mark_px, expected_shape.mark_px);
@@ -179,6 +184,74 @@ fn feature_engine_clamps_future_exchange_timestamps_to_zero_age() {
 
     assert_eq!(snapshot.updated_ms_ago, Some(0));
     assert_eq!(snapshot.staleness_state, StalenessState::Fresh);
+}
+
+#[test]
+fn feature_engine_marks_duplicate_trades_without_replaying_them() {
+    let now_ms = 10_000_000;
+    let mut state = LiveMarketState::new(["@107".to_owned()]);
+    let duplicate = trade(now_ms - 500, 101.0, 2);
+    for event in [
+        trade(now_ms - 1_000, 100.0, 1),
+        duplicate.clone(),
+        duplicate,
+    ] {
+        state.apply(event).expect("event applies");
+    }
+
+    let snapshot = FeatureEngine::default()
+        .snapshots(&state, now_ms)
+        .into_iter()
+        .find(|snapshot| snapshot.symbol == "@107")
+        .expect("snapshot exists");
+
+    assert_eq!(snapshot.confidence.level, ConfidenceLevel::High);
+    assert_eq!(snapshot.confidence.score, 90);
+    assert!(
+        snapshot
+            .confidence
+            .has_reason(ConfidenceReason::DuplicateEvents)
+    );
+    assert_eq!(snapshot.ret_1m, Some(0.01));
+}
+
+#[test]
+fn feature_engine_accepts_explicit_runtime_confidence_inputs() {
+    let now_ms = 10_000_000;
+    let mut state = LiveMarketState::new(["@107".to_owned()]);
+    for event in [
+        trade(now_ms - 1_000, 100.0, 1),
+        trade(now_ms - 500, 101.0, 2),
+    ] {
+        state.apply(event).expect("event applies");
+    }
+
+    let inputs = ConfidenceInputs::default()
+        .with_gap_symbol("@107")
+        .with_parser_drop_count(1)
+        .with_writer_backlog(50, 10);
+    let snapshot = FeatureEngine::default()
+        .snapshots_with_confidence_inputs(&state, now_ms, &inputs)
+        .into_iter()
+        .find(|snapshot| snapshot.symbol == "@107")
+        .expect("snapshot exists");
+
+    assert_eq!(snapshot.confidence.level, ConfidenceLevel::Untrusted);
+    assert!(
+        snapshot
+            .confidence
+            .has_reason(ConfidenceReason::ReconnectGap)
+    );
+    assert!(
+        snapshot
+            .confidence
+            .has_reason(ConfidenceReason::ParserDrops)
+    );
+    assert!(
+        snapshot
+            .confidence
+            .has_reason(ConfidenceReason::WriterBacklog)
+    );
 }
 
 fn trade(exchange_ts_ms: i64, price: f64, tid: u64) -> MarketEvent {

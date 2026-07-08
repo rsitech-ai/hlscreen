@@ -56,6 +56,21 @@ def main() -> None:
                 ],
             ),
             Screenshot(
+                filename="confidence-degraded.svg",
+                title="Data confidence pane",
+                commands=[
+                    [
+                        str(HLS),
+                        "live",
+                        "--symbols",
+                        "@107",
+                        "--fixture-file",
+                        "tests/fixtures/microstructure/sparse_trades.ndjson",
+                        "--once",
+                    ]
+                ],
+            ),
+            Screenshot(
                 filename="record-replay.svg",
                 title="Record and replay",
                 commands=[
@@ -80,6 +95,7 @@ def main() -> None:
                         str(temp_dir),
                         "--run-id",
                         "screenshot",
+                        "--verify-parity",
                     ],
                 ],
             ),
@@ -258,6 +274,7 @@ def line_style(line: str) -> tuple[str, str]:
             "│ STORAGE",
             "│ QUALITY",
             "│ LATENCY",
+            "│ CONFIDENCE",
             "│ CONNECTION",
             "│ RECORDER",
             "│ RUNBOOK",

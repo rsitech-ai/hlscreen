@@ -31,7 +31,7 @@ use hls_store::{
     raw::{RawMarketMessage, RawWriter},
     recorder::{RecordOptions, RecordSummary, record_fixture_ndjson},
 };
-use hls_tui::app::render_screened_table;
+use hls_tui::app::{render_confidence_summary, render_screened_table};
 use tokio::time::{interval, sleep_until, timeout_at};
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 
@@ -152,6 +152,7 @@ async fn run_fixture_live(args: LiveArgs, fixture_file: &PathBuf) -> anyhow::Res
     }
 
     let snapshots = FeatureEngine::default().snapshots(&state, latest_update_ms(&state));
+    println!("{}", render_confidence_summary(&snapshots));
     print!(
         "{}",
         render_screened_table(
@@ -261,6 +262,7 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
     println!("reconnects={}", summary.reconnects);
     println!("data_gaps={}", summary.data_gaps);
     println!("elapsed_secs={}", summary.elapsed_secs);
+    println!("{}", render_confidence_summary(&snapshots));
     if let Some(record_summary) = &record_summary {
         println!("recording run: {}", record_summary.run_id);
         println!("raw_messages={}", record_summary.raw_messages);
