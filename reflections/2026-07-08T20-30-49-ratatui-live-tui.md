@@ -26,9 +26,13 @@
 - Removed the earlier legacy string-renderer ANSI color patch; color now belongs to the Ratatui path.
 - Added real 1m candle history to the Ratatui frame model and replaced the synthetic chart with selected-symbol OHLC/volume rendering.
 - Updated `LiveMarketState` to upsert current interval candles and bound per-symbol candle history, so live candle updates do not duplicate bars indefinitely.
+- Added a live command deck: `/` opens a validated filter editor, `p` opens a preset editor, `s` opens a sort editor, and `t` cycles chart windows. These mutate display/screening state only; ingestion, recording, subscriptions, and read-only safety boundaries are unchanged.
+- Added explicit force-color environment support for inherited monochrome shells: `HLS_FORCE_COLOR=1`, `CLICOLOR_FORCE`, or `FORCE_COLOR`.
 
 ## Closeout For This Slice
 - Worked: focused Ratatui tests pass; full workspace tests/build pass; fixture `--once --tui` renders the new cockpit; short public `--top 10` smoke completed with 10 symbols, 40 subscriptions, 275 WS messages, 525 market events, zero reconnects, and zero gaps.
 - Later candle-chart validation: fixture `--once --tui` rendered `CANDLES 1m  O 34.5000 H 35.2000 L 34.4000 C 35.0000 VOL 1200`; short public `--top 10 --duration-secs 8` smoke completed with 208 WS messages, 458 market events, zero reconnects, and zero gaps.
-- Still incomplete against the full objective: command palette/filter/preset/sort/timeframe editors are not implemented yet; old string-renderer tests still exist for deterministic non-TTY output.
+- Later control validation: focused TUI and CLI tests pass; fixture `--once --tui` rendered `chart:15m` and no `reserved` key text; invalid command submissions keep the prior request active and surface the validation error; forced-color fixture smoke emitted ANSI color escapes with `TERM=dumb` and `NO_COLOR=1`.
+- Final gate: full workspace tests/build, clippy, release packaging, screenshot regeneration check, diff check, and short public top-10 smoke passed with 195 WS messages, 447 market events, zero reconnects, and zero gaps.
+- Still incomplete against the full objective: pane focus, richer chart interaction, and deeper order-book/tape controls need follow-up; old string-renderer tests still exist for deterministic non-TTY output.
 - Reuse: keep all future TUI work behind Ratatui snapshot tests plus one bounded public live smoke.
