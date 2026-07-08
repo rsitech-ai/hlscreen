@@ -3,6 +3,7 @@ pub mod explain;
 pub mod health;
 pub mod init;
 pub mod live;
+pub(crate) mod metadata;
 pub mod record;
 pub mod replay;
 pub mod screen;
