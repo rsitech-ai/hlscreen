@@ -46,7 +46,8 @@ fn cockpit_renders_command_palette_with_validation_error() {
         "READ-ONLY Hyperliquid spot live screen",
         ScreenRequest::default(),
         state,
-    );
+    )
+    .with_candles(fixture_candles());
 
     let rendered = render_ratatui_snapshot_for_test(
         &model,
@@ -171,6 +172,8 @@ fn cockpit_reflects_keyboard_view_pause_density_and_help_state() {
     let snapshots = fixture_snapshots();
     let mut state = WorkstationUiState::default();
     state.apply(WorkstationAction::NextView, snapshots.len());
+    state.apply(WorkstationAction::NextPane, snapshots.len());
+    state.apply(WorkstationAction::NextPane, snapshots.len());
     state.apply(WorkstationAction::ToggleDensity, snapshots.len());
     state.apply(WorkstationAction::TogglePause, snapshots.len());
     state.apply(WorkstationAction::ToggleHelp, snapshots.len());
@@ -193,11 +196,14 @@ fn cockpit_reflects_keyboard_view_pause_density_and_help_state() {
     .expect("renders");
 
     assert!(rendered.contains("view:flow"));
+    assert!(rendered.contains("pane:chart"));
     assert!(rendered.contains("density:dense"));
     assert!(rendered.contains("chart:30m"));
+    assert!(rendered.contains("focus chart"));
     assert!(rendered.contains("display paused"));
     assert!(rendered.contains("HELP"));
     assert!(rendered.contains("Command Deck"));
+    assert!(rendered.contains("[ / ]"));
     assert!(rendered.contains("/ filter"));
     assert!(!rendered.contains("reserved"));
 }

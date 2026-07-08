@@ -44,6 +44,54 @@ impl WorkstationView {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum WorkstationPane {
+    Watchlist,
+    Detail,
+    Chart,
+    Book,
+    Tape,
+    Status,
+}
+
+impl WorkstationPane {
+    pub const ALL: [Self; 6] = [
+        Self::Watchlist,
+        Self::Detail,
+        Self::Chart,
+        Self::Book,
+        Self::Tape,
+        Self::Status,
+    ];
+
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Watchlist => "watchlist",
+            Self::Detail => "detail",
+            Self::Chart => "chart",
+            Self::Book => "book",
+            Self::Tape => "tape",
+            Self::Status => "status",
+        }
+    }
+
+    fn next(self) -> Self {
+        let index = Self::ALL
+            .iter()
+            .position(|candidate| *candidate == self)
+            .unwrap_or_default();
+        Self::ALL[(index + 1) % Self::ALL.len()]
+    }
+
+    fn previous(self) -> Self {
+        let index = Self::ALL
+            .iter()
+            .position(|candidate| *candidate == self)
+            .unwrap_or_default();
+        Self::ALL[(index + Self::ALL.len() - 1) % Self::ALL.len()]
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorkstationDensity {
     Compact,
     Balanced,
@@ -192,6 +240,8 @@ pub enum WorkstationAction {
     CyclePreset,
     CycleSort,
     CycleChartWindow,
+    NextPane,
+    PreviousPane,
     CommandChar(char),
     CommandBackspace,
     SubmitCommand,
@@ -203,6 +253,7 @@ pub enum WorkstationAction {
 pub struct WorkstationUiState {
     selected: usize,
     view: WorkstationView,
+    focused_pane: WorkstationPane,
     density: WorkstationDensity,
     chart_window: WorkstationChartWindow,
     command: Option<WorkstationCommand>,
@@ -217,6 +268,7 @@ impl Default for WorkstationUiState {
         Self {
             selected: 0,
             view: WorkstationView::Overview,
+            focused_pane: WorkstationPane::Watchlist,
             density: WorkstationDensity::Balanced,
             chart_window: WorkstationChartWindow::FifteenMinutes,
             command: None,
@@ -243,6 +295,10 @@ impl WorkstationUiState {
 
     pub fn density(&self) -> WorkstationDensity {
         self.density
+    }
+
+    pub fn focused_pane(&self) -> WorkstationPane {
+        self.focused_pane
     }
 
     pub fn chart_window(&self) -> WorkstationChartWindow {
@@ -313,6 +369,8 @@ impl WorkstationUiState {
             }
             WorkstationAction::NextView => self.view = self.view.next(),
             WorkstationAction::PreviousView => self.view = self.view.previous(),
+            WorkstationAction::NextPane => self.focused_pane = self.focused_pane.next(),
+            WorkstationAction::PreviousPane => self.focused_pane = self.focused_pane.previous(),
             WorkstationAction::ToggleDensity => self.density = self.density.next(),
             WorkstationAction::ToggleHelp => self.help_open = !self.help_open,
             WorkstationAction::TogglePause => self.paused = !self.paused,

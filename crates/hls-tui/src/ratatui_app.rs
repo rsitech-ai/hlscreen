@@ -9,7 +9,9 @@ use ratatui::{
     widgets::{Block, Borders, Cell, Clear, Paragraph, Row, Table, Wrap},
 };
 
-use crate::interaction::{WorkstationCommand, WorkstationUiState, WorkstationView};
+use crate::interaction::{
+    WorkstationCommand, WorkstationPane, WorkstationUiState, WorkstationView,
+};
 
 const MAX_CHART_CANDLES: usize = 48;
 
@@ -307,12 +309,12 @@ fn render_watchlist(
                 .add_modifier(Modifier::BOLD),
         ),
     )
-    .block(
-        Block::default()
-            .title(" WATCHLIST ")
-            .borders(Borders::ALL)
-            .border_style(Style::default().fg(accent(color_mode))),
-    );
+    .block(panel_for(
+        "WATCHLIST",
+        WorkstationPane::Watchlist,
+        model,
+        color_mode,
+    ));
     frame.render_widget(table, area);
 }
 
@@ -326,8 +328,12 @@ fn render_detail(
     let rows = screened_rows(model);
     let Some(row) = selected_row(&rows, model) else {
         frame.render_widget(
-            Paragraph::new("No market rows yet. Waiting for public frames.")
-                .block(panel(title, color_mode)),
+            Paragraph::new("No market rows yet. Waiting for public frames.").block(panel_for(
+                title,
+                WorkstationPane::Detail,
+                model,
+                color_mode,
+            )),
             area,
         );
         return;
@@ -337,7 +343,7 @@ fn render_detail(
     frame.render_widget(
         Paragraph::new(lines)
             .wrap(Wrap { trim: true })
-            .block(panel(title, color_mode)),
+            .block(panel_for(title, WorkstationPane::Detail, model, color_mode)),
         area,
     );
 }
@@ -517,6 +523,7 @@ fn render_help_overlay(
         )]),
         Line::from("j/k or arrows  move selected market"),
         Line::from("tab / shift-tab  cycle overview, flow, quality, metadata, explain"),
+        Line::from("[ / ]  move pane focus: watchlist, detail, chart, book, tape, status"),
         Line::from("/ filter  |  p preset  |  s sort  |  t chart window"),
         Line::from("d  density  |  space  pause display  |  ?  help  |  q  quit"),
         Line::from("Display only: no wallet, private streams, or order routes."),
@@ -580,8 +587,9 @@ fn ui_mode_label(state: &WorkstationUiState) -> String {
         .map(|command| format!(" command:{}", command.target().label()))
         .unwrap_or_default();
     format!(
-        "view:{} density:{} chart:{}{}",
+        "view:{} pane:{} density:{} chart:{}{}",
         state.view().label(),
+        state.focused_pane().label(),
         state.density().label(),
         state.chart_window().label(),
         command
@@ -617,7 +625,12 @@ fn render_chart(
     let rows = screened_rows(model);
     let Some(row) = selected_row(&rows, model) else {
         frame.render_widget(
-            Paragraph::new("No chart data").block(panel("CHART", color_mode)),
+            Paragraph::new("No chart data").block(panel_for(
+                "CHART",
+                WorkstationPane::Chart,
+                model,
+                color_mode,
+            )),
             area,
         );
         return;
@@ -635,7 +648,12 @@ fn render_chart(
                 Line::from("No synthetic candles are rendered."),
             ])
             .wrap(Wrap { trim: true })
-            .block(panel("CHART  1m OHLC", color_mode)),
+            .block(panel_for(
+                "CHART  1m OHLC",
+                WorkstationPane::Chart,
+                model,
+                color_mode,
+            )),
             area,
         );
         return;
@@ -654,7 +672,7 @@ fn render_chart(
     frame.render_widget(
         Paragraph::new(chart_lines)
             .wrap(Wrap { trim: false })
-            .block(panel(&title, color_mode))
+            .block(panel_for(&title, WorkstationPane::Chart, model, color_mode))
             .style(Style::default().fg(success(color_mode))),
         area,
     );
@@ -782,7 +800,10 @@ fn render_book(
             )
         },
     );
-    frame.render_widget(Paragraph::new(body).block(panel("BOOK", color_mode)), area);
+    frame.render_widget(
+        Paragraph::new(body).block(panel_for("BOOK", WorkstationPane::Book, model, color_mode)),
+        area,
+    );
 }
 
 fn render_tape(
@@ -804,7 +825,10 @@ fn render_tape(
             ))
         })
         .collect::<Vec<_>>();
-    frame.render_widget(Paragraph::new(lines).block(panel("TAPE", color_mode)), area);
+    frame.render_widget(
+        Paragraph::new(lines).block(panel_for("TAPE", WorkstationPane::Tape, model, color_mode)),
+        area,
+    );
 }
 
 fn render_status_bar(
@@ -814,9 +838,10 @@ fn render_status_bar(
     color_mode: RatatuiColorMode,
 ) {
     let status = format!(
-        " {} | {} | {} | No wallet, no private streams, no order routes. Screen heuristic, not advice. ",
+        " {} | {} | focus {} | {} | No wallet, no private streams, no order routes. Screen heuristic, not advice. ",
         model.health_status,
         pause_label(model),
+        model.ui_state.focused_pane().label(),
         mode_label(&model.request, model.rows.len())
     );
     frame.render_widget(
@@ -825,7 +850,10 @@ fn render_status_bar(
             .block(
                 Block::default()
                     .borders(Borders::TOP)
-                    .border_style(Style::default().fg(accent(color_mode))),
+                    .border_style(focus_style(
+                        model.ui_state.focused_pane() == WorkstationPane::Status,
+                        color_mode,
+                    )),
             ),
         area,
     );
@@ -844,6 +872,37 @@ fn panel(title: &str, color_mode: RatatuiColorMode) -> Block<'static> {
         .title(format!(" {title} "))
         .borders(Borders::ALL)
         .border_style(Style::default().fg(accent(color_mode)))
+}
+
+fn panel_for(
+    title: &str,
+    pane: WorkstationPane,
+    model: &RatatuiFrameModel,
+    color_mode: RatatuiColorMode,
+) -> Block<'static> {
+    let focused = model.ui_state.focused_pane() == pane;
+    let title = if focused {
+        format!(" [FOCUS] {title} ")
+    } else {
+        format!(" {title} ")
+    };
+    Block::default()
+        .title(title)
+        .borders(Borders::ALL)
+        .border_style(focus_style(focused, color_mode))
+}
+
+fn focus_style(focused: bool, color_mode: RatatuiColorMode) -> Style {
+    let style = if focused {
+        Style::default().fg(warn(color_mode))
+    } else {
+        Style::default().fg(accent(color_mode))
+    };
+    if focused {
+        style.add_modifier(Modifier::BOLD)
+    } else {
+        style
+    }
 }
 
 fn screened_rows(model: &RatatuiFrameModel) -> Vec<FeatureSnapshot> {

@@ -1177,6 +1177,8 @@ fn key_to_workstation_action(
         KeyCode::End => Some(WorkstationAction::End),
         KeyCode::Tab => Some(WorkstationAction::NextView),
         KeyCode::BackTab => Some(WorkstationAction::PreviousView),
+        KeyCode::Char(']') => Some(WorkstationAction::NextPane),
+        KeyCode::Char('[') => Some(WorkstationAction::PreviousPane),
         KeyCode::Char('/') => Some(WorkstationAction::CycleFilter),
         KeyCode::Char('p') | KeyCode::Char('P') => Some(WorkstationAction::CyclePreset),
         KeyCode::Char('s') | KeyCode::Char('S') => Some(WorkstationAction::CycleSort),
@@ -1429,6 +1431,20 @@ mod tests {
             ),
             Some(WorkstationAction::CycleChartWindow)
         );
+        assert_eq!(
+            key_to_workstation_action(
+                KeyEvent::new(KeyCode::Char(']'), KeyModifiers::NONE),
+                &state
+            ),
+            Some(WorkstationAction::NextPane)
+        );
+        assert_eq!(
+            key_to_workstation_action(
+                KeyEvent::new(KeyCode::Char('['), KeyModifiers::NONE),
+                &state
+            ),
+            Some(WorkstationAction::PreviousPane)
+        );
 
         let mut command_state = WorkstationUiState::default();
         command_state.apply(WorkstationAction::CycleFilter, 1);
@@ -1445,6 +1461,13 @@ mod tests {
                 &command_state
             ),
             Some(WorkstationAction::SubmitCommand)
+        );
+        assert_eq!(
+            key_to_workstation_action(
+                KeyEvent::new(KeyCode::Char(']'), KeyModifiers::NONE),
+                &command_state
+            ),
+            Some(WorkstationAction::CommandChar(']'))
         );
     }
 

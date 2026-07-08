@@ -5,7 +5,8 @@ use hls_screen::ScreenRequest;
 use hls_tui::{
     app::{RenderOptions, render_screened_table_with_options, render_screened_table_with_state},
     interaction::{
-        WorkstationAction, WorkstationCommandTarget, WorkstationUiState, WorkstationView,
+        WorkstationAction, WorkstationCommandTarget, WorkstationPane, WorkstationUiState,
+        WorkstationView,
     },
 };
 
@@ -38,6 +39,12 @@ fn workstation_state_handles_keyboard_actions() {
 
     state.apply(WorkstationAction::NextView, 3);
     assert_eq!(state.view(), WorkstationView::Flow);
+
+    assert_eq!(state.focused_pane(), WorkstationPane::Watchlist);
+    state.apply(WorkstationAction::NextPane, 3);
+    assert_eq!(state.focused_pane(), WorkstationPane::Detail);
+    state.apply(WorkstationAction::PreviousPane, 3);
+    assert_eq!(state.focused_pane(), WorkstationPane::Watchlist);
 
     state.apply(WorkstationAction::ToggleDensity, 3);
     assert_eq!(state.density().label(), "dense");
