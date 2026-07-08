@@ -790,21 +790,74 @@ fn render_book(
     color_mode: RatatuiColorMode,
 ) {
     let rows = screened_rows(model);
-    let body = selected_row(&rows, model).map_or_else(
-        || "No book data".to_owned(),
-        |row| {
-            format!(
-                "Bid depth {}\nAsk depth {}\nSpread {} bps\nBOOK proxy only",
-                format_usd(notional(row.bid_px, row.bid_sz)),
-                format_usd(notional(row.ask_px, row.ask_sz)),
-                format_optional(row.spread_bps, 1)
-            )
-        },
+    let lines = selected_row(&rows, model).map_or_else(
+        || vec![Line::from("No book data")],
+        |row| book_lines(row, color_mode),
     );
     frame.render_widget(
-        Paragraph::new(body).block(panel_for("BOOK", WorkstationPane::Book, model, color_mode)),
+        Paragraph::new(lines)
+            .wrap(Wrap { trim: true })
+            .block(panel_for("BOOK", WorkstationPane::Book, model, color_mode)),
         area,
     );
+}
+
+fn book_lines(row: &FeatureSnapshot, color_mode: RatatuiColorMode) -> Vec<Line<'static>> {
+    let bid_notional = notional(row.bid_px, row.bid_sz);
+    let ask_notional = notional(row.ask_px, row.ask_sz);
+    vec![
+        Line::from(vec![
+            Span::styled(
+                "BID ",
+                Style::default()
+                    .fg(success(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(format!(
+                "{} x {}  notional {}",
+                format_price(row.bid_px),
+                format_size(row.bid_sz),
+                format_usd(bid_notional)
+            )),
+        ]),
+        Line::from(vec![
+            Span::styled(
+                "ASK ",
+                Style::default()
+                    .fg(danger(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(format!(
+                "{} x {}  notional {}",
+                format_price(row.ask_px),
+                format_size(row.ask_sz),
+                format_usd(ask_notional)
+            )),
+        ]),
+        Line::from(format!(
+            "spread {} bps  depth {}",
+            format_optional(row.spread_bps, 1),
+            format_usd(row.tob_depth_usd)
+        )),
+        Line::from(format!(
+            "imbalance {}  OFI {}",
+            format_signed(row.tob_imbalance, ""),
+            format_usd_signed(row.bbo_ofi_proxy_30s)
+        )),
+        Line::from(format!(
+            "pressure {}",
+            signed_meter(row.tob_imbalance.unwrap_or(0.0))
+        )),
+        Line::from(format!(
+            "state {} / {}",
+            row.tradeability_state.as_str(),
+            row.resilience_state.as_str()
+        )),
+        Line::from(format!(
+            "adverse {} | BOOK proxy only",
+            row.adverse_selection_proxy.as_str()
+        )),
+    ]
 }
 
 fn render_tape(
@@ -814,22 +867,57 @@ fn render_tape(
     color_mode: RatatuiColorMode,
 ) {
     let rows = screened_rows(model);
-    let lines = rows
-        .iter()
-        .take(model.ui_state.visible_row_limit().min(12))
-        .map(|row| {
-            Line::from(format!(
-                "{}  {}  {}",
-                display_symbol(row),
-                format_price(row.price),
-                format_usd_signed(row.signed_notional_flow_30s)
-            ))
-        })
-        .collect::<Vec<_>>();
+    let lines = tape_lines(&rows, model);
     frame.render_widget(
-        Paragraph::new(lines).block(panel_for("TAPE", WorkstationPane::Tape, model, color_mode)),
+        Paragraph::new(lines)
+            .wrap(Wrap { trim: true })
+            .block(panel_for("TAPE", WorkstationPane::Tape, model, color_mode)),
         area,
     );
+}
+
+fn tape_lines(rows: &[FeatureSnapshot], model: &RatatuiFrameModel) -> Vec<Line<'static>> {
+    let Some(selected) = selected_row(rows, model) else {
+        return vec![Line::from("No flow data")];
+    };
+
+    let mut leaders = rows.iter().collect::<Vec<_>>();
+    leaders.sort_by(|left, right| {
+        let left_abs = left.signed_notional_flow_30s.unwrap_or(0.0).abs();
+        let right_abs = right.signed_notional_flow_30s.unwrap_or(0.0).abs();
+        right_abs
+            .partial_cmp(&left_abs)
+            .unwrap_or(std::cmp::Ordering::Equal)
+            .then_with(|| display_symbol(left).cmp(display_symbol(right)))
+    });
+
+    let mut lines = vec![
+        Line::from(format!("Selected flow {}", display_symbol(selected))),
+        Line::from(format!(
+            "flow30 {} | OFI {}",
+            format_usd_signed(selected.signed_notional_flow_30s),
+            format_usd_signed(selected.bbo_ofi_proxy_30s)
+        )),
+        Line::from(format!(
+            "ret1m {} | rv1m {} | spread {} bps",
+            format_signed(selected.ret_1m.map(|value| value * 100.0), "%"),
+            format_optional(selected.rv_1m, 2),
+            format_optional(selected.spread_bps, 1)
+        )),
+        Line::from("Flow leaderboard"),
+    ];
+
+    let limit = model.ui_state.visible_row_limit().min(10);
+    lines.extend(leaders.into_iter().take(limit).map(|row| {
+        Line::from(format!(
+            "{} flow {} OFI {}",
+            display_symbol(row),
+            format_usd_signed(row.signed_notional_flow_30s),
+            format_usd_signed(row.bbo_ofi_proxy_30s)
+        ))
+    }));
+    lines.push(Line::from("Public BBO/flow proxy; no private fills."));
+    lines
 }
 
 fn render_status_bar(
@@ -958,6 +1046,10 @@ fn format_price(value: Option<f64>) -> String {
     value.map_or_else(|| "-".to_owned(), |value| format!("{value:.4}"))
 }
 
+fn format_size(value: Option<f64>) -> String {
+    value.map_or_else(|| "-".to_owned(), format_volume)
+}
+
 fn format_optional(value: Option<f64>, decimals: usize) -> String {
     value.map_or_else(|| "-".to_owned(), |value| format!("{value:.decimals$}"))
 }
@@ -1054,6 +1146,23 @@ fn notional(px: Option<f64>, qty: Option<f64>) -> Option<f64> {
     }
 }
 
+fn signed_meter(value: f64) -> String {
+    let normalized = value.clamp(-1.0, 1.0);
+    let center = 5_i32;
+    let marker = ((normalized + 1.0) * center as f64).round() as i32;
+    (0..=10)
+        .map(|index| {
+            if index == center {
+                '|'
+            } else if index == marker {
+                '█'
+            } else {
+                '─'
+            }
+        })
+        .collect()
+}
+
 fn trim_trailing_spaces(value: &mut String) {
     while value.ends_with(' ') {
         value.pop();
@@ -1071,6 +1180,13 @@ fn success(color_mode: RatatuiColorMode) -> Color {
     match color_mode {
         RatatuiColorMode::NoColor => Color::White,
         RatatuiColorMode::Auto | RatatuiColorMode::Color => Color::Green,
+    }
+}
+
+fn danger(color_mode: RatatuiColorMode) -> Color {
+    match color_mode {
+        RatatuiColorMode::NoColor => Color::White,
+        RatatuiColorMode::Auto | RatatuiColorMode::Color => Color::Red,
     }
 }
 
