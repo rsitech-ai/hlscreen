@@ -521,9 +521,10 @@ fn render_help_overlay(
                 .fg(accent(color_mode))
                 .add_modifier(Modifier::BOLD),
         )]),
-        Line::from("j/k or arrows  move selected market"),
+        Line::from("j/k or arrows  act on focused pane: rows, detail view, or chart window"),
         Line::from("tab / shift-tab  cycle overview, flow, quality, metadata, explain"),
         Line::from("[ / ]  move pane focus: watchlist, detail, chart, book, tape, status"),
+        Line::from("mouse wheel moves rows; click focuses panes when terminal mouse is available"),
         Line::from("/ filter  |  p preset  |  s sort  |  t chart window"),
         Line::from("d  density  |  space  pause display  |  ?  help  |  q  quit"),
         Line::from("Display only: no wallet, private streams, or order routes."),

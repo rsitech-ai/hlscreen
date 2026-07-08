@@ -43,8 +43,10 @@ fn workstation_state_handles_keyboard_actions() {
     assert_eq!(state.focused_pane(), WorkstationPane::Watchlist);
     state.apply(WorkstationAction::NextPane, 3);
     assert_eq!(state.focused_pane(), WorkstationPane::Detail);
+    state.apply(WorkstationAction::FocusPane(WorkstationPane::Chart), 3);
+    assert_eq!(state.focused_pane(), WorkstationPane::Chart);
     state.apply(WorkstationAction::PreviousPane, 3);
-    assert_eq!(state.focused_pane(), WorkstationPane::Watchlist);
+    assert_eq!(state.focused_pane(), WorkstationPane::Detail);
 
     state.apply(WorkstationAction::ToggleDensity, 3);
     assert_eq!(state.density().label(), "dense");
@@ -95,6 +97,28 @@ fn workstation_state_handles_command_entry_without_changing_market_focus() {
     assert!(state.command().is_none());
     assert_eq!(state.command_error(), None);
     assert_eq!(state.selected_index(3), Some(1));
+}
+
+#[test]
+fn focused_panes_scope_navigation_actions() {
+    let mut state = WorkstationUiState::default();
+
+    state.apply(WorkstationAction::Down, 4);
+    assert_eq!(state.selected_index(4), Some(1));
+
+    state.apply(WorkstationAction::FocusPane(WorkstationPane::Detail), 4);
+    state.apply(WorkstationAction::Down, 4);
+    assert_eq!(state.selected_index(4), Some(1));
+    assert_eq!(state.view(), WorkstationView::Flow);
+    state.apply(WorkstationAction::Up, 4);
+    assert_eq!(state.view(), WorkstationView::Overview);
+
+    state.apply(WorkstationAction::FocusPane(WorkstationPane::Chart), 4);
+    state.apply(WorkstationAction::Down, 4);
+    assert_eq!(state.selected_index(4), Some(1));
+    assert_eq!(state.chart_window().label(), "30m");
+    state.apply(WorkstationAction::Up, 4);
+    assert_eq!(state.chart_window().label(), "15m");
 }
 
 #[test]

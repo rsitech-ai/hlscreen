@@ -10,7 +10,10 @@ use std::{
 use anyhow::{Context, bail};
 use clap::Args;
 use crossterm::{
-    event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers},
+    event::{
+        self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEvent, KeyEventKind,
+        KeyModifiers, MouseEvent, MouseEventKind,
+    },
     execute,
     terminal::{
         EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode,
@@ -42,7 +45,9 @@ use hls_store::{
 };
 use hls_tui::{
     app::{render_confidence_summary, render_screened_table},
-    interaction::{WorkstationAction, WorkstationCommandTarget, WorkstationUiState},
+    interaction::{
+        WorkstationAction, WorkstationCommandTarget, WorkstationPane, WorkstationUiState,
+    },
     ratatui_app::{
         RatatuiColorMode, RatatuiFrameModel, RatatuiViewport, render_ratatui_snapshot_for_test,
     },
@@ -1129,14 +1134,23 @@ fn apply_pending_tui_actions(
 ) -> anyhow::Result<bool> {
     let mut actions = Vec::new();
     while event::poll(Duration::from_millis(0))? {
-        let Event::Key(key) = event::read()? else {
-            continue;
-        };
-        if key.kind != KeyEventKind::Press {
-            continue;
-        }
-        if let Some(action) = key_to_workstation_action(key, ui_state) {
-            actions.push(action);
+        match event::read()? {
+            Event::Key(key) => {
+                if key.kind != KeyEventKind::Press {
+                    continue;
+                }
+                if let Some(action) = key_to_workstation_action(key, ui_state) {
+                    actions.push(action);
+                }
+            }
+            Event::Mouse(mouse) => {
+                if let Some(action) =
+                    mouse_to_workstation_action(mouse, ui_state, terminal_size().ok())
+                {
+                    actions.push(action);
+                }
+            }
+            _ => {}
         }
     }
 
@@ -1188,6 +1202,61 @@ fn key_to_workstation_action(
         KeyCode::Char(' ') => Some(WorkstationAction::TogglePause),
         KeyCode::Esc | KeyCode::Char('q') | KeyCode::Char('Q') => Some(WorkstationAction::Quit),
         _ => None,
+    }
+}
+
+fn mouse_to_workstation_action(
+    mouse: MouseEvent,
+    ui_state: &WorkstationUiState,
+    terminal_size: Option<(u16, u16)>,
+) -> Option<WorkstationAction> {
+    if ui_state.command().is_some() {
+        return None;
+    }
+
+    match mouse.kind {
+        MouseEventKind::ScrollUp => Some(WorkstationAction::Up),
+        MouseEventKind::ScrollDown => Some(WorkstationAction::Down),
+        MouseEventKind::Down(_) => terminal_size
+            .map(|(width, height)| mouse_pane_for_position(mouse.column, mouse.row, width, height))
+            .map(WorkstationAction::FocusPane),
+        _ => None,
+    }
+}
+
+fn mouse_pane_for_position(column: u16, row: u16, width: u16, height: u16) -> WorkstationPane {
+    if row <= 2 || row.saturating_add(2) >= height {
+        return WorkstationPane::Status;
+    }
+
+    if width >= 128 {
+        let watchlist_end = width.saturating_mul(30) / 100;
+        let right_start = width.saturating_mul(78) / 100;
+        if column < watchlist_end {
+            WorkstationPane::Watchlist
+        } else if column >= right_start {
+            if row < height / 2 {
+                WorkstationPane::Book
+            } else {
+                WorkstationPane::Tape
+            }
+        } else if row < height / 2 {
+            WorkstationPane::Detail
+        } else {
+            WorkstationPane::Chart
+        }
+    } else if width >= 88 {
+        if row < height / 3 {
+            WorkstationPane::Watchlist
+        } else if row < (height.saturating_mul(2) / 3) {
+            WorkstationPane::Detail
+        } else {
+            WorkstationPane::Chart
+        }
+    } else if row < height / 2 {
+        WorkstationPane::Watchlist
+    } else {
+        WorkstationPane::Detail
     }
 }
 
@@ -1277,6 +1346,7 @@ fn current_screened_row_count(
 struct LiveTuiGuard {
     raw_enabled: bool,
     alternate_screen_enabled: bool,
+    mouse_capture_enabled: bool,
 }
 
 impl LiveTuiGuard {
@@ -1287,16 +1357,25 @@ impl LiveTuiGuard {
                 let _ = disable_raw_mode();
                 return Err(err.into());
             }
+            if let Err(err) = execute!(io::stderr(), EnableMouseCapture) {
+                let _ = execute!(io::stderr(), LeaveAlternateScreen);
+                let _ = disable_raw_mode();
+                return Err(err.into());
+            }
         }
         Ok(Self {
             raw_enabled: enabled,
             alternate_screen_enabled: enabled,
+            mouse_capture_enabled: enabled,
         })
     }
 }
 
 impl Drop for LiveTuiGuard {
     fn drop(&mut self) {
+        if self.mouse_capture_enabled {
+            let _ = execute!(io::stderr(), DisableMouseCapture);
+        }
         if self.alternate_screen_enabled {
             let _ = execute!(io::stderr(), LeaveAlternateScreen);
         }
@@ -1468,6 +1547,79 @@ mod tests {
                 &command_state
             ),
             Some(WorkstationAction::CommandChar(']'))
+        );
+    }
+
+    #[test]
+    fn live_tui_mouse_events_map_to_keyboard_parity_actions() {
+        let state = WorkstationUiState::default();
+        assert_eq!(
+            mouse_to_workstation_action(
+                MouseEvent {
+                    kind: MouseEventKind::ScrollUp,
+                    column: 0,
+                    row: 0,
+                    modifiers: KeyModifiers::NONE,
+                },
+                &state,
+                Some((160, 48)),
+            ),
+            Some(WorkstationAction::Up)
+        );
+        assert_eq!(
+            mouse_to_workstation_action(
+                MouseEvent {
+                    kind: MouseEventKind::ScrollDown,
+                    column: 0,
+                    row: 0,
+                    modifiers: KeyModifiers::NONE,
+                },
+                &state,
+                Some((160, 48)),
+            ),
+            Some(WorkstationAction::Down)
+        );
+        assert_eq!(
+            mouse_to_workstation_action(
+                MouseEvent {
+                    kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
+                    column: 10,
+                    row: 10,
+                    modifiers: KeyModifiers::NONE,
+                },
+                &state,
+                Some((160, 48)),
+            ),
+            Some(WorkstationAction::FocusPane(WorkstationPane::Watchlist))
+        );
+        assert_eq!(
+            mouse_to_workstation_action(
+                MouseEvent {
+                    kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
+                    column: 126,
+                    row: 30,
+                    modifiers: KeyModifiers::NONE,
+                },
+                &state,
+                Some((160, 48)),
+            ),
+            Some(WorkstationAction::FocusPane(WorkstationPane::Tape))
+        );
+
+        let mut command_state = WorkstationUiState::default();
+        command_state.apply(WorkstationAction::CycleFilter, 1);
+        assert_eq!(
+            mouse_to_workstation_action(
+                MouseEvent {
+                    kind: MouseEventKind::ScrollDown,
+                    column: 0,
+                    row: 0,
+                    modifiers: KeyModifiers::NONE,
+                },
+                &command_state,
+                Some((160, 48)),
+            ),
+            None
         );
     }
 
