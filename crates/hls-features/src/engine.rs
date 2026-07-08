@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use hls_core::{
     confidence::{ConfidenceReason, DataConfidenceSnapshot},
     market_state::{FeatureSnapshot, LiveMarketState, StalenessState, SymbolMarketState},
+    score::{ScoreBreakdown, ScoreComponent, ScoreComponentKind},
 };
 
 use crate::{
@@ -149,6 +150,18 @@ impl FeatureEngine {
             staleness_state: staleness_state.clone(),
             resilience_state: resilience.resilience_state,
         });
+        let score_breakdown = score_breakdown(ScoreBreakdownInput {
+            symbol: &state.hl_coin,
+            confidence_score: confidence.score,
+            liquidity_score,
+            momentum_score,
+            mean_reversion_score,
+            spread_bps,
+            tob_depth_usd,
+            signed_notional_flow_30s: resilience.signed_notional_flow_30s,
+            return_window: ret_5m.or(ret_1m).or(ret_1h),
+            rv_1m,
+        });
 
         FeatureSnapshot {
             symbol: state.hl_coin.clone(),
@@ -182,11 +195,101 @@ impl FeatureEngine {
             liquidity_score,
             momentum_score,
             mean_reversion_score,
+            score_breakdown: Some(score_breakdown),
             updated_ms_ago,
             staleness_state,
             incomplete_window_reason,
         }
     }
+}
+
+struct ScoreBreakdownInput<'a> {
+    symbol: &'a str,
+    confidence_score: u8,
+    liquidity_score: f64,
+    momentum_score: f64,
+    mean_reversion_score: f64,
+    spread_bps: Option<f64>,
+    tob_depth_usd: Option<f64>,
+    signed_notional_flow_30s: Option<f64>,
+    return_window: Option<f64>,
+    rv_1m: Option<f64>,
+}
+
+fn score_breakdown(input: ScoreBreakdownInput<'_>) -> ScoreBreakdown {
+    let mut unavailable_evidence = Vec::new();
+    if input.tob_depth_usd.is_none() {
+        unavailable_evidence.push("top_of_book_depth".to_owned());
+    }
+    if input.spread_bps.is_none() {
+        unavailable_evidence.push("spread_cost".to_owned());
+    }
+    if input.signed_notional_flow_30s.is_none() {
+        unavailable_evidence.push("signed_flow_30s".to_owned());
+    }
+    if input.return_window.is_none() {
+        unavailable_evidence.push("return_window".to_owned());
+    }
+    if input.rv_1m.is_none() {
+        unavailable_evidence.push("realized_volatility_1m".to_owned());
+    }
+
+    let spread_penalty = input
+        .spread_bps
+        .map(|spread| -(spread / 150.0).clamp(0.0, 1.0) * 15.0)
+        .unwrap_or_default();
+    let flow_score = input
+        .signed_notional_flow_30s
+        .map(|flow| (flow.abs() / 10_000.0 * 100.0).clamp(0.0, 100.0) * flow.signum())
+        .unwrap_or_default();
+
+    ScoreBreakdown::from_components(
+        input.symbol,
+        input.confidence_score,
+        vec![
+            ScoreComponent::weighted(
+                "liquidity_resilience",
+                ScoreComponentKind::Resilience,
+                input.tob_depth_usd.unwrap_or_default(),
+                input.liquidity_score,
+                0.40,
+                "top_of_book",
+            ),
+            ScoreComponent::weighted(
+                "momentum",
+                ScoreComponentKind::Momentum,
+                input.return_window.unwrap_or_default() * 100.0,
+                input.momentum_score,
+                0.25,
+                "returns_1m_5m_1h",
+            ),
+            ScoreComponent::weighted(
+                "mean_reversion_context",
+                ScoreComponentKind::MeanReversion,
+                input.return_window.unwrap_or_default() * 100.0,
+                input.mean_reversion_score,
+                0.10,
+                "returns_1m_5m_1h",
+            ),
+            ScoreComponent::weighted(
+                "signed_flow",
+                ScoreComponentKind::SignedFlow,
+                input.signed_notional_flow_30s.unwrap_or_default(),
+                flow_score,
+                0.10,
+                "trades_30s",
+            ),
+            ScoreComponent::weighted(
+                "spread_cost",
+                ScoreComponentKind::SpreadCost,
+                input.spread_bps.unwrap_or_default(),
+                spread_penalty,
+                1.00,
+                "bbo_latest",
+            ),
+        ],
+    )
+    .with_unavailable_evidence(unavailable_evidence)
 }
 
 fn confidence_snapshot(

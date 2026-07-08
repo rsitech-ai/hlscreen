@@ -116,21 +116,21 @@
 
 ### Tests for User Story 3
 
-- [ ] T046 [P] [US3] Add score component fixture in `/Users/s1kor/dev/trading/rsibot/hlscreen/tests/fixtures/microstructure/explainable_scores.json`
-- [ ] T047 [P] [US3] Add score aggregation tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/tests/score_breakdown.rs`
-- [ ] T048 [P] [US3] Add why-ranked TUI golden test in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-tui/tests/why_ranked_pane.rs`
-- [ ] T049 [P] [US3] Add `hls explain` CLI test in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/tests/explain_command.rs`
+- [x] T046 [P] [US3] Add score component fixture in `/Users/s1kor/dev/trading/rsibot/hlscreen/tests/fixtures/microstructure/explainable_scores.json`
+- [x] T047 [P] [US3] Add score aggregation tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/tests/score_breakdown.rs`
+- [x] T048 [P] [US3] Add why-ranked TUI golden test in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-tui/tests/why_ranked_pane.rs`
+- [x] T049 [P] [US3] Add `hls explain` CLI test in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/tests/explain_command.rs`
 
 ### Implementation for User Story 3
 
-- [ ] T050 [US3] Generate score breakdowns in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-features/src/engine.rs`
-- [ ] T051 [US3] Add score component fields to screen rows in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-screen/src/row.rs`
-- [ ] T052 [US3] Add score component filtering and sorting support in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-screen/src/dsl/evaluator.rs`
-- [ ] T053 [US3] Implement why-ranked rendering in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-tui/src/detail.rs`
-- [ ] T054 [US3] Export detail module from `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-tui/src/lib.rs`
-- [ ] T055 [US3] Implement `hls explain` command in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/src/commands/explain.rs`
-- [ ] T056 [US3] Register explain command in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/src/main.rs`
-- [ ] T057 [US3] Document score components and caveats in `/Users/s1kor/dev/trading/rsibot/hlscreen/docs/microstructure.md`
+- [x] T050 [US3] Generate score breakdowns in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-features/src/engine.rs`
+- [x] T051 [US3] Add score component fields to screen rows in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-screen/src/row.rs`
+- [x] T052 [US3] Add score component filtering and sorting support in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-screen/src/dsl/evaluator.rs`
+- [x] T053 [US3] Implement why-ranked rendering in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-tui/src/detail.rs`
+- [x] T054 [US3] Export detail module from `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-tui/src/lib.rs`
+- [x] T055 [US3] Implement `hls explain` command in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/src/commands/explain.rs`
+- [x] T056 [US3] Register explain command in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/src/main.rs`
+- [x] T057 [US3] Document score components and caveats in `/Users/s1kor/dev/trading/rsibot/hlscreen/docs/microstructure.md`
 
 **Checkpoint**: User Story 3 complete when top rows have deterministic score breakdowns in CLI, TUI, and replay.
 

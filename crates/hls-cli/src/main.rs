@@ -3,8 +3,8 @@
 use clap::{Parser, Subcommand};
 
 use crate::commands::{
-    doctor::DoctorArgs, init::InitArgs, live::LiveArgs, record::RecordArgs, replay::ReplayArgs,
-    screen::ScreenArgs, server::ServerArgs, symbols::SymbolsArgs,
+    doctor::DoctorArgs, explain::ExplainArgs, init::InitArgs, live::LiveArgs, record::RecordArgs,
+    replay::ReplayArgs, screen::ScreenArgs, server::ServerArgs, symbols::SymbolsArgs,
 };
 
 mod commands;
@@ -25,6 +25,7 @@ enum Command {
     Live(LiveArgs),
     Record(RecordArgs),
     Replay(ReplayArgs),
+    Explain(ExplainArgs),
     Screen(ScreenArgs),
     Server(ServerArgs),
 }
@@ -38,6 +39,7 @@ async fn main() -> anyhow::Result<()> {
         Command::Live(args) => commands::live::run(args).await,
         Command::Record(args) => commands::record::run(args).await,
         Command::Replay(args) => commands::replay::run(args).await,
+        Command::Explain(args) => commands::explain::run(args).await,
         Command::Screen(args) => commands::screen::run(args).await,
         Command::Server(args) => commands::server::run(args).await,
     }
