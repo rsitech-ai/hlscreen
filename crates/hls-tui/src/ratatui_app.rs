@@ -397,6 +397,7 @@ fn render_watchlist(
                     Cell::from(display_symbol(row).to_owned()),
                     Cell::from(format_board_price(row.price)),
                     Cell::from(score_signal_label(row)),
+                    Cell::from(score_edge_bar(row)),
                     Cell::from(score_bias_label(row)),
                     Cell::from(trend_label(row.ret_1m)),
                     Cell::from(format_usd_signed(row.signed_notional_flow_30s)),
@@ -431,19 +432,20 @@ fn render_watchlist(
             table_rows,
             [
                 Constraint::Length(4),
-                Constraint::Min(9),
-                Constraint::Length(8),
+                Constraint::Min(8),
+                Constraint::Length(7),
                 Constraint::Length(3),
                 Constraint::Length(5),
-                Constraint::Length(8),
+                Constraint::Length(4),
                 Constraint::Length(7),
                 Constraint::Length(6),
+                Constraint::Length(5),
                 Constraint::Length(1),
             ],
         )
         .header(
             Row::new([
-                "RANK", "CODE", "PX", "SIG", "BIAS", "1M", "FLOW30", "DEPTH", "Q",
+                "RANK", "CODE", "PX", "SIG", "EDGE", "BIAS", "1M", "FLOW30", "DEPTH", "Q",
             ])
             .style(
                 Style::default()
@@ -520,14 +522,24 @@ fn quality_badge(row: &FeatureSnapshot) -> &'static str {
 }
 
 fn score_signal_label(row: &FeatureSnapshot) -> String {
+    format!("{:.0}", score_signal_value(row))
+}
+
+fn score_signal_value(row: &FeatureSnapshot) -> f64 {
     row.score_breakdown.as_ref().map_or_else(
-        || {
-            format!(
-                "{:.0}",
-                (row.liquidity_score + row.momentum_score).clamp(0.0, 99.0)
-            )
-        },
-        |breakdown| format!("{:.0}", breakdown.adjusted_total.clamp(0.0, 99.0)),
+        || (row.liquidity_score + row.momentum_score).clamp(0.0, 99.0),
+        |breakdown| breakdown.adjusted_total.clamp(0.0, 99.0),
+    )
+}
+
+fn score_edge_bar(row: &FeatureSnapshot) -> String {
+    let width = 5;
+    let ratio = (score_signal_value(row) / 100.0).clamp(0.0, 1.0);
+    let filled = ((ratio * width as f64).round() as usize).clamp(1, width);
+    format!(
+        "{}{}",
+        "█".repeat(filled),
+        "░".repeat(width.saturating_sub(filled))
     )
 }
 
