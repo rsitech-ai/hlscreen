@@ -1111,7 +1111,9 @@ fn render_tape(
     color_mode: RatatuiColorMode,
 ) {
     let rows = screened_rows(model);
-    let lines = tape_lines(&rows, model);
+    let content_height = area.height.saturating_sub(2) as usize;
+    let content_width = area.width.saturating_sub(2) as usize;
+    let lines = tape_lines(&rows, model, content_height, content_width, color_mode);
     frame.render_widget(
         Paragraph::new(lines)
             .wrap(Wrap { trim: true })
@@ -1120,7 +1122,13 @@ fn render_tape(
     );
 }
 
-fn tape_lines(rows: &[FeatureSnapshot], model: &RatatuiFrameModel) -> Vec<Line<'static>> {
+fn tape_lines(
+    rows: &[FeatureSnapshot],
+    model: &RatatuiFrameModel,
+    content_height: usize,
+    content_width: usize,
+    color_mode: RatatuiColorMode,
+) -> Vec<Line<'static>> {
     let Some(selected) = selected_row(rows, model) else {
         return vec![Line::from("No flow data")];
     };
@@ -1135,33 +1143,163 @@ fn tape_lines(rows: &[FeatureSnapshot], model: &RatatuiFrameModel) -> Vec<Line<'
             .then_with(|| display_symbol(left).cmp(display_symbol(right)))
     });
 
+    let max_abs_flow = leaders
+        .iter()
+        .filter_map(|row| row.signed_notional_flow_30s)
+        .filter(|value| value.is_finite())
+        .map(f64::abs)
+        .fold(0.0_f64, f64::max);
+    let net_flow = rows
+        .iter()
+        .filter_map(|row| row.signed_notional_flow_30s)
+        .filter(|value| value.is_finite())
+        .sum::<f64>();
+    let signed_abs_total = rows
+        .iter()
+        .filter_map(|row| row.signed_notional_flow_30s)
+        .filter(|value| value.is_finite())
+        .map(f64::abs)
+        .sum::<f64>();
+    let pressure_scale = max_abs_flow.max(signed_abs_total);
+    let compact = content_width < 42 || content_height <= 7;
+    let pulse_width = if compact { 8 } else { 18 };
+
     let mut lines = vec![
         Line::from(format!("Selected flow {}", display_symbol(selected))),
+        Line::from(vec![
+            Span::styled(
+                "FLOW pulse ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(signed_flow_bar(
+                selected.signed_notional_flow_30s.unwrap_or(0.0),
+                max_abs_flow,
+                pulse_width,
+            )),
+            Span::raw(format!(
+                " {}",
+                format_usd_signed(selected.signed_notional_flow_30s)
+            )),
+        ]),
+        Line::from(vec![
+            Span::styled(
+                "net pressure ",
+                Style::default()
+                    .fg(flow_color(net_flow, color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(signed_flow_bar(net_flow, pressure_scale, pulse_width)),
+            Span::raw(format!(" {}", format_usd_signed(Some(net_flow)))),
+        ]),
         Line::from(format!(
             "flow30 {} | OFI {}",
             format_usd_signed(selected.signed_notional_flow_30s),
             format_usd_signed(selected.bbo_ofi_proxy_30s)
         )),
-        Line::from(format!(
+    ];
+    if !compact {
+        lines.push(Line::from(format!(
             "ret1m {} | rv1m {} | spread {} bps",
             format_signed(selected.ret_1m.map(|value| value * 100.0), "%"),
             format_optional(selected.rv_1m, 2),
             format_optional(selected.spread_bps, 1)
-        )),
-        Line::from("Flow leaderboard"),
-    ];
+        )));
+    }
+    lines.push(Line::from("Flow leaderboard"));
 
-    let limit = model.ui_state.visible_row_limit().min(10);
-    lines.extend(leaders.into_iter().take(limit).map(|row| {
-        Line::from(format!(
-            "{} flow {} OFI {}",
-            display_symbol(row),
+    if compact {
+        let reserved = lines.len() + 1;
+        let available_leaders = content_height.saturating_sub(reserved);
+        let limit = model
+            .ui_state
+            .visible_row_limit()
+            .min(3)
+            .min(available_leaders);
+        lines.extend(
+            leaders
+                .into_iter()
+                .take(limit)
+                .map(compact_tape_leader_line),
+        );
+        lines.push(Line::from("Tape proxy only | public flow"));
+        return lines;
+    }
+
+    let reserved = lines.len() + 1;
+    let available_leaders = content_height.saturating_sub(reserved).max(2);
+    let limit = model
+        .ui_state
+        .visible_row_limit()
+        .min(10)
+        .min(available_leaders);
+    lines.extend(
+        leaders
+            .into_iter()
+            .take(limit)
+            .map(|row| tape_leader_line(row, max_abs_flow, color_mode)),
+    );
+    lines.push(Line::from("Tape proxy only | public BBO/flow; no fills."));
+    lines
+}
+
+fn tape_leader_line(
+    row: &FeatureSnapshot,
+    max_abs_flow: f64,
+    color_mode: RatatuiColorMode,
+) -> Line<'static> {
+    let flow = row.signed_notional_flow_30s.unwrap_or(0.0);
+    Line::from(vec![
+        Span::styled(
+            display_symbol(row).to_owned(),
+            Style::default()
+                .fg(flow_color(flow, color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw(format!(
+            " {} flow {} OFI {}",
+            signed_flow_bar(flow, max_abs_flow, 12),
             format_usd_signed(row.signed_notional_flow_30s),
             format_usd_signed(row.bbo_ofi_proxy_30s)
-        ))
-    }));
-    lines.push(Line::from("Public BBO/flow proxy; no private fills."));
-    lines
+        )),
+    ])
+}
+
+fn compact_tape_leader_line(row: &FeatureSnapshot) -> Line<'static> {
+    Line::from(format!(
+        "{} {} OFI {}",
+        display_symbol(row),
+        format_usd_signed(row.signed_notional_flow_30s),
+        format_usd_signed(row.bbo_ofi_proxy_30s)
+    ))
+}
+
+fn signed_flow_bar(value: f64, max_abs: f64, width: usize) -> String {
+    let half = (width / 2).max(1);
+    let ratio = if max_abs.is_finite() && max_abs > 0.0 {
+        (value.abs() / max_abs).clamp(0.0, 1.0)
+    } else {
+        0.0
+    };
+    let filled = ((ratio * half as f64).round() as usize).min(half);
+    if value < 0.0 {
+        format!(
+            "{}{}|{}",
+            "░".repeat(half.saturating_sub(filled)),
+            "█".repeat(filled),
+            "░".repeat(half)
+        )
+    } else if value > 0.0 {
+        format!(
+            "{}|{}{}",
+            "░".repeat(half),
+            "█".repeat(filled),
+            "░".repeat(half.saturating_sub(filled))
+        )
+    } else {
+        format!("{}|{}", "░".repeat(half), "░".repeat(half))
+    }
 }
 
 fn render_status_bar(
@@ -1510,6 +1648,16 @@ fn danger(color_mode: RatatuiColorMode) -> Color {
     match color_mode {
         RatatuiColorMode::NoColor => Color::White,
         RatatuiColorMode::Auto | RatatuiColorMode::Color => Color::Red,
+    }
+}
+
+fn flow_color(value: f64, color_mode: RatatuiColorMode) -> Color {
+    if value > 0.0 {
+        success(color_mode)
+    } else if value < 0.0 {
+        danger(color_mode)
+    } else {
+        text(color_mode)
     }
 }
 
