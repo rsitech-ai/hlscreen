@@ -16,10 +16,14 @@ fn health_pane_renders_degraded_operational_state() {
 
     let rendered = render_health_pane(&snapshot);
 
-    assert!(rendered.contains("READ-ONLY health"));
-    assert!(rendered.contains("status: degraded"));
+    assert!(rendered.contains("Read-only Operations Health"));
+    assert!(rendered.contains("DEGRADED"));
+    assert!(rendered.contains("SAFETY"));
+    assert!(rendered.contains("LATENCY"));
     assert!(rendered.contains("writer backlog: 250"));
     assert!(rendered.contains("gaps: 2"));
+    assert!(rendered.contains("writer backlog high"));
+    assert!(rendered.contains("data gaps detected"));
     assert!(!rendered.contains("wallet"));
     assert!(!rendered.contains("order"));
 }
