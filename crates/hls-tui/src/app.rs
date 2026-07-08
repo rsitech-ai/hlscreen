@@ -16,15 +16,39 @@ pub fn render_screened_table(
 
 pub fn render_table_with_title(rows: &[FeatureSnapshot], title: &str) -> String {
     let mut output = format!("{title}\n");
-    output.push_str("symbol        price      spread_bps  tob_depth_usd  ret_1m    liq_score  updated_ms  state\n");
+    let fresh = rows
+        .iter()
+        .filter(|row| row.staleness_state == StalenessState::Fresh)
+        .count();
+    let stale = rows
+        .iter()
+        .filter(|row| row.staleness_state == StalenessState::Stale)
+        .count();
+    let incomplete = rows
+        .iter()
+        .filter(|row| row.staleness_state == StalenessState::Incomplete)
+        .count();
+    output.push_str(&format!(
+        "scope: public spot market data only | rows={} fresh={} stale={} incomplete={}\n",
+        rows.len(),
+        fresh,
+        stale,
+        incomplete
+    ));
+    output.push_str(
+        "symbol        price       spread   TOB depth      ret 1m   score   age ms   state\n",
+    );
+    output.push_str(
+        "------------  ----------  -------  -------------  -------  ------  -------  ----------\n",
+    );
 
     for row in rows {
         output.push_str(&format!(
-            "{:<13} {:<10} {:<11} {:<14} {:<9} {:<10} {:<11} {}\n",
+            "{:<12}  {:>10}  {:>7}  {:>13}  {:>7}  {:>6}  {:>7}  {}\n",
             row.symbol,
             format_optional(row.price, 4),
-            format_optional(row.spread_bps, 2),
-            format_optional(row.tob_depth_usd, 2),
+            format_optional(row.spread_bps, 1),
+            format_optional(row.tob_depth_usd, 0),
             format_percent(row.ret_1m),
             format!("{:.2}", row.liquidity_score),
             row.updated_ms_ago

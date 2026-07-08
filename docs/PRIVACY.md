@@ -5,7 +5,7 @@
 ## Data It Reads
 
 - Public Hyperliquid spot metadata from read-only public REST endpoints.
-- Public Hyperliquid market-data WebSocket envelopes when live network mode is implemented.
+- Public Hyperliquid market-data WebSocket envelopes in bounded live mode.
 - Local fixture files and local replay files.
 
 ## Data It Writes
@@ -32,9 +32,9 @@ These files are local operator artifacts and should not be committed to git.
 
 ## Network Behavior
 
-The implemented public REST metadata command calls Hyperliquid public read-only endpoints. Fixture-backed commands do not require network access.
+The implemented public REST metadata commands call Hyperliquid public read-only endpoints. Bounded live mode connects to the public Hyperliquid WebSocket endpoint and subscribes only to public market-data feeds. Fixture-backed commands do not require network access.
 
-Real live WebSocket mode is intentionally not implemented in the current slice. When added, it should connect only to public market-data subscriptions unless the project scope is explicitly changed.
+Live mode does not request user-specific streams, account data, wallet permissions, or exchange-action endpoints.
 
 ## Public Issues
 

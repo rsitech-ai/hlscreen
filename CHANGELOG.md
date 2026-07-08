@@ -9,6 +9,7 @@ This project follows a practical changelog format and intends to use semantic ve
 ### Added
 
 - Public open-source readiness package: license, contribution guide, support/security/conduct docs, GitHub templates, CI, dependabot, release checklist, examples, and screenshots.
+- Bounded public WebSocket live mode with heartbeat pings, all-symbol subscription budgeting, raw/normalized recording, replay verification, and a 15-minute live smoke report.
 
 ## 0.1.0 - 2026-07-08
 
