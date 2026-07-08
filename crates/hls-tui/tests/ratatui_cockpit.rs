@@ -261,6 +261,34 @@ fn detail_panel_renders_score_factor_stack() {
 }
 
 #[test]
+fn detail_panel_renders_liquidity_radar() {
+    let model = RatatuiFrameModel::new(
+        fixture_snapshots(),
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        WorkstationUiState::default(),
+    );
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 160,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders liquidity radar");
+
+    assert!(rendered.contains("LIQUIDITY RADAR"));
+    assert!(rendered.contains("spread cost"));
+    assert!(rendered.contains("depth"));
+    assert!(rendered.contains("imbalance"));
+    assert!(rendered.contains("flow"));
+    assert!(rendered.contains("Public BBO/flow only"));
+    assert!(rendered.contains("█"));
+}
+
+#[test]
 fn narrow_cockpit_collapses_to_watchlist_and_detail_without_tape() {
     let model = RatatuiFrameModel::new(
         fixture_snapshots(),
