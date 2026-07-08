@@ -1,6 +1,9 @@
 use hls_core::{
     confidence::{ConfidenceLevel, ConfidenceReason},
-    market_state::{FeatureSnapshot, StalenessState},
+    market_state::{
+        AdverseSelectionProxy, FeatureSnapshot, LiquidityResilienceState, StalenessState,
+        TradeabilityState,
+    },
 };
 use hls_screen::{ScreenEngine, ScreenRequest};
 
@@ -97,6 +100,20 @@ pub fn render_table_with_title(rows: &[FeatureSnapshot], title: &str) -> String 
         ),
         stats.confidence_status(),
     ));
+    output.push_str(&panel_line(
+        "RESILIENCE",
+        &format!(
+            "tradeable {} | costly {} | thin {} | stale {} | unknown {} | brittle {} | max shock {}",
+            stats.tradeable,
+            stats.costly,
+            stats.thin,
+            stats.tradeability_stale,
+            stats.tradeability_unknown,
+            stats.resilience_brittle,
+            format_bps(stats.max_spread_shock_bps),
+        ),
+        stats.resilience_status(),
+    ));
     output.push_str(&bottom_border());
     output.push_str(&section_rule("MARKET BOARD"));
 
@@ -108,25 +125,27 @@ pub fn render_table_with_title(rows: &[FeatureSnapshot], title: &str) -> String 
         return output;
     }
 
-    output.push_str("#  SYMBOL        STATE      CONF    PRICE       SPRD      DEPTH     IMB     RET1M    RV1M     SCORE    AGE  OBSERVATION\n");
-    output.push_str("── ────────────  ─────────  ──────  ──────────  ────────  ────────  ───────  ───────  ─────  ─────────  ───── ────────────────────────\n");
+    output.push_str("#  SYMBOL        STATE      CONF   TRAD   RESIL    PRICE     SPRD    SHOCK    DEPTH    FLOW30    OFI30    SCORE    AGE  OBSERVATION\n");
+    output.push_str("── ────────────  ─────────  ─────  ─────  ───────  ───────── ─────── ─────── ──────── ──────── ──────── ───────── ───── ───────────────\n");
 
     for (index, row) in rows.iter().enumerate() {
         output.push_str(&format!(
-            "{:>02} {:<12}  {:<9}  {:<6}  {:>10}  {:>8}  {:>8}  {:>7}  {:>7}  {:>5}  {:>9}  {:>5} {}\n",
+            "{:>02} {:<12}  {:<9}  {:<5}  {:<5}  {:<7} {:>9} {:>7} {:>7} {:>8} {:>8} {:>8} {:>9} {:>5} {}\n",
             index + 1,
             row.symbol,
             format_state(&row.staleness_state),
             format_confidence_chip(row),
+            format_tradeability_chip(row.tradeability_state),
+            format_resilience_chip(row.resilience_state),
             format_optional(row.price, 4),
             format_bps(row.spread_bps),
+            format_bps(row.spread_shock_bps),
             format_usd(row.tob_depth_usd),
-            format_imbalance(row.tob_imbalance),
-            format_percent(row.ret_1m),
-            format_volatility(row.rv_1m),
+            format_signed_usd(row.signed_notional_flow_30s),
+            format_signed_usd(row.bbo_ofi_proxy_30s),
             format_score_pair(row),
             format_age(row.updated_ms_ago),
-            truncate_chars(&format_row_observation(row), 28),
+            truncate_chars(&format_row_observation(row), 20),
         ));
     }
 
@@ -147,6 +166,19 @@ pub fn render_table_with_title(rows: &[FeatureSnapshot], title: &str) -> String 
             format_usd(selected.tob_depth_usd),
             format_percent(selected.ret_1m),
             format_volatility(selected.rv_1m),
+        ));
+        output.push_str(&format!(
+            "resilience | state {} | shock {} | recovery {} | tradeability {} | adverse proxy {}\n",
+            format_resilience_state(selected.resilience_state),
+            format_bps(selected.spread_shock_bps),
+            format_recovery(selected.spread_recovery_ms),
+            format_tradeability_state(selected.tradeability_state),
+            format_adverse_proxy(selected.adverse_selection_proxy),
+        ));
+        output.push_str(&format!(
+            "flow proxy | signed notional 30s {} | BBO OFI 30s {} | top-of-book proxy only\n",
+            format_signed_usd(selected.signed_notional_flow_30s),
+            format_signed_usd(selected.bbo_ofi_proxy_30s),
         ));
         output.push_str(&format!(
             "state | {} | age {} | incomplete {} | observation {}\n",
@@ -190,6 +222,14 @@ struct TableStats {
     confidence_untrusted: usize,
     min_confidence_score: Option<u8>,
     confidence_reason_count: usize,
+    tradeable: usize,
+    costly: usize,
+    thin: usize,
+    tradeability_stale: usize,
+    tradeability_unknown: usize,
+    resilience_brittle: usize,
+    resilience_active: usize,
+    max_spread_shock_bps: Option<f64>,
 }
 
 impl TableStats {
@@ -235,13 +275,54 @@ impl TableStats {
                 .count(),
             min_confidence_score: rows.iter().map(|row| row.confidence.score).min(),
             confidence_reason_count: rows.iter().map(|row| row.confidence.reasons.len()).sum(),
+            tradeable: rows
+                .iter()
+                .filter(|row| row.tradeability_state == TradeabilityState::Tradeable)
+                .count(),
+            costly: rows
+                .iter()
+                .filter(|row| row.tradeability_state == TradeabilityState::Costly)
+                .count(),
+            thin: rows
+                .iter()
+                .filter(|row| row.tradeability_state == TradeabilityState::Thin)
+                .count(),
+            tradeability_stale: rows
+                .iter()
+                .filter(|row| row.tradeability_state == TradeabilityState::Stale)
+                .count(),
+            tradeability_unknown: rows
+                .iter()
+                .filter(|row| row.tradeability_state == TradeabilityState::Unknown)
+                .count(),
+            resilience_brittle: rows
+                .iter()
+                .filter(|row| row.resilience_state == LiquidityResilienceState::Brittle)
+                .count(),
+            resilience_active: rows
+                .iter()
+                .filter(|row| {
+                    matches!(
+                        row.resilience_state,
+                        LiquidityResilienceState::Shock | LiquidityResilienceState::Recovering
+                    )
+                })
+                .count(),
+            max_spread_shock_bps: max_value(rows.iter().filter_map(|row| row.spread_shock_bps)),
         }
     }
 
     fn quality_status(&self) -> &'static str {
-        if self.incomplete > 0 {
+        let check_quality = self.incomplete > 0
+            || self.median_spread_bps.is_some_and(|spread| spread >= 100.0)
+            || self.top_tob_depth_usd.is_some_and(|depth| depth < 1_000.0);
+        let watch_quality = self.median_spread_bps.is_some_and(|spread| spread >= 50.0)
+            || self.top_tob_depth_usd.is_some_and(|depth| depth < 5_000.0)
+            || self.stale > 0;
+
+        if check_quality {
             "CHECK"
-        } else if self.stale > 0 {
+        } else if watch_quality {
             "WATCH"
         } else {
             "GOOD"
@@ -263,6 +344,18 @@ impl TableStats {
             "CHECK"
         } else if self.confidence_medium > 0 || self.confidence_reason_count > 0 {
             "WATCH"
+        } else {
+            "GOOD"
+        }
+    }
+
+    fn resilience_status(&self) -> &'static str {
+        if self.resilience_brittle > 0 || self.tradeability_stale > 0 {
+            "CHECK"
+        } else if self.resilience_active > 0 || self.costly > 0 || self.thin > 0 {
+            "WATCH"
+        } else if self.tradeability_unknown > 0 {
+            "PARTIAL"
         } else {
             "GOOD"
         }
@@ -295,6 +388,17 @@ fn format_usd(value: Option<f64>) -> String {
     )
 }
 
+fn format_signed_usd(value: Option<f64>) -> String {
+    value.map_or_else(
+        || "-".to_owned(),
+        |value| {
+            let sign = if value >= 0.0 { "+" } else { "-" };
+            let formatted = format_usd(Some(value.abs()));
+            format!("{sign}{formatted}")
+        },
+    )
+}
+
 fn format_imbalance(value: Option<f64>) -> String {
     value.map_or_else(|| "-".to_owned(), |value| format!("{:+.0}%", value * 100.0))
 }
@@ -323,6 +427,51 @@ fn format_confidence_chip(row: &FeatureSnapshot) -> String {
         ConfidenceLevel::Untrusted => "U",
     };
     format!("{prefix}{:03}", row.confidence.score)
+}
+
+fn format_tradeability_chip(state: TradeabilityState) -> &'static str {
+    match state {
+        TradeabilityState::Unknown => "UNK",
+        TradeabilityState::Tradeable => "TRADE",
+        TradeabilityState::Costly => "COST",
+        TradeabilityState::Thin => "THIN",
+        TradeabilityState::Stale => "STALE",
+    }
+}
+
+fn format_tradeability_state(state: TradeabilityState) -> &'static str {
+    state.as_str()
+}
+
+fn format_resilience_chip(state: LiquidityResilienceState) -> &'static str {
+    match state {
+        LiquidityResilienceState::Unknown => "UNK",
+        LiquidityResilienceState::Normal => "NORMAL",
+        LiquidityResilienceState::Shock => "SHOCK",
+        LiquidityResilienceState::Recovering => "RECOV",
+        LiquidityResilienceState::Brittle => "BRITTLE",
+    }
+}
+
+fn format_resilience_state(state: LiquidityResilienceState) -> &'static str {
+    state.as_str()
+}
+
+fn format_adverse_proxy(state: AdverseSelectionProxy) -> &'static str {
+    state.as_str()
+}
+
+fn format_recovery(value: Option<i64>) -> String {
+    value.map_or_else(
+        || "-".to_owned(),
+        |value| {
+            if value < 1_000 {
+                format!("{value}ms")
+            } else {
+                format!("{:.1}s", value as f64 / 1_000.0)
+            }
+        },
+    )
 }
 
 fn format_confidence_level(level: ConfidenceLevel) -> &'static str {
@@ -435,6 +584,26 @@ fn observation_parts(row: &FeatureSnapshot) -> Vec<&'static str> {
         ConfidenceLevel::Low => parts.push("low confidence"),
         ConfidenceLevel::Untrusted => parts.push("untrusted data"),
         ConfidenceLevel::High | ConfidenceLevel::Medium => {}
+    }
+
+    match row.tradeability_state {
+        TradeabilityState::Thin => parts.push("thin tradeability"),
+        TradeabilityState::Costly => parts.push("costly tradeability"),
+        TradeabilityState::Stale => parts.push("stale tradeability"),
+        TradeabilityState::Unknown | TradeabilityState::Tradeable => {}
+    }
+
+    match row.resilience_state {
+        LiquidityResilienceState::Shock => parts.push("spread shock"),
+        LiquidityResilienceState::Recovering => parts.push("recovering book"),
+        LiquidityResilienceState::Brittle => parts.push("brittle book"),
+        LiquidityResilienceState::Unknown | LiquidityResilienceState::Normal => {}
+    }
+
+    match row.adverse_selection_proxy {
+        AdverseSelectionProxy::Watch => parts.push("flow watch"),
+        AdverseSelectionProxy::Brittle => parts.push("adverse proxy"),
+        AdverseSelectionProxy::Unknown | AdverseSelectionProxy::Normal => {}
     }
 
     if row.tob_depth_usd.is_some_and(|depth| depth < 1_000.0) {

@@ -853,3 +853,66 @@
 - What changed: Completed Spec Kit US1 tasks T020-T033. Added gap/sparse fixtures, confidence on `FeatureSnapshot`, duplicate observation tracking, state-derived and explicit-input confidence computation, SQLite `confidence_snapshots`, replay parity reports, `hls replay --verify-parity`, confidence summaries in live/replay command output, TUI confidence rendering, parity-aware screenshots, and docs for confidence states and replay parity.
 - Validation run: red/green `cargo test -p hls-store --test replay_parity` and `cargo test -p hls-cli --test replay_parity_command`; focused tests `cargo test -p hls-core --test confidence_state --test market_state`; `cargo test -p hls-features --test formulas`; `cargo test -p hls-store --test replay_parity --test metadata_registry`; `cargo test -p hls-cli --test replay_parity_command --test record_replay --test live_mock --test full_pipeline_smoke`; `cargo test -p hls-tui --test main_table_golden --test confidence_pane`; `python3 scripts/generate-screenshots.py`; PNG preview of `docs/assets/screenshots/record-replay.svg`; `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`; `git diff --check`; JSONL validation; read-only surface scan; fixture parity smoke with `replay_parity=baseline_written` then `replay_parity=passed`; and a real public WebSocket smoke `./target/debug/hls live --symbols @107 --duration-secs 10 --refresh-secs 5 --tui` with 34 WebSocket messages, 60 market events, 0 reconnects, and 0 data gaps.
 - Follow-ups: US1 is complete, but the full v2 workstation objective remains active. Next unchecked slices start at US2 liquidity resilience/tradeability T034-T045, then US3 why-ranked explanations, US4 metadata enrichment, US5 OSS operations, and polish tasks T083-T092.
+
+## 2026-07-08 US2 Liquidity Resilience TUI
+
+### Task
+- Objective: Implement Spec Kit microstructure workstation US2 tasks T034-T045 so the next-gen TUI shows real BBO/trade-derived liquidity resilience, tradeability, BBO order-flow proxy, and signed flow fields instead of cosmetic-only polish.
+- Owner repo(s): standalone `hlscreen/` repository only.
+- Capital impact: research-only / read-only public market-data analytics. No wallet, private stream, signing, order placement, exchange action, execution route, or advice semantics.
+
+### Context
+- Background: US1 confidence/replay parity is merged. The user now wants the TUI to look "very very good" and current product contracts say the workstation board should surface resilience and tradeability indicators. Hyperliquid's public WebSocket docs describe `trades` and `bbo` subscriptions, and note BBO updates are emitted when BBO changes on a block; these are the only production data sources for this slice.
+- Inputs: `specs/002-microstructure-workstation/tasks.md` T034-T045, `contracts/cli-tui.md`, existing public WebSocket parser/state, `FeatureSnapshot`, `hls-features`, `hls-screen`, `hls-tui`, screenshot generator, and Hyperliquid public WebSocket subscription docs.
+- Outputs: Spread-shock and thin-book fixtures, resilience/tradeability feature tests, new feature snapshot fields, screen DSL/preset exposure, TUI resilience/tradeability rendering, docs caveats, regenerated screenshots, validation evidence, and PR/merge if stable.
+
+### Assumptions
+- BBO-only metrics must be labeled as top-of-book proxies. They are not full order-book depth, not an execution simulator, and not a trade recommendation.
+- The first state machine can use deterministic recent BBO/trade windows stored in `SymbolMarketState`; it does not need a separate streaming actor.
+- Screenshots can be fixture-backed for determinism, but the screenshot command must exercise the same production parser/state/feature/TUI code path as live public data.
+
+### Constraints
+- Technical: preserve low-latency live ingestion; keep feature computation bounded; avoid external dependencies; keep CLI output deterministic and ANSI-free outside live refresh clearing.
+- Operational: keep runtime captures out of git; fixtures must stay small and public-shape only; no hidden mock behavior in production commands.
+- Risk/capital: tradeability is a screen heuristic only. It must account for confidence and cost proxies without implying profitability, suitability, or order execution.
+
+### Options Considered
+1. Add a visual-only TUI redesign.
+   - Pros: faster screenshot improvement.
+   - Cons: does not satisfy US2 or the product contract and risks fake-looking polish without new evidence.
+2. Implement real US2 feature fields first, then render them in the existing deterministic workstation board.
+   - Pros: adds truthful microstructure content, unlocks presets/DSL, and makes screenshots represent real computed data.
+   - Cons: touches shared snapshot contracts and requires broad tests.
+
+### Chosen Approach
+- Choice: option 2.
+- Why: the TUI should look next-gen because it exposes better real-time information, not because the same rows have more decoration.
+
+### Execution Plan
+1. Add fixture sequences for spread shock/recovery and brittle thin-book states.
+2. Add focused tests for resilience metrics, tradeability classification, and microstructure presets.
+3. Extend market state with bounded BBO observations and add resilience/tradeability fields to feature snapshots.
+4. Implement BBO-only spread-shock/recovery, BBO OFI proxy, signed notional flow, and tradeability classification in `hls-features`.
+5. Expose new fields through `hls-screen` row DSL and presets.
+6. Render resilience/tradeability in the market board and selected-symbol detail; update screenshots from the real binary.
+7. Document BBO-only caveats, mark T034-T045 complete only after behavior is implemented, then run focused and full validation.
+
+### Test Plan
+- Focused: `cargo test -p hls-features --test resilience --test tradeability`; `cargo test -p hls-screen --test microstructure_presets`; `cargo test -p hls-tui --test main_table_golden --test confidence_pane`.
+- CLI/screenshot: `python3 scripts/generate-screenshots.py`; fixture live screen commands; preview generated SVG/PNG assets.
+- Regression: `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`; `git diff --check`.
+- Live smoke: bounded public `hls live --symbols @107 --duration-secs 10 --refresh-secs 5 --tui` after the full gate.
+
+### Risks and Rollback
+- Risks: simple BBO windows can overstate resilience if quote updates are sparse; signed flow inferred from public trade side is a proxy; adding fields can break downstream golden tests.
+- Rollback: revert this branch/PR; no storage migration or external state mutation is introduced.
+
+### Memory Impact
+- Add/update in `MEMORY.md`: US2 resilience/tradeability field definitions, BBO-only caveat, and confirmed validation/screenshot commands.
+
+### Final Notes
+- What changed: Completed Spec Kit US2 tasks T034-T045 and screenshot task T086. Added spread-shock and thin-brittle public-shape fixtures, bounded BBO history in `SymbolMarketState`, new `FeatureSnapshot` fields for spread shock, recovery, resilience state, tradeability state, adverse-selection proxy, signed notional flow, and BBO OFI proxy, pure `hls-features::{resilience,tradeability}` modules, screen DSL fields and presets, TUI resilience/tradeability columns plus selected-symbol detail, BBO-only docs caveats, and a new `docs/assets/screenshots/resilience-screen.svg` asset linked from the README.
+- Validation run: red/green focused tests `cargo test -p hls-features --test resilience --test tradeability`, `cargo test -p hls-screen --test microstructure_presets`, and `cargo test -p hls-tui --test main_table_golden --test confidence_pane`; broader focused suite `cargo test -p hls-features --test formulas --test resilience --test tradeability`, `cargo test -p hls-screen --test dsl_evaluator --test presets --test microstructure_presets`, and `cargo test -p hls-tui --test main_table_golden --test confidence_pane`; `python3 scripts/generate-screenshots.py`; PNG preview render with `rsvg-convert` for `live-screen`, `confidence-degraded`, and `resilience-screen`; `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`; `cargo build --release --workspace --all-features`; `git diff --check`; screenshot temp-path scan; SVG asset sanity check; read-only/safety scan.
+- Live smoke: `./target/debug/hls live --symbols @107 --duration-secs 10 --refresh-secs 5 --tui` completed against the public Hyperliquid WebSocket with 1 symbol, 4 public subscriptions, 79 WebSocket messages, 106 market events, 0 reconnects, 0 data gaps, high confidence, and live resilience/tradeability/proxy fields rendered in the TUI.
+- Tradeoffs: `bbo_ofi_proxy_30s` and `adverse_selection_proxy` are explicitly BBO/top-of-book proxies. They do not claim full order-book depth, hidden liquidity, fill quality, profitability, or execution safety. BBO history is bounded to 256 recent quote observations per symbol for deterministic local memory use.
+- Follow-ups: The full v2 objective remains active. Next unchecked slices are US3 why-ranked explanations, US4 metadata enrichment, US5 operations/packaging/extension work, and remaining polish/report tasks.

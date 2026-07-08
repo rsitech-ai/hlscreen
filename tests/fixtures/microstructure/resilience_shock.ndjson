@@ -1,0 +1,7 @@
+{"channel":"bbo","data":{"coin":"@107","time":1710001000000,"bbo":[{"px":"99.95","sz":"50.0","n":8},{"px":"100.05","sz":"50.0","n":8}]}}
+{"channel":"trades","data":[{"coin":"@107","side":"B","px":"100.05","sz":"5.0","hash":"0xres1","time":1710001000500,"tid":3101,"users":["0xbuyer","0xseller"]}]}
+{"channel":"bbo","data":{"coin":"@107","time":1710001001000,"bbo":[{"px":"99.50","sz":"20.0","n":4},{"px":"100.50","sz":"20.0","n":4}]}}
+{"channel":"trades","data":[{"coin":"@107","side":"B","px":"100.40","sz":"4.0","hash":"0xres2","time":1710001001500,"tid":3102,"users":["0xbuyer","0xseller"]}]}
+{"channel":"bbo","data":{"coin":"@107","time":1710001004000,"bbo":[{"px":"99.80","sz":"35.0","n":6},{"px":"100.20","sz":"35.0","n":6}]}}
+{"channel":"bbo","data":{"coin":"@107","time":1710001007000,"bbo":[{"px":"99.94","sz":"50.0","n":8},{"px":"100.06","sz":"55.0","n":9}]}}
+{"channel":"trades","data":[{"coin":"@107","side":"A","px":"100.00","sz":"3.0","hash":"0xres3","time":1710001007200,"tid":3103,"users":["0xbuyer","0xseller"]}]}
