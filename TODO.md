@@ -376,5 +376,5 @@
 - [x] Run validation gates
   DoD: Focused tests, full Rust gates, screenshot generation, PNG preview, `git diff --check`, and read-only scan pass or exact blockers are recorded.
 
-- [-] Review, PR, merge, and close out
+- [x] Review, PR, merge, and close out
   DoD: Diff is reviewed, branch is pushed, PR checks pass, merge to `main` occurs only if stable, and memory/reflection notes are complete.
