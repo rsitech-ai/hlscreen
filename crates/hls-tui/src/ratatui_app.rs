@@ -319,13 +319,16 @@ fn render_watchlist(
             } else if row.staleness_state != StalenessState::Fresh {
                 Style::default().fg(warn(color_mode))
             } else {
-                Style::default().fg(text(color_mode))
+                market_row_style(row, color_mode)
             };
             Row::new(vec![
+                Cell::from(format!("{:02}", index + 1)),
                 Cell::from(display_symbol(row).to_owned()),
                 Cell::from(format_price(row.price)),
-                Cell::from(format_signed(row.ret_1m.map(|value| value * 100.0), "%")),
-                Cell::from(format_conf(row.confidence.score)),
+                Cell::from(trend_label(row.ret_1m)),
+                Cell::from(format_usd_signed(row.signed_notional_flow_30s)),
+                Cell::from(format_usd(row.tob_depth_usd)),
+                Cell::from(quality_badge(row)),
             ])
             .style(style)
         });
@@ -333,14 +336,17 @@ fn render_watchlist(
     let table = Table::new(
         table_rows,
         [
-            Constraint::Min(10),
+            Constraint::Length(4),
+            Constraint::Min(9),
             Constraint::Length(10),
+            Constraint::Length(7),
             Constraint::Length(8),
-            Constraint::Length(5),
+            Constraint::Length(7),
+            Constraint::Length(3),
         ],
     )
     .header(
-        Row::new(["CODE", "PRICE", "1M", "CONF"]).style(
+        Row::new(["RANK", "CODE", "PRICE", "1M", "FLOW30", "DEPTH", "Q"]).style(
             Style::default()
                 .fg(accent(color_mode))
                 .add_modifier(Modifier::BOLD),
@@ -353,6 +359,45 @@ fn render_watchlist(
         color_mode,
     ));
     frame.render_widget(table, area);
+}
+
+fn market_row_style(row: &FeatureSnapshot, color_mode: RatatuiColorMode) -> Style {
+    if row.ret_1m.unwrap_or(0.0) < 0.0 || row.signed_notional_flow_30s.unwrap_or(0.0) < 0.0 {
+        Style::default().fg(danger(color_mode))
+    } else if row.ret_1m.unwrap_or(0.0) > 0.0 || row.signed_notional_flow_30s.unwrap_or(0.0) > 0.0 {
+        Style::default().fg(success(color_mode))
+    } else {
+        Style::default().fg(text(color_mode))
+    }
+}
+
+fn trend_label(value: Option<f64>) -> String {
+    value.map_or_else(
+        || "-".to_owned(),
+        |value| {
+            let direction = if value > 0.0 {
+                "UP"
+            } else if value < 0.0 {
+                "DN"
+            } else {
+                "FL"
+            };
+            format!("{direction}{:+.2}%", value * 100.0)
+        },
+    )
+}
+
+fn quality_badge(row: &FeatureSnapshot) -> &'static str {
+    if row.confidence.score < 70 || row.staleness_state != StalenessState::Fresh {
+        "!"
+    } else if matches!(
+        row.tradeability_state,
+        hls_core::market_state::TradeabilityState::Tradeable
+    ) {
+        "T"
+    } else {
+        "Q"
+    }
 }
 
 fn render_detail(
@@ -1106,10 +1151,6 @@ fn format_volume(value: f64) -> String {
     } else {
         format!("{value:.1}")
     }
-}
-
-fn format_conf(value: u8) -> String {
-    format!("{:.2}", f64::from(value) / 100.0)
 }
 
 fn format_signed(value: Option<f64>, suffix: &str) -> String {
