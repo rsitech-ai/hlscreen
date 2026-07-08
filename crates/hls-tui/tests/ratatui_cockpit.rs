@@ -231,8 +231,8 @@ fn medium_cockpit_keeps_book_and_tape_visible() {
     let rendered = render_ratatui_snapshot_for_test(
         &model,
         RatatuiViewport {
-            width: 120,
-            height: 36,
+            width: 160,
+            height: 48,
         },
         RatatuiColorMode::NoColor,
     )
@@ -245,6 +245,39 @@ fn medium_cockpit_keeps_book_and_tape_visible() {
     assert!(rendered.contains("TAPE"));
     assert!(rendered.contains("BID"));
     assert!(rendered.contains("Selected flow"));
+}
+
+#[test]
+fn book_pane_renders_bid_ask_share_and_notional_bars() {
+    let snapshots = fixture_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Book),
+        snapshots.len(),
+    );
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    );
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 120,
+            height: 36,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders book depth");
+
+    assert!(rendered.contains("[FOCUS] BOOK"));
+    assert!(rendered.contains("share bid"));
+    assert!(rendered.contains("ask"));
+    assert!(rendered.contains("BID notional"));
+    assert!(rendered.contains("ASK notional"));
+    assert!(rendered.contains("BOOK proxy only"));
 }
 
 #[test]
