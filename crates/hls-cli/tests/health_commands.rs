@@ -22,6 +22,31 @@ fn doctor_live_json_reports_simulated_health() {
 }
 
 #[test]
+fn doctor_live_text_renders_next_gen_health_panel() {
+    let temp = tempfile::tempdir().expect("tempdir");
+
+    Command::cargo_bin("hls")
+        .expect("hls binary")
+        .args([
+            "doctor",
+            "--live",
+            "--simulate-health",
+            "writer-lag",
+            "--data-dir",
+        ])
+        .arg(temp.path())
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Read-only Operations Health"))
+        .stdout(predicate::str::contains("DEGRADED"))
+        .stdout(predicate::str::contains("SAFETY"))
+        .stdout(predicate::str::contains("LATENCY"))
+        .stdout(predicate::str::contains("writer backlog: 250"))
+        .stdout(predicate::str::contains("wallet").not())
+        .stdout(predicate::str::contains("order").not());
+}
+
+#[test]
 fn server_print_health_outputs_read_only_local_api_payload() {
     Command::cargo_bin("hls")
         .expect("hls binary")

@@ -1,30 +1,35 @@
-<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Record and replay terminal screenshot" viewBox="0 0 976 428" width="976" height="428">
+<svg xmlns="http://www.w3.org/2000/svg" role="img" xml:space="preserve" aria-label="Record and replay terminal screenshot" viewBox="0 0 976 496" width="976" height="496">
 <defs>
 <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
-<stop offset="0" stop-color="#101418"/>
-<stop offset="1" stop-color="#1d242c"/>
+<stop offset="0" stop-color="#0d1117"/>
+<stop offset="1" stop-color="#18212b"/>
 </linearGradient>
 </defs>
-<rect width="976" height="428" rx="10" fill="url(#bg)"/>
+<rect width="976" height="496" rx="8" fill="url(#bg)"/>
+<rect x="0" y="0" width="976" height="50" rx="8" fill="#141b24"/>
+<rect x="0" y="42" width="976" height="8" fill="#141b24"/>
 <circle cx="24" cy="24" r="6" fill="#ff5f57"/>
 <circle cx="44" cy="24" r="6" fill="#ffbd2e"/>
 <circle cx="64" cy="24" r="6" fill="#28c840"/>
 <text x="24" y="40" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="700">Record and replay</text>
-<text x="24" y="60" fill="#98c379" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">$ ./target/debug/hls record --symbols @107 --fixture-file tests/fixtures/hyperliquid/ws_mock_live.ndjson</text>
-<text x="24" y="80" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">  --raw --normalized --run-id screenshot --data-dir</text>
-<text x="24" y="100" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">  /var/folders/g6/mrhqfgk15_d2gjj52991r1jr0000gn/T/hlscreen-screenshots.1zj_armh</text>
-<text x="24" y="120" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">recording run: screenshot</text>
-<text x="24" y="140" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">raw_messages=6</text>
-<text x="24" y="160" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">normalized_events=6</text>
-<text x="24" y="180" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">raw_files=1</text>
-<text x="24" y="200" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">normalized_files=1</text>
-<text x="24" y="220" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">clean_shutdown=true</text>
-<text x="24" y="240" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14"></text>
-<text x="24" y="260" fill="#98c379" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">$ ./target/debug/hls replay --data-dir</text>
-<text x="24" y="280" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">  /var/folders/g6/mrhqfgk15_d2gjj52991r1jr0000gn/T/hlscreen-screenshots.1zj_armh --run-id screenshot</text>
-<text x="24" y="300" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">READ-ONLY Hyperliquid spot replay</text>
-<text x="24" y="320" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">scope: public spot market data only | rows=1 fresh=1 stale=0 incomplete=0</text>
-<text x="24" y="340" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">symbol        price       spread   TOB depth      ret 1m   score   age ms   state</text>
-<text x="24" y="360" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">------------  ----------  -------  -------------  -------  ------  -------  ----------</text>
-<text x="24" y="380" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">@107             35.2000     57.1            245    0.57%    2.45        0  fresh</text>
+<text x="24" y="68" fill="#7ee787" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="700">$ ./target/debug/hls record --symbols @107 --fixture-file tests/fixtures/hyperliquid/ws_mock_live.ndjson</text>
+<text x="24" y="88" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">  --raw --normalized --run-id screenshot --data-dir &#x27;&lt;tmp&gt;&#x27;</text>
+<text x="24" y="108" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">recording run: screenshot</text>
+<text x="24" y="128" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">raw_messages=6</text>
+<text x="24" y="148" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">normalized_events=6</text>
+<text x="24" y="168" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">raw_files=1</text>
+<text x="24" y="188" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">normalized_files=1</text>
+<text x="24" y="208" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">clean_shutdown=true</text>
+<text x="24" y="228" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400"></text>
+<text x="24" y="248" fill="#7ee787" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="700">$ ./target/debug/hls replay --data-dir &#x27;&lt;tmp&gt;&#x27; --run-id screenshot</text>
+<text x="24" y="268" fill="#53616f" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">╭────────────────────────────────────────────────────────────────────────────────────────────────────────╮</text>
+<text x="24" y="288" fill="#79c0ff" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="700">│ HLSCREEN   READ-ONLY Hyperliquid spot replay                                            READ-ONLY │</text>
+<text x="24" y="308" fill="#53616f" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">├────────────────────────────────────────────────────────────────────────────────────────────────────────┤</text>
+<text x="24" y="328" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">│ DATA       public spot market data only | rows 1 | fresh 1 | stale 0 | incomplete 0              LOCAL │</text>
+<text x="24" y="348" fill="#53616f" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">╰────────────────────────────────────────────────────────────────────────────────────────────────────────╯</text>
+<text x="24" y="368" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">SYMBOL        STATE         PRICE         SPREAD     TOB DEPTH       IMBAL     RET 1M    SCORE      AGE</text>
+<text x="24" y="388" fill="#53616f" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">────────────  ────────────  ────────────  ─────────  ────────────  ─────────  ─────────  ───────  ───────</text>
+<text x="24" y="408" fill="#7ee787" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="600">@107          ● fresh            35.2000   57.1 bps          $245       -15%     +0.57%     2.45      0ms</text>
+<text x="24" y="428" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400"></text>
+<text x="24" y="448" fill="#a7b3c2" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">Read-only screen: public spot market data only. Scores are heuristics, not trading signals.</text>
 </svg>
