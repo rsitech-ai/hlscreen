@@ -107,6 +107,39 @@ fn renders_pair_detail_card_for_each_visible_pair() {
 }
 
 #[test]
+fn missing_quote_depth_marks_quality_partial() {
+    let events = parse_ws_ndjson(include_str!(
+        "../../../tests/fixtures/hyperliquid/ws_mock_live.ndjson"
+    ))
+    .expect("fixture parses");
+    let mut state = LiveMarketState::new(["@107".to_owned()]);
+    for event in events {
+        state.apply(event).expect("event applies");
+    }
+    let mut snapshots = FeatureEngine::default().snapshots(&state, 1_710_000_066_000);
+    for snapshot in &mut snapshots {
+        snapshot.bid_px = None;
+        snapshot.bid_sz = None;
+        snapshot.ask_px = None;
+        snapshot.ask_sz = None;
+        snapshot.spread_bps = None;
+        snapshot.tob_depth_usd = None;
+        snapshot.tob_imbalance = None;
+        snapshot.liquidity_score = 0.0;
+    }
+
+    let table = render_main_table(&snapshots);
+    let quality_line = table
+        .lines()
+        .find(|line| line.contains("QUALITY"))
+        .expect("quality line exists");
+
+    assert!(quality_line.contains("spread med -"));
+    assert!(quality_line.contains("depth top -"));
+    assert!(quality_line.contains("PARTIAL"));
+}
+
+#[test]
 fn renders_resilience_and_tradeability_in_market_board_and_detail_pane() {
     let events = parse_ws_ndjson(include_str!(
         "../../../tests/fixtures/microstructure/resilience_shock.ndjson"

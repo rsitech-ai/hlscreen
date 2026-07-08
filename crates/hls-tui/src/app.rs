@@ -412,8 +412,14 @@ impl TableStats {
     }
 
     fn quality_status(&self) -> &'static str {
-        let check_quality = self.incomplete > 0
-            || self.median_spread_bps.is_some_and(|spread| spread >= 100.0)
+        if self.incomplete > 0 {
+            return "CHECK";
+        }
+        if self.median_spread_bps.is_none() || self.top_tob_depth_usd.is_none() {
+            return "PARTIAL";
+        }
+
+        let check_quality = self.median_spread_bps.is_some_and(|spread| spread >= 100.0)
             || self.top_tob_depth_usd.is_some_and(|depth| depth < 1_000.0);
         let watch_quality = self.median_spread_bps.is_some_and(|spread| spread >= 50.0)
             || self.top_tob_depth_usd.is_some_and(|depth| depth < 5_000.0)
