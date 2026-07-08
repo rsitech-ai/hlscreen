@@ -13,6 +13,10 @@
 - Feature snapshots and screening DSL.
 - Terminal table rendering.
 - Health snapshots and read-only local API helpers.
+- Deterministic public fixture benchmark packs.
+- Low-cardinality metrics snapshots with Prometheus text output.
+- Read-only extension manifest contracts.
+- Draft cargo-dist packaging config and tag-gated packaging workflow.
 
 ## Next Candidate Slices
 
@@ -31,10 +35,10 @@
    - Keyboard-driven filter editing.
    - Preset switching.
    - Health panel and recording status.
-5. Public packaging.
-   - Signed release binaries.
-   - Checksums.
-   - Installation docs for macOS and Linux.
+5. First public release.
+   - Run `cargo dist plan` and `cargo dist build` with the pinned cargo-dist version.
+   - Review the first `v*` tag packaging workflow output.
+   - Publish checksums and installation docs after the tag run is proven.
 
 ## Explicitly Out Of Scope
 

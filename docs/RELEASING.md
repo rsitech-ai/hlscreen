@@ -13,6 +13,7 @@ This project is pre-1.0. Use this checklist before tagging a public release.
    cargo clippy --workspace --all-targets --all-features -- -D warnings
    cargo test --workspace --all-features
    cargo build --release --workspace --all-features
+   scripts/check-release-packaging.sh
    git diff --check
    python3 scripts/generate-screenshots.py
    ```
@@ -36,6 +37,32 @@ This project is pre-1.0. Use this checklist before tagging a public release.
 5. Create and review a release PR.
 6. Tag only after `main` is green.
 
+## Release Packaging Dry Run
+
+Release packaging is drafted with `cargo-dist` in `dist-workspace.toml`.
+
+Install the pinned version:
+
+```bash
+cargo install cargo-dist --version 0.32.0 --locked
+```
+
+Preview the release plan:
+
+```bash
+cargo dist plan
+```
+
+Build local distributable artifacts:
+
+```bash
+cargo dist build
+```
+
+No release secrets are required for the local dry run or pull-request release
+plan. Tag pushes build distributable artifacts, but public release publication
+still requires reviewing the tag workflow output before announcing a release.
+
 ## Tagging
 
 ```bash
@@ -58,4 +85,5 @@ Release notes should include:
 - Live WebSocket mode is bounded and read-only, reconnects/resubscribes after server disconnects, and records explicit data gaps. Automatic public REST backfill after a reconnect is not implemented yet.
 - Long-running localhost HTTP serving is not implemented yet.
 - True Parquet output is not implemented yet.
+- Release packaging is drafted and locally validated; the first public GitHub release is not proven until a reviewed `v*` tag run succeeds.
 - This is not trading advice and does not execute orders.

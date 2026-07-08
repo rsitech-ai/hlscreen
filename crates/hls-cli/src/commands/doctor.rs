@@ -6,6 +6,8 @@ use std::{
 use anyhow::Context;
 use clap::Args;
 use hls_core::config::{default_config_for_data_dir, load_config};
+use hls_core::metrics::doctor_metrics_snapshot;
+use hls_core::time::now_millis;
 use hls_hyperliquid::rest::HyperliquidRestClient;
 use hls_tui::health::render_health_pane;
 use serde_json::json;
@@ -56,6 +58,17 @@ pub async fn run(args: DoctorArgs) -> anyhow::Result<()> {
         None
     };
     let health = require_live_health(args.live, args.simulate_health.as_deref(), live_rest_ok)?;
+    let metrics = if args.live {
+        Some(doctor_metrics_snapshot(
+            now_millis()?,
+            read_only_ok,
+            data_dir_writable,
+            live_rest_ok,
+            health.as_ref(),
+        )?)
+    } else {
+        None
+    };
 
     if args.json {
         println!(
@@ -68,6 +81,7 @@ pub async fn run(args: DoctorArgs) -> anyhow::Result<()> {
                 "read_only": read_only_ok,
                 "live_rest": live_rest_ok,
                 "health": health,
+                "metrics": metrics,
             }))?
         );
     } else {

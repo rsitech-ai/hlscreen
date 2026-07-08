@@ -1,11 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" role="img" xml:space="preserve" aria-label="Read-only health JSON terminal screenshot" viewBox="0 0 1324 816" width="1324" height="816">
+<svg xmlns="http://www.w3.org/2000/svg" role="img" xml:space="preserve" aria-label="Read-only health JSON terminal screenshot" viewBox="0 0 1324 1936" width="1324" height="1936">
 <defs>
 <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
 <stop offset="0" stop-color="#0d1117"/>
 <stop offset="1" stop-color="#18212b"/>
 </linearGradient>
 </defs>
-<rect width="1324" height="816" rx="8" fill="url(#bg)"/>
+<rect width="1324" height="1936" rx="8" fill="url(#bg)"/>
 <rect x="0" y="0" width="1324" height="50" rx="8" fill="#141b24"/>
 <rect x="0" y="42" width="1324" height="8" fill="#141b24"/>
 <circle cx="24" cy="24" r="6" fill="#ff5f57"/>
@@ -46,6 +46,62 @@
 <text x="24" y="688" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">    &quot;writer_warn_at&quot;: 100</text>
 <text x="24" y="708" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">  },</text>
 <text x="24" y="728" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">  &quot;live_rest&quot;: null,</text>
-<text x="24" y="748" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">  &quot;read_only&quot;: true</text>
-<text x="24" y="768" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">}</text>
+<text x="24" y="748" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">  &quot;metrics&quot;: {</text>
+<text x="24" y="768" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">    &quot;generated_at_ms&quot;: 1783523282512,</text>
+<text x="24" y="788" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">    &quot;prometheus_text&quot;: &quot;# HELP hls_read_only_safety_ok Whether the local configuration is in read-only public-data mode.\n# TYPE hls_read_only_safety_ok</text>
+<text x="24" y="808" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">  gauge\nhls_read_only_safety_ok 1\n# HELP hls_data_dir_writable Whether the configured local data directory can be written.\n# TYPE</text>
+<text x="24" y="828" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">  hls_data_dir_writable gauge\nhls_data_dir_writable 1\n# HELP hls_health_status Current low-cardinality health status encoded as a one-hot sample.\n#</text>
+<text x="24" y="848" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">  TYPE hls_health_status gauge\nhls_health_status{status=\&quot;healthy\&quot;} 1\n# HELP hls_writer_backlog_events Current bounded writer backlog in local</text>
+<text x="24" y="868" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">  events.\n# TYPE hls_writer_backlog_events gauge\nhls_writer_backlog_events 0\n# HELP hls_reconnects_total Total reconnects observed in the current</text>
+<text x="24" y="888" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">  local health snapshot.\n# TYPE hls_reconnects_total counter\nhls_reconnects_total 0\n# HELP hls_data_gaps_total Total explicit public data gaps</text>
+<text x="24" y="908" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">  observed in the current health snapshot.\n# TYPE hls_data_gaps_total counter\nhls_data_gaps_total 0\n&quot;,</text>
+<text x="24" y="928" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">    &quot;samples&quot;: [</text>
+<text x="24" y="948" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">      {</text>
+<text x="24" y="968" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">        &quot;description&quot;: &quot;Whether the local configuration is in read-only public-data mode.&quot;,</text>
+<text x="24" y="988" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">        &quot;kind&quot;: &quot;gauge&quot;,</text>
+<text x="24" y="1008" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">        &quot;labels&quot;: {},</text>
+<text x="24" y="1028" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">        &quot;name&quot;: &quot;hls_read_only_safety_ok&quot;,</text>
+<text x="24" y="1048" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">        &quot;value&quot;: 1.0</text>
+<text x="24" y="1068" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">      },</text>
+<text x="24" y="1088" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">      {</text>
+<text x="24" y="1108" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">        &quot;description&quot;: &quot;Whether the configured local data directory can be written.&quot;,</text>
+<text x="24" y="1128" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">        &quot;kind&quot;: &quot;gauge&quot;,</text>
+<text x="24" y="1148" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">        &quot;labels&quot;: {},</text>
+<text x="24" y="1168" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">        &quot;name&quot;: &quot;hls_data_dir_writable&quot;,</text>
+<text x="24" y="1188" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">        &quot;value&quot;: 1.0</text>
+<text x="24" y="1208" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">      },</text>
+<text x="24" y="1228" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">      {</text>
+<text x="24" y="1248" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">        &quot;description&quot;: &quot;Current low-cardinality health status encoded as a one-hot sample.&quot;,</text>
+<text x="24" y="1268" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">        &quot;kind&quot;: &quot;gauge&quot;,</text>
+<text x="24" y="1288" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">        &quot;labels&quot;: {</text>
+<text x="24" y="1308" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">          &quot;status&quot;: &quot;healthy&quot;</text>
+<text x="24" y="1328" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">        },</text>
+<text x="24" y="1348" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">        &quot;name&quot;: &quot;hls_health_status&quot;,</text>
+<text x="24" y="1368" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">        &quot;value&quot;: 1.0</text>
+<text x="24" y="1388" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">      },</text>
+<text x="24" y="1408" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">      {</text>
+<text x="24" y="1428" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">        &quot;description&quot;: &quot;Current bounded writer backlog in local events.&quot;,</text>
+<text x="24" y="1448" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">        &quot;kind&quot;: &quot;gauge&quot;,</text>
+<text x="24" y="1468" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">        &quot;labels&quot;: {},</text>
+<text x="24" y="1488" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">        &quot;name&quot;: &quot;hls_writer_backlog_events&quot;,</text>
+<text x="24" y="1508" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">        &quot;value&quot;: 0.0</text>
+<text x="24" y="1528" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">      },</text>
+<text x="24" y="1548" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">      {</text>
+<text x="24" y="1568" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">        &quot;description&quot;: &quot;Total reconnects observed in the current local health snapshot.&quot;,</text>
+<text x="24" y="1588" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">        &quot;kind&quot;: &quot;counter&quot;,</text>
+<text x="24" y="1608" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">        &quot;labels&quot;: {},</text>
+<text x="24" y="1628" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">        &quot;name&quot;: &quot;hls_reconnects_total&quot;,</text>
+<text x="24" y="1648" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">        &quot;value&quot;: 0.0</text>
+<text x="24" y="1668" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">      },</text>
+<text x="24" y="1688" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">      {</text>
+<text x="24" y="1708" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">        &quot;description&quot;: &quot;Total explicit public data gaps observed in the current health snapshot.&quot;,</text>
+<text x="24" y="1728" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">        &quot;kind&quot;: &quot;counter&quot;,</text>
+<text x="24" y="1748" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">        &quot;labels&quot;: {},</text>
+<text x="24" y="1768" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">        &quot;name&quot;: &quot;hls_data_gaps_total&quot;,</text>
+<text x="24" y="1788" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">        &quot;value&quot;: 0.0</text>
+<text x="24" y="1808" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">      }</text>
+<text x="24" y="1828" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">    ]</text>
+<text x="24" y="1848" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">  },</text>
+<text x="24" y="1868" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">  &quot;read_only&quot;: true</text>
+<text x="24" y="1888" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">}</text>
 </svg>

@@ -171,23 +171,23 @@
 
 ### Tests for User Story 5
 
-- [ ] T069 [P] [US5] Add benchmark command tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/tests/bench_command.rs`
-- [ ] T070 [P] [US5] Add metrics output tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/tests/metrics_output.rs`
-- [ ] T071 [P] [US5] Add extension contract tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/tests/extension_contract.rs`
-- [ ] T072 [P] [US5] Add release packaging check script tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/tests/integration/release_packaging.rs`
+- [x] T069 [P] [US5] Add benchmark command tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/tests/bench_command.rs`
+- [x] T070 [P] [US5] Add metrics output tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/tests/metrics_output.rs`
+- [x] T071 [P] [US5] Add extension contract tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/tests/extension_contract.rs`
+- [x] T072 [P] [US5] Add release packaging check script tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/tests/integration/release_packaging.rs`
 
 ### Implementation for User Story 5
 
-- [ ] T073 [US5] Implement benchmark pack runner in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-store/src/benchmark.rs`
-- [ ] T074 [US5] Implement `hls bench` command in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/src/commands/bench.rs`
-- [ ] T075 [US5] Register bench command in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/src/main.rs`
-- [ ] T076 [US5] Implement metrics snapshot output helpers in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/src/metrics.rs`
-- [ ] T077 [US5] Add metrics output to `hls doctor --live --json` in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/src/commands/doctor.rs`
-- [ ] T078 [US5] Implement read-only extension contract models in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/src/extension.rs`
-- [ ] T079 [US5] Add release packaging configuration draft in `/Users/s1kor/dev/trading/rsibot/hlscreen/dist-workspace.toml`
-- [ ] T080 [US5] Add release packaging workflow draft in `/Users/s1kor/dev/trading/rsibot/hlscreen/.github/workflows/release.yml`
-- [ ] T081 [US5] Update release documentation in `/Users/s1kor/dev/trading/rsibot/hlscreen/docs/RELEASING.md`
-- [ ] T082 [US5] Add plugin/extension documentation in `/Users/s1kor/dev/trading/rsibot/hlscreen/docs/extensions.md`
+- [x] T073 [US5] Implement benchmark pack runner in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-store/src/benchmark.rs`
+- [x] T074 [US5] Implement `hls bench` command in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/src/commands/bench.rs`
+- [x] T075 [US5] Register bench command in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/src/main.rs`
+- [x] T076 [US5] Implement metrics snapshot output helpers in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/src/metrics.rs`
+- [x] T077 [US5] Add metrics output to `hls doctor --live --json` in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/src/commands/doctor.rs`
+- [x] T078 [US5] Implement read-only extension contract models in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/src/extension.rs`
+- [x] T079 [US5] Add release packaging configuration draft in `/Users/s1kor/dev/trading/rsibot/hlscreen/dist-workspace.toml`
+- [x] T080 [US5] Add release packaging workflow draft in `/Users/s1kor/dev/trading/rsibot/hlscreen/.github/workflows/release.yml`
+- [x] T081 [US5] Update release documentation in `/Users/s1kor/dev/trading/rsibot/hlscreen/docs/RELEASING.md`
+- [x] T082 [US5] Add plugin/extension documentation in `/Users/s1kor/dev/trading/rsibot/hlscreen/docs/extensions.md`
 
 **Checkpoint**: User Story 5 complete when benchmark, metrics, release, and extension contracts can be validated without secrets.
 
@@ -197,16 +197,16 @@
 
 **Purpose**: Documentation, validation, screenshots, reports, and repo continuity.
 
-- [ ] T083 [P] Update README roadmap and status in `/Users/s1kor/dev/trading/rsibot/hlscreen/README.md`
-- [ ] T084 [P] Update architecture documentation in `/Users/s1kor/dev/trading/rsibot/hlscreen/docs/architecture.md`
-- [ ] T085 [P] Update data format documentation in `/Users/s1kor/dev/trading/rsibot/hlscreen/docs/data-format.md`
+- [x] T083 [P] Update README roadmap and status in `/Users/s1kor/dev/trading/rsibot/hlscreen/README.md`
+- [x] T084 [P] Update architecture documentation in `/Users/s1kor/dev/trading/rsibot/hlscreen/docs/architecture.md`
+- [x] T085 [P] Update data format documentation in `/Users/s1kor/dev/trading/rsibot/hlscreen/docs/data-format.md`
 - [x] T086 [P] Update screenshot generator for new confidence/resilience output in `/Users/s1kor/dev/trading/rsibot/hlscreen/scripts/generate-screenshots.py`
-- [ ] T087 [P] Add dated implementation report in `/Users/s1kor/dev/trading/rsibot/hlscreen/docs/reports/2026-07-08-microstructure-workstation.md`
-- [ ] T088 Run full validation gate and record results in `/Users/s1kor/dev/trading/rsibot/hlscreen/PLAN.md`
-- [ ] T089 Update durable repo memory in `/Users/s1kor/dev/trading/rsibot/hlscreen/MEMORY.md`
-- [ ] T090 Update daily memory and lesson stores in `/Users/s1kor/dev/trading/rsibot/hlscreen/docs/agent-memory/agent_lessons.jsonl`
-- [ ] T091 Review for read-only boundary regressions in `/Users/s1kor/dev/trading/rsibot/hlscreen/docs/THREAT_MODEL.md`
-- [ ] T092 Close local planning notes in `/Users/s1kor/dev/trading/rsibot/hlscreen/TODO.md`
+- [x] T087 [P] Add dated implementation report in `/Users/s1kor/dev/trading/rsibot/hlscreen/docs/reports/2026-07-08-microstructure-workstation.md`
+- [x] T088 Run full validation gate and record results in `/Users/s1kor/dev/trading/rsibot/hlscreen/PLAN.md`
+- [x] T089 Update durable repo memory in `/Users/s1kor/dev/trading/rsibot/hlscreen/MEMORY.md`
+- [x] T090 Update daily memory and lesson stores in `/Users/s1kor/dev/trading/rsibot/hlscreen/docs/agent-memory/agent_lessons.jsonl`
+- [x] T091 Review for read-only boundary regressions in `/Users/s1kor/dev/trading/rsibot/hlscreen/docs/THREAT_MODEL.md`
+- [x] T092 Close local planning notes in `/Users/s1kor/dev/trading/rsibot/hlscreen/TODO.md`
 
 ---
 

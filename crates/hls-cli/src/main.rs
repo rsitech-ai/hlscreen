@@ -3,8 +3,9 @@
 use clap::{Parser, Subcommand};
 
 use crate::commands::{
-    doctor::DoctorArgs, explain::ExplainArgs, init::InitArgs, live::LiveArgs, record::RecordArgs,
-    replay::ReplayArgs, screen::ScreenArgs, server::ServerArgs, symbols::SymbolsArgs,
+    bench::BenchArgs, doctor::DoctorArgs, explain::ExplainArgs, init::InitArgs, live::LiveArgs,
+    record::RecordArgs, replay::ReplayArgs, screen::ScreenArgs, server::ServerArgs,
+    symbols::SymbolsArgs,
 };
 
 mod commands;
@@ -21,6 +22,7 @@ struct Cli {
 enum Command {
     Init(InitArgs),
     Doctor(DoctorArgs),
+    Bench(BenchArgs),
     Symbols(SymbolsArgs),
     Live(LiveArgs),
     Record(RecordArgs),
@@ -35,6 +37,7 @@ async fn main() -> anyhow::Result<()> {
     match Cli::parse().command {
         Command::Init(args) => commands::init::run(args).await,
         Command::Doctor(args) => commands::doctor::run(args).await,
+        Command::Bench(args) => commands::bench::run(args).await,
         Command::Symbols(args) => commands::symbols::run(args).await,
         Command::Live(args) => commands::live::run(args).await,
         Command::Record(args) => commands::record::run(args).await,

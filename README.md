@@ -10,7 +10,7 @@ It is built for operators and researchers who want a local-first way to inspect 
 
 ## Status
 
-Current state: v0.1 live public-data hardening with a next-generation deterministic terminal market board, why-ranked detail pane, and health panel.
+Current state: v0.1 live public-data hardening with a next-generation deterministic terminal market board, why-ranked detail pane, health panel, benchmark packs, metrics output, and OSS release/extension contracts.
 
 Implemented today:
 
@@ -26,13 +26,17 @@ Implemented today:
 - Compressed raw public message recording, normalized replay JSONL, and local SQLite metadata.
 - Deterministic screening DSL and built-in screen presets.
 - Health snapshots, reconnect simulation, TUI health rendering, and read-only local API helpers.
+- Deterministic public fixture benchmark packs through `hls bench`.
+- Low-cardinality metrics snapshots in `hls doctor --live --json`, including Prometheus text output.
+- Read-only extension manifest models that reject network, filesystem, private-data, and trading permissions.
+- Draft cargo-dist release packaging config and tag-gated packaging workflow.
 
 Not implemented yet:
 
 - Automatic REST backfill for missed public data after a reconnect. Reconnect gaps are recorded explicitly.
 - Long-running localhost HTTP server loop.
 - True Parquet writer.
-- Release binaries.
+- Published release binaries from a reviewed `v*` tag run.
 
 ## Screenshots
 
@@ -212,13 +216,22 @@ Print health JSON:
 ./target/debug/hls server --print-health
 ```
 
+Run the deterministic public benchmark pack:
+
+```bash
+./target/debug/hls bench \
+  --manifest tests/fixtures/microstructure/benchmark_gap_replay.json \
+  --repo-root . \
+  --json
+```
+
 ## Architecture
 
 Workspace crates:
 
 - `hls-core`: shared config, symbols, errors, state, health, and telemetry contracts.
 - `hls-hyperliquid`: public Hyperliquid REST/WebSocket parsing and connection helpers.
-- `hls-store`: compressed raw capture, normalized replay data, metadata registry, and replay readers.
+- `hls-store`: compressed raw capture, normalized replay data, metadata registry, replay readers, and benchmark packs.
 - `hls-features`: rolling feature windows and formulas.
 - `hls-screen`: screening DSL, presets, and row filtering/sorting.
 - `hls-tui`: terminal rendering.
@@ -260,6 +273,7 @@ Examples are in [examples/screen-rules.md](examples/screen-rules.md).
 - [Privacy](docs/PRIVACY.md)
 - [Roadmap](docs/ROADMAP.md)
 - [Release checklist](docs/RELEASING.md)
+- [Extension contract](docs/extensions.md)
 - [Open source checklist](docs/OPEN_SOURCE_CHECKLIST.md)
 - [Live production hardening report](docs/reports/2026-07-08-live-production-hardening.md)
 - [Live smoke report](docs/reports/2026-07-08-live-smoke.md)
