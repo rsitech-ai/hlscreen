@@ -791,3 +791,65 @@
 - What changed: Upgraded the deterministic `hls-tui` market board into a wider workstation-style board with session/universe/quality/latency KPI strips, scan-friendly rows, combined score column, observation badges, and a selected-symbol microstructure detail pane. Upgraded the health panel into safety/connection/recorder/runbook lanes and carried `writer_warn_at` through `HealthSnapshot` so backlog thresholds are displayed truthfully. Refreshed tests, docs, screenshot styling, and all committed SVG screenshots from the rebuilt binary.
 - Validation run: red/green `cargo test -p hls-tui --test main_table_golden --test health_pane`; `cargo test -p hls-cli --test live_mock --test health_commands`; full gate `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`; `python3 scripts/generate-screenshots.py`; SVG-to-PNG previews with `rsvg-convert`; `git diff --check`; read-only/safety scan. The first full gate caught stale smoke assertions, which were fixed and rerun successfully.
 - Follow-ups: This remains deterministic command output rather than a full keyboard-driven alternate-screen Ratatui app. Spec Kit T020-T033 confidence/replay parity tasks remain open and should be implemented before claiming confidence-aware TUI completion.
+
+## 2026-07-08 US1 Confidence and Replay Parity
+
+### Task
+- Objective: Implement Spec Kit microstructure workstation US1 tasks T020-T033: confidence-aware data quality snapshots, replay parity checks, CLI `--verify-parity`, TUI confidence rendering, persistence, fixtures, docs, and task markers.
+- Owner repo(s): standalone `hlscreen/` repository only.
+- Capital impact: research-only / read-only public market-data quality and replay validation. No wallet, private stream, signing, order placement, exchange action, execution route, or advice semantics.
+
+### Context
+- Background: Foundation contracts T001-T019 and next-gen deterministic TUI polish are merged. The active pasted brief prioritizes trustworthy local data, gap-aware replay, explicit confidence under stale/sparse/reconnect conditions, and deterministic research workflows before ranking complexity.
+- Inputs: `specs/002-microstructure-workstation/tasks.md` T020-T033, `contracts/confidence-and-scoring.md`, `data-model.md`, current official Hyperliquid docs for WebSocket endpoint/subscriptions/reconnect guidance/rate limits, and existing `hls-core`, `hls-features`, `hls-store`, `hls-cli`, and `hls-tui` patterns.
+- Outputs: Microstructure fixtures, runtime confidence on `FeatureSnapshot`, confidence metadata persistence, replay parity checker and CLI flag, TUI confidence columns/summary, docs, tests, checked task markers, validation evidence, and a PR/merge if stable.
+
+### Assumptions
+- Confidence computation can be state-derived by default and enriched through explicit runtime inputs for reconnect gaps, parser drops, and writer backlog. Hidden globals or fake live values are not acceptable.
+- Replay parity should compare persisted confidence baselines to recomputed replay confidence and return a non-zero CLI exit on drift.
+- Recorded baseline persistence can happen in the replay command when `--verify-parity` is requested and no baseline exists, but drift detection must use a real persisted baseline when present.
+- This slice does not implement US2 resilience metrics or US3 score breakdown rendering.
+
+### Constraints
+- Technical: preserve deterministic replay; avoid broad rewrites of recorder or live ingestion; keep SQLite schema additive; no ANSI-only output in stable TUI strings.
+- Operational: keep runtime market-data captures out of git; fixtures must be small and public-shape only.
+- Risk/capital: confidence is data-quality evidence only, not trade safety or performance proof.
+
+### Options Considered
+1. Compute confidence only in the TUI renderer.
+   - Pros: small visual diff.
+   - Cons: not replayable, not persistable, and fails the US1 data-quality contract.
+2. Attach confidence to `FeatureSnapshot` in `hls-core` and compute it in `hls-features`, with explicit runtime quality inputs for gaps/drops/backlog.
+   - Pros: shared by live/replay/screen/TUI, deterministic, testable, and compatible with persistence.
+   - Cons: touches shared snapshot contracts and requires updating downstream tests.
+
+### Chosen Approach
+- Choice: option 2.
+- Why: confidence must travel with the data row so replay, CLI, TUI, and future scoring all see the same quality evidence.
+
+### Execution Plan
+1. Add reconnect-gap and sparse-trade public-shape fixtures.
+2. Add failing tests for duplicate confidence, replay parity, CLI `--verify-parity`, and TUI confidence rendering.
+3. Add `confidence` to `FeatureSnapshot` and track duplicate trade counts in `SymbolMarketState`.
+4. Compute confidence from staleness, sparse windows, duplicate events, parser drops, writer backlog, and gap symbols in `hls-features`.
+5. Add confidence metadata persistence and replay parity comparison in `hls-store`.
+6. Wire `hls replay --verify-parity` and confidence summaries in replay/live output.
+7. Render confidence state in TUI rows and docs, then mark T020-T033 complete only if all behavior is true.
+8. Run focused tests, full Rust gates, diff/read-only scans, update memory/reflection, commit, push, PR, and merge only if stable.
+
+### Test Plan
+- Focused: `cargo test -p hls-core --test confidence_state --test market_state`; `cargo test -p hls-features --test formulas`; `cargo test -p hls-store --test replay_parity --test metadata_registry`; `cargo test -p hls-cli --test replay_parity_command`; `cargo test -p hls-tui --test confidence_pane --test main_table_golden`.
+- Regression: `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`; `python3 scripts/generate-screenshots.py`; `git diff --check`.
+- Safety: read-only scan for private/order/execution surfaces and docs review for confidence-as-quality wording only.
+
+### Risks and Rollback
+- Risks: adding confidence to `FeatureSnapshot` updates many golden assertions; parity baseline semantics can become misleading if baseline generation and verification happen in the same step; duplicate tracking must not reintroduce duplicate trades.
+- Rollback: revert this US1 commit/PR; SQLite schema addition is additive and only affects local metadata files created after the change.
+
+### Memory Impact
+- Add/update in `MEMORY.md`: confidence computation boundary, replay parity command, and confirmed test commands.
+
+### Final Notes
+- What changed: Completed Spec Kit US1 tasks T020-T033. Added gap/sparse fixtures, confidence on `FeatureSnapshot`, duplicate observation tracking, state-derived and explicit-input confidence computation, SQLite `confidence_snapshots`, replay parity reports, `hls replay --verify-parity`, confidence summaries in live/replay command output, TUI confidence rendering, parity-aware screenshots, and docs for confidence states and replay parity.
+- Validation run: red/green `cargo test -p hls-store --test replay_parity` and `cargo test -p hls-cli --test replay_parity_command`; focused tests `cargo test -p hls-core --test confidence_state --test market_state`; `cargo test -p hls-features --test formulas`; `cargo test -p hls-store --test replay_parity --test metadata_registry`; `cargo test -p hls-cli --test replay_parity_command --test record_replay --test live_mock --test full_pipeline_smoke`; `cargo test -p hls-tui --test main_table_golden --test confidence_pane`; `python3 scripts/generate-screenshots.py`; PNG preview of `docs/assets/screenshots/record-replay.svg`; `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`; `git diff --check`; JSONL validation; read-only surface scan; fixture parity smoke with `replay_parity=baseline_written` then `replay_parity=passed`; and a real public WebSocket smoke `./target/debug/hls live --symbols @107 --duration-secs 10 --refresh-secs 5 --tui` with 34 WebSocket messages, 60 market events, 0 reconnects, and 0 data gaps.
+- Follow-ups: US1 is complete, but the full v2 workstation objective remains active. Next unchecked slices start at US2 liquidity resilience/tradeability T034-T045, then US3 why-ranked explanations, US4 metadata enrichment, US5 OSS operations, and polish tasks T083-T092.

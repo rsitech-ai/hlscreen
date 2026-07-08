@@ -1,6 +1,9 @@
 use std::path::Path;
 
-use hls_core::{HlsError, HlsResult, data_gap::DataGap};
+use hls_core::{
+    HlsError, HlsResult, confidence::DataConfidenceSnapshot, data_gap::DataGap,
+    market_state::FeatureSnapshot,
+};
 use rusqlite::{Connection, OptionalExtension, params, types::Type};
 use serde::{Deserialize, Serialize};
 
@@ -71,6 +74,14 @@ impl SymbolRegistryEntry {
             last_seen_ms,
         }
     }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct ConfidenceSnapshotRecord {
+    pub run_id: String,
+    pub snapshot_ts_ms: i64,
+    pub symbol: String,
+    pub confidence: DataConfidenceSnapshot,
 }
 
 pub struct MetadataRegistry {
@@ -268,6 +279,89 @@ impl MetadataRegistry {
         Ok(rows)
     }
 
+    pub fn insert_confidence_snapshot(
+        &self,
+        run_id: &str,
+        snapshot_ts_ms: i64,
+        confidence: &DataConfidenceSnapshot,
+    ) -> HlsResult<()> {
+        self.conn
+            .execute(
+                "INSERT OR REPLACE INTO confidence_snapshots (
+                    run_id, snapshot_ts_ms, symbol, score, level, confidence_json
+                ) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                params![
+                    run_id,
+                    snapshot_ts_ms,
+                    &confidence.symbol,
+                    confidence.score,
+                    format!("{:?}", confidence.level),
+                    serde_json::to_string(confidence).map_err(|err| {
+                        HlsError::Parse(format!("serialize confidence snapshot: {err}"))
+                    })?
+                ],
+            )
+            .map_err(sqlite_error)?;
+        Ok(())
+    }
+
+    pub fn insert_confidence_snapshots(
+        &self,
+        run_id: &str,
+        snapshot_ts_ms: i64,
+        snapshots: &[FeatureSnapshot],
+    ) -> HlsResult<()> {
+        for snapshot in snapshots {
+            self.insert_confidence_snapshot(run_id, snapshot_ts_ms, &snapshot.confidence)?;
+        }
+        Ok(())
+    }
+
+    pub fn list_confidence_snapshots(
+        &self,
+        run_id: &str,
+    ) -> HlsResult<Vec<ConfidenceSnapshotRecord>> {
+        let mut stmt = self
+            .conn
+            .prepare(
+                "SELECT run_id, snapshot_ts_ms, symbol, confidence_json
+                 FROM confidence_snapshots WHERE run_id = ?1 ORDER BY snapshot_ts_ms, symbol",
+            )
+            .map_err(sqlite_error)?;
+
+        let rows = stmt
+            .query_map([run_id], row_to_confidence_snapshot)
+            .map_err(sqlite_error)?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(sqlite_error)?;
+
+        Ok(rows)
+    }
+
+    pub fn list_confidence_snapshots_at(
+        &self,
+        run_id: &str,
+        snapshot_ts_ms: i64,
+    ) -> HlsResult<Vec<ConfidenceSnapshotRecord>> {
+        let mut stmt = self
+            .conn
+            .prepare(
+                "SELECT run_id, snapshot_ts_ms, symbol, confidence_json
+                 FROM confidence_snapshots
+                 WHERE run_id = ?1 AND snapshot_ts_ms = ?2
+                 ORDER BY symbol",
+            )
+            .map_err(sqlite_error)?;
+
+        let rows = stmt
+            .query_map(params![run_id, snapshot_ts_ms], row_to_confidence_snapshot)
+            .map_err(sqlite_error)?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(sqlite_error)?;
+
+        Ok(rows)
+    }
+
     fn init(&self) -> HlsResult<()> {
         self.conn
             .execute_batch(
@@ -310,6 +404,15 @@ impl MetadataRegistry {
                     reason TEXT NOT NULL,
                     affected_symbols TEXT NOT NULL,
                     recovered INTEGER NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS confidence_snapshots (
+                    run_id TEXT NOT NULL,
+                    snapshot_ts_ms INTEGER NOT NULL,
+                    symbol TEXT NOT NULL,
+                    score INTEGER NOT NULL,
+                    level TEXT NOT NULL,
+                    confidence_json TEXT NOT NULL,
+                    PRIMARY KEY(run_id, snapshot_ts_ms, symbol)
                 );
                 ",
             )
@@ -369,6 +472,20 @@ fn row_to_gap(row: &rusqlite::Row<'_>) -> rusqlite::Result<DataGap> {
         reason: row.get(5)?,
         affected_symbols,
         recovered: row.get(7)?,
+    })
+}
+
+fn row_to_confidence_snapshot(
+    row: &rusqlite::Row<'_>,
+) -> rusqlite::Result<ConfidenceSnapshotRecord> {
+    let confidence_json: String = row.get(3)?;
+    let confidence: DataConfidenceSnapshot = serde_json::from_str(&confidence_json)
+        .map_err(|err| rusqlite::Error::FromSqlConversionFailure(3, Type::Text, Box::new(err)))?;
+    Ok(ConfidenceSnapshotRecord {
+        run_id: row.get(0)?,
+        snapshot_ts_ms: row.get(1)?,
+        symbol: row.get(2)?,
+        confidence,
     })
 }
 

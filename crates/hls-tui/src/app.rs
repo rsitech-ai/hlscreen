@@ -1,10 +1,28 @@
-use hls_core::market_state::{FeatureSnapshot, StalenessState};
+use hls_core::{
+    confidence::{ConfidenceLevel, ConfidenceReason},
+    market_state::{FeatureSnapshot, StalenessState},
+};
 use hls_screen::{ScreenEngine, ScreenRequest};
 
 use crate::theme::{bottom_border, divider, panel_line, section_rule, top_border, truncate_chars};
 
 pub fn render_main_table(rows: &[FeatureSnapshot]) -> String {
     render_table_with_title(rows, "READ-ONLY Hyperliquid spot live screen")
+}
+
+pub fn render_confidence_summary(rows: &[FeatureSnapshot]) -> String {
+    let stats = TableStats::from_rows(rows);
+    format!(
+        "confidence_summary=high:{} medium:{} low:{} untrusted:{} min:{} reasons:{}",
+        stats.confidence_high,
+        stats.confidence_medium,
+        stats.confidence_low,
+        stats.confidence_untrusted,
+        stats
+            .min_confidence_score
+            .map_or_else(|| "-".to_owned(), |score| score.to_string()),
+        stats.confidence_reason_count
+    )
 }
 
 pub fn render_screened_table(
@@ -64,6 +82,21 @@ pub fn render_table_with_title(rows: &[FeatureSnapshot], title: &str) -> String 
         ),
         stats.latency_status(),
     ));
+    output.push_str(&panel_line(
+        "CONFIDENCE",
+        &format!(
+            "high {} | medium {} | low {} | untrusted {} | min {} | reasons {}",
+            stats.confidence_high,
+            stats.confidence_medium,
+            stats.confidence_low,
+            stats.confidence_untrusted,
+            stats
+                .min_confidence_score
+                .map_or_else(|| "-".to_owned(), |score| score.to_string()),
+            stats.confidence_reason_count,
+        ),
+        stats.confidence_status(),
+    ));
     output.push_str(&bottom_border());
     output.push_str(&section_rule("MARKET BOARD"));
 
@@ -75,19 +108,16 @@ pub fn render_table_with_title(rows: &[FeatureSnapshot], title: &str) -> String 
         return output;
     }
 
-    output.push_str(
-        "#  SYMBOL        STATE      PRICE       SPRD      DEPTH     IMB     RET1M    RV1M     SCORE    AGE  OBSERVATION\n",
-    );
-    output.push_str(
-        "── ────────────  ─────────  ──────────  ────────  ────────  ───────  ───────  ─────  ─────────  ───── ──────────────────────────────\n",
-    );
+    output.push_str("#  SYMBOL        STATE      CONF    PRICE       SPRD      DEPTH     IMB     RET1M    RV1M     SCORE    AGE  OBSERVATION\n");
+    output.push_str("── ────────────  ─────────  ──────  ──────────  ────────  ────────  ───────  ───────  ─────  ─────────  ───── ────────────────────────\n");
 
     for (index, row) in rows.iter().enumerate() {
         output.push_str(&format!(
-            "{:>02} {:<12}  {:<9}  {:>10}  {:>8}  {:>8}  {:>7}  {:>7}  {:>5}  {:>9}  {:>5} {}\n",
+            "{:>02} {:<12}  {:<9}  {:<6}  {:>10}  {:>8}  {:>8}  {:>7}  {:>7}  {:>5}  {:>9}  {:>5} {}\n",
             index + 1,
             row.symbol,
             format_state(&row.staleness_state),
+            format_confidence_chip(row),
             format_optional(row.price, 4),
             format_bps(row.spread_bps),
             format_usd(row.tob_depth_usd),
@@ -96,7 +126,7 @@ pub fn render_table_with_title(rows: &[FeatureSnapshot], title: &str) -> String 
             format_volatility(row.rv_1m),
             format_score_pair(row),
             format_age(row.updated_ms_ago),
-            truncate_chars(&format_row_observation(row), 34),
+            truncate_chars(&format_row_observation(row), 28),
         ));
     }
 
@@ -128,6 +158,13 @@ pub fn render_table_with_title(rows: &[FeatureSnapshot], title: &str) -> String 
                 .unwrap_or("none"),
             format_observation(selected),
         ));
+        output.push_str(&format!(
+            "confidence | {} {} | reasons {} | incomplete windows {}\n",
+            format_confidence_level(selected.confidence.level),
+            selected.confidence.score,
+            format_confidence_reasons(&selected.confidence.reasons),
+            format_confidence_windows(&selected.confidence.incomplete_windows),
+        ));
     }
 
     output.push_str(
@@ -147,6 +184,12 @@ struct TableStats {
     top_liquidity_score: Option<f64>,
     median_age_ms: Option<i64>,
     max_age_ms: Option<i64>,
+    confidence_high: usize,
+    confidence_medium: usize,
+    confidence_low: usize,
+    confidence_untrusted: usize,
+    min_confidence_score: Option<u8>,
+    confidence_reason_count: usize,
 }
 
 impl TableStats {
@@ -174,6 +217,24 @@ impl TableStats {
             top_liquidity_score: max_value(rows.iter().map(|row| row.liquidity_score)),
             median_age_ms: median_i64(rows.iter().filter_map(|row| row.updated_ms_ago)),
             max_age_ms: rows.iter().filter_map(|row| row.updated_ms_ago).max(),
+            confidence_high: rows
+                .iter()
+                .filter(|row| row.confidence.level == ConfidenceLevel::High)
+                .count(),
+            confidence_medium: rows
+                .iter()
+                .filter(|row| row.confidence.level == ConfidenceLevel::Medium)
+                .count(),
+            confidence_low: rows
+                .iter()
+                .filter(|row| row.confidence.level == ConfidenceLevel::Low)
+                .count(),
+            confidence_untrusted: rows
+                .iter()
+                .filter(|row| row.confidence.level == ConfidenceLevel::Untrusted)
+                .count(),
+            min_confidence_score: rows.iter().map(|row| row.confidence.score).min(),
+            confidence_reason_count: rows.iter().map(|row| row.confidence.reasons.len()).sum(),
         }
     }
 
@@ -192,6 +253,18 @@ impl TableStats {
             Some(age) if age > 10_000 => "WATCH",
             Some(_) => "FAST",
             None => "CHECK",
+        }
+    }
+
+    fn confidence_status(&self) -> &'static str {
+        if self.confidence_untrusted > 0 {
+            "BLOCK"
+        } else if self.confidence_low > 0 {
+            "CHECK"
+        } else if self.confidence_medium > 0 || self.confidence_reason_count > 0 {
+            "WATCH"
+        } else {
+            "GOOD"
         }
     }
 }
@@ -240,6 +313,57 @@ fn format_score(value: Option<f64>) -> String {
 
 fn format_score_pair(row: &FeatureSnapshot) -> String {
     format!("{:.1}/{:.1}", row.liquidity_score, row.momentum_score)
+}
+
+fn format_confidence_chip(row: &FeatureSnapshot) -> String {
+    let prefix = match row.confidence.level {
+        ConfidenceLevel::High => "H",
+        ConfidenceLevel::Medium => "M",
+        ConfidenceLevel::Low => "L",
+        ConfidenceLevel::Untrusted => "U",
+    };
+    format!("{prefix}{:03}", row.confidence.score)
+}
+
+fn format_confidence_level(level: ConfidenceLevel) -> &'static str {
+    match level {
+        ConfidenceLevel::High => "high",
+        ConfidenceLevel::Medium => "medium",
+        ConfidenceLevel::Low => "low",
+        ConfidenceLevel::Untrusted => "untrusted",
+    }
+}
+
+fn format_confidence_reason(reason: ConfidenceReason) -> &'static str {
+    match reason {
+        ConfidenceReason::ReconnectGap => "reconnect_gap",
+        ConfidenceReason::StaleQuote => "stale_quote",
+        ConfidenceReason::SparseTrades => "sparse_trades",
+        ConfidenceReason::DuplicateEvents => "duplicate_events",
+        ConfidenceReason::ParserDrops => "parser_drops",
+        ConfidenceReason::WriterBacklog => "writer_backlog",
+        ConfidenceReason::IncompleteWindow => "incomplete_window",
+    }
+}
+
+fn format_confidence_reasons(reasons: &[ConfidenceReason]) -> String {
+    if reasons.is_empty() {
+        return "none".to_owned();
+    }
+
+    reasons
+        .iter()
+        .map(|reason| format_confidence_reason(*reason))
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
+fn format_confidence_windows(windows: &[String]) -> String {
+    if windows.is_empty() {
+        "none".to_owned()
+    } else {
+        windows.join(",")
+    }
 }
 
 fn format_px_qty(label: &str, px: Option<f64>, qty: Option<f64>) -> String {
@@ -305,6 +429,12 @@ fn observation_parts(row: &FeatureSnapshot) -> Vec<&'static str> {
         parts.push("stale feed");
     } else if matches!(row.staleness_state, StalenessState::Incomplete) {
         parts.push("partial data");
+    }
+
+    match row.confidence.level {
+        ConfidenceLevel::Low => parts.push("low confidence"),
+        ConfidenceLevel::Untrusted => parts.push("untrusted data"),
+        ConfidenceLevel::High | ConfidenceLevel::Medium => {}
     }
 
     if row.tob_depth_usd.is_some_and(|depth| depth < 1_000.0) {

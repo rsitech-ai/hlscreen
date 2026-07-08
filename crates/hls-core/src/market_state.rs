@@ -2,6 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use serde::{Deserialize, Serialize};
 
+use crate::confidence::DataConfidenceSnapshot;
 use crate::{HlsError, HlsResult};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -121,6 +122,7 @@ pub enum StalenessState {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct FeatureSnapshot {
     pub symbol: String,
+    pub confidence: DataConfidenceSnapshot,
     pub price: Option<f64>,
     pub mid_px: Option<f64>,
     pub mark_px: Option<f64>,
@@ -234,6 +236,7 @@ pub struct SymbolMarketState {
     pub prev_day_px: Option<f64>,
     pub candles: Vec<CandleEvent>,
     pub trades: Vec<TradeEvent>,
+    pub duplicate_trade_count: u64,
     pub last_update_ms: Option<i64>,
 }
 
@@ -253,6 +256,7 @@ impl SymbolMarketState {
             prev_day_px: None,
             candles: Vec::new(),
             trades: Vec::new(),
+            duplicate_trade_count: 0,
             last_update_ms: None,
         }
     }
@@ -263,6 +267,7 @@ impl SymbolMarketState {
             .iter()
             .any(|trade| trade.unique_trade_id == event.unique_trade_id)
         {
+            self.duplicate_trade_count = self.duplicate_trade_count.saturating_add(1);
             return;
         }
 

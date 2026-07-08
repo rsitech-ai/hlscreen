@@ -289,3 +289,26 @@
 
 - [x] Close out notes
   DoD: `PLAN.md`, `TODO.md`, `MEMORY.md`, daily memory, lesson store, and reflection entry reflect the final state.
+
+## 2026-07-08 US1 Confidence and Replay Parity
+
+- [x] Confirm US1 scope and branch
+  DoD: `PLAN.md` identifies T020-T033 as the active slice on `feat/andrzej_microstructure_confidence_replay`.
+
+- [x] Add US1 fixtures and failing tests
+  DoD: Gap/sparse fixtures and focused tests for duplicate confidence, replay parity, CLI parity flag, and TUI confidence rendering describe behavior before implementation.
+
+- [x] Implement confidence on feature snapshots
+  DoD: `FeatureSnapshot` carries `DataConfidenceSnapshot`, feature engine computes state-derived and runtime-input confidence, and duplicate events are counted without applying duplicate trades.
+
+- [x] Implement persistence and replay parity
+  DoD: SQLite stores confidence snapshots and replay parity detects persisted baseline drift with clear reports.
+
+- [x] Wire CLI/TUI/docs and Spec Kit task markers
+  DoD: `hls replay --verify-parity`, live/replay confidence summaries, TUI confidence row rendering, `docs/microstructure.md`, and T020-T033 markers reflect real behavior.
+
+- [x] Run validation gates
+  DoD: Focused tests, full Rust gates, screenshot generation, `git diff --check`, and read-only scan pass.
+
+- [x] Review, PR, merge, and close out
+  DoD: Diff is reviewed, branch is pushed, PR checks pass, merge to `main` occurs only if stable, and memory/reflection notes are complete.
