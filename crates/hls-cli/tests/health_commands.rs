@@ -37,11 +37,13 @@ fn doctor_live_text_renders_next_gen_health_panel() {
         .arg(temp.path())
         .assert()
         .success()
-        .stdout(predicate::str::contains("Read-only Operations Health"))
+        .stdout(predicate::str::contains("Operations Command Center"))
         .stdout(predicate::str::contains("DEGRADED"))
         .stdout(predicate::str::contains("SAFETY"))
-        .stdout(predicate::str::contains("LATENCY"))
+        .stdout(predicate::str::contains("INGEST"))
+        .stdout(predicate::str::contains("STORAGE"))
         .stdout(predicate::str::contains("writer backlog: 250"))
+        .stdout(predicate::str::contains("reasons requiring attention"))
         .stdout(predicate::str::contains("wallet").not())
         .stdout(predicate::str::contains("order").not());
 }

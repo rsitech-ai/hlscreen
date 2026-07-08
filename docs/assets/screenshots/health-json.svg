@@ -1,13 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" role="img" xml:space="preserve" aria-label="Read-only health JSON terminal screenshot" viewBox="0 0 976 796" width="976" height="796">
+<svg xmlns="http://www.w3.org/2000/svg" role="img" xml:space="preserve" aria-label="Read-only health JSON terminal screenshot" viewBox="0 0 1148 796" width="1148" height="796">
 <defs>
 <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
 <stop offset="0" stop-color="#0d1117"/>
 <stop offset="1" stop-color="#18212b"/>
 </linearGradient>
 </defs>
-<rect width="976" height="796" rx="8" fill="url(#bg)"/>
-<rect x="0" y="0" width="976" height="50" rx="8" fill="#141b24"/>
-<rect x="0" y="42" width="976" height="8" fill="#141b24"/>
+<rect width="1148" height="796" rx="8" fill="url(#bg)"/>
+<rect x="0" y="0" width="1148" height="50" rx="8" fill="#141b24"/>
+<rect x="0" y="42" width="1148" height="8" fill="#141b24"/>
 <circle cx="24" cy="24" r="6" fill="#ff5f57"/>
 <circle cx="44" cy="24" r="6" fill="#ffbd2e"/>
 <circle cx="64" cy="24" r="6" fill="#28c840"/>
