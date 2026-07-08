@@ -17,13 +17,14 @@ No crate owns private keys, wallet permissions, order placement, leverage, or ex
 
 ## Implemented Data Paths
 
-Current US1 mock-live flow:
+Current US1 live flow:
 
 1. `hls-hyperliquid::ws::parser` parses public WebSocket envelopes for `trades`, `bbo`, `allMids`, `activeAssetCtx`, and `candle`.
 2. `hls-core::market_state::LiveMarketState` applies typed market events into per-symbol state.
 3. `hls-features::engine::FeatureEngine` builds `FeatureSnapshot` rows with top-of-book, return, freshness, and score fields.
 4. `hls-tui::app::render_main_table` renders a stable read-only terminal table.
 5. `hls-cli live --fixture-file ... --once` runs the mock-live path without live network access.
+6. `hls-cli live --duration-secs ...` runs a bounded public WebSocket session with heartbeat pings, subscription-budget validation, optional recording, and clean shutdown.
 
 Current US2 fixture recording/replay flow:
 
@@ -32,7 +33,7 @@ Current US2 fixture recording/replay flow:
 3. `hls-store::normalized` writes deterministic replayable JSONL `MarketEvent` rows.
 4. `hls-store::metadata` records runs, files, symbols, and data gaps in local `hls.sqlite`.
 5. `hls-store::replay` rebuilds feature snapshots from normalized local files.
-6. `hls-cli record`, `hls-cli replay`, and fixture-backed `hls live --record` expose the flow without live network access.
+6. `hls-cli record`, `hls-cli replay`, fixture-backed `hls live --record`, and bounded public `hls live --record` expose the flow.
 
 Current US3 screening flow:
 
@@ -51,4 +52,4 @@ Current US4 health/safety flow:
 5. `hls-server::handle_get` exposes pure read-only `/health`, `/symbols`, `/screen`, and `/symbol/{symbol}` response helpers.
 6. `hls-cli doctor --live` and `hls-cli server --print-health` expose health status without wallet, private, order, or trading actions.
 
-True Parquet output, a long-running localhost HTTP server loop, real external WebSocket I/O, and interactive keyboard filter editing remain separate later slices.
+True Parquet output, a long-running localhost HTTP server loop, automatic live WebSocket reconnect/resubscribe, and interactive keyboard filter editing remain separate later slices.
