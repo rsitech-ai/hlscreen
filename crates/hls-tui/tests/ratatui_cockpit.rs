@@ -197,8 +197,10 @@ fn market_board_renders_score_and_bias_columns() {
     .expect("renders scored market board");
 
     assert!(rendered.contains("SIG"));
+    assert!(rendered.contains("EDGE"));
     assert!(rendered.contains("BIAS"));
     assert!(rendered.contains("MOM+"));
+    assert!(rendered.contains("██"));
     assert!(rendered.contains("13"));
 }
 
