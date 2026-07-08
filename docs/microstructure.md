@@ -37,7 +37,7 @@ parser drops, writer backlog, and incomplete feature windows.
   backlog
 
 The deterministic terminal board renders confidence in the header strip, each
-market row, and the per-row detail cards. Confidence is data-quality
+market row, and the selected-pair detail pane. Confidence is data-quality
 evidence only; it is not a risk model, trade signal, or profitability claim.
 
 ### Replay Parity

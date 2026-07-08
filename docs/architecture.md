@@ -1,64 +1,157 @@
 # Architecture
 
-`hlscreen` is a read-only Hyperliquid spot market-data application.
+`hlscreen` is a read-only Hyperliquid spot market-data workstation. It ingests public market data, records local evidence, computes explainable screening features, renders a deterministic terminal UI, and exposes read-only health/API helpers.
 
-The intended crate boundaries are:
+It does not own private keys, wallet permissions, private user streams, order placement, leverage, liquidation, execution, or capital controls.
 
-- `hls-core`: shared configuration, symbol identity, errors, timestamps, health, and state contracts.
-- `hls-hyperliquid`: public Hyperliquid REST/WebSocket adapters and feed-specific parsing.
-- `hls-store`: raw frame capture, normalized event files, metadata registry, and replay readers.
-- `hls-features`: rolling windows and feature formulas.
-- `hls-screen`: preset and custom screening rules over feature rows.
-- `hls-tui`: terminal rendering and interaction.
-- `hls-cli`: command routing and operator-facing workflows.
-- `hls-server`: optional localhost read-only API.
+## System Boundary
 
-No crate owns private keys, wallet permissions, order placement, leverage, or execution.
+```mermaid
+flowchart LR
+    HLREST["Hyperliquid public Info API"]
+    HLWS["Hyperliquid public WebSocket"]
+    Adapter["hls-hyperliquid\nREST/WS parser + connection"]
+    Live["hls-cli live\nbounded runtime"]
+    Recorder["hls-store\nraw zstd + normalized JSONL + SQLite"]
+    State["hls-core LiveMarketState\nsymbols, health, confidence"]
+    Features["hls-features\nrolling windows + microstructure proxies"]
+    Screen["hls-screen\nDSL + presets + sorting"]
+    Tui["hls-tui\nworkstation table + detail pane"]
+    Server["hls-server\nread-only response helpers"]
 
-## Implemented Data Paths
+    HLREST --> Adapter
+    HLWS --> Adapter
+    Adapter --> Live
+    Live --> Recorder
+    Live --> State
+    State --> Features
+    Recorder --> Features
+    Features --> Screen
+    Screen --> Tui
+    State --> Server
+    Screen --> Server
+```
 
-Current US1 live flow:
+## Crate Ownership
 
-1. `hls-hyperliquid::ws::parser` parses public WebSocket envelopes for `trades`, `bbo`, `allMids`, `activeAssetCtx`, and `candle`.
-2. `hls-core::market_state::LiveMarketState` applies typed market events into per-symbol state.
-3. `hls-features::engine::FeatureEngine` builds `FeatureSnapshot` rows with top-of-book, return, freshness, and score fields.
-4. `hls-tui::app::render_main_table` renders a stable read-only workstation board with scan KPIs, market rows, and per-row microstructure detail cards.
-5. `hls-cli live --duration-secs ...` runs a bounded public WebSocket session with heartbeat pings, reconnect/resubscribe, subscription-budget validation, optional recording, live TTY refresh, and clean shutdown.
-6. `hls-cli live --fixture-file ... --once` remains a deterministic test/offline-doc path without live network access.
+```mermaid
+flowchart TB
+    Core["hls-core\ncontracts, symbols, state, health, confidence, metrics"]
+    Hyper["hls-hyperliquid\npublic REST/WS adapters"]
+    Store["hls-store\nrecording, replay, registry, benchmarks"]
+    Features["hls-features\nfeature engine, resilience, tradeability"]
+    Screen["hls-screen\nfilter DSL, presets, row projection"]
+    Tui["hls-tui\ndeterministic terminal rendering"]
+    Server["hls-server\nread-only API helpers"]
+    Cli["hls-cli\ncommands and operator workflows"]
 
-Current US2 recording/replay flow:
+    Hyper --> Core
+    Store --> Core
+    Store --> Hyper
+    Store --> Features
+    Features --> Core
+    Screen --> Core
+    Tui --> Core
+    Tui --> Screen
+    Server --> Core
+    Server --> Screen
+    Cli --> Core
+    Cli --> Hyper
+    Cli --> Store
+    Cli --> Features
+    Cli --> Screen
+    Cli --> Tui
+    Cli --> Server
+```
 
-1. `hls-store::recorder` records fixture public WebSocket lines through a bounded raw-writer channel.
-2. `hls-store::raw` writes compressed raw `.ndjson.zst` files under the configured local data directory.
-3. `hls-store::normalized` writes deterministic replayable JSONL `MarketEvent` rows.
-4. `hls-store::metadata` records runs, files, symbols, and data gaps in local `hls.sqlite`.
-5. `hls-store::replay` rebuilds feature snapshots from normalized local files.
-6. `hls-cli live --record` records real public WebSocket frames through a bounded writer worker that fails closed on backpressure. `hls-cli record`, `hls-cli replay`, and fixture-backed `hls live --record` expose deterministic test/offline flows.
+## Live Data Flow
 
-Current US3 screening flow:
+```mermaid
+sequenceDiagram
+    participant CLI as hls live
+    participant REST as Hyperliquid Info API
+    participant WS as Hyperliquid WS
+    participant REC as Recorder worker
+    participant FEAT as Feature engine
+    participant TUI as TUI renderer
 
-1. `hls-screen::dsl::parser` parses the small deterministic filter DSL and sort syntax.
-2. `hls-screen::engine::ScreenEngine` filters and sorts `FeatureSnapshot` rows by custom expression or built-in preset.
-3. `hls-screen::engine::ScreenSession` preserves the last active rows when an invalid expression is rejected.
-4. `hls-tui::app::render_screened_table` applies screening before rendering.
-5. `hls-cli screen` and fixture-backed `hls live --preset/--where/--sort` call the same shared engine.
+    CLI->>REST: Load public spot universe and metadata
+    CLI->>CLI: Budget subscriptions under public limits
+    CLI->>WS: Subscribe to trades, bbo, activeAssetCtx
+    CLI->>WS: Send heartbeat ping during run
+    WS-->>CLI: Public frames and control messages
+    CLI->>REC: Queue raw frame and normalized events
+    CLI->>FEAT: Apply event to market state
+    FEAT-->>CLI: FeatureSnapshot rows with confidence
+    CLI->>TUI: Render table, detail, health text
+    CLI->>REC: Finish and mark clean shutdown
+```
 
-Current US4 health/safety flow:
+Runtime rules:
 
-1. `hls-core::health` owns serializable read-only safety, connection, writer, recording, gap, and aggregate health state.
-2. `hls-core::telemetry` owns deterministic latency percentile calculation for data, feature, and render lag.
-3. `hls-hyperliquid::ws::connection` owns heartbeat timing, bounded reconnect backoff, and resubscribe state transitions for public WebSocket connections.
-4. `hls-tui::health::render_health_pane` renders operator health text from the shared snapshot.
-5. `hls-server::handle_get` exposes pure read-only `/health`, `/symbols`, `/screen`, and `/symbol/{symbol}` response helpers.
-6. `hls-cli doctor --live` and `hls-cli server --print-health` expose health status without wallet, private, order, or trading actions.
+- All-symbol mode budgets subscriptions before connecting. On 2026-07-08 the public spot universe had `308` symbols; `trades`, `bbo`, and `activeAssetCtx` produce `924` subscriptions, under the configured headroom and official public limit.
+- Disk writes are off the WebSocket read loop through a bounded worker queue. Backpressure fails closed instead of silently dropping data.
+- Reconnects resubscribe and record explicit data gaps. Automatic REST backfill after reconnect is not implemented.
+- The TUI renders `p95 row age`, which is row freshness, not a compute-latency SLA.
 
-Current US5 operations flow:
+## Replay And Screening Flow
 
-1. `hls-store::benchmark` loads public benchmark manifests, validates fixture paths, parses committed WebSocket NDJSON through `hls-hyperliquid::ws::parser`, rebuilds `LiveMarketState`, computes `FeatureSnapshot` rows, and SHA-256 hashes canonical output.
-2. `hls-cli bench` runs those benchmark packs and fails closed on expected-hash drift or feature-latency budget breach.
-3. `hls-core::metrics` validates metric definitions, rejects known high-cardinality labels, and renders low-cardinality metric samples plus Prometheus text.
-4. `hls-cli doctor --live --json` includes the metrics snapshot alongside health state.
-5. `hls-core::extension` defines read-only extension manifest and invocation models. It does not execute WASM and rejects network, filesystem, private-data, and trading permissions.
-6. `dist-workspace.toml`, `.github/workflows/release.yml`, and `scripts/check-release-packaging.sh` provide a local and CI-checked release packaging draft without creating tags or public releases.
+```mermaid
+flowchart LR
+    Raw["raw/ws/run=<id>/*.ndjson.zst"]
+    Norm["normalized/events/run=<id>/*.ndjson"]
+    Sqlite["hls.sqlite\nruns, files, symbols, gaps, confidence"]
+    Replay["hls-store replay"]
+    Features["FeatureSnapshot rows"]
+    Parity["hls replay --verify-parity"]
+    Screen["hls screen / hls explain"]
+    Tui["workstation output"]
 
-True Parquet output, public-data backfill after reconnect, a long-running localhost HTTP server loop, interactive keyboard filter editing, extension runtime execution, and proven public release publication remain separate later slices.
+    Raw --> Sqlite
+    Norm --> Sqlite
+    Norm --> Replay
+    Replay --> Features
+    Features --> Parity
+    Features --> Screen
+    Screen --> Tui
+```
+
+Replay rules:
+
+- Dirty or incomplete runs are rejected.
+- `hls replay --verify-parity` writes a confidence baseline on first run and fails non-zero on later drift.
+- Replay parity checks confidence/data-quality state, not profitability or strategy quality.
+
+## Current Command Surfaces
+
+- `hls init`: create local config/data directories.
+- `hls doctor`: print read-only health and low-cardinality metrics.
+- `hls symbols`: inspect public spot universe metadata.
+- `hls live`: bounded public live screen/recording.
+- `hls record`: deterministic fixture recording path.
+- `hls replay`: replay normalized local captures and verify parity.
+- `hls screen`: filter/sort feature snapshots with presets or custom DSL.
+- `hls explain`: show why-ranked score components for one row.
+- `hls bench`: run deterministic public fixture benchmark packs.
+- `hls server --print-health`: print read-only API preview JSON.
+
+## Production-Readiness Boundary
+
+Production-ready today means:
+
+- Run locally or in a supervised environment as a read-only public-data process.
+- Capture raw and normalized public data for replay.
+- Fail closed on writer backpressure, invalid configs, parser-private channels, invalid DSL, missing fixtures, unsupported Parquet output, and replay parity drift.
+- Emit deterministic terminal output and low-cardinality health metrics.
+
+Not production-ready today:
+
+- Unbounded daemon/service mode.
+- Hosted web API.
+- Public release binaries from a proven `v*` tag.
+- Public REST backfill after reconnect.
+- True Parquet output.
+- Keyboard-interactive TUI.
+- Any live trading, wallet, private stream, or order execution behavior.
+
+See [production-readiness.md](production-readiness.md) for the current validation evidence and deployment checklist.
