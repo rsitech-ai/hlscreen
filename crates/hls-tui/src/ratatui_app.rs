@@ -1506,6 +1506,9 @@ fn tape_lines(
 
     let recent_trades = selected_trades(model, &selected.symbol, content_height);
     if !recent_trades.is_empty() {
+        if model.ui_state.view() == WorkstationView::Flow {
+            lines.extend(trade_pressure_lines(&recent_trades, compact, color_mode));
+        }
         lines.push(Line::from(vec![
             Span::styled(
                 "PUBLIC TRADES ",
@@ -1593,6 +1596,97 @@ fn selected_trades<'a>(
         trades.truncate(limit);
     }
     trades
+}
+
+fn trade_pressure_lines(
+    trades: &[&TradeEvent],
+    compact: bool,
+    color_mode: RatatuiColorMode,
+) -> Vec<Line<'static>> {
+    let buy_notional = trades
+        .iter()
+        .filter(|trade| trade.side == TradeSide::Buy)
+        .map(|trade| trade.notional)
+        .sum::<f64>();
+    let sell_notional = trades
+        .iter()
+        .filter(|trade| trade.side == TradeSide::Sell)
+        .map(|trade| trade.notional)
+        .sum::<f64>();
+    let buy_count = trades
+        .iter()
+        .filter(|trade| trade.side == TradeSide::Buy)
+        .count();
+    let sell_count = trades
+        .iter()
+        .filter(|trade| trade.side == TradeSide::Sell)
+        .count();
+    let total_notional = buy_notional + sell_notional;
+    let buy_share = if total_notional > 0.0 {
+        buy_notional / total_notional
+    } else {
+        0.0
+    };
+    let sell_share = if total_notional > 0.0 {
+        sell_notional / total_notional
+    } else {
+        0.0
+    };
+    let pressure = if total_notional > 0.0 {
+        (buy_notional - sell_notional) / total_notional
+    } else {
+        0.0
+    };
+    let bar_width = if compact { 8 } else { 10 };
+
+    let mut lines = vec![
+        Line::from(vec![
+            Span::styled(
+                "TRADE FLOW MODE ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw("Public trades only"),
+        ]),
+        Line::from(vec![
+            Span::styled("buy pressure ", Style::default().fg(success(color_mode))),
+            Span::raw(format!(
+                "{} {} / {} prints",
+                depth_bar(buy_share, bar_width),
+                format_usd(Some(buy_notional)),
+                buy_count
+            )),
+        ]),
+    ];
+
+    if compact {
+        lines.push(Line::from(format!(
+            "sell pressure {} {} / {} prints",
+            depth_bar(sell_share, bar_width),
+            format_usd(Some(sell_notional)),
+            sell_count
+        )));
+    } else {
+        lines.extend([
+            Line::from(vec![
+                Span::styled("sell pressure ", Style::default().fg(danger(color_mode))),
+                Span::raw(format!(
+                    "{} {} / {} prints",
+                    depth_bar(sell_share, bar_width),
+                    format_usd(Some(sell_notional)),
+                    sell_count
+                )),
+            ]),
+            Line::from(format!(
+                "trade skew {} net {}",
+                signed_meter(pressure),
+                format_usd_signed(Some(buy_notional - sell_notional))
+            )),
+        ]);
+    }
+
+    lines
 }
 
 fn trade_tape_line(
