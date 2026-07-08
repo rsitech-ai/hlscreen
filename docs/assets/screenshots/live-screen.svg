@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Fixture-backed live screen terminal screenshot" viewBox="0 0 976 188" width="976" height="188">
+<defs>
+<linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+<stop offset="0" stop-color="#101418"/>
+<stop offset="1" stop-color="#1d242c"/>
+</linearGradient>
+</defs>
+<rect width="976" height="188" rx="10" fill="url(#bg)"/>
+<circle cx="24" cy="24" r="6" fill="#ff5f57"/>
+<circle cx="44" cy="24" r="6" fill="#ffbd2e"/>
+<circle cx="64" cy="24" r="6" fill="#28c840"/>
+<text x="24" y="40" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="700">Fixture-backed live screen</text>
+<text x="24" y="60" fill="#98c379" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">$ ./target/debug/hls live --symbols @107 --fixture-file tests/fixtures/hyperliquid/ws_mock_live.ndjson</text>
+<text x="24" y="80" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">  --preset thin_books --once</text>
+<text x="24" y="100" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">READ-ONLY Hyperliquid spot live screen</text>
+<text x="24" y="120" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">symbol        price      spread_bps  tob_depth_usd  ret_1m    liq_score  updated_ms  state</text>
+<text x="24" y="140" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">@107          35.2000    57.14       245.10         0.57%     2.45       0           fresh</text>
+</svg>
