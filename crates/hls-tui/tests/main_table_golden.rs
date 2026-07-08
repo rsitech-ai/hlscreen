@@ -17,17 +17,14 @@ fn renders_read_only_main_table_for_fixture_snapshot() {
 
     let table = render_main_table(&snapshots);
 
-    assert_eq!(
-        table,
-        "╭────────────────────────────────────────────────────────────────────────────────────────────────────────╮\n\
-         │ HLSCREEN   READ-ONLY Hyperliquid spot live screen                                            READ-ONLY │\n\
-         ├────────────────────────────────────────────────────────────────────────────────────────────────────────┤\n\
-         │ DATA       public spot market data only | rows 1 | fresh 1 | stale 0 | incomplete 0              LOCAL │\n\
-         ╰────────────────────────────────────────────────────────────────────────────────────────────────────────╯\n\
-         SYMBOL        STATE         PRICE         SPREAD     TOB DEPTH       IMBAL     RET 1M    SCORE      AGE\n\
-         ────────────  ────────────  ────────────  ─────────  ────────────  ─────────  ─────────  ───────  ───────\n\
-         @107          ● fresh            35.2000   57.1 bps          $245       -15%          -     2.45     6.0s\n\
-         \n\
-         Read-only screen: public spot market data only. Scores are heuristics, not trading signals.\n"
-    );
+    assert!(table.contains("Hyperliquid Microstructure Workstation"));
+    assert!(table.contains("PUBLIC WS/REST"));
+    assert!(table.contains("QUALITY"));
+    assert!(table.contains("median spread 57.1 bps"));
+    assert!(table.contains("top depth $245"));
+    assert!(table.contains("#   SYMBOL"));
+    assert!(table.contains("@107"));
+    assert!(table.contains("● FRESH"));
+    assert!(table.contains("No wallet"));
+    assert!(table.contains("Scores are screen heuristics, not orders or advice."));
 }

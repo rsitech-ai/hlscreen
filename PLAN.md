@@ -611,3 +611,63 @@
 - Live smoke: `./target/debug/hls live --symbols @107 --duration-secs 10 --refresh-secs 5 --tui` completed against the public Hyperliquid WebSocket with 1 symbol, 4 subscriptions, 102 WebSocket messages, 133 market events, 0 reconnects, 0 data gaps, and fresh TUI rows.
 - Tradeoffs: This is a deterministic renderer polish slice, not a full keyboard-driven interactive TUI runtime. It intentionally avoids ANSI color in normal table strings so captured stdout remains stable; live `--tui` still uses terminal clear codes during refresh.
 - Rollback: revert this branch; no schema, data, or runtime migration is involved.
+
+## 2026-07-08 Workstation TUI Refinement
+
+### Task
+- Objective: Push the terminal UI from a clean table into a professional workstation-style market board with stronger hierarchy, richer truthful KPIs, clearer health states, and refreshed screenshots.
+- Owner repo(s): standalone `hlscreen/` repository only.
+- Capital impact: research-only / read-only public market-data display. No wallet, private stream, order, exchange action, execution route, or recommendation semantics.
+
+### Context
+- Background: PR #12 already merged a solid deterministic TUI polish pass. The current ask is to make the TUI look "very very good" and provide screenshots, so this is a visual/ergonomic refinement over the existing renderer rather than a new live-data feature.
+- Inputs: `crates/hls-tui/src/app.rs`, `crates/hls-tui/src/health.rs`, `crates/hls-tui/src/theme.rs`, TUI golden tests, screenshot generator, README screenshot section, and current official Ratatui guidance that rich terminal UIs are normally widget/layout-driven.
+- Outputs: Updated deterministic market board, health panel, screenshot styling/assets, tests, and visual proof.
+
+### Assumptions
+- The project still needs stable stdout/stderr output for smoke tests, CI screenshots, logs, and replay; a full alternate-screen keyboard UI is a future feature rather than this refinement.
+- Visual KPIs must be computed from existing `FeatureSnapshot`/`HealthSnapshot` values only. No fake market data and no made-up confidence score.
+- Unicode box/glyph rendering remains acceptable for the polished docs surface.
+
+### Constraints
+- Technical: keep renderer deterministic; avoid ANSI codes in captured table strings; do not block live ingestion; avoid new dependencies unless they remove real complexity.
+- Operational: regenerate screenshots from the actual rebuilt binary; do not commit runtime market-data captures.
+- Risk/capital: preserve read-only labels and heuristic-only score language.
+
+### Options Considered
+1. Add `ratatui`/`crossterm` and build a full alternate-screen app immediately.
+   - Pros: aligns with the dominant Rust TUI ecosystem and enables richer widgets later.
+   - Cons: larger lifecycle/input slice, harder screenshot automation, and unnecessary for the requested immediate visual proof.
+2. Refine the existing deterministic renderer into a workstation board and keep full interactivity on the roadmap.
+   - Pros: small, verifiable, screenshot-friendly, no live-data risk, and consistent with current architecture.
+   - Cons: still not a keyboard-driven terminal application.
+
+### Chosen Approach
+- Choice: option 2.
+- Why: it gives the user visible quality now while preserving the low-latency live-data path and leaving the right architecture path open for a later interactive Ratatui shell.
+
+### Execution Plan
+1. Update TUI golden expectations for a richer market-board layout and health command center.
+2. Implement computed KPI rows, stronger table hierarchy, clearer state labels, and readable empty-state handling.
+3. Improve screenshot generator width/styling if the new layout needs it.
+4. Regenerate SVG screenshots and render PNG previews for inspection.
+5. Run focused TUI/CLI tests, full Rust validation, screenshot generation, diff check, and read-only scan.
+
+### Test Plan
+- Focused: `cargo test -p hls-tui --test main_table_golden`; `cargo test -p hls-tui --test health_pane`.
+- CLI/screenshot: `cargo test -p hls-cli --test live_mock --test health_commands`; `python3 scripts/generate-screenshots.py`; PNG preview render with `rsvg-convert`.
+- Regression: `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`; `git diff --check`.
+
+### Risks and Rollback
+- Risks: wider tables can wrap in documentation screenshots; over-styled screenshots can diverge from actual terminal output; Unicode glyphs vary by font.
+- Rollback: revert this refinement commit; no data/schema/runtime migration is involved.
+
+### Memory Impact
+- Add/update in `MEMORY.md`: durable TUI renderer convention and screenshot proof command if behavior changes.
+
+### Final Notes
+- What changed: Refined the deterministic TUI into a workstation-style market board with a wider panel, branded microstructure header, mode/universe/quality KPI strip, computed median spread/top-depth/total-depth/top-score metrics, `MARKET BOARD` separator, indexed rows, uppercase state markers, RV/liquidity/momentum columns, empty-state copy, and an explicit read-only safety footer. Updated the operations health panel into safety/ingest/storage lanes, adjusted CLI tests to assert the safety footer directly, widened/styled screenshot generation, and refreshed all committed SVG screenshots plus README live-board copy.
+- Validation run: red/green `cargo test -p hls-tui --test main_table_golden --test health_pane`; `cargo test -p hls-cli --test live_mock --test health_commands`; `python3 scripts/generate-screenshots.py`; SVG-to-PNG preview render with `rsvg-convert`; `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`; `git diff --check`; screenshot temp-path scan; read-only surface scan.
+- Live smoke: `./target/debug/hls live --symbols @107 --duration-secs 10 --refresh-secs 5 --tui` completed against the public Hyperliquid WebSocket with 1 symbol, 4 public subscriptions, 56 WebSocket messages, 81 market events, 0 reconnects, and 0 data gaps.
+- Tradeoffs: This remains a deterministic renderer and live-refresh surface, not a full keyboard-driven alternate-screen Ratatui app. That larger interactive shell remains a future slice.
+- Rollback: revert this refinement commit; no schema, storage, or runtime migration is involved.
