@@ -1,6 +1,9 @@
 use hls_core::{
     confidence::DataConfidenceSnapshot,
-    market_state::{FeatureSnapshot, StalenessState},
+    market_state::{
+        AdverseSelectionProxy, FeatureSnapshot, LiquidityResilienceState, StalenessState,
+        TradeabilityState,
+    },
 };
 use hls_screen::{ScreenEngine, ScreenRequest, presets::builtin_presets};
 
@@ -15,6 +18,9 @@ fn built_in_presets_match_expected_rows_and_order() {
             "tight_spread_movers",
             "mean_reversion_watch",
             "thin_books",
+            "liquidity_resilience",
+            "brittle_tradeability",
+            "flow_pressure",
         ]
     );
 
@@ -141,6 +147,13 @@ fn row(
         ask_px: Some(1.01),
         ask_sz: Some(10.0),
         spread_bps: Some(spread_bps),
+        spread_shock_bps: None,
+        spread_recovery_ms: None,
+        resilience_state: LiquidityResilienceState::Unknown,
+        tradeability_state: TradeabilityState::Unknown,
+        adverse_selection_proxy: AdverseSelectionProxy::Unknown,
+        signed_notional_flow_30s: None,
+        bbo_ofi_proxy_30s: None,
         tob_depth_usd: Some(tob_depth_usd),
         tob_imbalance: Some(0.0),
         ret_1m: Some(ret_5m),

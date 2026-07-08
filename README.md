@@ -45,6 +45,10 @@ These committed SVGs are deterministic terminal captures generated from the curr
 
 ![Data confidence pane](docs/assets/screenshots/confidence-degraded.svg)
 
+### Liquidity Resilience Board
+
+![Liquidity resilience board](docs/assets/screenshots/resilience-screen.svg)
+
 ### Record And Replay
 
 ![Record and replay](docs/assets/screenshots/record-replay.svg)

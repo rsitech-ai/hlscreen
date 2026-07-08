@@ -32,6 +32,21 @@ pub fn builtin_presets() -> Vec<ScreenPreset> {
             where_expr: "day_ntl_vlm > 100000 and tob_depth_usd < 5000",
             sort: "tob_depth_usd:asc",
         },
+        ScreenPreset {
+            name: "liquidity_resilience",
+            where_expr: "tradeability_state == \"tradeable\" and resilience_state == \"normal\"",
+            sort: "tob_depth_usd:desc",
+        },
+        ScreenPreset {
+            name: "brittle_tradeability",
+            where_expr: "tradeability_state == \"thin\" or resilience_state == \"brittle\" or adverse_selection_proxy == \"brittle\"",
+            sort: "spread_bps:desc",
+        },
+        ScreenPreset {
+            name: "flow_pressure",
+            where_expr: "abs(signed_notional_flow_30s) > 1000",
+            sort: "abs(signed_notional_flow_30s):desc",
+        },
     ]
 }
 
