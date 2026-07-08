@@ -194,6 +194,33 @@ fn cockpit_header_renders_market_internals_rail() {
 }
 
 #[test]
+fn detail_panel_renders_score_factor_stack() {
+    let model = RatatuiFrameModel::new(
+        fixture_snapshots(),
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        WorkstationUiState::default(),
+    );
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 160,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders factor stack");
+
+    assert!(rendered.contains("FACTOR STACK"));
+    assert!(rendered.contains("score raw"));
+    assert!(rendered.contains("adj"));
+    assert!(rendered.contains("mean"));
+    assert!(rendered.contains("mom"));
+    assert!(rendered.contains("spread"));
+}
+
+#[test]
 fn narrow_cockpit_collapses_to_watchlist_and_detail_without_tape() {
     let model = RatatuiFrameModel::new(
         fixture_snapshots(),
