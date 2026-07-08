@@ -42,6 +42,15 @@ fn release_workflow_is_pull_request_plan_and_tag_publish_only() {
 }
 
 #[test]
+fn distributable_crate_inherits_public_repository_metadata() {
+    let manifest = read("crates/hls-cli/Cargo.toml");
+
+    assert!(manifest.contains("repository.workspace = true"));
+    assert!(manifest.contains("homepage.workspace = true"));
+    assert!(manifest.contains("description.workspace = true"));
+}
+
+#[test]
 fn release_docs_explain_local_dry_run_and_no_secrets_boundary() {
     let docs = read("docs/RELEASING.md");
 
