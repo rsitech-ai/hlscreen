@@ -21,7 +21,7 @@ use futures_util::{SinkExt, StreamExt};
 use hls_core::{
     HlsError, HlsResult,
     data_gap::DataGap,
-    market_state::{LiveMarketState, MarketEvent},
+    market_state::{CandleEvent, LiveMarketState, MarketEvent},
     metadata::MetadataEnrichment,
     time::now_millis,
 };
@@ -188,9 +188,8 @@ async fn run_fixture_live(args: LiveArgs, fixture_file: &PathBuf) -> anyhow::Res
             live_table_title(args.record),
             &screen_request,
             None,
-            "fixture",
-            "REC ready",
-            "fixture replay",
+            live_tui_candles(&state),
+            LiveTuiStatus::new("fixture", "REC ready", "fixture replay"),
         );
         let table = render_live_tui_snapshot(
             &model,
@@ -331,15 +330,21 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
             live_table_title(record_summary.is_some()),
             &screen_request,
             tui_state.as_ref(),
-            "complete",
-            if record_summary.is_some() {
-                "REC done"
-            } else {
-                "REC ready"
-            },
-            &format!(
-                "ws={} events={} reconnects={} gaps={}",
-                summary.ws_messages, summary.market_events, summary.reconnects, summary.data_gaps
+            live_tui_candles(&state),
+            LiveTuiStatus::new(
+                "complete",
+                if record_summary.is_some() {
+                    "REC done"
+                } else {
+                    "REC ready"
+                },
+                format!(
+                    "ws={} events={} reconnects={} gaps={}",
+                    summary.ws_messages,
+                    summary.market_events,
+                    summary.reconnects,
+                    summary.data_gaps
+                ),
             ),
         );
         render_live_tui_snapshot(&model, None)?
@@ -978,15 +983,18 @@ fn render_live_progress(
             "READ-ONLY Hyperliquid spot live screen",
             screen_request,
             tui_state,
-            "LIVE",
-            "REC ready",
-            &format!(
-                "{}s ws={} events={} reconnects={} gaps={}",
-                started.elapsed().as_secs(),
-                summary.ws_messages,
-                summary.market_events,
-                summary.reconnects,
-                summary.data_gaps
+            live_tui_candles(state),
+            LiveTuiStatus::new(
+                "LIVE",
+                "REC ready",
+                format!(
+                    "{}s ws={} events={} reconnects={} gaps={}",
+                    started.elapsed().as_secs(),
+                    summary.ws_messages,
+                    summary.market_events,
+                    summary.reconnects,
+                    summary.data_gaps
+                ),
             ),
         );
         draw_live_tui_frame(&model)?;
@@ -1021,9 +1029,8 @@ fn live_tui_model(
     title: &str,
     screen_request: &ScreenRequest,
     tui_state: Option<&WorkstationUiState>,
-    stream_status: &str,
-    recorder_status: &str,
-    health_status: &str,
+    candles: Vec<CandleEvent>,
+    status: LiveTuiStatus,
 ) -> RatatuiFrameModel {
     RatatuiFrameModel::new(
         snapshots.to_vec(),
@@ -1031,7 +1038,35 @@ fn live_tui_model(
         screen_request.clone(),
         tui_state.cloned().unwrap_or_default(),
     )
-    .with_status(stream_status, recorder_status, health_status)
+    .with_candles(candles)
+    .with_status(status.stream, status.recorder, status.health)
+}
+
+struct LiveTuiStatus {
+    stream: String,
+    recorder: String,
+    health: String,
+}
+
+impl LiveTuiStatus {
+    fn new(
+        stream: impl Into<String>,
+        recorder: impl Into<String>,
+        health: impl Into<String>,
+    ) -> Self {
+        Self {
+            stream: stream.into(),
+            recorder: recorder.into(),
+            health: health.into(),
+        }
+    }
+}
+
+fn live_tui_candles(state: &LiveMarketState) -> Vec<CandleEvent> {
+    state
+        .states()
+        .flat_map(|state| state.candles.iter().cloned())
+        .collect()
 }
 
 fn draw_live_tui_frame(model: &RatatuiFrameModel) -> anyhow::Result<()> {

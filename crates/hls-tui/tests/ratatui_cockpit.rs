@@ -1,4 +1,4 @@
-use hls_core::market_state::LiveMarketState;
+use hls_core::market_state::{CandleEvent, LiveMarketState, MarketEvent};
 use hls_features::engine::FeatureEngine;
 use hls_hyperliquid::{rest::parse_metadata_enrichment_bundle, ws::parser::parse_ws_ndjson};
 use hls_screen::ScreenRequest;
@@ -30,6 +30,19 @@ fn fixture_snapshots() -> Vec<hls_core::market_state::FeatureSnapshot> {
             .cloned();
     }
     snapshots
+}
+
+fn fixture_candles() -> Vec<CandleEvent> {
+    parse_ws_ndjson(include_str!(
+        "../../../tests/fixtures/hyperliquid/ws_mock_live.ndjson"
+    ))
+    .expect("fixture parses")
+    .into_iter()
+    .filter_map(|event| match event {
+        MarketEvent::Candle(candle) => Some(candle),
+        _ => None,
+    })
+    .collect()
 }
 
 #[test]
@@ -150,4 +163,32 @@ fn cockpit_reflects_keyboard_view_pause_density_and_help_state() {
     assert!(rendered.contains("display paused"));
     assert!(rendered.contains("HELP"));
     assert!(rendered.contains("Command Deck"));
+}
+
+#[test]
+fn cockpit_chart_uses_real_candle_ohlc_and_volume_when_available() {
+    let model = RatatuiFrameModel::new(
+        fixture_snapshots(),
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        WorkstationUiState::default(),
+    )
+    .with_candles(fixture_candles());
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 160,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders");
+
+    assert!(rendered.contains("CANDLES 1m"));
+    assert!(rendered.contains("O 34.5000"));
+    assert!(rendered.contains("H 35.2000"));
+    assert!(rendered.contains("L 34.4000"));
+    assert!(rendered.contains("C 35.0000"));
+    assert!(rendered.contains("VOL 1200"));
 }
