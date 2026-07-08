@@ -976,9 +976,10 @@ fn render_book(
     color_mode: RatatuiColorMode,
 ) {
     let rows = screened_rows(model);
+    let content_height = area.height.saturating_sub(2) as usize;
     let lines = selected_row(&rows, model).map_or_else(
         || vec![Line::from("No book data")],
-        |row| book_lines(row, color_mode),
+        |row| book_lines(row, color_mode, content_height),
     );
     frame.render_widget(
         Paragraph::new(lines)
@@ -988,10 +989,21 @@ fn render_book(
     );
 }
 
-fn book_lines(row: &FeatureSnapshot, color_mode: RatatuiColorMode) -> Vec<Line<'static>> {
+fn book_lines(
+    row: &FeatureSnapshot,
+    color_mode: RatatuiColorMode,
+    content_height: usize,
+) -> Vec<Line<'static>> {
     let bid_notional = notional(row.bid_px, row.bid_sz);
     let ask_notional = notional(row.ask_px, row.ask_sz);
-    vec![
+    let quote_share = quote_share(bid_notional, ask_notional);
+    let (bid_share, ask_share) = quote_share
+        .map(|(bid, ask)| (percent_label(bid), percent_label(ask)))
+        .unwrap_or_else(|| ("-".to_owned(), "-".to_owned()));
+    let (bid_bar, ask_bar) = quote_share
+        .map(|(bid, ask)| (depth_bar(bid, 16), depth_bar(ask, 16)))
+        .unwrap_or_else(|| (depth_bar_empty(16), depth_bar_empty(16)));
+    let mut lines = vec![
         Line::from(vec![
             Span::styled(
                 "BID ",
@@ -1020,6 +1032,54 @@ fn book_lines(row: &FeatureSnapshot, color_mode: RatatuiColorMode) -> Vec<Line<'
                 format_usd(ask_notional)
             )),
         ]),
+        Line::from(vec![
+            Span::raw("share "),
+            Span::styled(
+                format!("bid {bid_share}"),
+                Style::default()
+                    .fg(success(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(" / "),
+            Span::styled(
+                format!("ask {ask_share}"),
+                Style::default()
+                    .fg(danger(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+        ]),
+    ];
+
+    if content_height <= 7 {
+        lines.extend([
+            Line::from(vec![
+                Span::styled("BID notional ", Style::default().fg(success(color_mode))),
+                Span::raw(format!("{bid_bar} {}", format_usd(bid_notional))),
+            ]),
+            Line::from(vec![
+                Span::styled("ASK notional ", Style::default().fg(danger(color_mode))),
+                Span::raw(format!("{ask_bar} {}", format_usd(ask_notional))),
+            ]),
+            Line::from(format!(
+                "imbalance {}  OFI {}",
+                format_signed(row.tob_imbalance, ""),
+                format_usd_signed(row.bbo_ofi_proxy_30s)
+            )),
+            Line::from("BOOK proxy only | public top-book"),
+        ]);
+        return lines;
+    }
+
+    lines.extend([
+        Line::from("BOOK proxy only | public top-book"),
+        Line::from(vec![
+            Span::styled("BID notional ", Style::default().fg(success(color_mode))),
+            Span::raw(format!("{bid_bar} {}", format_usd(bid_notional))),
+        ]),
+        Line::from(vec![
+            Span::styled("ASK notional ", Style::default().fg(danger(color_mode))),
+            Span::raw(format!("{ask_bar} {}", format_usd(ask_notional))),
+        ]),
         Line::from(format!(
             "spread {} bps  depth {}",
             format_optional(row.spread_bps, 1),
@@ -1039,11 +1099,9 @@ fn book_lines(row: &FeatureSnapshot, color_mode: RatatuiColorMode) -> Vec<Line<'
             row.tradeability_state.as_str(),
             row.resilience_state.as_str()
         )),
-        Line::from(format!(
-            "adverse {} | BOOK proxy only",
-            row.adverse_selection_proxy.as_str()
-        )),
-    ]
+        Line::from(format!("adverse {}", row.adverse_selection_proxy.as_str())),
+    ]);
+    lines
 }
 
 fn render_tape(
@@ -1383,6 +1441,32 @@ fn notional(px: Option<f64>, qty: Option<f64>) -> Option<f64> {
         (Some(px), Some(qty)) => Some(px * qty),
         _ => None,
     }
+}
+
+fn quote_share(bid_notional: Option<f64>, ask_notional: Option<f64>) -> Option<(f64, f64)> {
+    let bid = positive_finite(bid_notional).unwrap_or(0.0);
+    let ask = positive_finite(ask_notional).unwrap_or(0.0);
+    let total = bid + ask;
+    (total > 0.0).then_some((bid / total, ask / total))
+}
+
+fn positive_finite(value: Option<f64>) -> Option<f64> {
+    value.filter(|value| value.is_finite() && *value > 0.0)
+}
+
+fn percent_label(value: f64) -> String {
+    format!("{:.0}%", value.clamp(0.0, 1.0) * 100.0)
+}
+
+fn depth_bar(value: f64, width: usize) -> String {
+    let clamped = value.clamp(0.0, 1.0);
+    let filled = ((clamped * width as f64).round() as usize).min(width);
+    let empty = width.saturating_sub(filled);
+    format!("{}{}", "█".repeat(filled), "░".repeat(empty))
+}
+
+fn depth_bar_empty(width: usize) -> String {
+    "░".repeat(width)
 }
 
 fn signed_meter(value: f64) -> String {
