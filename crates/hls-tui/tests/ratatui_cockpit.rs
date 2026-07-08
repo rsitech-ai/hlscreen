@@ -3,7 +3,7 @@ use hls_features::engine::FeatureEngine;
 use hls_hyperliquid::{rest::parse_metadata_enrichment_bundle, ws::parser::parse_ws_ndjson};
 use hls_screen::ScreenRequest;
 use hls_tui::{
-    interaction::{WorkstationAction, WorkstationUiState},
+    interaction::{WorkstationAction, WorkstationPane, WorkstationUiState},
     ratatui_app::{
         RatatuiColorMode, RatatuiFrameModel, RatatuiViewport, render_ratatui_snapshot_for_test,
     },
@@ -139,6 +139,91 @@ fn narrow_cockpit_collapses_to_watchlist_and_detail_without_tape() {
     assert!(rendered.contains("DETAIL"));
     assert!(rendered.contains("HYPE/USDC"));
     assert!(!rendered.contains("TAPE"));
+}
+
+#[test]
+fn medium_cockpit_keeps_book_and_tape_visible() {
+    let model = RatatuiFrameModel::new(
+        fixture_snapshots(),
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        WorkstationUiState::default(),
+    )
+    .with_candles(fixture_candles());
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 120,
+            height: 36,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders");
+
+    assert!(rendered.contains("WATCHLIST"));
+    assert!(rendered.contains("MICROSTRUCTURE"));
+    assert!(rendered.contains("CANDLES"));
+    assert!(rendered.contains("BOOK"));
+    assert!(rendered.contains("TAPE"));
+    assert!(rendered.contains("BID"));
+    assert!(rendered.contains("Selected flow"));
+}
+
+#[test]
+fn narrow_cockpit_renders_focused_hidden_pane_as_drilldown() {
+    let snapshots = fixture_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Book),
+        snapshots.len(),
+    );
+    let model = RatatuiFrameModel::new(
+        snapshots.clone(),
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    );
+
+    let rendered_book = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 72,
+            height: 24,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders book drilldown");
+
+    assert!(rendered_book.contains("[FOCUS] BOOK"));
+    assert!(rendered_book.contains("BID"));
+    assert!(rendered_book.contains("imbalance"));
+
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Tape),
+        snapshots.len(),
+    );
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    );
+
+    let rendered_tape = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 72,
+            height: 24,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders tape drilldown");
+
+    assert!(rendered_tape.contains("[FOCUS] TAPE"));
+    assert!(rendered_tape.contains("Selected flow"));
+    assert!(rendered_tape.contains("Flow leaderboard"));
 }
 
 #[test]
