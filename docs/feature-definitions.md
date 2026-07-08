@@ -5,6 +5,14 @@ The v1 feature set is a transparent screener surface, not a prediction engine.
 - `spread_bps`: best-ask minus best-bid divided by mid price, in basis points.
 - `tob_depth_usd`: top-of-book bid notional plus ask notional.
 - `tob_imbalance`: top-of-book bid notional versus ask notional, bounded to `[-1, 1]`.
+- `spread_shock_bps`: the largest recent spread expansion versus the local
+  pre-shock top-of-book baseline.
+- `spread_recovery_ms`: elapsed time from the detected spread shock to the
+  first quote that recovered to the documented threshold.
+- `signed_notional_flow_30s`: buy trades minus sell trades over the latest
+  30-second exchange-time window.
+- `bbo_ofi_proxy_30s`: a best-bid/best-ask queue-change proxy over the latest
+  30-second window. It uses only public top-of-book sizes and prices.
 - Return and volatility windows are computed from local trades whose exchange timestamps fall inside the requested decision-time window.
 - Score fields are bounded heuristic ranks from `0` to `100`, not trade signals.
 
@@ -21,6 +29,45 @@ The v1 feature set is a transparent screener surface, not a prediction engine.
 - `mean_reversion_score = clamp(50 - selected_return * 100, 0, 100)`, using the same selected return.
 
 These scores are screen ordering aids only. They are not predictions, recommendations, or profitability claims.
+
+## Liquidity Resilience and Tradeability
+
+Liquidity resilience fields are derived from public `bbo` and `trades` events
+only. They are designed to answer whether the visible top of book recovered
+after a quoted-cost shock; they do not inspect hidden liquidity or full depth.
+
+Current states:
+
+- `resilience_state`: `unknown`, `normal`, `shock`, `recovering`, or `brittle`
+- `tradeability_state`: `unknown`, `tradeable`, `costly`, `thin`, or `stale`
+- `adverse_selection_proxy`: `unknown`, `normal`, `watch`, or `brittle`
+
+Current rules:
+
+- A spread shock requires both an absolute expansion of at least `25 bps` and a
+  spread at least `2x` the local pre-shock baseline.
+- Recovery is counted when the latest spread returns to the larger of `1.5x`
+  baseline or baseline plus `10 bps`.
+- A shock that remains unrecovered for more than `10 seconds` is labeled
+  `brittle`.
+- `tradeability_state = tradeable` requires fresh data, sufficient confidence,
+  a normal resilience state, spread at or below `25 bps`, and at least `$5K` of
+  top-of-book depth.
+- `thin` is emitted for fresh rows with enough quote history but less than
+  `$1K` of top-of-book depth.
+- `unknown` is emitted when BBO history is insufficient; sparse windows are not
+  silently treated as zero.
+
+Important caveats:
+
+- `bbo_ofi_proxy_30s` is a BBO-only order-flow imbalance proxy. It is not full
+  order-book OFI and must not be interpreted as total depth pressure.
+- `adverse_selection_proxy` is a screen warning from signed public trade flow,
+  BBO OFI proxy, resilience state, and top-of-book depth. It is not a fill
+  model, toxicity oracle, or execution recommendation.
+- `tradeability_state` describes visible quoted cost and data quality only. It
+  does not include fees, slippage beyond top-of-book, funding, market impact,
+  account limits, or order placement feasibility.
 
 ## Data Confidence
 
@@ -88,5 +135,8 @@ Built-in presets:
 - `tight_spread_movers`
 - `mean_reversion_watch`
 - `thin_books`
+- `liquidity_resilience`
+- `brittle_tradeability`
+- `flow_pressure`
 
 Missing numeric values do not match numeric comparisons. Invalid expressions are rejected and do not replace the active screen session.

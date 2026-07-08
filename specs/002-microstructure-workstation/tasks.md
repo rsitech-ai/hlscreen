@@ -88,21 +88,21 @@
 
 ### Tests for User Story 2
 
-- [ ] T034 [P] [US2] Add spread-shock fixture in `/Users/s1kor/dev/trading/rsibot/hlscreen/tests/fixtures/microstructure/resilience_shock.ndjson`
-- [ ] T035 [P] [US2] Add brittle-thin-book fixture in `/Users/s1kor/dev/trading/rsibot/hlscreen/tests/fixtures/microstructure/thin_brittle_book.ndjson`
-- [ ] T036 [P] [US2] Add liquidity resilience formula tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-features/tests/resilience.rs`
-- [ ] T037 [P] [US2] Add tradeability classifier tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-features/tests/tradeability.rs`
-- [ ] T038 [P] [US2] Add screen preset tests for resilience filters in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-screen/tests/microstructure_presets.rs`
+- [x] T034 [P] [US2] Add spread-shock fixture in `/Users/s1kor/dev/trading/rsibot/hlscreen/tests/fixtures/microstructure/resilience_shock.ndjson`
+- [x] T035 [P] [US2] Add brittle-thin-book fixture in `/Users/s1kor/dev/trading/rsibot/hlscreen/tests/fixtures/microstructure/thin_brittle_book.ndjson`
+- [x] T036 [P] [US2] Add liquidity resilience formula tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-features/tests/resilience.rs`
+- [x] T037 [P] [US2] Add tradeability classifier tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-features/tests/tradeability.rs`
+- [x] T038 [P] [US2] Add screen preset tests for resilience filters in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-screen/tests/microstructure_presets.rs`
 
 ### Implementation for User Story 2
 
-- [ ] T039 [US2] Implement liquidity resilience state machine in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-features/src/resilience.rs`
-- [ ] T040 [US2] Implement spread shock and recovery metrics in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-features/src/resilience.rs`
-- [ ] T041 [US2] Implement tradeability classifier in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-features/src/tradeability.rs`
-- [ ] T042 [US2] Add BBO OFI proxy and signed flow fields to feature rows in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-screen/src/row.rs`
-- [ ] T043 [US2] Add resilience and tradeability presets in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-screen/src/presets.rs`
-- [ ] T044 [US2] Render resilience columns or detail lines in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-tui/src/app.rs`
-- [ ] T045 [US2] Document BBO-only metric caveats in `/Users/s1kor/dev/trading/rsibot/hlscreen/docs/feature-definitions.md`
+- [x] T039 [US2] Implement liquidity resilience state machine in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-features/src/resilience.rs`
+- [x] T040 [US2] Implement spread shock and recovery metrics in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-features/src/resilience.rs`
+- [x] T041 [US2] Implement tradeability classifier in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-features/src/tradeability.rs`
+- [x] T042 [US2] Add BBO OFI proxy and signed flow fields to feature rows in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-screen/src/row.rs`
+- [x] T043 [US2] Add resilience and tradeability presets in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-screen/src/presets.rs`
+- [x] T044 [US2] Render resilience columns or detail lines in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-tui/src/app.rs`
+- [x] T045 [US2] Document BBO-only metric caveats in `/Users/s1kor/dev/trading/rsibot/hlscreen/docs/feature-definitions.md`
 
 **Checkpoint**: User Story 2 complete when fixture rows classify shock/recovery/thin states with expected labels and no full-book claims.
 
@@ -200,7 +200,7 @@
 - [ ] T083 [P] Update README roadmap and status in `/Users/s1kor/dev/trading/rsibot/hlscreen/README.md`
 - [ ] T084 [P] Update architecture documentation in `/Users/s1kor/dev/trading/rsibot/hlscreen/docs/architecture.md`
 - [ ] T085 [P] Update data format documentation in `/Users/s1kor/dev/trading/rsibot/hlscreen/docs/data-format.md`
-- [ ] T086 [P] Update screenshot generator for new confidence/resilience output in `/Users/s1kor/dev/trading/rsibot/hlscreen/scripts/generate-screenshots.py`
+- [x] T086 [P] Update screenshot generator for new confidence/resilience output in `/Users/s1kor/dev/trading/rsibot/hlscreen/scripts/generate-screenshots.py`
 - [ ] T087 [P] Add dated implementation report in `/Users/s1kor/dev/trading/rsibot/hlscreen/docs/reports/2026-07-08-microstructure-workstation.md`
 - [ ] T088 Run full validation gate and record results in `/Users/s1kor/dev/trading/rsibot/hlscreen/PLAN.md`
 - [ ] T089 Update durable repo memory in `/Users/s1kor/dev/trading/rsibot/hlscreen/MEMORY.md`

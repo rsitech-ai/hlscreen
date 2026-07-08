@@ -15,9 +15,9 @@ The foundation slice defines shared contracts before runtime behavior changes:
 - benchmark fixture manifests
 
 User-story implementations build on these contracts. Confidence computation and
-replay parity are implemented for US1. Why-ranked panes, resilience analytics,
-metadata enrichment, metrics output, and extension execution are implemented in
-later tasks.
+replay parity are implemented for US1. Liquidity resilience and tradeability
+analytics are implemented for US2. Why-ranked panes, metadata enrichment,
+metrics output, and extension execution are implemented in later tasks.
 
 ### Data Confidence
 
@@ -60,6 +60,25 @@ The replay command prints machine-readable summary lines such as
 `replay_parity=passed`, `confidence_drift=0`, and
 `confidence_summary=high:1 medium:0 low:0 untrusted:0 min:100 reasons:0` before
 the human-readable terminal board.
+
+### Liquidity Resilience
+
+US2 adds BBO/trade-derived fields to `FeatureSnapshot` and the terminal market
+board:
+
+- `spread_shock_bps`
+- `spread_recovery_ms`
+- `resilience_state`
+- `tradeability_state`
+- `adverse_selection_proxy`
+- `signed_notional_flow_30s`
+- `bbo_ofi_proxy_30s`
+
+These values are computed from public `bbo` and `trades` events in the same
+state path used by live, replay, screen, and screenshots. `bbo_ofi_proxy_30s`
+and `adverse_selection_proxy` are explicitly top-of-book/BBO-only proxies. They
+do not claim full order-book depth, hidden liquidity, fill quality, or trading
+edge.
 
 ### Score Breakdowns
 

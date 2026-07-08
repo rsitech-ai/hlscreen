@@ -312,3 +312,26 @@
 
 - [x] Review, PR, merge, and close out
   DoD: Diff is reviewed, branch is pushed, PR checks pass, merge to `main` occurs only if stable, and memory/reflection notes are complete.
+
+## 2026-07-08 US2 Liquidity Resilience TUI
+
+- [x] Confirm scope and branch
+  DoD: `PLAN.md` identifies T034-T045 as the active slice on `feat/andrzej_microstructure_resilience_tui`.
+
+- [x] Add US2 fixtures and failing tests
+  DoD: Spread-shock and thin-book fixtures plus resilience, tradeability, and preset tests describe expected behavior.
+
+- [x] Implement resilience and tradeability features
+  DoD: Feature snapshots carry BBO-only spread shock, recovery, tradeability, BBO OFI proxy, and signed flow fields computed from public events.
+
+- [x] Wire screen DSL, presets, TUI, and docs
+  DoD: New fields are filterable/sortable where specified, presets exist, TUI renders the fields, and docs explain BBO-only caveats.
+
+- [x] Regenerate and inspect screenshots
+  DoD: SVG screenshots are rebuilt from the current binary and visually inspected, with no fake production data path.
+
+- [x] Run validation gates
+  DoD: Focused tests, full Rust gates, screenshot generation, `git diff --check`, read-only scan, and bounded public live smoke pass or exact blockers are recorded.
+
+- [ ] Review, PR, merge, and close out
+  DoD: Diff is reviewed, branch is pushed, PR checks pass, merge to `main` occurs only if stable, and memory/reflection notes are complete.
