@@ -1,0 +1,47 @@
+name: Feature request
+description: Propose a scoped read-only market-data feature.
+title: "[feature]: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What user workflow or data-quality gap does this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: Describe the smallest useful slice.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Hyperliquid public API
+        - Local recording/replay
+        - Feature calculations
+        - Screening DSL/presets
+        - CLI/TUI
+        - Local read-only API
+        - Documentation
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety boundary
+      options:
+        - label: This does not require wallet, private-key, signing, order, cancel, withdrawal, leverage, or exchange-action support.
+          required: true
+        - label: This does not imply trading advice, recommendations, or profitability.
+          required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered

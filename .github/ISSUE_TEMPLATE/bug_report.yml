@@ -1,0 +1,55 @@
+name: Bug report
+description: Report reproducible incorrect behavior.
+title: "[bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please include enough detail for a maintainer to reproduce the issue locally.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What went wrong?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      description: Include exact commands and fixture/live mode.
+      placeholder: |
+        1. cargo build --workspace --all-features
+        2. ./target/debug/hls ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Commit or version
+      placeholder: 5253e4d or v0.1.0
+  - type: input
+    id: rust
+    attributes:
+      label: Rust version
+      placeholder: rustc --version
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant output
+      description: Remove secrets, account identifiers, or private endpoints before pasting.
+      render: text
