@@ -7,3 +7,5 @@ pub mod replay;
 pub mod screen;
 pub mod server;
 pub mod symbols;
+
+// Microstructure story commands are registered only when their behavior exists.
