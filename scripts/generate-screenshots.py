@@ -95,6 +95,7 @@ def main() -> None:
                         str(temp_dir),
                         "--run-id",
                         "screenshot",
+                        "--verify-parity",
                     ],
                 ],
             ),
