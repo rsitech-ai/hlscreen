@@ -191,4 +191,5 @@ Update README and memory with the new TUI behavior, command, key bindings, and v
 - [x] Add first pane-specific actions for watchlist row movement, detail view cycling, and chart-window cycling.
 - [x] Keep book/tape reachable in adaptive layouts: medium terminals show compact book/tape panels, and narrow terminals render focused hidden panes as drilldowns.
 - [x] Add direct `1`-`6` pane hotkeys for watchlist, detail, chart, book, tape, and status.
+- [x] Split the Ratatui header into a two-line status/control rail so live mode, focused pane, density, chart window, filter, and primary keyboard controls stay readable on smaller terminals.
 - Consider deeper order-book/tape interactions and persisted TUI preferences after the focused-pane state is stable.

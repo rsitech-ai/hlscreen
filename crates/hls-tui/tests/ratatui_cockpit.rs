@@ -114,6 +114,9 @@ fn wide_cockpit_renders_all_primary_trading_workstation_regions() {
     assert!(rendered.contains("HYPE/USDC"));
     assert!(rendered.contains("confidence"));
     assert!(rendered.contains("No wallet"));
+    assert!(rendered.contains("STATUS LIVE"));
+    assert!(rendered.contains("CONTROLS"));
+    assert!(rendered.contains("1-6 panes"));
 }
 
 #[test]
@@ -289,7 +292,7 @@ fn cockpit_reflects_keyboard_view_pause_density_and_help_state() {
 
     assert!(rendered.contains("view:flow"));
     assert!(rendered.contains("pane:chart"));
-    assert!(rendered.contains("density:dense"));
+    assert!(rendered.contains("dens:dense"));
     assert!(rendered.contains("chart:30m"));
     assert!(rendered.contains("focus chart"));
     assert!(rendered.contains("display paused"));
