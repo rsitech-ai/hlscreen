@@ -262,11 +262,15 @@ def wrap_lines(lines: list[str]) -> list[str]:
                 line,
                 width=MAX_COLS,
                 subsequent_indent="  ",
-                break_long_words=False,
+                break_long_words=should_break_long_words(line),
                 break_on_hyphens=False,
             )
         )
     return wrapped
+
+
+def should_break_long_words(line: str) -> bool:
+    return '"prometheus_text"' in line or " " not in line.strip()
 
 
 def render_svg(title: str, lines: list[str]) -> str:

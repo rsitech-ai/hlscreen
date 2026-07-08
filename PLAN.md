@@ -59,6 +59,67 @@
 - Validation run: `cargo metadata --format-version 1 --no-deps`; red/green `cargo test -p hls-core --test config_symbol`; red/green `cargo test -p hls-hyperliquid --test rest_metadata`; red/green `cargo test -p hls-cli --test basic_commands`; `cargo fmt --check`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`; `cargo build --workspace`; `git diff --check -- hlscreen`; fixture-backed `./target/debug/hls symbols --top 2 --asset-contexts-file tests/fixtures/hyperliquid/spot_meta_and_asset_ctxs.json`; temp-dir `hls init` and `hls doctor`.
 - Follow-ups: Pushed commit `705f000` to `origin/feat/andrzej_hlscreen_foundation`. US1 remains open: WebSocket parser/subscription manager, live market state, feature formulas, TUI table, and `hls live`. US2 recording/replay, US3 rules/DSL, and US4 health/API are not implemented yet.
 
+## 2026-07-08 US5 OSS Operations Slice
+
+### Task
+- Objective: Complete the Spec Kit US5 operations layer: deterministic benchmark packs, metrics snapshots, read-only extension contract models, release packaging drafts, and supporting docs/tests.
+- Owner repo(s): standalone `hlscreen/` repository only.
+- Capital impact: research-only / read-only public market-data tooling. No wallet, private stream, order, execution, signing, leverage, or live-capital action.
+
+### Context
+- Background: US1-US4 and the metadata/TUI polish slices are merged to `main`. The remaining feature work is US5, which makes the project more professional for OSS operation without changing live trading boundaries.
+- Inputs: `specs/002-microstructure-workstation/tasks.md` T069-T082, current `hls-core::metrics`, `hls-store::benchmark`, CLI command layout, release docs, and official Prometheus/OpenTelemetry/Extism/cargo-dist references.
+- Outputs: Passing tests for benchmark command, metrics output, extension contract validation, and release packaging checks; new `hls bench`; JSON/Prometheus-style metrics in `doctor --live --json`; release/extension docs and packaging drafts.
+
+### Assumptions
+- `cargo-dist` release publishing should remain tag-gated and draft-only in this slice; no release tag will be created.
+- The extension work is a contract/model only. It does not load or execute arbitrary WASM.
+- Benchmark packs should use committed public fixtures and fail on expected-hash drift.
+
+### Constraints
+- Technical: keep benchmark runs deterministic; avoid high-cardinality metric labels; keep CLI data on stdout and diagnostics/errors on stderr; use existing parser/state/feature paths.
+- Operational: do not mutate parent `rsibot`; do not publish packages, tags, GitHub releases, or Homebrew taps.
+- Risk/capital: no private/account data, no wallet/config secrets, no plugin network/filesystem access, no order-capable APIs.
+
+### Options Considered
+1. Add docs-only release and extension notes.
+   - Pros: small diff.
+   - Cons: does not satisfy US5 validation or provide reproducible operator checks.
+2. Implement tested contracts and local dry-run helpers without enabling external publication.
+   - Pros: gives contributors real commands/tests while keeping release actions explicit and tag-gated.
+   - Cons: bigger slice; requires new stable hashes and release workflow checks.
+
+### Chosen Approach
+- Choice: option 2.
+- Why: US5 is about operational trust. A docs-only pass would keep hidden drift risk in benchmark fixtures, metrics naming, extension permissions, and release packaging.
+
+### Execution Plan
+1. Add failing tests for `hls bench`, `doctor --live --json` metrics, extension contract validation, and release packaging checks.
+2. Implement benchmark runner over public NDJSON fixtures using the existing WebSocket parser, live state, and feature engine.
+3. Add `hls bench` and register it in the CLI.
+4. Extend `hls-core::metrics` with snapshot samples and Prometheus text output, then include metrics in live doctor JSON.
+5. Add read-only extension manifest/invocation models with strict permission validation.
+6. Add `dist-workspace.toml`, tag-gated release workflow draft, `docs/RELEASING.md`, and `docs/extensions.md`.
+7. Update Spec Kit tasks and continuity docs; run focused tests plus full validation.
+
+### Test Plan
+- Unit/contract: `cargo test -p hls-core --test extension_contract --test metrics_contract`; `cargo test -p hls-store --test benchmark_manifest`.
+- CLI/integration: `cargo test -p hls-cli --test bench_command --test metrics_output`; `scripts/check-release-packaging.sh`.
+- Regression/audit: `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`; `git diff --check`; read-only/no-private scan.
+
+### Risks and Rollback
+- Risks: benchmark hashes may be brittle if serialized snapshot contracts intentionally change; cargo-dist syntax can drift; release workflow is a draft until a tag-run is proven on GitHub.
+- Rollback: revert the US5 commit(s); no external release, token, or package state is modified by this slice.
+
+### Memory Impact
+- Add/update in `MEMORY.md`: benchmark command, metrics output boundary, extension no-runtime/no-permissions contract, release dry-run command.
+
+### Final Notes
+- What changed: Completed US5 operations and Phase 8 polish. Added deterministic benchmark runner/`hls bench`, benchmark fixture hash gate, low-cardinality metrics snapshots with Prometheus text in `doctor --live --json`, read-only extension manifest models, draft cargo-dist config/workflow, release packaging check harness, extension/release docs, architecture/data/threat-model updates, and dated implementation report.
+- Validation run: `cargo test -p hls-core --test extension_contract --test metrics_contract`; `cargo test -p hls-store --test benchmark_manifest`; `cargo test -p hls-cli --test bench_command --test metrics_output`; `scripts/check-release-packaging.sh`; `/tmp/hlscreen-dist/bin/dist plan`; `cargo metadata --no-deps --format-version 1`; `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`; `cargo build --release --workspace --all-features`; `git diff --check`; read-only scan; `./target/debug/hls bench --manifest tests/fixtures/microstructure/benchmark_gap_replay.json --repo-root . --json`; `./target/debug/hls doctor --live --json --simulate-health writer-lag --data-dir /tmp/hlscreen-us5-doctor-smoke`.
+- Tradeoffs: Release publication is still unproven until the first reviewed `v*` tag workflow succeeds; no release tag was created in this slice. Cargo-dist CI was regenerated with pinned 0.32.0 instead of maintaining a divergent hand-written release workflow.
+- Rollback: revert the US5 commit(s); no external release, tag, package, token, plugin runtime, or live-capital state was modified.
+
 ## 2026-07-07 US1 Live Screener Slice
 
 ### Task

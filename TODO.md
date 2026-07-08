@@ -247,6 +247,32 @@
 - [x] Close out notes
   DoD: `PLAN.md`, `TODO.md`, `MEMORY.md`, daily memory, and lesson stores reflect the final state.
 
+## 2026-07-08 US5 OSS Operations
+
+- [x] Confirm US5 scope and branch
+  DoD: `PLAN.md` records benchmark, metrics, extension, and release-packaging boundaries on `feat/andrzej_microstructure_operations`.
+
+- [x] Add benchmark/metrics/extension/release tests
+  DoD: Tests cover `hls bench`, `doctor --live --json` metrics, read-only extension validation, and release packaging checks.
+
+- [x] Implement benchmark runner and CLI command
+  DoD: `hls bench --manifest ...` runs public fixture packs and fails on expected-hash drift.
+
+- [x] Implement metrics snapshot helpers and doctor JSON output
+  DoD: Live doctor JSON exposes low-cardinality metrics and Prometheus text without symbol/run/account labels.
+
+- [x] Implement read-only extension contract models
+  DoD: Extension manifests validate schema, hash, memory, entrypoints, and no network/filesystem/private/trading permissions.
+
+- [x] Add release packaging drafts and docs
+  DoD: `dist-workspace.toml`, release workflow, release docs, and extension docs exist and pass packaging checks.
+
+- [x] Run validation and audit
+  DoD: Focused tests, full Rust gates, packaging check script, `git diff --check`, and read-only scan pass.
+
+- [x] Close out notes
+  DoD: Spec Kit tasks, `PLAN.md`, `TODO.md`, `MEMORY.md`, daily memory, lesson stores, and reflection reflect the final state.
+
 ## 2026-07-08 Microstructure Foundation Contracts
 
 - [x] Confirm v2 task scope and branch

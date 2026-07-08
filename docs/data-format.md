@@ -47,3 +47,39 @@ data-quality state against a persisted local baseline. The registry is
 local-only and stores no secrets.
 
 True Parquet output is not implemented in the current slice. The CLI rejects `--parquet` and asks for `--normalized` until the Parquet writer is added.
+
+## Benchmark Manifest Format
+
+Benchmark packs are small public fixture manifests. They are designed to catch
+feature and replay drift in CI without using live network calls.
+
+```json
+{
+  "schema_version": 1,
+  "fixture_id": "gap_replay_v1",
+  "description": "Public reconnect-gap replay benchmark over BBO plus trades.",
+  "input_files": ["tests/fixtures/microstructure/gap_replay.ndjson"],
+  "expected_hash": "sha256:99ab7c75a7bdb03865307dcf0e6181d0901d672638eb33a8fb7351415d0364d6",
+  "max_feature_latency_us": 100000,
+  "tags": ["public", "gap", "replay", "microstructure"]
+}
+```
+
+Rules:
+
+- `schema_version` is currently `1`.
+- `input_files` must be relative paths under `tests/fixtures/microstructure/`.
+- Absolute paths, `..`, private/account naming, and `private` tags are rejected.
+- `expected_hash` is the SHA-256 hash of canonical benchmark output built from
+  parsed public events and computed feature snapshots.
+- Expected hashes should only be updated with reviewed evidence because they are
+  the drift guard.
+
+Run:
+
+```bash
+./target/debug/hls bench \
+  --manifest tests/fixtures/microstructure/benchmark_gap_replay.json \
+  --repo-root . \
+  --json
+```

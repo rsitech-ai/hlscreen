@@ -1,3 +1,4 @@
+pub mod bench;
 pub mod doctor;
 pub mod explain;
 pub mod health;
