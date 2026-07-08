@@ -10,7 +10,9 @@ It is built for operators and researchers who want a local-first way to inspect 
 
 ## Status
 
-Current state: v0.1 live public-data hardening with a next-generation deterministic terminal market board, all-pair detail cards, health panel, benchmark packs, metrics output, and OSS release/extension contracts.
+Current state: read-only live-data release candidate for local deployment. The codebase is production-ready for bounded public Hyperliquid spot recording, replay, screening, deterministic terminal rendering, health checks, and local release packaging dry runs. It is not a trading bot, hosted service, or capital-touching execution system.
+
+Latest live validation: the 2026-07-08 production-readiness pass captured the full public spot universe with `308` symbols, `924` public WebSocket subscriptions, `99,162` raw WebSocket messages, `106,980` normalized events, clean shutdown, `0` reconnects, and `0` data gaps. See [Production readiness](docs/production-readiness.md) and the [dated validation report](docs/reports/2026-07-08-production-readiness-live-refresh.md).
 
 Implemented today:
 
@@ -19,7 +21,7 @@ Implemented today:
 - Bounded public WebSocket live screen with duration-based shutdown, heartbeat pings, reconnect/resubscribe, optional raw/normalized recording, and all-symbol subscription budgeting.
 - Bounded live recording through a fail-closed writer queue so disk I/O does not silently drop or stall market-data ingestion.
 - Live terminal refresh for TTY sessions and `--tui` smoke captures.
-- Modern deterministic terminal rendering for market rows, scan KPIs, all-pair microstructure detail cards, read-only safety state, and operations health.
+- Modern deterministic terminal rendering for market rows, scan KPIs, selected-pair microstructure detail, read-only safety state, and operations health.
 - Confidence-aware feature snapshots and TUI rows for fresh, sparse, duplicate, and explicit gap/parser/backlog quality inputs.
 - Persisted confidence baselines plus `hls replay --verify-parity` drift detection for local replay checks.
 - Deterministic score breakdowns, screen-rule score fields, and `hls explain` why-ranked output for replayed or fixture-backed rows.
@@ -40,7 +42,7 @@ Not implemented yet:
 
 ## Screenshots
 
-These committed SVGs are deterministic terminal captures generated from the current binary and used for documentation regression. Real public WebSocket smoke evidence is tracked in the dated reports under [docs/reports](docs/reports/).
+These committed SVGs are deterministic terminal captures generated from the current binary and used for documentation regression. Real public WebSocket smoke evidence is tracked in [Production readiness](docs/production-readiness.md) and dated reports under [docs/reports](docs/reports/).
 
 ### Live Market Board
 
@@ -267,6 +269,7 @@ Examples are in [examples/screen-rules.md](examples/screen-rules.md).
 ## Documentation
 
 - [Architecture](docs/architecture.md)
+- [Production readiness](docs/production-readiness.md)
 - [Data format](docs/data-format.md)
 - [Feature definitions](docs/feature-definitions.md)
 - [Threat model](docs/THREAT_MODEL.md)
@@ -275,6 +278,7 @@ Examples are in [examples/screen-rules.md](examples/screen-rules.md).
 - [Release checklist](docs/RELEASING.md)
 - [Extension contract](docs/extensions.md)
 - [Open source checklist](docs/OPEN_SOURCE_CHECKLIST.md)
+- [Production-readiness live refresh](docs/reports/2026-07-08-production-readiness-live-refresh.md)
 - [Live production hardening report](docs/reports/2026-07-08-live-production-hardening.md)
 - [Live smoke report](docs/reports/2026-07-08-live-smoke.md)
 - [Pre-merge audit](docs/reports/2026-07-08-pre-merge-audit.md)
