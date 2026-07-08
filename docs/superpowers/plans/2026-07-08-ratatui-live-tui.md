@@ -187,4 +187,5 @@ Update README and memory with the new TUI behavior, command, key bindings, and v
 - [x] Carry true candle/OHLC history into the live presentation model before rendering real candlesticks.
 - [x] Add deterministic in-TUI controls for filter, preset, sort, and chart window.
 - [x] Add a free-text in-TUI command palette/editor for arbitrary screen DSL filters with validation before mutation.
-- Consider a richer pane-focus model after command editing exists; the current shipped contract keeps the existing view-tab keyboard model.
+- [x] Add explicit keyboard pane focus state after command editing exists.
+- Consider pane-specific actions, optional mouse focus, and richer chart/order-book/tape interactions after the focused-pane state is stable.
