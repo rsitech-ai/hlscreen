@@ -52,4 +52,13 @@ Current US4 health/safety flow:
 5. `hls-server::handle_get` exposes pure read-only `/health`, `/symbols`, `/screen`, and `/symbol/{symbol}` response helpers.
 6. `hls-cli doctor --live` and `hls-cli server --print-health` expose health status without wallet, private, order, or trading actions.
 
-True Parquet output, public-data backfill after reconnect, a long-running localhost HTTP server loop, and interactive keyboard filter editing remain separate later slices.
+Current US5 operations flow:
+
+1. `hls-store::benchmark` loads public benchmark manifests, validates fixture paths, parses committed WebSocket NDJSON through `hls-hyperliquid::ws::parser`, rebuilds `LiveMarketState`, computes `FeatureSnapshot` rows, and SHA-256 hashes canonical output.
+2. `hls-cli bench` runs those benchmark packs and fails closed on expected-hash drift or feature-latency budget breach.
+3. `hls-core::metrics` validates metric definitions, rejects known high-cardinality labels, and renders low-cardinality metric samples plus Prometheus text.
+4. `hls-cli doctor --live --json` includes the metrics snapshot alongside health state.
+5. `hls-core::extension` defines read-only extension manifest and invocation models. It does not execute WASM and rejects network, filesystem, private-data, and trading permissions.
+6. `dist-workspace.toml`, `.github/workflows/release.yml`, and `scripts/check-release-packaging.sh` provide a local and CI-checked release packaging draft without creating tags or public releases.
+
+True Parquet output, public-data backfill after reconnect, a long-running localhost HTTP server loop, interactive keyboard filter editing, extension runtime execution, and proven public release publication remain separate later slices.
