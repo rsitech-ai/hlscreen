@@ -23,17 +23,17 @@ Current US1 live flow:
 2. `hls-core::market_state::LiveMarketState` applies typed market events into per-symbol state.
 3. `hls-features::engine::FeatureEngine` builds `FeatureSnapshot` rows with top-of-book, return, freshness, and score fields.
 4. `hls-tui::app::render_main_table` renders a stable read-only terminal table.
-5. `hls-cli live --fixture-file ... --once` runs the mock-live path without live network access.
-6. `hls-cli live --duration-secs ...` runs a bounded public WebSocket session with heartbeat pings, subscription-budget validation, optional recording, and clean shutdown.
+5. `hls-cli live --duration-secs ...` runs a bounded public WebSocket session with heartbeat pings, reconnect/resubscribe, subscription-budget validation, optional recording, live TTY refresh, and clean shutdown.
+6. `hls-cli live --fixture-file ... --once` remains a deterministic test/offline-doc path without live network access.
 
-Current US2 fixture recording/replay flow:
+Current US2 recording/replay flow:
 
 1. `hls-store::recorder` records fixture public WebSocket lines through a bounded raw-writer channel.
 2. `hls-store::raw` writes compressed raw `.ndjson.zst` files under the configured local data directory.
 3. `hls-store::normalized` writes deterministic replayable JSONL `MarketEvent` rows.
 4. `hls-store::metadata` records runs, files, symbols, and data gaps in local `hls.sqlite`.
 5. `hls-store::replay` rebuilds feature snapshots from normalized local files.
-6. `hls-cli record`, `hls-cli replay`, fixture-backed `hls live --record`, and bounded public `hls live --record` expose the flow.
+6. `hls-cli live --record` records real public WebSocket frames through a bounded writer worker that fails closed on backpressure. `hls-cli record`, `hls-cli replay`, and fixture-backed `hls live --record` expose deterministic test/offline flows.
 
 Current US3 screening flow:
 
@@ -52,4 +52,4 @@ Current US4 health/safety flow:
 5. `hls-server::handle_get` exposes pure read-only `/health`, `/symbols`, `/screen`, and `/symbol/{symbol}` response helpers.
 6. `hls-cli doctor --live` and `hls-cli server --print-health` expose health status without wallet, private, order, or trading actions.
 
-True Parquet output, a long-running localhost HTTP server loop, automatic live WebSocket reconnect/resubscribe, and interactive keyboard filter editing remain separate later slices.
+True Parquet output, public-data backfill after reconnect, a long-running localhost HTTP server loop, and interactive keyboard filter editing remain separate later slices.
