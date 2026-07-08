@@ -248,6 +248,31 @@ fn medium_cockpit_keeps_book_and_tape_visible() {
 }
 
 #[test]
+fn medium_cockpit_keeps_compact_tape_flow_and_safety_visible() {
+    let model = RatatuiFrameModel::new(
+        fixture_snapshots(),
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        WorkstationUiState::default(),
+    )
+    .with_candles(fixture_candles());
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 120,
+            height: 36,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders compact tape");
+
+    assert!(rendered.contains("TAPE"));
+    assert!(rendered.contains("FLOW pulse"));
+    assert!(rendered.contains("Tape proxy only"));
+}
+
+#[test]
 fn book_pane_renders_bid_ask_share_and_notional_bars() {
     let snapshots = fixture_snapshots();
     let mut state = WorkstationUiState::default();
@@ -278,6 +303,39 @@ fn book_pane_renders_bid_ask_share_and_notional_bars() {
     assert!(rendered.contains("BID notional"));
     assert!(rendered.contains("ASK notional"));
     assert!(rendered.contains("BOOK proxy only"));
+}
+
+#[test]
+fn tape_pane_renders_flow_pulse_and_net_pressure_bars() {
+    let snapshots = directional_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Tape),
+        snapshots.len(),
+    );
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    );
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 160,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders flow tape");
+
+    assert!(rendered.contains("[FOCUS] TAPE"));
+    assert!(rendered.contains("FLOW pulse"));
+    assert!(rendered.contains("net pressure"));
+    assert!(rendered.contains("Tape proxy only"));
+    assert!(rendered.contains("HYPE/USDC"));
+    assert!(rendered.contains("DOWN/USDC"));
 }
 
 #[test]
