@@ -36,7 +36,7 @@
    - Preset switching.
    - Health panel and recording status.
 5. First public release.
-   - Run `cargo dist plan` and `cargo dist build` with the pinned cargo-dist version.
+   - Run `dist plan` and `dist build` with the pinned cargo-dist version.
    - Review the first `v*` tag packaging workflow output.
    - Publish checksums and installation docs after the tag run is proven.
 

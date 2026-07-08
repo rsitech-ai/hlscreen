@@ -42,7 +42,7 @@ git diff --check
 ./target/debug/hls doctor --live --json --simulate-health writer-lag --data-dir /tmp/hlscreen-us5-doctor-smoke
 ```
 
-Local `cargo dist plan` was not run because `cargo dist` is not installed on
+Local `dist plan` was not run because the pinned `dist` CLI is not installed on
 this machine. The repository now includes CI and documentation that install the
 pinned cargo-dist version before running release-plan/build commands.
 

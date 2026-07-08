@@ -41,7 +41,7 @@ jobs:
         run: scripts/check-release-packaging.sh
 
       - name: Preview release plan
-        run: cargo dist plan
+        run: dist plan
 
   package:
     name: cargo-dist package
@@ -68,4 +68,4 @@ jobs:
         run: cargo install cargo-dist --version 0.32.0 --locked
 
       - name: Build distributable artifacts
-        run: cargo dist build
+        run: dist build
