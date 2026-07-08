@@ -56,6 +56,15 @@ fn compare_values(left: FieldValue, op: CmpOp, right: FieldValue) -> HlsResult<b
         (FieldValue::Missing, _) | (_, FieldValue::Missing) => Ok(false),
         (FieldValue::Number(left), FieldValue::Number(right)) => compare_ordered(left, op, right),
         (FieldValue::String(left), FieldValue::String(right)) => compare_eq(left == right, op),
+        (FieldValue::StringList(left), FieldValue::String(right)) => {
+            compare_eq(left.iter().any(|value| value == &right), op)
+        }
+        (FieldValue::String(left), FieldValue::StringList(right)) => {
+            compare_eq(right.iter().any(|value| value == &left), op)
+        }
+        (FieldValue::StringList(left), FieldValue::StringList(right)) => {
+            compare_eq(left.iter().any(|value| right.contains(value)), op)
+        }
         (FieldValue::Bool(left), FieldValue::Bool(right)) => compare_eq(left == right, op),
         (left, right) => Err(HlsError::Config(format!(
             "type-incompatible comparison between {left:?} and {right:?}"
@@ -103,6 +112,9 @@ fn compare_present_sort_values(left: FieldValue, right: FieldValue) -> Ordering 
             left.partial_cmp(&right).unwrap_or(Ordering::Equal)
         }
         (FieldValue::String(left), FieldValue::String(right)) => left.cmp(&right),
+        (FieldValue::StringList(left), FieldValue::StringList(right)) => {
+            left.join(",").cmp(&right.join(","))
+        }
         (FieldValue::Bool(left), FieldValue::Bool(right)) => left.cmp(&right),
         (left, right) => format!("{left:?}").cmp(&format!("{right:?}")),
     }

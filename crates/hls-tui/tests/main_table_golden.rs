@@ -1,6 +1,6 @@
 use hls_core::market_state::LiveMarketState;
 use hls_features::engine::FeatureEngine;
-use hls_hyperliquid::ws::parser::parse_ws_ndjson;
+use hls_hyperliquid::{rest::parse_metadata_enrichment_bundle, ws::parser::parse_ws_ndjson};
 use hls_tui::app::render_main_table;
 
 #[test]
@@ -24,6 +24,7 @@ fn renders_read_only_main_table_for_fixture_snapshot() {
     assert!(table.contains("QUALITY"));
     assert!(table.contains("CONFIDENCE"));
     assert!(table.contains("RESILIENCE"));
+    assert!(table.contains("METADATA"));
     assert!(table.contains("high 1 | medium 0 | low 0 | untrusted 0"));
     assert!(table.contains("spread med 57.1 bps"));
     assert!(table.contains("depth top $245"));
@@ -70,4 +71,39 @@ fn renders_resilience_and_tradeability_in_market_board_and_detail_pane() {
     assert!(table.contains("top-of-book proxy only"));
     assert!(table.contains("resilience | state normal"));
     assert!(table.contains("tradeability tradeable"));
+}
+
+#[test]
+fn renders_metadata_tags_in_market_board_and_detail_pane() {
+    let events = parse_ws_ndjson(include_str!(
+        "../../../tests/fixtures/hyperliquid/ws_mock_live.ndjson"
+    ))
+    .expect("fixture parses");
+    let metadata = parse_metadata_enrichment_bundle(include_str!(
+        "../../../tests/fixtures/microstructure/metadata_enrichment.json"
+    ))
+    .expect("metadata fixture parses");
+    let mut state = LiveMarketState::new(["@107".to_owned()]);
+    for event in events {
+        state.apply(event).expect("event applies");
+    }
+    let mut snapshots = FeatureEngine::default().snapshots(&state, 1_710_000_066_000);
+    for snapshot in &mut snapshots {
+        snapshot.metadata = metadata
+            .iter()
+            .find(|metadata| metadata.feed_identifier == snapshot.symbol)
+            .cloned();
+    }
+
+    let table = render_main_table(&snapshots);
+
+    assert!(table.contains("META"));
+    assert!(table.contains("complete 1 | partial 0 | missing 0 | new 1 | fresh liquidity 1"));
+    assert!(table.contains("NEW+SEED"));
+    assert!(table.contains("metadata | tags fresh_liquidity,low_float,new_listing"));
+    assert!(table.contains("listing age 6.3d"));
+    assert!(table.contains("seeded $1.2M"));
+    assert!(table.contains("source spotMetaAndAssetCtxs+tokenDetails"));
+    assert!(table.contains("new listing"));
+    assert!(table.contains("fresh liquidity"));
 }

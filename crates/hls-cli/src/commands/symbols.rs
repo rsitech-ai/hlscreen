@@ -2,7 +2,10 @@ use std::{fs, path::PathBuf};
 
 use anyhow::Context;
 use clap::Args;
-use hls_core::symbol::MarketSymbol;
+use hls_core::{
+    metadata::{MetadataEnrichment, MetadataEnrichmentInput},
+    symbol::MarketSymbol,
+};
 use hls_hyperliquid::rest::{
     HyperliquidRestClient, SpotMarketContext, parse_spot_meta, parse_spot_meta_and_asset_ctxs,
     select_universe,
@@ -62,6 +65,22 @@ fn without_contexts(symbols: Vec<MarketSymbol>) -> Vec<SpotMarketContext> {
     symbols
         .into_iter()
         .map(|symbol| SpotMarketContext {
+            metadata: MetadataEnrichment::from_public_input(MetadataEnrichmentInput {
+                symbol: symbol.hl_coin.clone(),
+                display_name: symbol.display_name.clone(),
+                feed_identifier: symbol.hl_coin.clone(),
+                spot_index: symbol.spot_index,
+                base_token_index: symbol.base_token_index,
+                quote_token_index: symbol.quote_token_index,
+                metadata_source: "spotMeta".to_owned(),
+                metadata_fetched_at_ms: 0,
+                deploy_time_ms: None,
+                deployer: None,
+                seeded_usdc: None,
+                max_supply: None,
+                circulating_supply: None,
+                now_ms: 0,
+            }),
             symbol,
             day_ntl_vlm: None,
             prev_day_px: None,

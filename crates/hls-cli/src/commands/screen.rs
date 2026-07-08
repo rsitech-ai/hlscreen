@@ -9,6 +9,7 @@ use hls_screen::ScreenRequest;
 use hls_store::replay::{ReplayOptions, replay_run};
 use hls_tui::app::render_screened_table;
 
+use crate::commands::metadata::{attach_metadata, load_metadata_enrichments};
 use crate::commands::record::parse_symbols;
 
 #[derive(Debug, Args)]
@@ -36,6 +37,9 @@ pub struct ScreenArgs {
 
     #[arg(long, hide = true)]
     pub fixture_file: Option<PathBuf>,
+
+    #[arg(long, hide = true)]
+    pub metadata_file: Option<PathBuf>,
 }
 
 pub async fn run(args: ScreenArgs) -> anyhow::Result<()> {
@@ -44,7 +48,7 @@ pub async fn run(args: ScreenArgs) -> anyhow::Result<()> {
         where_expr: args.r#where.clone(),
         sort: args.sort.clone(),
     };
-    let snapshots = if let Some(fixture_file) = &args.fixture_file {
+    let mut snapshots = if let Some(fixture_file) = &args.fixture_file {
         snapshots_from_fixture(
             fixture_file,
             parse_symbols(args.symbols.as_deref()),
@@ -60,6 +64,10 @@ pub async fn run(args: ScreenArgs) -> anyhow::Result<()> {
     } else {
         bail!("screen requires --fixture-file or --run-id in this slice");
     };
+    attach_metadata(
+        &mut snapshots,
+        load_metadata_enrichments(args.metadata_file.as_ref())?,
+    );
 
     print!(
         "{}",
