@@ -17,44 +17,39 @@ fn renders_read_only_main_table_for_fixture_snapshot() {
 
     let table = render_main_table(&snapshots);
 
-    assert!(table.contains("Hyperliquid Microstructure Workstation"));
-    assert!(table.contains("PUBLIC WS/REST"));
-    assert!(table.contains("SESSION"));
-    assert!(table.contains("LATENCY"));
-    assert!(table.contains("QUALITY"));
-    assert!(table.contains("CONFIDENCE"));
-    assert!(table.contains("RESILIENCE"));
-    assert!(table.contains("METADATA"));
-    assert!(table.contains("high 1 | medium 0 | low 0 | untrusted 0"));
-    assert!(table.contains("spread med 57.1 bps"));
-    assert!(table.contains("depth top $245"));
-    assert!(table.contains("#  SYMBOL"));
-    assert!(table.contains("CONF"));
-    assert!(table.contains("TRAD"));
-    assert!(table.contains("RESIL"));
-    assert!(table.contains("H100"));
-    assert!(table.contains("OBSERVATION"));
+    assert!(table.contains("┌ Hyperliquid Spot Microstructure Workstation"));
+    assert!(table.contains("REC ready"));
+    assert!(table.contains("LIVE ●"));
+    assert!(table.contains("p95 local"));
+    assert!(table.contains("filter: READ-ONLY Hyperliquid spot live screen"));
+    assert!(table.contains("mode: top-1 by screen rank"));
+    assert!(table.contains("│ symbol"));
+    assert!(table.contains("sprbp"));
+    assert!(table.contains("flow30"));
+    assert!(table.contains("amihud"));
+    assert!(table.contains("why now"));
     assert!(table.contains("@107"));
-    assert!(table.contains("● fresh"));
-    assert!(table.contains("thin book"));
-    assert!(table.contains("wide spread"));
-    assert!(table.contains("PAIR DETAIL CARDS"));
-    assert!(table.contains("bid 34.9000 x 3.0000"));
-    assert!(table.contains("ask 35.1000 x 4.0000"));
-    assert!(table.contains("24h notional $25.0M"));
-    assert!(table.contains("ret 1m - / 5m +0.57% / 1h +0.57%"));
-    assert!(table.contains("rv 1m 0.00% / 5m 0.00% / 1h 0.00%"));
-    assert!(table.contains("activity | volume z +0.0 | trades z +0.0"));
-    assert!(table.contains("liq/mom/mr 2.5/50.6/49.4"));
-    assert!(table.contains("confidence | high 100 | reasons none"));
-    assert!(table.contains("why ranked | score"));
-    assert!(table.contains("components 5"));
+    assert!(table.contains("35.2000"));
+    assert!(table.contains("57.1"));
+    assert!(table.contains("-0.15"));
+    assert!(table.contains("thin + wide"));
+    assert!(table.contains("Selected: @107"));
+    assert!(table.contains("Bid/Ask        34.9000 / 35.1000"));
+    assert!(table.contains("Micro-BBO      35.0000"));
+    assert!(table.contains("Mark-Mid basis +142.9 bps"));
+    assert!(table.contains("Top book       $105 / $140"));
+    assert!(table.contains("OFI 30s"));
+    assert!(table.contains("Spread recovery"));
+    assert!(table.contains("Signed flow    5s:-  30s:"));
+    assert!(table.contains("RV 1m/5m/1h   0.00/0.00/0.00"));
+    assert!(table.contains("Confidence     gap:0 stale:0 sparse:0 reconnect:0 parser_drop:0"));
+    assert!(table.contains("Why ranked"));
     assert!(table.contains("No wallet"));
     assert!(table.contains("Scores are screen heuristics, not orders or advice."));
 }
 
 #[test]
-fn renders_pair_detail_card_for_each_visible_pair() {
+fn renders_compact_row_for_each_visible_pair_and_selects_first() {
     let events = parse_ws_ndjson(include_str!(
         "../../../tests/fixtures/hyperliquid/ws_mock_live.ndjson"
     ))
@@ -94,15 +89,15 @@ fn renders_pair_detail_card_for_each_visible_pair() {
 
     let table = render_main_table(&snapshots);
 
-    assert!(table.contains("01 @107 | px 35.2000 | 24h notional $25.0M"));
-    assert!(table.contains("02 PURR/USDC | px 0.4200 | 24h notional $987.7K"));
-    assert!(table.contains("bid 0.4000 x 1200.0000"));
-    assert!(table.contains("ask 0.4200 x 1100.0000"));
-    assert!(table.contains("mid 0.4100 | mark 0.4150"));
-    assert!(table.contains("ret 1m +1.23% / 5m -0.42% / 1h +8.40%"));
-    assert!(table.contains("rv 1m 0.90% / 5m 2.10% / 1h 4.40%"));
-    assert!(table.contains("activity | volume z +2.4 | trades z -0.8 | liq/mom/mr 9.7/49.6/50.4",));
-    assert!(table.contains("quality | ● fresh age 250ms"));
+    assert!(table.contains("│ @107"));
+    assert!(table.contains("│ PURR/USDC"));
+    assert!(table.contains("0.4200"));
+    assert!(table.contains("487.8"));
+    assert!(table.contains("+0.04"));
+    assert!(table.contains("-$35"));
+    assert!(table.contains("Selected: @107"));
+    assert!(!table.contains("PAIR DETAIL CARDS"));
+    assert!(!table.contains("02 PURR/USDC | px"));
     assert!(table.contains("metadata | tags unknown_metadata"));
 }
 
@@ -129,14 +124,11 @@ fn missing_quote_depth_marks_quality_partial() {
     }
 
     let table = render_main_table(&snapshots);
-    let quality_line = table
-        .lines()
-        .find(|line| line.contains("QUALITY"))
-        .expect("quality line exists");
 
-    assert!(quality_line.contains("spread med -"));
-    assert!(quality_line.contains("depth top -"));
-    assert!(quality_line.contains("PARTIAL"));
+    assert!(table.contains("│ @107"));
+    assert!(table.contains("unknown"));
+    assert!(table.contains("Bid/Ask        - / -"));
+    assert!(table.contains("Top book       - / -"));
 }
 
 #[test]
@@ -153,14 +145,12 @@ fn renders_resilience_and_tradeability_in_market_board_and_detail_pane() {
 
     let table = render_main_table(&snapshots);
 
-    assert!(table.contains("tradeable 1 | costly 0 | thin 0"));
-    assert!(table.contains("TRADE"));
-    assert!(table.contains("NORMAL"));
-    assert!(table.contains("90.0 bps"));
-    assert!(table.contains("flow | signed notional 30s +$602"));
-    assert!(table.contains("BBO OFI 30s -$515"));
-    assert!(table.contains("top-of-book proxy only"));
-    assert!(table.contains("resilience | state normal"));
+    assert!(table.contains("12.0"));
+    assert!(table.contains("+$602"));
+    assert!(table.contains("OFI 30s        -$515"));
+    assert!(table.contains("Spread recovery 6.0s"));
+    assert!(table.contains("Why ranked"));
+    assert!(table.contains("+signed_flow"));
     assert!(table.contains("tradeability tradeable"));
 }
 
@@ -188,13 +178,10 @@ fn renders_metadata_tags_in_market_board_and_detail_pane() {
 
     let table = render_main_table(&snapshots);
 
-    assert!(table.contains("META"));
-    assert!(table.contains("complete 1 | partial 0 | missing 0 | new 1 | fresh liquidity 1"));
-    assert!(table.contains("NEW+SEED"));
     assert!(table.contains("metadata | tags fresh_liquidity,low_float,new_listing"));
     assert!(table.contains("listing age 6.3d"));
     assert!(table.contains("seeded $1.2M"));
     assert!(table.contains("source spotMetaAndAssetCtxs+tokenDetails"));
-    assert!(table.contains("new listing"));
-    assert!(table.contains("fresh liquidity"));
+    assert!(table.contains("new_listing"));
+    assert!(table.contains("fresh_liquidity"));
 }

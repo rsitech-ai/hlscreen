@@ -33,10 +33,12 @@ fn fixture_full_pipeline_smoke_covers_live_record_replay_screen_and_health() {
         .stdout(predicate::str::contains("recording run: smoke"))
         .stdout(predicate::str::contains("clean_shutdown=true"))
         .stdout(predicate::str::contains(
-            "READ-ONLY Hyperliquid spot live screen",
+            "Hyperliquid Spot Microstructure Workstation",
         ))
-        .stdout(predicate::str::contains("UNIVERSE"))
-        .stdout(predicate::str::contains("rows 1 | fresh 1/1"))
+        .stdout(predicate::str::contains("REC ●"))
+        .stdout(predicate::str::contains("filter: thin_books"))
+        .stdout(predicate::str::contains("mode: top-1 by tob_depth_usd asc"))
+        .stdout(predicate::str::contains("Selected: @107"))
         .stdout(predicate::str::contains("@107"))
         .stdout(predicate::str::contains("No wallet"))
         .stdout(predicate::str::contains("no order routes"))
@@ -50,10 +52,13 @@ fn fixture_full_pipeline_smoke_covers_live_record_replay_screen_and_health() {
         .assert()
         .success()
         .stdout(predicate::str::contains(
-            "READ-ONLY Hyperliquid spot replay",
+            "Hyperliquid Spot Microstructure Workstation",
+        ))
+        .stdout(predicate::str::contains(
+            "filter: READ-ONLY Hyperliquid spot replay",
         ))
         .stdout(predicate::str::contains("@107"))
-        .stdout(predicate::str::contains("● fresh"));
+        .stdout(predicate::str::contains("Selected: @107"));
 
     Command::cargo_bin("hls")
         .expect("hls binary")
@@ -70,8 +75,9 @@ fn fixture_full_pipeline_smoke_covers_live_record_replay_screen_and_health() {
         .assert()
         .success()
         .stdout(predicate::str::contains(
-            "READ-ONLY Hyperliquid spot screen",
+            "filter: symbol == \"@107\" and spread_bps < 60",
         ))
+        .stdout(predicate::str::contains("mode: top-1 by price desc"))
         .stdout(predicate::str::contains("@107"));
 
     Command::cargo_bin("hls")
