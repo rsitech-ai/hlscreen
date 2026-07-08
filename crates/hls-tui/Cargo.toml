@@ -8,6 +8,7 @@ license.workspace = true
 [dependencies]
 hls-core.workspace = true
 hls-screen.workspace = true
+ratatui.workspace = true
 
 [dev-dependencies]
 hls-features.workspace = true

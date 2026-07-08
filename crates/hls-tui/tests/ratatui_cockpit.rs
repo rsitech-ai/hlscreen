@@ -1,0 +1,153 @@
+use hls_core::market_state::LiveMarketState;
+use hls_features::engine::FeatureEngine;
+use hls_hyperliquid::{rest::parse_metadata_enrichment_bundle, ws::parser::parse_ws_ndjson};
+use hls_screen::ScreenRequest;
+use hls_tui::{
+    interaction::{WorkstationAction, WorkstationUiState},
+    ratatui_app::{
+        RatatuiColorMode, RatatuiFrameModel, RatatuiViewport, render_ratatui_snapshot_for_test,
+    },
+};
+
+fn fixture_snapshots() -> Vec<hls_core::market_state::FeatureSnapshot> {
+    let events = parse_ws_ndjson(include_str!(
+        "../../../tests/fixtures/hyperliquid/ws_mock_live.ndjson"
+    ))
+    .expect("fixture parses");
+    let metadata = parse_metadata_enrichment_bundle(include_str!(
+        "../../../tests/fixtures/microstructure/metadata_enrichment.json"
+    ))
+    .expect("metadata parses");
+    let mut state = LiveMarketState::new(["@107".to_owned()]);
+    for event in events {
+        state.apply(event).expect("event applies");
+    }
+    let mut snapshots = FeatureEngine::default().snapshots(&state, 1_710_000_066_000);
+    for snapshot in &mut snapshots {
+        snapshot.metadata = metadata
+            .iter()
+            .find(|metadata| metadata.feed_identifier == snapshot.symbol)
+            .cloned();
+    }
+    snapshots
+}
+
+#[test]
+fn wide_cockpit_renders_all_primary_trading_workstation_regions() {
+    let model = RatatuiFrameModel::new(
+        fixture_snapshots(),
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        WorkstationUiState::default(),
+    )
+    .with_status("LIVE", "REC ready", "ws=120 events=300 gaps=0");
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 160,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders");
+
+    assert!(rendered.contains("WATCHLIST"));
+    assert!(rendered.contains("MICROSTRUCTURE"));
+    assert!(rendered.contains("CHART"));
+    assert!(rendered.contains("TAPE"));
+    assert!(rendered.contains("BOOK"));
+    assert!(rendered.contains("HYPE/USDC"));
+    assert!(rendered.contains("confidence"));
+    assert!(rendered.contains("No wallet"));
+}
+
+#[test]
+fn narrow_cockpit_collapses_to_watchlist_and_detail_without_tape() {
+    let model = RatatuiFrameModel::new(
+        fixture_snapshots(),
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        WorkstationUiState::default(),
+    );
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 72,
+            height: 24,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders");
+
+    assert!(rendered.contains("WATCHLIST"));
+    assert!(rendered.contains("DETAIL"));
+    assert!(rendered.contains("HYPE/USDC"));
+    assert!(!rendered.contains("TAPE"));
+}
+
+#[test]
+fn cockpit_color_mode_is_explicit_and_does_not_pollute_no_color_snapshots() {
+    let model = RatatuiFrameModel::new(
+        fixture_snapshots(),
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        WorkstationUiState::default(),
+    );
+
+    let plain = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 120,
+            height: 36,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("plain renders");
+    let colored = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 120,
+            height: 36,
+        },
+        RatatuiColorMode::Color,
+    )
+    .expect("colored renders");
+
+    assert!(!plain.contains("\u{1b}["));
+    assert!(colored.contains("\u{1b}["));
+    assert!(colored.contains("WATCHLIST"));
+}
+
+#[test]
+fn cockpit_reflects_keyboard_view_pause_density_and_help_state() {
+    let snapshots = fixture_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(WorkstationAction::NextView, snapshots.len());
+    state.apply(WorkstationAction::ToggleDensity, snapshots.len());
+    state.apply(WorkstationAction::TogglePause, snapshots.len());
+    state.apply(WorkstationAction::ToggleHelp, snapshots.len());
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    );
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 140,
+            height: 40,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders");
+
+    assert!(rendered.contains("view:flow"));
+    assert!(rendered.contains("density:dense"));
+    assert!(rendered.contains("display paused"));
+    assert!(rendered.contains("HELP"));
+    assert!(rendered.contains("Command Deck"));
+}
