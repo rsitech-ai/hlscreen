@@ -444,3 +444,17 @@
 
 - [x] Review, PR, merge, and close out
   DoD: Diff is reviewed, branch is pushed, PR checks pass, merge to `main` occurs only if stable, post-merge CI passes, and memory/reflection notes are complete.
+
+## 2026-07-08 CI/CD and Dependabot PR Hygiene
+
+- [x] Inspect live CI/CD and PR state
+  DoD: Current `main` runs, active workflows, open PRs, and failing PR logs are checked with `gh`.
+
+- [x] Add scoped Dependabot policy for unsupported updates
+  DoD: Known incompatible update classes are ignored with documented reasons without weakening CI gates.
+
+- [x] Run local validation gates
+  DoD: YAML parse, fmt, clippy, tests, release build, release packaging check, and diff hygiene pass.
+
+- [-] Review, PR, merge, and close out
+  DoD: Policy branch is pushed, PR checks pass, unsupported red PRs are closed or superseded, remaining open PRs are green, and memory/reflection notes are complete.
