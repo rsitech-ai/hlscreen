@@ -22,11 +22,11 @@ impl Expr {
 impl ValueExpr {
     pub fn eval(&self, row: ScreenRow<'_>) -> FieldValue {
         match self {
-            Self::Field(field) => row.value(*field),
+            Self::Field(field) => row.value(field),
             Self::Number(value) => FieldValue::Number(*value),
             Self::String(value) => FieldValue::String(value.clone()),
             Self::Bool(value) => FieldValue::Bool(*value),
-            Self::Abs(field) => match row.value(*field) {
+            Self::Abs(field) => match row.value(field) {
                 FieldValue::Number(value) => FieldValue::Number(value.abs()),
                 _ => FieldValue::Missing,
             },

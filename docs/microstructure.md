@@ -16,8 +16,9 @@ The foundation slice defines shared contracts before runtime behavior changes:
 
 User-story implementations build on these contracts. Confidence computation and
 replay parity are implemented for US1. Liquidity resilience and tradeability
-analytics are implemented for US2. Why-ranked panes, metadata enrichment,
-metrics output, and extension execution are implemented in later tasks.
+analytics are implemented for US2. Why-ranked score explanations are
+implemented for US3. Metadata enrichment, metrics output, and extension
+execution are implemented in later tasks.
 
 ### Data Confidence
 
@@ -82,10 +83,32 @@ edge.
 
 ### Score Breakdowns
 
-`ScoreBreakdown` stores named components and a confidence-adjusted total. This
-keeps ranking explainable and replayable without changing current v1 ranking
-behavior yet. The later why-ranked story will render these components in CLI/TUI
-surfaces.
+`ScoreBreakdown` stores named components and a confidence-adjusted total. The
+feature engine generates the current score explanation from public row evidence:
+
+- `liquidity_resilience`: top-of-book depth and resilience context
+- `momentum`: available return windows
+- `mean_reversion_context`: return-window context for contrarian screens
+- `signed_flow`: public trade-side signed notional over the recent window
+- `spread_cost`: latest BBO spread cost penalty
+
+Rows expose these values through `score_total`, `score_raw_total`,
+`score_confidence_penalty`, and `score_component.<name>` in `hls-screen`. The
+same breakdown is rendered by `hls explain` and the TUI why-ranked pane.
+
+Example:
+
+```bash
+./target/debug/hls explain \
+  --data-dir /tmp/hlscreen-run \
+  --run-id allpairs-15m \
+  --symbol @107
+```
+
+Missing evidence is surfaced as `unavailable_evidence` instead of being silently
+imputed. Score breakdowns remain screen heuristics; they are not orders, trade
+recommendations, execution simulations, fill-quality estimates, or performance
+proof.
 
 ### Metrics
 

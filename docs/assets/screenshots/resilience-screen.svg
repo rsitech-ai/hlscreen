@@ -1,11 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" role="img" xml:space="preserve" aria-label="Liquidity resilience board terminal screenshot" viewBox="0 0 1324 596" width="1324" height="596">
+<svg xmlns="http://www.w3.org/2000/svg" role="img" xml:space="preserve" aria-label="Liquidity resilience board terminal screenshot" viewBox="0 0 1324 616" width="1324" height="616">
 <defs>
 <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
 <stop offset="0" stop-color="#0d1117"/>
 <stop offset="1" stop-color="#18212b"/>
 </linearGradient>
 </defs>
-<rect width="1324" height="596" rx="8" fill="url(#bg)"/>
+<rect width="1324" height="616" rx="8" fill="url(#bg)"/>
 <rect x="0" y="0" width="1324" height="50" rx="8" fill="#141b24"/>
 <rect x="0" y="42" width="1324" height="8" fill="#141b24"/>
 <circle cx="24" cy="24" r="6" fill="#ff5f57"/>
@@ -27,7 +27,7 @@
 <text x="24" y="308" fill="#53616f" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">─────────────────────────────────────────────────────────── MARKET BOARD ───────────────────────────────────────────────────────────</text>
 <text x="24" y="328" fill="#ffa657" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="700">#  SYMBOL        STATE      CONF   TRAD   RESIL    PRICE     SPRD    SHOCK    DEPTH    FLOW30    OFI30    SCORE    AGE  OBSERVATION</text>
 <text x="24" y="348" fill="#53616f" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">── ────────────  ─────────  ─────  ─────  ───────  ───────── ─────── ─────── ──────── ──────── ──────── ───────── ───── ───────────────</text>
-<text x="24" y="368" fill="#7ee787" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="600">01 @107          ● fresh    H100   TRADE  NORMAL   100.0000 12.0 bps 90.0 bps   $10.5K    +$602    -$515 100.0/50.0   0ms steady</text>
+<text x="24" y="368" fill="#7ee787" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="600">01 @107          ● fresh    H100   TRADE  NORMAL   100.0000 12.0 bps 90.0 bps   $10.5K    +$602    -$515 56.9/56.9   0ms steady</text>
 <text x="24" y="388" fill="#53616f" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">───────────────────────────────────────────────────────── SELECTED SYMBOL ──────────────────────────────────────────────────────────</text>
 <text x="24" y="408" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">@107 | bid 99.9400 x 50.0000 | ask 100.0600 x 55.0000 | mid 100.0000 | mark -</text>
 <text x="24" y="428" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">microstructure | spread 12.0 bps | imbalance -5% | top depth $10.5K | ret 1m -0.05% | rv 1m 0.37%</text>
@@ -35,6 +35,7 @@
 <text x="24" y="468" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">flow proxy | signed notional 30s +$602 | BBO OFI 30s -$515 | top-of-book proxy only</text>
 <text x="24" y="488" fill="#7ee787" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="600">state | ● fresh | age 0ms | incomplete none | observation steady</text>
 <text x="24" y="508" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">confidence | high 100 | reasons none | incomplete windows none</text>
-<text x="24" y="528" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400"></text>
-<text x="24" y="548" fill="#a7b3c2" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">No wallet, no private streams, no order routes. Scores are screen heuristics, not orders or advice.</text>
+<text x="24" y="528" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">why ranked | score 56.9 adjusted from raw 56.9 | confidence penalty +0.0 | components 5</text>
+<text x="24" y="548" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400"></text>
+<text x="24" y="568" fill="#a7b3c2" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">No wallet, no private streams, no order routes. Scores are screen heuristics, not orders or advice.</text>
 </svg>

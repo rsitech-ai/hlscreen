@@ -10,7 +10,7 @@ It is built for operators and researchers who want a local-first way to inspect 
 
 ## Status
 
-Current state: v0.1 live public-data hardening with a next-generation deterministic terminal market board and health panel.
+Current state: v0.1 live public-data hardening with a next-generation deterministic terminal market board, why-ranked detail pane, and health panel.
 
 Implemented today:
 
@@ -22,6 +22,7 @@ Implemented today:
 - Modern deterministic terminal rendering for market rows, scan KPIs, selected-symbol microstructure detail, read-only safety state, and operations health.
 - Confidence-aware feature snapshots and TUI rows for fresh, sparse, duplicate, and explicit gap/parser/backlog quality inputs.
 - Persisted confidence baselines plus `hls replay --verify-parity` drift detection for local replay checks.
+- Deterministic score breakdowns, screen-rule score fields, and `hls explain` why-ranked output for replayed or fixture-backed rows.
 - Compressed raw public message recording, normalized replay JSONL, and local SQLite metadata.
 - Deterministic screening DSL and built-in screen presets.
 - Health snapshots, reconnect simulation, TUI health rendering, and read-only local API helpers.
@@ -48,6 +49,10 @@ These committed SVGs are deterministic terminal captures generated from the curr
 ### Liquidity Resilience Board
 
 ![Liquidity resilience board](docs/assets/screenshots/resilience-screen.svg)
+
+### Why Ranked Detail
+
+![Why ranked detail](docs/assets/screenshots/why-ranked.svg)
 
 ### Record And Replay
 
@@ -186,6 +191,14 @@ Screen deterministic fixture rows:
   --fixture-file tests/fixtures/hyperliquid/ws_mock_live.ndjson \
   --where 'spread_bps < 75 and tob_depth_usd > 100' \
   --sort ret_5m:desc
+```
+
+Explain why a replayed or fixture-backed symbol ranked:
+
+```bash
+./target/debug/hls explain \
+  --fixture-file tests/fixtures/microstructure/resilience_shock.ndjson \
+  --symbol @107
 ```
 
 Print health JSON:

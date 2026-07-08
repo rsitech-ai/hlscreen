@@ -335,3 +335,26 @@
 
 - [x] Review, PR, merge, and close out
   DoD: Diff is reviewed, branch is pushed, PR checks pass, merge to `main` occurs only if stable, and memory/reflection notes are complete.
+
+## 2026-07-08 US3 Why-Ranked TUI Detail
+
+- [x] Confirm scope and renderer contract
+  DoD: `PLAN.md` identifies T046-T057 as the active slice on `feat/andrzej_microstructure_explainability`.
+
+- [x] Add US3 fixtures and failing tests
+  DoD: score fixture, core aggregation tests, TUI why-ranked golden, and CLI explain tests describe expected behavior.
+
+- [x] Generate score breakdowns from public feature evidence
+  DoD: `FeatureSnapshot` carries deterministic score breakdowns with positive, negative, confidence-adjusted, and unavailable-evidence fields.
+
+- [x] Wire screen DSL, TUI detail pane, CLI explain, and docs
+  DoD: score fields are filterable/sortable, `render_why_ranked_pane` exists, `hls explain` works over replay/fixtures, and docs explain caveats.
+
+- [x] Regenerate and inspect screenshots
+  DoD: SVG screenshots include a why-ranked pane generated from the current binary and are visually inspected.
+
+- [x] Run validation gates
+  DoD: Focused tests, full Rust gates, screenshot generation, `git diff --check`, and read-only scan pass or exact blockers are recorded.
+
+- [ ] Review, PR, merge, and close out
+  DoD: Diff is reviewed, branch is pushed, PR checks pass, merge to `main` occurs only if stable, and memory/reflection notes are complete.
