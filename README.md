@@ -54,6 +54,10 @@ These committed SVGs are deterministic terminal captures generated from the curr
 
 ![Why ranked detail](docs/assets/screenshots/why-ranked.svg)
 
+### Metadata Discovery
+
+![Metadata discovery](docs/assets/screenshots/metadata-discovery.svg)
+
 ### Record And Replay
 
 ![Record and replay](docs/assets/screenshots/record-replay.svg)

@@ -51,7 +51,25 @@ def main() -> None:
                         FIXTURE,
                         "--preset",
                         "thin_books",
+                        "--metadata-file",
+                        "tests/fixtures/microstructure/metadata_enrichment.json",
                         "--once",
+                    ]
+                ],
+            ),
+            Screenshot(
+                filename="metadata-discovery.svg",
+                title="Metadata discovery",
+                commands=[
+                    [
+                        str(HLS),
+                        "screen",
+                        "--fixture-file",
+                        FIXTURE,
+                        "--metadata-file",
+                        "tests/fixtures/microstructure/metadata_enrichment.json",
+                        "--preset",
+                        "new_listings",
                     ]
                 ],
             ),
@@ -297,6 +315,8 @@ def line_style(line: str) -> tuple[str, str]:
         return "#53616f", "400"
     if line.startswith(("#   SYMBOL", "#  SYMBOL")):
         return "#ffa657", "700"
+    if "NEW+SEED" in line or "metadata |" in line:
+        return "#a5d6ff", "600"
     if line.startswith(("│ SAFETY", "│ UNIVERSE", "│ SESSION")):
         return "#7ee787", "700"
     if line.startswith(

@@ -17,8 +17,8 @@ The foundation slice defines shared contracts before runtime behavior changes:
 User-story implementations build on these contracts. Confidence computation and
 replay parity are implemented for US1. Liquidity resilience and tradeability
 analytics are implemented for US2. Why-ranked score explanations are
-implemented for US3. Metadata enrichment, metrics output, and extension
-execution are implemented in later tasks.
+implemented for US3. Public metadata enrichment is implemented for US4. Metrics
+output and extension execution are implemented in later tasks.
 
 ### Data Confidence
 
@@ -109,6 +109,37 @@ Missing evidence is surfaced as `unavailable_evidence` instead of being silently
 imputed. Score breakdowns remain screen heuristics; they are not orders, trade
 recommendations, execution simulations, fill-quality estimates, or performance
 proof.
+
+### Public Metadata Enrichment
+
+US4 adds optional metadata enrichment from Hyperliquid public `spotMeta`,
+`spotMetaAndAssetCtxs`, and `tokenDetails` responses. The enrichment model is
+attached to `FeatureSnapshot` rows by adapter code, not by the hot feature
+calculation path, so WebSocket ingestion does not depend on token-detail
+availability.
+
+Rows can carry:
+
+- display name and feed identifier
+- spot pair index and base/quote token indices
+- metadata source and fetch timestamp
+- listing age when deploy time is available
+- deployer, seeded USDC, max supply, and circulating supply when public detail
+  fields are available
+- cohort tags such as `new_listing`, `fresh_liquidity`, `low_float`, and
+  `unknown_metadata`
+
+Missing and partial metadata are intentional states. Unknown fields are recorded
+in `unknown_fields`, exposed as the `unknown_metadata` cohort, and rendered in
+the terminal detail pane. Missing deployer, supply, or seeded-liquidity fields
+must not stop live ingestion, replay, or screen rendering.
+
+Metadata screen fields now include `metadata_state`, `metadata_source`,
+`metadata_fetched_at_ms`, `listing_age_ms`, `deployer`, `deploy_time_ms`,
+`seeded_usdc`, `max_supply`, `circulating_supply`, and `cohort_tag`. Built-in
+presets include `new_listings`, `fresh_liquidity`, and `metadata_unknown`.
+These are discovery filters only; they are not listing-quality claims or trade
+recommendations.
 
 ### Metrics
 

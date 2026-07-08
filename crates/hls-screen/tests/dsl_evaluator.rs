@@ -171,6 +171,7 @@ fn row(
         momentum_score,
         mean_reversion_score,
         score_breakdown: None,
+        metadata: None,
         updated_ms_ago: Some(0),
         staleness_state: StalenessState::Fresh,
         incomplete_window_reason: None,

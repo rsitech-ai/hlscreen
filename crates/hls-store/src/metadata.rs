@@ -2,7 +2,7 @@ use std::path::Path;
 
 use hls_core::{
     HlsError, HlsResult, confidence::DataConfidenceSnapshot, data_gap::DataGap,
-    market_state::FeatureSnapshot,
+    market_state::FeatureSnapshot, metadata::MetadataEnrichment,
 };
 use rusqlite::{Connection, OptionalExtension, params, types::Type};
 use serde::{Deserialize, Serialize};
@@ -82,6 +82,13 @@ pub struct ConfidenceSnapshotRecord {
     pub snapshot_ts_ms: i64,
     pub symbol: String,
     pub confidence: DataConfidenceSnapshot,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct MetadataCacheRecord {
+    pub symbol: String,
+    pub metadata_fetched_at_ms: i64,
+    pub metadata: MetadataEnrichment,
 }
 
 pub struct MetadataRegistry {
@@ -362,6 +369,56 @@ impl MetadataRegistry {
         Ok(rows)
     }
 
+    pub fn upsert_metadata_enrichment(&self, metadata: &MetadataEnrichment) -> HlsResult<()> {
+        self.conn
+            .execute(
+                "INSERT INTO metadata_cache (symbol, metadata_fetched_at_ms, metadata_json)
+                 VALUES (?1, ?2, ?3)
+                 ON CONFLICT(symbol) DO UPDATE SET
+                    metadata_fetched_at_ms = excluded.metadata_fetched_at_ms,
+                    metadata_json = excluded.metadata_json",
+                params![
+                    metadata.feed_identifier,
+                    metadata.metadata_fetched_at_ms,
+                    serde_json::to_string(metadata).map_err(|err| {
+                        HlsError::Parse(format!("serialize metadata enrichment: {err}"))
+                    })?
+                ],
+            )
+            .map_err(sqlite_error)?;
+        Ok(())
+    }
+
+    pub fn get_metadata_enrichment(&self, symbol: &str) -> HlsResult<Option<MetadataCacheRecord>> {
+        self.conn
+            .query_row(
+                "SELECT symbol, metadata_fetched_at_ms, metadata_json
+                 FROM metadata_cache WHERE symbol = ?1",
+                [symbol],
+                row_to_metadata_cache,
+            )
+            .optional()
+            .map_err(sqlite_error)
+    }
+
+    pub fn list_metadata_enrichments(&self) -> HlsResult<Vec<MetadataCacheRecord>> {
+        let mut stmt = self
+            .conn
+            .prepare(
+                "SELECT symbol, metadata_fetched_at_ms, metadata_json
+                 FROM metadata_cache ORDER BY symbol",
+            )
+            .map_err(sqlite_error)?;
+
+        let rows = stmt
+            .query_map([], row_to_metadata_cache)
+            .map_err(sqlite_error)?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(sqlite_error)?;
+
+        Ok(rows)
+    }
+
     fn init(&self) -> HlsResult<()> {
         self.conn
             .execute_batch(
@@ -413,6 +470,11 @@ impl MetadataRegistry {
                     level TEXT NOT NULL,
                     confidence_json TEXT NOT NULL,
                     PRIMARY KEY(run_id, snapshot_ts_ms, symbol)
+                );
+                CREATE TABLE IF NOT EXISTS metadata_cache (
+                    symbol TEXT PRIMARY KEY,
+                    metadata_fetched_at_ms INTEGER NOT NULL,
+                    metadata_json TEXT NOT NULL
                 );
                 ",
             )
@@ -486,6 +548,17 @@ fn row_to_confidence_snapshot(
         snapshot_ts_ms: row.get(1)?,
         symbol: row.get(2)?,
         confidence,
+    })
+}
+
+fn row_to_metadata_cache(row: &rusqlite::Row<'_>) -> rusqlite::Result<MetadataCacheRecord> {
+    let metadata_json: String = row.get(2)?;
+    let metadata: MetadataEnrichment = serde_json::from_str(&metadata_json)
+        .map_err(|err| rusqlite::Error::FromSqlConversionFailure(2, Type::Text, Box::new(err)))?;
+    Ok(MetadataCacheRecord {
+        symbol: row.get(0)?,
+        metadata_fetched_at_ms: row.get(1)?,
+        metadata,
     })
 }
 
