@@ -104,7 +104,7 @@ Expected behavior:
 
 Required surfaces:
 - Main market board with confidence and resilience indicators.
-- Symbol detail pane with BBO/tradeability metrics.
+- Per-symbol detail cards with BBO/tradeability metrics for every visible row.
 - Why-ranked pane with score components and confidence penalties.
 - Health pane with lag, queues, gaps, reconnects, and low-confidence count.
 - Preset/filter surface for confidence, resilience, tradeability, and metadata cohorts.

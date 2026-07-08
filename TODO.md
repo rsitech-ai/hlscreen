@@ -339,6 +339,26 @@
 - [x] Review, PR, merge, and close out
   DoD: Diff is reviewed, branch is pushed, PR checks pass, merge to `main` occurs only if stable, and memory/reflection notes are complete.
 
+## 2026-07-08 All-Pair TUI Detail Cards
+
+- [x] Confirm scope and branch
+  DoD: `PLAN.md` records all-pair TUI detail scope on `feat/andrzej_tui_pair_cards`.
+
+- [x] Add/update TUI and CLI expectations
+  DoD: Tests assert per-pair detail cards expose the mock-required live data fields for each visible pair.
+
+- [x] Implement per-pair detail cards
+  DoD: `hls-tui` renders price ladder, microstructure windows, activity/scores, quality/flow, metadata, confidence, and why-ranked summary for every row without fake values.
+
+- [x] Regenerate and inspect screenshots
+  DoD: SVG screenshots are rebuilt from the current binary and PNG previews show the new all-pair surface clearly.
+
+- [x] Run validation gates
+  DoD: Focused tests, full Rust gates, screenshot generation, `git diff --check`, and bounded public live smoke pass or exact blockers are recorded.
+
+- [-] Review, PR, merge, and close out
+  DoD: Diff is reviewed, branch is pushed, PR checks pass, merge to `main` occurs only if stable, and memory/reflection notes are complete.
+
 ## 2026-07-08 US2 Liquidity Resilience TUI
 
 - [x] Confirm scope and branch

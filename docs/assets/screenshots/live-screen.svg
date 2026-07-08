@@ -1,11 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" role="img" xml:space="preserve" aria-label="Live market board terminal screenshot" viewBox="0 0 1324 696" width="1324" height="696">
+<svg xmlns="http://www.w3.org/2000/svg" role="img" xml:space="preserve" aria-label="Live market board terminal screenshot" viewBox="0 0 1324 716" width="1324" height="716">
 <defs>
 <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
 <stop offset="0" stop-color="#0d1117"/>
 <stop offset="1" stop-color="#18212b"/>
 </linearGradient>
 </defs>
-<rect width="1324" height="696" rx="8" fill="url(#bg)"/>
+<rect width="1324" height="716" rx="8" fill="url(#bg)"/>
 <rect x="0" y="0" width="1324" height="50" rx="8" fill="#141b24"/>
 <rect x="0" y="42" width="1324" height="8" fill="#141b24"/>
 <circle cx="24" cy="24" r="6" fill="#ff5f57"/>
@@ -30,16 +30,17 @@
 <text x="24" y="368" fill="#ffa657" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="700">#  SYMBOL        STATE      CONF   TRAD   RESIL    PRICE     SPRD    SHOCK    DEPTH    FLOW30    OFI30    SCORE    AGE   META     OBSERVATION</text>
 <text x="24" y="388" fill="#53616f" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">── ────────────  ─────────  ─────  ─────  ───────  ───────── ─────── ─────── ──────── ──────── ──────── ───────── ───── ──────── ───────────────────</text>
 <text x="24" y="408" fill="#a5d6ff" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="600">01 @107          ● fresh    H100   UNK    UNK       35.2000 57.1 bps       -     $245     -$35        - 12.8/12.8   0ms NEW+SEED thin book · wide spread</text>
-<text x="24" y="428" fill="#53616f" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">─────────────────────────────────────────────────────────────────── SELECTED SYMBOL ────────────────────────────────────────────────────────────────────</text>
-<text x="24" y="448" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">@107 | bid 34.9000 x 3.0000 | ask 35.1000 x 4.0000 | mid 35.0000 | mark 35.5000</text>
-<text x="24" y="468" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">microstructure | spread 57.1 bps | imbalance -15% | top depth $245 | ret 1m +0.57% | rv 1m 0.00%</text>
-<text x="24" y="488" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">resilience | state unknown | shock - | recovery - | tradeability unknown | adverse proxy unknown</text>
-<text x="24" y="508" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">flow proxy | signed notional 30s -$35 | BBO OFI 30s - | top-of-book proxy only</text>
-<text x="24" y="528" fill="#a5d6ff" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="600">metadata | tags fresh_liquidity,low_float,new_listing | listing age 6.3d | seeded $1.2M | source spotMetaAndAssetCtxs+tokenDetails</text>
-<text x="24" y="548" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">metadata detail | deployer 0x123456…345678 | unknown fields none</text>
-<text x="24" y="568" fill="#7ee787" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="600">state | ● fresh | age 0ms | incomplete none | observation thin book · wide spread · move active · new listing · fresh liquidity</text>
-<text x="24" y="588" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">confidence | high 100 | reasons none | incomplete windows none</text>
-<text x="24" y="608" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">why ranked | score 12.8 adjusted from raw 12.8 | confidence penalty +0.0 | components 5</text>
-<text x="24" y="628" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400"></text>
-<text x="24" y="648" fill="#a7b3c2" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">No wallet, no private streams, no order routes. Scores are screen heuristics, not orders or advice.</text>
+<text x="24" y="428" fill="#53616f" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">────────────────────────────────────────────────────────────────── PAIR DETAIL CARDS ───────────────────────────────────────────────────────────────────</text>
+<text x="24" y="448" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">01 @107 | px 35.2000 | 24h notional $25.0M | bid 34.9000 x 3.0000 | ask 35.1000 x 4.0000 | mid 35.0000 | mark 35.5000</text>
+<text x="24" y="468" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">   micro | spread 57.1 bps | TOB depth $245 | imbalance -15% | ret 1m +0.57% / 5m +0.57% / 1h +0.57% | rv 1m 0.00% / 5m 0.00% / 1h 0.00%</text>
+<text x="24" y="488" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">   activity | volume z +0.0 | trades z +0.0 | liq/mom/mr 2.5/50.6/49.4 | score 12.8/12.8 | flow30 -$35 | ofi30 -</text>
+<text x="24" y="508" fill="#7ee787" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="600">   quality | ● fresh age 0ms | confidence high 100 | incomplete none | observation thin book · wide spread · move active · new listing · fresh liquidity</text>
+<text x="24" y="528" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">   resilience | state unknown | shock - | recovery - | tradeability unknown | adverse proxy unknown</text>
+<text x="24" y="548" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">   flow | signed notional 30s -$35 | BBO OFI 30s - | top-of-book proxy only</text>
+<text x="24" y="568" fill="#a5d6ff" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="600">   metadata | tags fresh_liquidity,low_float,new_listing | listing age 6.3d | seeded $1.2M | source spotMetaAndAssetCtxs+tokenDetails</text>
+<text x="24" y="588" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">   metadata detail | deployer 0x123456…345678 | unknown fields none</text>
+<text x="24" y="608" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">   confidence | high 100 | reasons none | incomplete windows none</text>
+<text x="24" y="628" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">   why ranked | score 12.8 adjusted from raw 12.8 | confidence penalty +0.0 | components 5</text>
+<text x="24" y="648" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400"></text>
+<text x="24" y="668" fill="#a7b3c2" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">No wallet, no private streams, no order routes. Scores are screen heuristics, not orders or advice.</text>
 </svg>

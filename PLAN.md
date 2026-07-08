@@ -1099,3 +1099,65 @@
 - What changed: Completed Spec Kit US3 tasks T046-T057. Added a richer score component contract with direction, raw/normalized values, weights, signed contributions, evidence windows, and unavailable evidence; attached deterministic `ScoreBreakdown` values to feature snapshots; exposed `score_total`, `score_raw_total`, `score_confidence_penalty`, and `score_component.<name>` through the screen DSL; added `hls-tui::detail::render_why_ranked_pane`; added `hls explain` text/JSON output over replayed or fixture-backed data; updated docs and regenerated screenshots including `docs/assets/screenshots/why-ranked.svg`.
 - Validation run: focused green `cargo test -p hls-core --test score_breakdown`, `cargo test -p hls-features --test formulas`, `cargo test -p hls-screen --test dsl_parser --test dsl_evaluator`, `cargo test -p hls-tui --test why_ranked_pane --test main_table_golden`, and `cargo test -p hls-cli --test explain_command --test screen_command`; `python3 scripts/generate-screenshots.py`; PNG visual preview of `why-ranked.svg`; `cargo fmt --check`; `git diff --check`; read-only/safety scan; fixed clippy too-many-arguments finding; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`.
 - Follow-ups: PR #19 merged into `main` at `4c8b10d` after GitHub `Rust workspace` passed. US3 is complete. Remaining v2 work starts at US4 metadata enrichment T058-T068, then US5 operations/packaging/extension tasks and final polish/report tasks.
+
+## 2026-07-08 All-Pair TUI Detail Cards
+
+### Task
+- Objective: Upgrade the deterministic workstation TUI so every rendered pair has a compact detail card matching the mock/product surface, not only the first/selected row.
+- Owner repo(s): standalone `hlscreen/` repository only.
+- Capital impact: research-only / read-only public market-data visualization. No wallet, private stream, signing, order placement, execution route, or trading advice.
+
+### Context
+- Background: The current market board is visually improved and uses real `FeatureSnapshot` data, but richer microstructure detail is still concentrated in a single `SELECTED SYMBOL` section. The requested mock calls for per-pair visibility into price, 24h volume, mid/mark, bid/ask, spread, TOB depth/imbalance, returns, realized volatility, activity z-scores, liquidity/momentum/mean-reversion scores, confidence, flow, resilience, and metadata.
+- Inputs: `/Users/s1kor/.codex/attachments/24f4f400-2fac-4700-a096-ce4c1a31397d/pasted-text.txt`, `crates/hls-core/src/market_state.rs`, `crates/hls-tui/src/app.rs`, `crates/hls-tui/tests/main_table_golden.rs`, `crates/hls-cli/tests/live_mock.rs`, and `scripts/generate-screenshots.py`.
+- Outputs: per-pair detail-card rendering from existing live snapshot fields, updated golden/CLI tests, regenerated screenshots, validation evidence, and PR/merge if stable.
+
+### Assumptions
+- The v1 TUI contract remains deterministic text/SVG-friendly output rather than a keyboard-driven ratatui app.
+- Missing fields must render as `-`; no fixture-only placeholder or mock value should be invented to make the UI look fuller.
+- The pair detail section should render all visible rows after any screen filter/sort is applied.
+
+### Constraints
+- Technical: keep rendering bounded and pure; avoid ANSI escape codes in golden output; preserve low-latency live ingestion by changing only display code/tests.
+- Operational: screenshots can be deterministic fixture outputs, but must use the same parser/state/feature/TUI path as live data.
+- Risk/capital: all score/resilience/flow text must remain screen heuristics and top-of-book proxies, not advice or execution readiness.
+
+### Options Considered
+1. Keep the board as-is and only widen row columns.
+   - Pros: smallest diff.
+   - Cons: still hides mock-required fields for all but one pair and does not answer the request.
+2. Replace the selected-symbol detail pane with repeated compact pair detail cards for every visible pair.
+   - Pros: gives each pair the same truthful field coverage and keeps deterministic screenshots professional.
+   - Cons: output is taller for large universes.
+3. Add a separate interactive TUI crate/runtime now.
+   - Pros: could support keyboard selection later.
+   - Cons: larger architecture shift than needed and not required to fix the current per-pair visibility gap.
+
+### Chosen Approach
+- Choice: option 2.
+- Why: it directly matches the mock, preserves the current production data path, and avoids introducing an unproven interactive runtime.
+
+### Execution Plan
+1. Add/update tests so golden output expects `PAIR DETAIL CARDS` and verifies two rendered rows each expose price ladder, microstructure windows, activity/score fields, quality/flow, metadata, confidence, and why-ranked summary.
+2. Refactor `crates/hls-tui/src/app.rs` to render a compact card per row from existing `FeatureSnapshot` fields.
+3. Update CLI smoke expectations that currently look for `SELECTED SYMBOL`.
+4. Regenerate screenshots from the current binary and visually inspect PNG previews.
+5. Run focused TUI/CLI tests plus full workspace fmt, clippy, tests, build, release build, diff check, and a bounded public live smoke.
+
+### Test Plan
+- Focused: `cargo test -p hls-tui --test main_table_golden`; `cargo test -p hls-cli --test live_mock --test screen_command`.
+- Screenshot/docs: `python3 scripts/generate-screenshots.py`; PNG preview `live-screen.svg` and `metadata-discovery.svg` with `rsvg-convert`.
+- Regression: `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`; `cargo build --release --workspace --all-features`; `git diff --check`.
+- Live smoke: bounded read-only public `./target/debug/hls live --symbols @107 --duration-secs 10 --refresh-secs 5 --tui`.
+
+### Risks and Rollback
+- Risks: all-pair cards make long all-symbol output taller; screenshot assets may need larger view boxes; manual golden assertions can become brittle if labels are too verbose.
+- Rollback: revert the TUI/test/screenshot commit; no storage, network, config, or external state changes are introduced.
+
+### Memory Impact
+- Add/update in `MEMORY.md`: per-pair detail-card TUI contract and confirmed validation/screenshot commands if the slice passes.
+
+### Final Notes
+- What changed: Replaced the selected-symbol-only TUI detail pane with `PAIR DETAIL CARDS` rendered for every visible row after screening. Each card uses existing `FeatureSnapshot` fields for price, 24h notional, bid/ask, mid/mark, spread, TOB depth/imbalance, 1m/5m/1h returns and realized volatility, volume/trade z-scores, liquidity/momentum/mean-reversion scores, flow, resilience, metadata, confidence, and why-ranked summary. Updated CLI/TUI tests, screenshot highlighting, regenerated SVG assets, repo memory, daily memory, and lesson store.
+- Validation run: red/green `cargo test -p hls-tui --test main_table_golden`; `cargo test -p hls-cli --test live_mock --test screen_command`; `python3 scripts/generate-screenshots.py`; PNG previews with `rsvg-convert` for `live-screen`, `metadata-discovery`, and `resilience-screen`; `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`; `cargo build --release --workspace --all-features`; `git diff --check`; read-only public smoke `./target/debug/hls live --symbols @107 --duration-secs 10 --refresh-secs 5 --tui` with 57 WebSocket messages, 83 market events, 0 reconnects, and 0 data gaps.
+- Follow-ups: Full keyboard-driven interactive TUI remains future work. This slice keeps the stable deterministic renderer and does not add trading/private/order surfaces.
