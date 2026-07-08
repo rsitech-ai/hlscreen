@@ -10,6 +10,21 @@ pub fn render_main_table(rows: &[FeatureSnapshot]) -> String {
     render_table_with_title(rows, "READ-ONLY Hyperliquid spot live screen")
 }
 
+pub fn render_confidence_summary(rows: &[FeatureSnapshot]) -> String {
+    let stats = TableStats::from_rows(rows);
+    format!(
+        "confidence_summary=high:{} medium:{} low:{} untrusted:{} min:{} reasons:{}",
+        stats.confidence_high,
+        stats.confidence_medium,
+        stats.confidence_low,
+        stats.confidence_untrusted,
+        stats
+            .min_confidence_score
+            .map_or_else(|| "-".to_owned(), |score| score.to_string()),
+        stats.confidence_reason_count
+    )
+}
+
 pub fn render_screened_table(
     rows: &[FeatureSnapshot],
     title: &str,
