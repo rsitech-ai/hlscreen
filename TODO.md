@@ -358,3 +358,23 @@
 
 - [x] Review, PR, merge, and close out
   DoD: Diff is reviewed, branch is pushed, PR checks pass, merge to `main` occurs only if stable, and memory/reflection notes are complete.
+
+## 2026-07-08 US4 Metadata-Backed TUI Polish
+
+- [x] Confirm US4 scope and renderer contract
+  DoD: `PLAN.md` identifies T058-T068 plus screenshot polish as the active slice on `feat/andrzej_microstructure_metadata`.
+
+- [x] Add US4 fixtures and failing tests
+  DoD: Complete, partial, and missing metadata payloads are covered by core, adapter, store, and screen preset tests.
+
+- [x] Implement metadata enrichment and cache support
+  DoD: Core snapshots can carry optional metadata, public REST parsing tolerates partial fields, and SQLite records freshness.
+
+- [x] Wire screen fields, presets, TUI, and screenshots
+  DoD: Metadata fields are filterable/sortable, TUI shows metadata tags/details, and generated SVG screenshots include the updated workstation surface.
+
+- [x] Run validation gates
+  DoD: Focused tests, full Rust gates, screenshot generation, PNG preview, `git diff --check`, and read-only scan pass or exact blockers are recorded.
+
+- [-] Review, PR, merge, and close out
+  DoD: Diff is reviewed, branch is pushed, PR checks pass, merge to `main` occurs only if stable, and memory/reflection notes are complete.

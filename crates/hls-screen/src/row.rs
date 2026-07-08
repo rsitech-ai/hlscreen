@@ -1,4 +1,5 @@
 use hls_core::market_state::FeatureSnapshot;
+use hls_core::metadata::COHORT_UNKNOWN_METADATA;
 
 use crate::dsl::ast::Field;
 
@@ -6,6 +7,7 @@ use crate::dsl::ast::Field;
 pub enum FieldValue {
     Number(f64),
     String(String),
+    StringList(Vec<String>),
     Bool(bool),
     Missing,
 }
@@ -98,6 +100,82 @@ impl<'a> ScreenRow<'a> {
                 .and_then(|breakdown| breakdown.component(name))
                 .map(|component| FieldValue::Number(component.signed_contribution))
                 .unwrap_or(FieldValue::Missing),
+            Field::MetadataState => FieldValue::String(
+                self.snapshot
+                    .metadata
+                    .as_ref()
+                    .map(|metadata| {
+                        if metadata.is_complete() {
+                            "complete"
+                        } else {
+                            "partial"
+                        }
+                    })
+                    .unwrap_or("missing")
+                    .to_owned(),
+            ),
+            Field::MetadataSource => self
+                .snapshot
+                .metadata
+                .as_ref()
+                .map(|metadata| FieldValue::String(metadata.metadata_source.clone()))
+                .unwrap_or(FieldValue::Missing),
+            Field::MetadataFetchedAtMs => self
+                .snapshot
+                .metadata
+                .as_ref()
+                .map(|metadata| FieldValue::Number(metadata.metadata_fetched_at_ms as f64))
+                .unwrap_or(FieldValue::Missing),
+            Field::ListingAgeMs => self
+                .snapshot
+                .metadata
+                .as_ref()
+                .and_then(|metadata| metadata.listing_age_ms)
+                .map(|value| FieldValue::Number(value as f64))
+                .unwrap_or(FieldValue::Missing),
+            Field::Deployer => self
+                .snapshot
+                .metadata
+                .as_ref()
+                .and_then(|metadata| metadata.deployer.clone())
+                .map(FieldValue::String)
+                .unwrap_or(FieldValue::Missing),
+            Field::DeployTimeMs => self
+                .snapshot
+                .metadata
+                .as_ref()
+                .and_then(|metadata| metadata.deploy_time_ms)
+                .map(|value| FieldValue::Number(value as f64))
+                .unwrap_or(FieldValue::Missing),
+            Field::SeededUsdc => self
+                .snapshot
+                .metadata
+                .as_ref()
+                .and_then(|metadata| metadata.seeded_usdc)
+                .map(FieldValue::Number)
+                .unwrap_or(FieldValue::Missing),
+            Field::MaxSupply => self
+                .snapshot
+                .metadata
+                .as_ref()
+                .and_then(|metadata| metadata.max_supply)
+                .map(FieldValue::Number)
+                .unwrap_or(FieldValue::Missing),
+            Field::CirculatingSupply => self
+                .snapshot
+                .metadata
+                .as_ref()
+                .and_then(|metadata| metadata.circulating_supply)
+                .map(FieldValue::Number)
+                .unwrap_or(FieldValue::Missing),
+            Field::CohortTag => self
+                .snapshot
+                .metadata
+                .as_ref()
+                .map(|metadata| FieldValue::StringList(metadata.cohort_tags.clone()))
+                .unwrap_or_else(|| {
+                    FieldValue::StringList(vec![COHORT_UNKNOWN_METADATA.to_owned()])
+                }),
             Field::UpdatedMsAgo => self
                 .snapshot
                 .updated_ms_ago

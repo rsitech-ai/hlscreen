@@ -144,20 +144,20 @@
 
 ### Tests for User Story 4
 
-- [ ] T058 [P] [US4] Add metadata enrichment fixtures in `/Users/s1kor/dev/trading/rsibot/hlscreen/tests/fixtures/microstructure/metadata_enrichment.json`
-- [ ] T059 [P] [US4] Add public metadata adapter tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-hyperliquid/tests/metadata_enrichment.rs`
-- [ ] T060 [P] [US4] Add metadata model tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/tests/metadata_enrichment.rs`
-- [ ] T061 [P] [US4] Add metadata preset tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-screen/tests/metadata_presets.rs`
+- [x] T058 [P] [US4] Add metadata enrichment fixtures in `/Users/s1kor/dev/trading/rsibot/hlscreen/tests/fixtures/microstructure/metadata_enrichment.json`
+- [x] T059 [P] [US4] Add public metadata adapter tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-hyperliquid/tests/metadata_enrichment.rs`
+- [x] T060 [P] [US4] Add metadata model tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/tests/metadata_enrichment.rs`
+- [x] T061 [P] [US4] Add metadata preset tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-screen/tests/metadata_presets.rs`
 
 ### Implementation for User Story 4
 
-- [ ] T062 [US4] Implement metadata enrichment model in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/src/metadata.rs`
-- [ ] T063 [US4] Add public metadata fetch/cache adapter in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-hyperliquid/src/rest.rs`
-- [ ] T064 [US4] Persist metadata cache freshness in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-store/src/metadata.rs`
-- [ ] T065 [US4] Add metadata fields to screen rows in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-screen/src/row.rs`
-- [ ] T066 [US4] Add new-listing and metadata cohort presets in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-screen/src/presets.rs`
-- [ ] T067 [US4] Surface metadata tags in terminal rows or details in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-tui/src/app.rs`
-- [ ] T068 [US4] Document metadata source stability and unknown-field behavior in `/Users/s1kor/dev/trading/rsibot/hlscreen/docs/microstructure.md`
+- [x] T062 [US4] Implement metadata enrichment model in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/src/metadata.rs`
+- [x] T063 [US4] Add public metadata fetch/cache adapter in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-hyperliquid/src/rest.rs`
+- [x] T064 [US4] Persist metadata cache freshness in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-store/src/metadata.rs`
+- [x] T065 [US4] Add metadata fields to screen rows in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-screen/src/row.rs`
+- [x] T066 [US4] Add new-listing and metadata cohort presets in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-screen/src/presets.rs`
+- [x] T067 [US4] Surface metadata tags in terminal rows or details in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-tui/src/app.rs`
+- [x] T068 [US4] Document metadata source stability and unknown-field behavior in `/Users/s1kor/dev/trading/rsibot/hlscreen/docs/microstructure.md`
 
 **Checkpoint**: User Story 4 complete when metadata fields enrich rows without introducing private/account data or live-ingestion failures.
 

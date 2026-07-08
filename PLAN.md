@@ -792,6 +792,67 @@
 - Validation run: red/green `cargo test -p hls-tui --test main_table_golden --test health_pane`; `cargo test -p hls-cli --test live_mock --test health_commands`; full gate `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`; `python3 scripts/generate-screenshots.py`; SVG-to-PNG previews with `rsvg-convert`; `git diff --check`; read-only/safety scan. The first full gate caught stale smoke assertions, which were fixed and rerun successfully.
 - Follow-ups: This remains deterministic command output rather than a full keyboard-driven alternate-screen Ratatui app. Spec Kit T020-T033 confidence/replay parity tasks remain open and should be implemented before claiming confidence-aware TUI completion.
 
+## 2026-07-08 US4 Metadata-Backed TUI Polish
+
+### Task
+- Objective: Implement US4 public metadata enrichment and use it to make the deterministic TUI more professional, scan-friendly, and screenshot-ready.
+- Owner repo(s): standalone `hlscreen/` repository only.
+- Capital impact: research-only / read-only public market-data display. No wallet, private stream, signing, order placement, exchange action, execution route, or advice semantics.
+
+### Context
+- Background: US3 why-ranked explanations are merged. The next unchecked Spec Kit slice is US4 metadata enrichment (T058-T068). The latest operator request asks for a stronger next-gen TUI and screenshots, so the UI polish should be backed by real metadata row fields instead of static copy.
+- Inputs: Official Hyperliquid public `spotMeta`, `spotMetaAndAssetCtxs`, and `tokenDetails` docs; `specs/002-microstructure-workstation/{spec.md,tasks.md,data-model.md}`; current screen DSL, TUI renderer, screenshot generator, and store registry.
+- Outputs: Metadata fixtures/tests/model/parser/cache, metadata screen fields and presets, TUI metadata tags/details, regenerated SVG screenshots, docs/status notes, and validation evidence.
+
+### Assumptions
+- Metadata enrichment is optional and must not break live ingestion when public detail fields are missing or unavailable.
+- `tokenDetails` can be parsed from public REST responses and used in fixture-backed tests; live startup should avoid turning metadata-detail availability into a hard dependency for WebSocket ingestion.
+- The deterministic renderer remains ANSI-free for CI, docs, and screenshot stability. A full alternate-screen Ratatui event loop remains a separate future feature.
+
+### Constraints
+- Technical: no private/account streams, no new trading surfaces, no fake metadata, no hidden fallback that pretends missing fields are known.
+- Operational: screenshots must be regenerated from the compiled `hls` binary via `python3 scripts/generate-screenshots.py` and visually inspected through PNG previews.
+- Risk/capital: labels must stay as screening/metadata context only, not trade signals or recommendations.
+
+### Options Considered
+1. Restyle only the current TUI output.
+   - Pros: fastest visible improvement.
+   - Cons: does not advance US4 and would make the screenshot polish mostly cosmetic.
+2. Implement US4 metadata enrichment and render it in the TUI.
+   - Pros: improves the workstation with real venue-native information, completes a Spec Kit story, and creates a better screenshot surface.
+   - Cons: touches more crates and requires careful partial-data behavior.
+
+### Chosen Approach
+- Choice: option 2.
+- Why: it ties the visual upgrade to real product capability while preserving the read-only and deterministic-output constraints.
+
+### Execution Plan
+1. Add metadata fixture and focused tests for core model, public REST adapter, store cache freshness, screen fields, and presets.
+2. Implement `hls-core::metadata` and attach optional metadata to `FeatureSnapshot`.
+3. Extend `hls-hyperliquid::rest` parsing/fetch helpers for public token details and metadata enrichment from public payloads.
+4. Persist metadata cache freshness in SQLite.
+5. Expose metadata fields through `hls-screen` and add new-listing/fresh-liquidity/unknown-metadata presets.
+6. Render metadata tags/details in `hls-tui`, update the screenshot generator, and regenerate assets.
+7. Run focused tests, full Rust validation, screenshot generation/preview, diff check, and read-only scans.
+
+### Test Plan
+- Focused: `cargo test -p hls-core --test metadata_enrichment`; `cargo test -p hls-hyperliquid --test metadata_enrichment`; `cargo test -p hls-store --test metadata_registry`; `cargo test -p hls-screen --test metadata_presets`; `cargo test -p hls-tui --test main_table_golden`.
+- CLI/screenshot: `python3 scripts/generate-screenshots.py`; PNG previews via `rsvg-convert`.
+- Regression: `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`; `git diff --check`.
+
+### Risks and Rollback
+- Risks: public metadata schemas may add or omit fields; large live token-detail fetches could add startup latency if wired too eagerly; metadata tags could be mistaken for trade recommendations if copy is sloppy.
+- Rollback: revert this US4 patch; SQLite metadata cache table is additive and local-only.
+
+### Memory Impact
+- Add/update in `MEMORY.md`: metadata enrichment contract, confirmed test/screenshot commands, and partial-metadata behavior if validated.
+
+### Final Notes
+- What changed: Implemented US4 metadata-backed TUI polish. Added `MetadataEnrichment` and cohort tags in `hls-core`; parsed public Hyperliquid `spotMetaAndAssetCtxs` plus `tokenDetails` bundles in `hls-hyperliquid`; added optional metadata to `FeatureSnapshot`; persisted metadata cache freshness in SQLite; exposed metadata fields and presets through `hls-screen`; attached metadata in CLI live/screen adapters; added TUI metadata KPI/chip/detail rendering; added `metadata-discovery.svg` and refreshed screenshots/docs.
+- Validation run: `cargo test -p hls-core --test metadata_enrichment`; `cargo test -p hls-hyperliquid --test metadata_enrichment --test rest_metadata`; `cargo test -p hls-screen --test metadata_presets --test presets --test dsl_evaluator`; `cargo test -p hls-store --test metadata_registry`; `cargo test -p hls-tui --test main_table_golden --test confidence_pane --test health_pane`; `cargo test -p hls-cli --test live_mock --test screen_command --test full_pipeline_smoke`; `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`; `python3 scripts/generate-screenshots.py`; `rsvg-convert` previews for live, metadata, and health screenshots; `git diff --check`; read-only scan.
+- Tradeoffs: live startup carries partial public `spotMetaAndAssetCtxs` metadata from selected markets, while token-detail enrichment is bounded/optional and fixture-backed for deterministic screenshots; missing detail fields are explicit `unknown_metadata` instead of a hard failure.
+- Follow-ups: US5 operations/benchmark/metrics/extension/release tasks T069-T082 and polish/report tasks T083-T092 remain open after this PR.
+
 ## 2026-07-08 US1 Confidence and Replay Parity
 
 ### Task

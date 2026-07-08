@@ -21,6 +21,9 @@ fn built_in_presets_match_expected_rows_and_order() {
             "liquidity_resilience",
             "brittle_tradeability",
             "flow_pressure",
+            "new_listings",
+            "fresh_liquidity",
+            "metadata_unknown",
         ]
     );
 
@@ -168,6 +171,7 @@ fn row(
         momentum_score,
         mean_reversion_score,
         score_breakdown: None,
+        metadata: None,
         updated_ms_ago: Some(0),
         staleness_state: StalenessState::Fresh,
         incomplete_window_reason: None,

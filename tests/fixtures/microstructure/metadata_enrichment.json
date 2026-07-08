@@ -1,0 +1,99 @@
+{
+  "fetched_at_ms": 1710000100000,
+  "now_ms": 1710000100000,
+  "spotMetaAndAssetCtxs": [
+    {
+      "tokens": [
+        {
+          "name": "USDC",
+          "szDecimals": 8,
+          "weiDecimals": 8,
+          "index": 0,
+          "tokenId": "0x0000000000000000000000000000000000000000",
+          "isCanonical": true,
+          "evmContract": null,
+          "fullName": "USD Coin"
+        },
+        {
+          "name": "HYPE",
+          "szDecimals": 2,
+          "weiDecimals": 8,
+          "index": 150,
+          "tokenId": "0x0000000000000000000000000000000000000150",
+          "isCanonical": true,
+          "evmContract": null,
+          "fullName": "Hyperliquid"
+        },
+        {
+          "name": "PARTIAL",
+          "szDecimals": 2,
+          "weiDecimals": 8,
+          "index": 404,
+          "tokenId": "0x0000000000000000000000000000000000000404",
+          "isCanonical": false,
+          "evmContract": null,
+          "fullName": "Partial Metadata Token"
+        }
+      ],
+      "universe": [
+        {
+          "name": "HYPE/USDC",
+          "tokens": [150, 0],
+          "index": 107,
+          "isCanonical": true
+        },
+        {
+          "name": "PARTIAL/USDC",
+          "tokens": [404, 0],
+          "index": 404,
+          "isCanonical": false
+        }
+      ]
+    },
+    [
+      {
+        "dayNtlVlm": "25000000.5",
+        "prevDayPx": "34.0",
+        "markPx": "35.5",
+        "midPx": "35.0",
+        "circulatingSupply": "100000000.0"
+      },
+      {
+        "dayNtlVlm": "10000",
+        "prevDayPx": "1.0",
+        "markPx": "1.1",
+        "midPx": "1.1",
+        "circulatingSupply": null
+      }
+    ]
+  ],
+  "tokenDetailsByTokenId": {
+    "0x0000000000000000000000000000000000000150": {
+      "name": "HYPE",
+      "maxSupply": "1000000000.0",
+      "totalSupply": "1000000000.0",
+      "circulatingSupply": "100000000.0",
+      "szDecimals": 2,
+      "weiDecimals": 8,
+      "midPx": "35.0",
+      "markPx": "35.5",
+      "prevDayPx": "34.0",
+      "genesis": {},
+      "deployer": "0x1234567890abcdef1234567890abcdef12345678",
+      "deployGas": "1000000",
+      "deployTime": "2024-03-03T09:46:40.000",
+      "seededUsdc": "1250000.0",
+      "futureEmissions": "0.0"
+    },
+    "0x0000000000000000000000000000000000000404": {
+      "name": "PARTIAL",
+      "szDecimals": 2,
+      "weiDecimals": 8,
+      "midPx": "1.1",
+      "markPx": "1.1",
+      "prevDayPx": "1.0",
+      "genesis": {},
+      "futureEmissions": null
+    }
+  }
+}

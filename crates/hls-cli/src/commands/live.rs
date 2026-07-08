@@ -14,6 +14,7 @@ use hls_core::{
     HlsError, HlsResult,
     data_gap::DataGap,
     market_state::{LiveMarketState, MarketEvent},
+    metadata::MetadataEnrichment,
     time::now_millis,
 };
 use hls_features::engine::FeatureEngine;
@@ -35,6 +36,7 @@ use hls_tui::app::{render_confidence_summary, render_screened_table};
 use tokio::time::{interval, sleep_until, timeout_at};
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 
+use crate::commands::metadata::{attach_metadata, load_metadata_enrichments};
 use crate::commands::record::{default_run_id, enabled_outputs, parse_symbols};
 
 const DEFAULT_WS_URL: &str = "wss://api.hyperliquid.xyz/ws";
@@ -102,6 +104,9 @@ pub struct LiveArgs {
     pub fixture_file: Option<PathBuf>,
 
     #[arg(long, hide = true)]
+    pub metadata_file: Option<PathBuf>,
+
+    #[arg(long, hide = true)]
     pub once: bool,
 }
 
@@ -151,7 +156,11 @@ async fn run_fixture_live(args: LiveArgs, fixture_file: &PathBuf) -> anyhow::Res
         state.apply(event)?;
     }
 
-    let snapshots = FeatureEngine::default().snapshots(&state, latest_update_ms(&state));
+    let mut snapshots = FeatureEngine::default().snapshots(&state, latest_update_ms(&state));
+    attach_metadata(
+        &mut snapshots,
+        load_metadata_enrichments(args.metadata_file.as_ref())?,
+    );
     println!("{}", render_confidence_summary(&snapshots));
     print!(
         "{}",
@@ -182,7 +191,8 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
         );
     }
 
-    let symbols = load_live_symbols(&args).await?;
+    let selection = load_live_symbols(&args).await?;
+    let symbols = selection.symbols;
     let mut plan =
         SubscriptionPlan::new(symbols.clone()).with_max_subscriptions(args.max_subscriptions);
     if args.all_symbols && plan.subscription_count() > args.max_subscriptions {
@@ -250,7 +260,10 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
     };
 
     let mut summary = drive_result?;
-    let snapshots = FeatureEngine::default().snapshots(&state, now_ms_i64()?);
+    let mut snapshots = FeatureEngine::default().snapshots(&state, now_ms_i64()?);
+    let mut metadata = selection.metadata;
+    metadata.extend(load_metadata_enrichments(args.metadata_file.as_ref())?);
+    attach_metadata(&mut snapshots, metadata);
     summary.row_count = snapshots.len();
 
     println!("live_run=complete");
@@ -283,10 +296,19 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn load_live_symbols(args: &LiveArgs) -> anyhow::Result<Vec<String>> {
+#[derive(Clone, Debug, Default)]
+struct LiveSymbolSelection {
+    symbols: Vec<String>,
+    metadata: Vec<MetadataEnrichment>,
+}
+
+async fn load_live_symbols(args: &LiveArgs) -> anyhow::Result<LiveSymbolSelection> {
     let explicit_symbols = parse_symbols(args.symbols.as_deref());
     if !explicit_symbols.is_empty() {
-        return Ok(explicit_symbols);
+        return Ok(LiveSymbolSelection {
+            symbols: explicit_symbols,
+            metadata: Vec::new(),
+        });
     }
 
     let markets = HyperliquidRestClient::default()
@@ -299,10 +321,13 @@ async fn load_live_symbols(args: &LiveArgs) -> anyhow::Result<Vec<String>> {
     };
     let selected = select_universe(&markets, top_n, &[], &[])?;
 
-    Ok(selected
-        .into_iter()
-        .map(|market| market.symbol.hl_coin)
-        .collect())
+    Ok(LiveSymbolSelection {
+        symbols: selected
+            .iter()
+            .map(|market| market.symbol.hl_coin.clone())
+            .collect(),
+        metadata: selected.into_iter().map(|market| market.metadata).collect(),
+    })
 }
 
 #[derive(Clone, Debug, Default)]
