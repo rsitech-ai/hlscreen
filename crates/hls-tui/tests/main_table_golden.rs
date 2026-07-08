@@ -19,12 +19,20 @@ fn renders_read_only_main_table_for_fixture_snapshot() {
 
     assert!(table.contains("Hyperliquid Microstructure Workstation"));
     assert!(table.contains("PUBLIC WS/REST"));
+    assert!(table.contains("SESSION"));
+    assert!(table.contains("LATENCY"));
     assert!(table.contains("QUALITY"));
-    assert!(table.contains("median spread 57.1 bps"));
-    assert!(table.contains("top depth $245"));
-    assert!(table.contains("#   SYMBOL"));
+    assert!(table.contains("spread med 57.1 bps"));
+    assert!(table.contains("depth top $245"));
+    assert!(table.contains("#  SYMBOL"));
+    assert!(table.contains("OBSERVATION"));
     assert!(table.contains("@107"));
-    assert!(table.contains("● FRESH"));
+    assert!(table.contains("● fresh"));
+    assert!(table.contains("thin book"));
+    assert!(table.contains("wide spread"));
+    assert!(table.contains("SELECTED SYMBOL"));
+    assert!(table.contains("bid 34.9000 x 3.0000"));
+    assert!(table.contains("ask 35.1000 x 4.0000"));
     assert!(table.contains("No wallet"));
     assert!(table.contains("Scores are screen heuristics, not orders or advice."));
 }

@@ -267,5 +267,25 @@
 - [x] Run validation gates
   DoD: Focused tests, full Rust gates, build, `git diff --check`, JSONL validation, and read-only scan pass.
 
-- [-] Review, PR, merge, and close out
+- [x] Review, PR, merge, and close out
   DoD: Diff is reviewed, stable branch is pushed, PR checks pass, merge to `main` occurs only if stable, and memory/reflection notes are complete.
+
+## 2026-07-08 Next-Gen Workstation TUI Polish
+
+- [x] Confirm renderer scope and visual contract
+  DoD: `PLAN.md` records deterministic TUI scope, read-only boundary, official TUI standard check, and validation commands.
+
+- [x] Update focused TUI golden expectations
+  DoD: Market-board and health-pane tests assert the new workstation hierarchy before implementation is complete.
+
+- [x] Implement polished market-board and health rendering
+  DoD: The renderer shows stronger KPIs, scan-friendly rows, selected-row detail, clear degraded states, and no fake confidence/advice/order surface.
+
+- [x] Regenerate and inspect screenshots
+  DoD: SVG screenshots are rebuilt from the current binary and rendered previews are inspected locally.
+
+- [x] Run validation gates
+  DoD: Focused TUI tests, relevant CLI tests, full Rust gates, screenshot generation, `git diff --check`, and read-only scan pass.
+
+- [x] Close out notes
+  DoD: `PLAN.md`, `TODO.md`, `MEMORY.md`, daily memory, lesson store, and reflection entry reflect the final state.

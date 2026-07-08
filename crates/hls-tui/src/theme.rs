@@ -1,4 +1,4 @@
-pub(crate) const PANEL_WIDTH: usize = 122;
+pub(crate) const PANEL_WIDTH: usize = 132;
 
 pub(crate) fn top_border() -> String {
     format!("╭{}╮\n", "─".repeat(PANEL_WIDTH - 2))
@@ -33,7 +33,7 @@ pub(crate) fn section_rule(label: &str) -> String {
     format!("{}{}{}\n", "─".repeat(left), marker, "─".repeat(right))
 }
 
-fn truncate_chars(value: &str, max_chars: usize) -> String {
+pub(crate) fn truncate_chars(value: &str, max_chars: usize) -> String {
     if char_count(value) <= max_chars {
         return value.to_owned();
     }

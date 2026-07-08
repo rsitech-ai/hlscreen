@@ -733,3 +733,61 @@
 - Validation run: red/green focused tests for `cargo test -p hls-core --test confidence_state --test score_breakdown --test metrics_contract`; `cargo test -p hls-store --test benchmark_manifest`; `cargo test -p hls-cli --test microstructure_safety`; `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`; `git diff --check`; task-ID format check; read-only surface scan.
 - Tradeoffs: Foundation contracts define serializable shapes and validation only. Confidence computation, replay parity flags, why-ranked rendering, resilience metrics, metadata enrichment, metrics output, extension execution, and packaging remain unchecked later tasks.
 - Rollback: revert this foundation commit/PR; no runtime schema migration or recorded data migration is introduced.
+
+## 2026-07-08 Next-Gen Workstation TUI Polish
+
+### Task
+- Objective: Upgrade the deterministic terminal UI into a more polished, next-generation workstation surface and refresh committed screenshots from the real binary.
+- Owner repo(s): standalone `hlscreen/` repository only.
+- Capital impact: research-only / read-only public market-data display. No wallet, private stream, signing, order placement, exchange action, or advice semantics.
+
+### Context
+- Background: The current TUI is already clean, but still reads as a flat table. The active product brief calls for an operator-grade terminal cockpit with persistent panes, clear data-quality framing, fast scanability, and screenshot-ready OSS presentation.
+- Inputs: `crates/hls-tui/src/app.rs`, `crates/hls-tui/src/health.rs`, `crates/hls-tui/src/theme.rs`, TUI golden tests, screenshot generator, README screenshots, Ratatui official concepts for layout/widgets, and `specs/002-microstructure-workstation/tasks.md` T025/T031/T086.
+- Outputs: Stronger market-board hierarchy, richer truthful summary/detail sections, clearer health panel, updated tests, regenerated screenshots, docs/status notes, and validation evidence.
+
+### Assumptions
+- This is a visual and information-architecture slice, not the full US1 confidence/replay parity implementation. It must not mark T020-T033 complete unless the real confidence/parity behavior exists.
+- The renderer should stay deterministic and ANSI-free for CI screenshots and command output. A full alternate-screen `ratatui` event loop remains a later interactive shell slice.
+- UI copy must use only real `FeatureSnapshot` and `HealthSnapshot` fields; no mock/live claims, fake confidence, or trading advice.
+
+### Constraints
+- Technical: preserve low-latency live ingestion; keep disk/network behavior unchanged; avoid new dependencies unless they remove real complexity.
+- Operational: regenerate screenshots with `python3 scripts/generate-screenshots.py` from the rebuilt binary and inspect rendered assets.
+- Risk/capital: read-only safety language must remain visible and no order/private terminology may be introduced.
+
+### Options Considered
+1. Add a full `ratatui`/`crossterm` interactive shell now.
+   - Pros: aligns with the dominant Rust TUI ecosystem and unlocks real widgets, keyboard focus, and panes.
+   - Cons: larger lifecycle/input/rendering change, higher regression risk, and not needed to provide polished screenshots now.
+2. Upgrade the existing deterministic renderer into a cockpit-like market board and health panel.
+   - Pros: tight scope, easy golden tests, screenshot-friendly, no ingestion risk, and immediately improves OSS presentation.
+   - Cons: still not a keyboard-driven alternate-screen app.
+
+### Chosen Approach
+- Choice: option 2.
+- Why: it maximizes visible quality and verification speed while keeping the live data path untouched. The plan will document the future Ratatui shell separately instead of mixing it into this polish patch.
+
+### Execution Plan
+1. Update focused TUI tests to expect the richer market board and health panel.
+2. Refactor `hls-tui` formatting helpers as needed for reusable bars, status chips, and selected-row detail.
+3. Implement a cockpit-style table with scan-friendly columns, truthful data-quality/read-only framing, and selected-symbol details.
+4. Improve screenshot styling for the new layout and regenerate SVG screenshots.
+5. Run focused tests, relevant CLI smokes, full Rust validation, screenshot generation, diff check, and read-only scans.
+
+### Test Plan
+- Focused: `cargo test -p hls-tui --test main_table_golden --test health_pane`.
+- CLI/screenshot: `cargo test -p hls-cli --test live_mock --test health_commands`; `python3 scripts/generate-screenshots.py`; visual inspection of generated SVG/PNG previews.
+- Regression: `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`; `git diff --check`.
+
+### Risks and Rollback
+- Risks: wide tables may wrap in docs screenshots; glyph-heavy UI may render differently across terminal fonts; richer copy can accidentally overclaim current confidence/replay work.
+- Rollback: revert this polish commit; no schema, data format, or network behavior changes are expected.
+
+### Memory Impact
+- Add/update in `MEMORY.md`: durable convention for deterministic TUI screenshot rendering if the renderer or screenshot command changes.
+
+### Final Notes
+- What changed: Upgraded the deterministic `hls-tui` market board into a wider workstation-style board with session/universe/quality/latency KPI strips, scan-friendly rows, combined score column, observation badges, and a selected-symbol microstructure detail pane. Upgraded the health panel into safety/connection/recorder/runbook lanes and carried `writer_warn_at` through `HealthSnapshot` so backlog thresholds are displayed truthfully. Refreshed tests, docs, screenshot styling, and all committed SVG screenshots from the rebuilt binary.
+- Validation run: red/green `cargo test -p hls-tui --test main_table_golden --test health_pane`; `cargo test -p hls-cli --test live_mock --test health_commands`; full gate `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`; `python3 scripts/generate-screenshots.py`; SVG-to-PNG previews with `rsvg-convert`; `git diff --check`; read-only/safety scan. The first full gate caught stale smoke assertions, which were fixed and rerun successfully.
+- Follow-ups: This remains deterministic command output rather than a full keyboard-driven alternate-screen Ratatui app. Spec Kit T020-T033 confidence/replay parity tasks remain open and should be implemented before claiming confidence-aware TUI completion.
