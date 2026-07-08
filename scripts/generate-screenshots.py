@@ -40,7 +40,7 @@ def main() -> None:
         screenshots = [
             Screenshot(
                 filename="live-screen.svg",
-                title="Fixture-backed live screen",
+                title="Terminal live screen test capture",
                 commands=[
                     [
                         str(HLS),

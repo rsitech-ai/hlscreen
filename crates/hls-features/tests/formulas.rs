@@ -163,6 +163,24 @@ fn feature_engine_uses_distinct_time_windows_and_candle_anomaly_baselines() {
     assert_close(snapshot.mean_reversion_score, 35.45454545454545);
 }
 
+#[test]
+fn feature_engine_clamps_future_exchange_timestamps_to_zero_age() {
+    let now_ms = 10_000_000;
+    let mut state = LiveMarketState::new(["@107".to_owned()]);
+    state
+        .apply(trade(now_ms + 45_000, 100.0, 1))
+        .expect("future-timestamped trade applies");
+
+    let snapshot = FeatureEngine::default()
+        .snapshots(&state, now_ms)
+        .into_iter()
+        .find(|snapshot| snapshot.symbol == "@107")
+        .expect("snapshot exists");
+
+    assert_eq!(snapshot.updated_ms_ago, Some(0));
+    assert_eq!(snapshot.staleness_state, StalenessState::Fresh);
+}
+
 fn trade(exchange_ts_ms: i64, price: f64, tid: u64) -> MarketEvent {
     MarketEvent::Trade(TradeEvent {
         recv_ts_ns: exchange_ts_ms as u64 * 1_000_000,
