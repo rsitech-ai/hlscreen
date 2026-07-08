@@ -206,3 +206,23 @@
 
 - [x] Review, PR, merge, and close out
   DoD: Diff is reviewed, PR checks pass, merge to `main` occurs only if stable, and plan/TODO/memory/reflection are complete.
+
+## 2026-07-08 Next-Gen TUI Polish
+
+- [x] Confirm scope and renderer contract
+  DoD: `PLAN.md` records TUI-only scope, read-only boundary, and validation plan.
+
+- [x] Update TUI golden expectations
+  DoD: Tests describe the new professional layout and health pane before implementation.
+
+- [x] Implement polished terminal renderer
+  DoD: Main table and health pane render a modern, aligned, read-only UI without ANSI escape codes or trading/private surfaces.
+
+- [x] Regenerate and inspect screenshots
+  DoD: Committed SVG screenshots are regenerated from current CLI output and show the updated TUI.
+
+- [x] Run validation gates
+  DoD: Focused TUI tests, relevant CLI smoke tests, full Rust checks, screenshot generation, and `git diff --check` pass.
+
+- [x] Close out notes
+  DoD: `PLAN.md`, `TODO.md`, `MEMORY.md`, daily memory, and lesson stores reflect the final state.

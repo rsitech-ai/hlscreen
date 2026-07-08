@@ -10,7 +10,7 @@ It is built for operators and researchers who want a local-first way to inspect 
 
 ## Status
 
-Current state: v0.1 live public-data hardening branch.
+Current state: v0.1 live public-data hardening with a polished terminal market board and health panel.
 
 Implemented today:
 
@@ -19,6 +19,7 @@ Implemented today:
 - Bounded public WebSocket live screen with duration-based shutdown, heartbeat pings, reconnect/resubscribe, optional raw/normalized recording, and all-symbol subscription budgeting.
 - Bounded live recording through a fail-closed writer queue so disk I/O does not silently drop or stall market-data ingestion.
 - Live terminal refresh for TTY sessions and `--tui` smoke captures.
+- Modern deterministic terminal rendering for market rows, read-only safety state, and operations health.
 - Compressed raw public message recording, normalized replay JSONL, and local SQLite metadata.
 - Deterministic screening DSL and built-in screen presets.
 - Health snapshots, reconnect simulation, TUI health rendering, and read-only local API helpers.
@@ -45,6 +46,10 @@ These committed SVGs are deterministic terminal captures used for documentation 
 ### Health JSON
 
 ![Read-only health JSON](docs/assets/screenshots/health-json.svg)
+
+### Health Panel
+
+![Operations health panel](docs/assets/screenshots/health-panel.svg)
 
 ### Symbol Metadata
 

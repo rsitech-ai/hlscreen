@@ -552,3 +552,62 @@
 - Live run: `allpairs-15m-hardening-20260708-093507` ran for 900 seconds with 308 symbols, 924 public subscriptions, 296,492 raw WebSocket messages, 304,405 normalized events, 13 raw files, one normalized file, `clean_shutdown=true`, `reconnects=0`, `data_gaps=0`, all 304,405 normalized events carrying non-zero `recv_ts_ns`, and 308 fresh replay/screen rows.
 - Tradeoffs: All-symbol mode intentionally uses three public streams per symbol (`trades`, `bbo`, `activeAssetCtx`) because four streams over 308 symbols would exceed Hyperliquid's documented 1,000-subscription per-IP cap. Automatic public REST backfill after reconnect is still not implemented; reconnect windows are explicitly recorded as data gaps. True Parquet and long-running HTTP serving remain future work.
 - PR/Merge result: pending GitHub PR creation and merge after final diff review.
+
+## 2026-07-08 Next-Gen TUI Polish
+
+### Task
+- Objective: Upgrade the terminal renderer and committed screenshots so `hlscreen` looks like a professional, modern read-only market-data TUI while preserving deterministic CLI output and the live-data safety boundary.
+- Owner repo(s): standalone `hlscreen/` repository only.
+- Capital impact: research-only / read-only public market-data display. No wallet, private stream, order, exchange action, execution route, or recommendation semantics.
+
+### Context
+- Background: The current TUI is functionally correct but visually plain. The user asked to make it "good", "next gen", and provide screenshots.
+- Inputs: Current `hls-tui` renderer, CLI smoke tests, screenshot generator, README screenshot section, and the project read-only/open-source boundary.
+- Outputs: Polished table renderer, polished health pane, updated golden tests, regenerated screenshot SVGs, README screenshot copy if needed, and validation evidence.
+
+### Assumptions
+- The production CLI should remain dependency-light and deterministic; this slice improves the stable renderer rather than adding a full interactive runtime.
+- Unicode terminal glyphs are acceptable here because the explicit goal is visual TUI polish; tests will keep rendering stable.
+- Screenshots remain deterministic fixture/offline captures and must not be presented as live exchange evidence.
+
+### Constraints
+- Technical: no blocking live ingestion changes, no new trading/private data surfaces, no ANSI escape output that breaks scripts, and no hidden mock path for production commands.
+- Operational: keep runtime artifacts out of git; do not touch parent `rsibot/` work.
+- Risk/capital: retain read-only labels and screening-heuristic language.
+
+### Options Considered
+1. Add a full `ratatui`/`crossterm` interactive app now.
+   - Pros: richer long-term interaction model.
+   - Cons: larger architecture slice, more input/lifecycle work, and not necessary for screenshot-grade visual polish.
+2. Upgrade the existing deterministic renderer and screenshot generator.
+   - Pros: small, testable, preserves CLI semantics, improves screenshots immediately.
+   - Cons: keyboard-driven interactive TUI remains future work.
+
+### Chosen Approach
+- Choice: option 2.
+- Why: the current code already has stable rendering tests and live refresh wiring; improving that surface is the fastest safe path to a professional v1 visual layer.
+
+### Execution Plan
+1. Update golden tests for the desired TUI layout and health pane.
+2. Implement a modern renderer with header, KPI strip, state markers, aligned columns, and explicit read-only footer.
+3. Improve screenshot SVG styling so generated assets look publication-ready while still using real command output.
+4. Regenerate screenshots and update README copy if needed.
+5. Run focused TUI/CLI tests, full Rust gates, screenshot generation, and diff checks.
+
+### Test Plan
+- Focused: `cargo test -p hls-tui --test main_table_golden`; `cargo test -p hls-tui --test health_pane`; relevant CLI smoke tests.
+- Regression: `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`; `git diff --check`; `python3 scripts/generate-screenshots.py`.
+
+### Risks and Rollback
+- Risks: Unicode glyphs may render poorly in rare terminals; screenshot generator can drift from terminal output if over-styled; wide symbols could affect alignment.
+- Rollback: revert this branch; no runtime data or schema migration is involved.
+
+### Memory Impact
+- Add/update in `MEMORY.md`: confirmed TUI polish command and any durable renderer/screenshot convention.
+
+### Final Notes
+- What changed: Replaced the plain table with a polished deterministic market board using a branded header, read-only/data KPI strip, state markers, explicit units, TOB imbalance, signed return formatting, readable age formatting, and a read-only heuristic footer. Added a shared TUI panel helper, upgraded the health pane, surfaced the health pane through `hls doctor --live` text output, refreshed README screenshot copy, added `health-panel.svg`, and improved SVG screenshot styling with whitespace preservation and temp-path redaction.
+- Validation run: red/green focused TUI and CLI tests; `cargo test -p hls-tui --test main_table_golden --test health_pane`; `cargo test -p hls-cli --test live_mock --test health_commands --test record_replay --test screen_command --test full_pipeline_smoke`; `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`; `cargo build --release --workspace --all-features`; `git diff --check`; `python3 scripts/generate-screenshots.py`; screenshot temp-path scan; PNG preview render with `rsvg-convert`.
+- Live smoke: `./target/debug/hls live --symbols @107 --duration-secs 10 --refresh-secs 5 --tui` completed against the public Hyperliquid WebSocket with 1 symbol, 4 subscriptions, 102 WebSocket messages, 133 market events, 0 reconnects, 0 data gaps, and fresh TUI rows.
+- Tradeoffs: This is a deterministic renderer polish slice, not a full keyboard-driven interactive TUI runtime. It intentionally avoids ANSI color in normal table strings so captured stdout remains stable; live `--tui` still uses terminal clear codes during refresh.
+- Rollback: revert this branch; no schema, data, or runtime migration is involved.
