@@ -12,9 +12,9 @@ This is the validation guide for the planned v1. It describes the checks impleme
 ## Setup
 
 ```bash
-cargo build
+cargo build --workspace
 ./target/debug/hls init --data-dir ~/.hls
-./target/debug/hls doctor
+./target/debug/hls doctor --data-dir ~/.hls
 ```
 
 Expected outcome:
@@ -38,20 +38,20 @@ Expected outcome:
 ## One-Symbol Live Ingestion Smoke
 
 ```bash
-./target/debug/hls live --symbols @107 --record --raw --parquet
+./target/debug/hls live --symbols @107 --fixture-file tests/fixtures/hyperliquid/ws_mock_live.ndjson --record --raw --normalized --run-id quickstart-live --data-dir /tmp/hlscreen-quickstart --once
 ```
 
 Expected outcome:
 
-- TUI displays one live row.
-- Health pane shows connection and subscription state.
+- Table displays one fixture-backed live row.
 - Raw and normalized local files are written.
 - Shutdown flushes file metadata and marks the run clean.
 
 ## Preset Screen Smoke
 
 ```bash
-./target/debug/hls live --top 50 --preset volume_anomaly
+./target/debug/hls screen --fixture-file tests/fixtures/hyperliquid/ws_mock_live.ndjson --preset thin_books
+./target/debug/hls live --symbols @107 --fixture-file tests/fixtures/hyperliquid/ws_mock_live.ndjson --preset thin_books --once
 ```
 
 Expected outcome:
@@ -63,7 +63,7 @@ Expected outcome:
 ## Recorder-Only Smoke
 
 ```bash
-./target/debug/hls record --symbols @107 --raw --parquet --duration 60s
+./target/debug/hls record --symbols @107 --fixture-file tests/fixtures/hyperliquid/ws_mock_live.ndjson --raw --normalized --run-id quickstart-record --data-dir /tmp/hlscreen-quickstart
 ```
 
 Expected outcome:
@@ -75,7 +75,7 @@ Expected outcome:
 ## Replay Smoke
 
 ```bash
-./target/debug/hls replay --from 2026-07-07T12:00:00Z --to 2026-07-07T12:10:00Z --speed 10x
+./target/debug/hls replay --data-dir /tmp/hlscreen-quickstart --run-id quickstart-record
 ```
 
 Expected outcome:
@@ -83,6 +83,19 @@ Expected outcome:
 - Feature snapshots are rebuilt from local data.
 - Data gaps are reported.
 - No live network access is required for replay.
+
+## Health And Local API Smoke
+
+```bash
+./target/debug/hls doctor --live --json
+./target/debug/hls server --print-health
+```
+
+Expected outcome:
+
+- `doctor --live --json` reports read-only safety, public REST reachability, and health status.
+- `server --print-health` prints the compact `/health` JSON payload for the local read-only API contract.
+- No output contains wallet prompts, private credentials, or order actions.
 
 ## Validation Commands
 
