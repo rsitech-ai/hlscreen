@@ -11,46 +11,139 @@ use hls_screen::{ScreenEngine, ScreenRequest, presets::find_preset};
 use crate::interaction::{WorkstationDensity, WorkstationUiState, WorkstationView};
 use crate::theme::truncate_chars;
 
-const WORKSTATION_COLS: [(&str, usize); 9] = [
-    ("symbol", 12),
-    ("price", 9),
-    ("sprbp", 7),
-    ("imb", 7),
-    ("flow30", 8),
-    ("rv5m", 7),
-    ("amihud", 6),
-    ("conf", 6),
-    ("why now", 17),
-];
-
-const WORKSTATION_WIDTH: usize = 1
-    + (WORKSTATION_COLS[0].1 + 3)
-    + (WORKSTATION_COLS[1].1 + 3)
-    + (WORKSTATION_COLS[2].1 + 3)
-    + (WORKSTATION_COLS[3].1 + 3)
-    + (WORKSTATION_COLS[4].1 + 3)
-    + (WORKSTATION_COLS[5].1 + 3)
-    + (WORKSTATION_COLS[6].1 + 3)
-    + (WORKSTATION_COLS[7].1 + 3)
-    + (WORKSTATION_COLS[8].1 + 3);
-
 #[derive(Clone, Copy)]
 enum Align {
     Left,
     Right,
 }
 
-const WORKSTATION_ALIGNS: [Align; 9] = [
-    Align::Left,
-    Align::Right,
-    Align::Right,
-    Align::Right,
-    Align::Right,
-    Align::Right,
-    Align::Left,
-    Align::Right,
-    Align::Left,
+#[derive(Clone, Copy)]
+enum ColumnKind {
+    Symbol,
+    Price,
+    Spread,
+    Imbalance,
+    Flow30,
+    Rv5m,
+    Amihud,
+    Confidence,
+    WhyNow,
+}
+
+#[derive(Clone, Copy)]
+struct WorkstationColumn {
+    label: &'static str,
+    width: usize,
+    align: Align,
+    kind: ColumnKind,
+}
+
+const WIDE_COLUMNS: [WorkstationColumn; 9] = [
+    column("symbol", 12, Align::Left, ColumnKind::Symbol),
+    column("price", 9, Align::Right, ColumnKind::Price),
+    column("sprbp", 7, Align::Right, ColumnKind::Spread),
+    column("imb", 7, Align::Right, ColumnKind::Imbalance),
+    column("flow30", 8, Align::Right, ColumnKind::Flow30),
+    column("rv5m", 7, Align::Right, ColumnKind::Rv5m),
+    column("amihud", 6, Align::Left, ColumnKind::Amihud),
+    column("conf", 6, Align::Right, ColumnKind::Confidence),
+    column("why now", 17, Align::Left, ColumnKind::WhyNow),
 ];
+
+const COMPACT_COLUMNS: [WorkstationColumn; 9] = [
+    column("symbol", 11, Align::Left, ColumnKind::Symbol),
+    column("price", 8, Align::Right, ColumnKind::Price),
+    column("spr", 5, Align::Right, ColumnKind::Spread),
+    column("imb", 5, Align::Right, ColumnKind::Imbalance),
+    column("flow", 7, Align::Right, ColumnKind::Flow30),
+    column("rv", 5, Align::Right, ColumnKind::Rv5m),
+    column("liq", 5, Align::Left, ColumnKind::Amihud),
+    column("c", 4, Align::Right, ColumnKind::Confidence),
+    column("why", 10, Align::Left, ColumnKind::WhyNow),
+];
+
+const NARROW_COLUMNS: [WorkstationColumn; 6] = [
+    column("symbol", 11, Align::Left, ColumnKind::Symbol),
+    column("price", 8, Align::Right, ColumnKind::Price),
+    column("spr", 5, Align::Right, ColumnKind::Spread),
+    column("flow", 7, Align::Right, ColumnKind::Flow30),
+    column("c", 4, Align::Right, ColumnKind::Confidence),
+    column("why", 13, Align::Left, ColumnKind::WhyNow),
+];
+
+const MINI_COLUMNS: [WorkstationColumn; 5] = [
+    column("sym", 8, Align::Left, ColumnKind::Symbol),
+    column("px", 7, Align::Right, ColumnKind::Price),
+    column("spr", 4, Align::Right, ColumnKind::Spread),
+    column("c", 3, Align::Right, ColumnKind::Confidence),
+    column("why", 7, Align::Left, ColumnKind::WhyNow),
+];
+
+const TINY_COLUMNS: [WorkstationColumn; 3] = [
+    column("sym", 8, Align::Left, ColumnKind::Symbol),
+    column("px", 7, Align::Right, ColumnKind::Price),
+    column("why", 7, Align::Left, ColumnKind::WhyNow),
+];
+
+const fn column(
+    label: &'static str,
+    width: usize,
+    align: Align,
+    kind: ColumnKind,
+) -> WorkstationColumn {
+    WorkstationColumn {
+        label,
+        width,
+        align,
+        kind,
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct RenderOptions {
+    terminal_width: Option<usize>,
+}
+
+impl RenderOptions {
+    pub fn for_width(width: usize) -> Self {
+        Self {
+            terminal_width: Some(width),
+        }
+    }
+
+    pub fn for_live_terminal_width(width: usize) -> Self {
+        Self::for_width(width.saturating_sub(8).min(96))
+    }
+}
+
+#[derive(Clone, Copy)]
+struct RenderLayout {
+    columns: &'static [WorkstationColumn],
+    width: usize,
+    bounded_detail: bool,
+}
+
+impl RenderLayout {
+    fn from_options(options: RenderOptions) -> Self {
+        let columns: &'static [WorkstationColumn] = match options.terminal_width {
+            Some(width) if width < column_width(&MINI_COLUMNS) => &TINY_COLUMNS,
+            Some(width) if width < column_width(&NARROW_COLUMNS) => &MINI_COLUMNS,
+            Some(width) if width < column_width(&COMPACT_COLUMNS) => &NARROW_COLUMNS,
+            Some(width) if width < column_width(&WIDE_COLUMNS) => &COMPACT_COLUMNS,
+            _ => &WIDE_COLUMNS,
+        };
+
+        Self {
+            columns,
+            width: column_width(columns),
+            bounded_detail: options.terminal_width.is_some(),
+        }
+    }
+}
+
+fn column_width(columns: &[WorkstationColumn]) -> usize {
+    1 + columns.iter().map(|column| column.width + 3).sum::<usize>()
+}
 
 pub fn render_main_table(rows: &[FeatureSnapshot]) -> String {
     render_table_with_title(rows, "READ-ONLY Hyperliquid spot live screen")
@@ -77,7 +170,13 @@ pub fn render_screened_table(
     request: &ScreenRequest,
 ) -> hls_core::HlsResult<String> {
     let rows = ScreenEngine.apply(rows, request)?;
-    Ok(render_workstation(&rows, title, Some(request), None))
+    Ok(render_workstation(
+        &rows,
+        title,
+        Some(request),
+        None,
+        RenderOptions::default(),
+    ))
 }
 
 pub fn render_screened_table_with_state(
@@ -92,11 +191,29 @@ pub fn render_screened_table_with_state(
         title,
         Some(request),
         Some(ui_state),
+        RenderOptions::default(),
+    ))
+}
+
+pub fn render_screened_table_with_options(
+    rows: &[FeatureSnapshot],
+    title: &str,
+    request: &ScreenRequest,
+    ui_state: Option<&WorkstationUiState>,
+    options: RenderOptions,
+) -> hls_core::HlsResult<String> {
+    let rows = ScreenEngine.apply(rows, request)?;
+    Ok(render_workstation(
+        &rows,
+        title,
+        Some(request),
+        ui_state,
+        options,
     ))
 }
 
 pub fn render_table_with_title(rows: &[FeatureSnapshot], title: &str) -> String {
-    render_workstation(rows, title, None, None)
+    render_workstation(rows, title, None, None, RenderOptions::default())
 }
 
 fn render_workstation(
@@ -104,7 +221,9 @@ fn render_workstation(
     title: &str,
     request: Option<&ScreenRequest>,
     ui_state: Option<&WorkstationUiState>,
+    options: RenderOptions,
 ) -> String {
+    let layout = RenderLayout::from_options(options);
     let stats = TableStats::from_rows(rows);
     let mut output = String::new();
     let selected_index = selected_index(rows, ui_state);
@@ -138,6 +257,7 @@ fn render_workstation(
     output.push_str(&workstation_top_line(
         "Hyperliquid Spot Microstructure Workstation",
         &status,
+        layout,
     ));
     output.push_str(&workstation_full_line(
         &format!("filter: {}", filter_label(title, request)),
@@ -146,6 +266,7 @@ fn render_workstation(
             mode_label(rows.len(), request),
             stats.quality_status().to_ascii_lowercase()
         ),
+        layout,
     ));
     output.push_str(&workstation_full_line(
         &format!(
@@ -155,7 +276,12 @@ fn render_workstation(
             density_short_label(density),
             rows.len()
         ),
-        "keys arrows/jk · tab · d · ? · space · q",
+        if layout.bounded_detail {
+            "keys j/k tab d ? sp q"
+        } else {
+            "keys arrows/jk · tab · d · ? · space · q"
+        },
+        layout,
     ));
     if let Some(state) = ui_state
         && state.help_open()
@@ -163,25 +289,26 @@ fn render_workstation(
         output.push_str(&workstation_full_line(
             "command deck: ↑/↓ row · PgUp/PgDn jump · Home/End edge · Shift+Tab previous view",
             "",
+            layout,
         ));
         output.push_str(&workstation_full_line(
             "display only: controls change focus, density, help, and view; ingestion stays public/read-only",
             "",
+            layout,
         ));
     }
-    output.push_str(&workstation_border("├", "┬", "┤"));
-    output.push_str(&workstation_header_row());
-    output.push_str(&workstation_border("├", "┼", "┤"));
+    output.push_str(&workstation_border("├", "┬", "┤", layout));
+    output.push_str(&workstation_header_row(layout));
+    output.push_str(&workstation_border("├", "┼", "┤", layout));
 
     if rows.is_empty() {
         output.push_str(&workstation_full_line(
             "No rows matched the current read-only screen.",
             "wait for public frames or adjust filter",
+            layout,
         ));
-        output.push_str(&workstation_border("└", "┴", "┘"));
-        output.push_str(
-            "\nNo wallet, no private streams, no order routes. Scores are screen heuristics, not orders or advice.\n",
-        );
+        output.push_str(&workstation_border("└", "┴", "┘", layout));
+        push_boundary_caveat(&mut output, layout);
         return output;
     }
 
@@ -196,32 +323,37 @@ fn render_workstation(
             row,
             selected_index == Some(row_index),
             ui_state.is_some(),
+            layout,
         ));
     }
 
-    output.push_str(&workstation_border("└", "┴", "┘"));
+    output.push_str(&workstation_border("└", "┴", "┘", layout));
 
     let selected = &rows[selected_index.unwrap_or_default()];
     output.push('\n');
-    render_selected_detail(&mut output, selected, view);
+    render_selected_detail(&mut output, selected, view, layout);
 
-    output.push_str(
-        "\nNo wallet, no private streams, no order routes. Scores are screen heuristics, not orders or advice.\n",
-    );
+    push_boundary_caveat(&mut output, layout);
 
     output
 }
 
-fn workstation_top_line(title: &str, status: &str) -> String {
-    let left = format!(" {title} ");
-    let right = format!(" {status} ");
-    let inner_width = WORKSTATION_WIDTH - 2;
+fn workstation_top_line(title: &str, status: &str, layout: RenderLayout) -> String {
+    let mut left = format!(" {title} ");
+    let mut right = format!(" {status} ");
+    let inner_width = layout.width - 2;
+    if char_count(&left) + char_count(&right) > inner_width {
+        let right_width = (inner_width / 2).min(char_count(&right));
+        right = truncate_chars(&right, right_width);
+        let left_width = inner_width.saturating_sub(char_count(&right));
+        left = truncate_chars(&left, left_width);
+    }
     let fill_width = inner_width.saturating_sub(char_count(&left) + char_count(&right));
     format!("┌{}{}{}┐\n", left, "─".repeat(fill_width), right)
 }
 
-fn workstation_full_line(left: &str, right: &str) -> String {
-    let inner_width = WORKSTATION_WIDTH - 4;
+fn workstation_full_line(left: &str, right: &str, layout: RenderLayout) -> String {
+    let inner_width = layout.width - 4;
     let right = if right.is_empty() {
         String::new()
     } else {
@@ -234,45 +366,66 @@ fn workstation_full_line(left: &str, right: &str) -> String {
     format!("│ {left_text}{}{right} │\n", " ".repeat(padding))
 }
 
-fn workstation_border(left: &str, separator: &str, right: &str) -> String {
-    let segments = WORKSTATION_COLS
+fn workstation_border(left: &str, separator: &str, right: &str, layout: RenderLayout) -> String {
+    let segments = layout
+        .columns
         .iter()
-        .map(|(_, width)| "─".repeat(width + 2))
+        .map(|column| "─".repeat(column.width + 2))
         .collect::<Vec<_>>()
         .join(separator);
     format!("{left}{segments}{right}\n")
 }
 
-fn workstation_header_row() -> String {
-    let cells = WORKSTATION_COLS
+fn workstation_header_row(layout: RenderLayout) -> String {
+    let cells = layout
+        .columns
         .iter()
-        .map(|(label, _)| (*label).to_owned())
+        .map(|column| column.label.to_owned())
         .collect::<Vec<_>>();
-    workstation_row(&cells, true)
+    workstation_row(&cells, true, layout)
 }
 
-fn workstation_data_row(row: &FeatureSnapshot, selected: bool, interactive: bool) -> String {
-    let symbol = if interactive {
-        format!(
-            "{} {}",
-            if selected { "▶" } else { " " },
-            display_symbol(row)
-        )
-    } else {
-        display_symbol(row).to_owned()
-    };
-    let cells = vec![
-        symbol,
-        format_optional(row.price, 4),
-        format_bps_value(row.spread_bps),
-        format_imbalance_cell(row.tob_imbalance),
-        format_signed_usd(row.signed_notional_flow_30s),
-        format_volatility_compact(row.rv_5m),
-        format_amihud_proxy(row),
-        format_confidence_decimal(row),
-        format_why_now(row),
-    ];
-    workstation_row(&cells, false)
+fn workstation_data_row(
+    row: &FeatureSnapshot,
+    selected: bool,
+    interactive: bool,
+    layout: RenderLayout,
+) -> String {
+    let cells = layout
+        .columns
+        .iter()
+        .map(|column| format_column_cell(row, column.kind, selected, interactive))
+        .collect::<Vec<_>>();
+    workstation_row(&cells, false, layout)
+}
+
+fn format_column_cell(
+    row: &FeatureSnapshot,
+    kind: ColumnKind,
+    selected: bool,
+    interactive: bool,
+) -> String {
+    match kind {
+        ColumnKind::Symbol => {
+            if interactive {
+                format!(
+                    "{} {}",
+                    if selected { "▶" } else { " " },
+                    display_symbol(row)
+                )
+            } else {
+                display_symbol(row).to_owned()
+            }
+        }
+        ColumnKind::Price => format_optional(row.price, 4),
+        ColumnKind::Spread => format_bps_value(row.spread_bps),
+        ColumnKind::Imbalance => format_imbalance_cell(row.tob_imbalance),
+        ColumnKind::Flow30 => format_signed_usd(row.signed_notional_flow_30s),
+        ColumnKind::Rv5m => format_volatility_compact(row.rv_5m),
+        ColumnKind::Amihud => format_amihud_proxy(row),
+        ColumnKind::Confidence => format_confidence_decimal(row),
+        ColumnKind::WhyNow => format_why_now(row),
+    }
 }
 
 fn selected_index(
@@ -315,7 +468,17 @@ fn density_short_label(density: WorkstationDensity) -> &'static str {
     }
 }
 
-fn render_selected_detail(output: &mut String, selected: &FeatureSnapshot, view: WorkstationView) {
+fn render_selected_detail(
+    output: &mut String,
+    selected: &FeatureSnapshot,
+    view: WorkstationView,
+    layout: RenderLayout,
+) {
+    if layout.bounded_detail {
+        render_selected_detail_bounded(output, selected, view, layout);
+        return;
+    }
+
     output.push_str(&format!(
         "Selected: {}  | view {}\n",
         display_symbol(selected),
@@ -433,6 +596,168 @@ fn render_selected_detail(output: &mut String, selected: &FeatureSnapshot, view:
     }
 }
 
+fn render_selected_detail_bounded(
+    output: &mut String,
+    selected: &FeatureSnapshot,
+    view: WorkstationView,
+    layout: RenderLayout,
+) {
+    output.push_str(&workstation_full_line(
+        &format!(
+            "Selected: {} | view {}",
+            display_symbol(selected),
+            view.label()
+        ),
+        "",
+        layout,
+    ));
+
+    match view {
+        WorkstationView::Overview => {
+            push_detail_line(
+                output,
+                "BBO",
+                &format!(
+                    "{} | mid {} | basis {}",
+                    format_bid_ask(selected),
+                    format_optional(selected.mid_px, 4),
+                    format_basis_bps(selected)
+                ),
+                layout,
+            );
+            push_detail_line(
+                output,
+                "Depth",
+                &format!(
+                    "{} | OFI {} | recovery {}",
+                    format_top_book(selected),
+                    format_signed_usd(selected.bbo_ofi_proxy_30s),
+                    format_recovery(selected.spread_recovery_ms)
+                ),
+                layout,
+            );
+            push_detail_line(
+                output,
+                "Why",
+                &format!(
+                    "{} | trade {} | resil {}",
+                    format_why_ranked_tokens(selected),
+                    format_tradeability_state(selected.tradeability_state),
+                    format_resilience_state(selected.resilience_state)
+                ),
+                layout,
+            );
+        }
+        WorkstationView::Flow => {
+            push_detail_line(
+                output,
+                "Flow",
+                &format!(
+                    "signed30 {} | ofi30 {} | adverse {}",
+                    format_signed_usd(selected.signed_notional_flow_30s),
+                    format_signed_usd(selected.bbo_ofi_proxy_30s),
+                    selected.adverse_selection_proxy.as_str()
+                ),
+                layout,
+            );
+            push_detail_line(
+                output,
+                "Vol",
+                &format!(
+                    "rv {} | ret {}",
+                    format_volatility_compact_triplet(selected),
+                    format_return_triplet(selected)
+                ),
+                layout,
+            );
+        }
+        WorkstationView::Quality => {
+            push_detail_line(
+                output,
+                "Quality",
+                &format!(
+                    "{} {} | {}",
+                    selected.confidence.level.as_str(),
+                    selected.confidence.score,
+                    format_confidence_counters(selected)
+                ),
+                layout,
+            );
+            push_detail_line(
+                output,
+                "Fresh",
+                &format!(
+                    "age {} | staleness {:?} | parser drops {}",
+                    format_age(selected.updated_ms_ago),
+                    selected.staleness_state,
+                    reason_count(selected, ConfidenceReason::ParserDrops)
+                ),
+                layout,
+            );
+        }
+        WorkstationView::Metadata => {
+            push_detail_line(output, "Meta", &format_metadata_summary(selected), layout);
+            push_detail_line(
+                output,
+                "IDs",
+                &format!(
+                    "display {} | feed {}",
+                    display_symbol(selected),
+                    selected.symbol
+                ),
+                layout,
+            );
+        }
+        WorkstationView::Explain => {
+            push_detail_line(
+                output,
+                "Score",
+                &format!(
+                    "{} | pair {}",
+                    format_why_ranked_tokens(selected),
+                    format_score_pair(selected)
+                ),
+                layout,
+            );
+            if let Some(breakdown) = &selected.score_breakdown {
+                push_detail_line(
+                    output,
+                    "Totals",
+                    &format!(
+                        "adj {} | raw {} | penalty {}",
+                        format_score(Some(breakdown.adjusted_total)),
+                        format_score(Some(breakdown.raw_total)),
+                        format_score(Some(breakdown.confidence_penalty()))
+                    ),
+                    layout,
+                );
+            }
+        }
+    }
+}
+
+fn push_detail_line(output: &mut String, label: &str, body: &str, layout: RenderLayout) {
+    output.push_str(&workstation_full_line(
+        &format!("{label:<8} {body}"),
+        "",
+        layout,
+    ));
+}
+
+fn push_boundary_caveat(output: &mut String, layout: RenderLayout) {
+    if layout.bounded_detail {
+        output.push_str(&workstation_full_line(
+            "No wallet/private streams/order routes. Screen heuristic, not advice.",
+            "",
+            layout,
+        ));
+    } else {
+        output.push_str(
+            "\nNo wallet, no private streams, no order routes. Scores are screen heuristics, not orders or advice.\n",
+        );
+    }
+}
+
 fn display_symbol(row: &FeatureSnapshot) -> &str {
     row.metadata
         .as_ref()
@@ -441,16 +766,12 @@ fn display_symbol(row: &FeatureSnapshot) -> &str {
         .unwrap_or(&row.symbol)
 }
 
-fn workstation_row(cells: &[String], header: bool) -> String {
+fn workstation_row(cells: &[String], header: bool, layout: RenderLayout) -> String {
     let mut output = String::from("│");
-    for (index, ((_, width), cell)) in WORKSTATION_COLS.iter().zip(cells.iter()).enumerate() {
-        let align = if header {
-            Align::Left
-        } else {
-            WORKSTATION_ALIGNS[index]
-        };
+    for (column, cell) in layout.columns.iter().zip(cells.iter()) {
+        let align = if header { Align::Left } else { column.align };
         output.push(' ');
-        output.push_str(&pad_cell(cell, *width, align));
+        output.push_str(&pad_cell(cell, column.width, align));
         output.push(' ');
         output.push('│');
     }

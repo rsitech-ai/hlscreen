@@ -3,7 +3,7 @@ use hls_features::engine::FeatureEngine;
 use hls_hyperliquid::ws::parser::parse_ws_ndjson;
 use hls_screen::ScreenRequest;
 use hls_tui::{
-    app::render_screened_table_with_state,
+    app::{RenderOptions, render_screened_table_with_options, render_screened_table_with_state},
     interaction::{WorkstationAction, WorkstationUiState, WorkstationView},
 };
 
@@ -95,4 +95,65 @@ fn interactive_renderer_shows_help_overlay_without_mocking_data() {
     assert!(table.contains("Selected: @107  | view quality"));
     assert!(table.contains("Confidence     level high"));
     assert!(table.contains("No wallet, no private streams, no order routes"));
+}
+
+#[test]
+fn interactive_renderer_can_fit_narrow_terminals_without_wrapping() {
+    let mut snapshots = fixture_snapshots();
+    for index in 0..10 {
+        let mut row = snapshots[0].clone();
+        row.symbol = format!("PAIR{index}/USDC");
+        row.price = Some(10.0 + f64::from(index));
+        row.spread_bps = Some(2.0 + f64::from(index));
+        row.tob_imbalance = Some(-0.5 + f64::from(index) / 10.0);
+        snapshots.push(row);
+    }
+
+    let mut state = WorkstationUiState::default();
+    state.apply(WorkstationAction::ToggleHelp, snapshots.len());
+    let table = render_screened_table_with_options(
+        &snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        &ScreenRequest::default(),
+        Some(&state),
+        RenderOptions::for_width(88),
+    )
+    .expect("renders");
+
+    assert!(table.contains("keys j/k"));
+    assert!(table.contains("Selected:"));
+    for line in table.lines() {
+        assert!(
+            line.chars().count() <= 88,
+            "line exceeds terminal width: {} chars: {line}",
+            line.chars().count()
+        );
+    }
+}
+
+#[test]
+fn live_renderer_uses_conservative_width_even_when_terminal_reports_wide() {
+    let snapshots = fixture_snapshots();
+    let state = WorkstationUiState::default();
+    let table = render_screened_table_with_options(
+        &snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        &ScreenRequest::default(),
+        Some(&state),
+        RenderOptions::for_live_terminal_width(180),
+    )
+    .expect("renders");
+
+    assert!(table.contains("│ symbol"));
+    assert!(table.contains("│ spr "));
+    assert!(table.contains("│ liq "));
+    assert!(!table.contains("sprbp"));
+    assert!(!table.contains("amihud"));
+    for line in table.lines() {
+        assert!(
+            line.chars().count() <= 96,
+            "line exceeds conservative live width: {} chars: {line}",
+            line.chars().count()
+        );
+    }
 }
