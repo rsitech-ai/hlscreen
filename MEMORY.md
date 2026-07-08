@@ -19,6 +19,7 @@
 - Health/API smoke: `./target/debug/hls doctor --live --json` and `./target/debug/hls server --print-health`; hidden `--simulate-health <healthy|writer-lag|interrupted>` is used only for deterministic tests.
 - Benchmark smoke: `./target/debug/hls bench --manifest tests/fixtures/microstructure/benchmark_gap_replay.json --repo-root . --json`; expected hashes are drift guards and should only change with reviewed evidence.
 - Release packaging check: `scripts/check-release-packaging.sh` compiles and runs the standalone release packaging test harness. `dist plan` uses pinned cargo-dist 0.32.0 from `docs/RELEASING.md`; local temp install under `/tmp/hlscreen-dist` verified macOS/Linux/Windows artifacts, installers, checksums, and source archive.
+- GitHub CI uses Node 24-compatible `actions/checkout@v6` and `actions/cache@v5`; keep action majors current when GitHub runner warnings appear.
 - Screenshot generation: `python3 scripts/generate-screenshots.py` rebuilds `hls-cli`, runs deterministic fixture/offline commands, redacts temp paths to `<tmp>`, and writes committed SVGs under `docs/assets/screenshots/`.
 - Screenshot visual preview: `rsvg-convert docs/assets/screenshots/live-screen.svg -o /tmp/hlscreen-tui-preview/live-screen.png` can render a local PNG preview without adding it to git.
 - Local quickstart smoke: `./target/debug/hls init --data-dir /tmp/hlscreen-smoke.<id>` then `./target/debug/hls doctor --data-dir /tmp/hlscreen-smoke.<id>`.
