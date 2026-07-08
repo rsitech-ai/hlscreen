@@ -269,7 +269,7 @@ fn render_header(
             Style::default().fg(success(color_mode)),
         ),
         Span::raw(format!(
-            "  filter: {filter}  {}  keys: j/k tab / p s t ? space q",
+            "  filter: {filter}  {}  keys: j/k 1-6 tab / p s t ? q",
             ui_mode_label(&model.ui_state),
         )),
     ])];
@@ -550,6 +550,7 @@ fn render_help_overlay(
         Line::from("j/k or arrows  act on focused pane: rows, detail view, or chart window"),
         Line::from("tab / shift-tab  cycle overview, flow, quality, metadata, explain"),
         Line::from("[ / ]  move pane focus: watchlist, detail, chart, book, tape, status"),
+        Line::from("1-6 panes  watchlist, detail, chart, book, tape, status"),
         Line::from("mouse wheel moves rows; click focuses panes when terminal mouse is available"),
         Line::from("/ filter  |  p preset  |  s sort  |  t chart window"),
         Line::from("d  density  |  space  pause display  |  ?  help  |  q  quit"),

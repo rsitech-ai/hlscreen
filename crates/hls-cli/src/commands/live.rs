@@ -1193,6 +1193,12 @@ fn key_to_workstation_action(
         KeyCode::BackTab => Some(WorkstationAction::PreviousView),
         KeyCode::Char(']') => Some(WorkstationAction::NextPane),
         KeyCode::Char('[') => Some(WorkstationAction::PreviousPane),
+        KeyCode::Char('1') => Some(WorkstationAction::FocusPane(WorkstationPane::Watchlist)),
+        KeyCode::Char('2') => Some(WorkstationAction::FocusPane(WorkstationPane::Detail)),
+        KeyCode::Char('3') => Some(WorkstationAction::FocusPane(WorkstationPane::Chart)),
+        KeyCode::Char('4') => Some(WorkstationAction::FocusPane(WorkstationPane::Book)),
+        KeyCode::Char('5') => Some(WorkstationAction::FocusPane(WorkstationPane::Tape)),
+        KeyCode::Char('6') => Some(WorkstationAction::FocusPane(WorkstationPane::Status)),
         KeyCode::Char('/') => Some(WorkstationAction::CycleFilter),
         KeyCode::Char('p') | KeyCode::Char('P') => Some(WorkstationAction::CyclePreset),
         KeyCode::Char('s') | KeyCode::Char('S') => Some(WorkstationAction::CycleSort),
@@ -1524,6 +1530,27 @@ mod tests {
             ),
             Some(WorkstationAction::PreviousPane)
         );
+        assert_eq!(
+            key_to_workstation_action(
+                KeyEvent::new(KeyCode::Char('1'), KeyModifiers::NONE),
+                &state
+            ),
+            Some(WorkstationAction::FocusPane(WorkstationPane::Watchlist))
+        );
+        assert_eq!(
+            key_to_workstation_action(
+                KeyEvent::new(KeyCode::Char('4'), KeyModifiers::NONE),
+                &state
+            ),
+            Some(WorkstationAction::FocusPane(WorkstationPane::Book))
+        );
+        assert_eq!(
+            key_to_workstation_action(
+                KeyEvent::new(KeyCode::Char('6'), KeyModifiers::NONE),
+                &state
+            ),
+            Some(WorkstationAction::FocusPane(WorkstationPane::Status))
+        );
 
         let mut command_state = WorkstationUiState::default();
         command_state.apply(WorkstationAction::CycleFilter, 1);
@@ -1547,6 +1574,13 @@ mod tests {
                 &command_state
             ),
             Some(WorkstationAction::CommandChar(']'))
+        );
+        assert_eq!(
+            key_to_workstation_action(
+                KeyEvent::new(KeyCode::Char('4'), KeyModifiers::NONE),
+                &command_state
+            ),
+            Some(WorkstationAction::CommandChar('4'))
         );
     }
 
