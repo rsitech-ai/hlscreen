@@ -93,7 +93,7 @@ Current foundation reason codes:
 - `incomplete_window`: one or more feature windows are not valid yet.
 
 The terminal market board keeps this confidence state visible next to the row
-score and in the selected-symbol detail pane. A low-confidence row must not
+score and in each row's detail card. A low-confidence row must not
 silently look equivalent to a fully trusted row.
 
 ## Score Breakdowns

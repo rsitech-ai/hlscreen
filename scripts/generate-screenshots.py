@@ -337,7 +337,7 @@ def line_style(line: str) -> tuple[str, str]:
         )
     ):
         return "#f2cc60", "700"
-    if "SELECTED SYMBOL" in line:
+    if "PAIR DETAIL CARDS" in line:
         return "#79c0ff", "700"
     if "● fresh" in line or "PASS" in line or "TRADE" in line:
         return "#7ee787", "600"

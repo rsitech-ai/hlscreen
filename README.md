@@ -10,7 +10,7 @@ It is built for operators and researchers who want a local-first way to inspect 
 
 ## Status
 
-Current state: v0.1 live public-data hardening with a next-generation deterministic terminal market board, why-ranked detail pane, health panel, benchmark packs, metrics output, and OSS release/extension contracts.
+Current state: v0.1 live public-data hardening with a next-generation deterministic terminal market board, all-pair detail cards, health panel, benchmark packs, metrics output, and OSS release/extension contracts.
 
 Implemented today:
 
@@ -19,7 +19,7 @@ Implemented today:
 - Bounded public WebSocket live screen with duration-based shutdown, heartbeat pings, reconnect/resubscribe, optional raw/normalized recording, and all-symbol subscription budgeting.
 - Bounded live recording through a fail-closed writer queue so disk I/O does not silently drop or stall market-data ingestion.
 - Live terminal refresh for TTY sessions and `--tui` smoke captures.
-- Modern deterministic terminal rendering for market rows, scan KPIs, selected-symbol microstructure detail, read-only safety state, and operations health.
+- Modern deterministic terminal rendering for market rows, scan KPIs, all-pair microstructure detail cards, read-only safety state, and operations health.
 - Confidence-aware feature snapshots and TUI rows for fresh, sparse, duplicate, and explicit gap/parser/backlog quality inputs.
 - Persisted confidence baselines plus `hls replay --verify-parity` drift detection for local replay checks.
 - Deterministic score breakdowns, screen-rule score fields, and `hls explain` why-ranked output for replayed or fixture-backed rows.
