@@ -19,10 +19,15 @@ fn renders_read_only_main_table_for_fixture_snapshot() {
 
     assert_eq!(
         table,
-        "READ-ONLY Hyperliquid spot live screen\n\
-         scope: public spot market data only | rows=1 fresh=1 stale=0 incomplete=0\n\
-         symbol        price       spread   TOB depth      ret 1m   score   age ms   state\n\
-         ------------  ----------  -------  -------------  -------  ------  -------  ----------\n\
-         @107             35.2000     57.1            245        -    2.45     6000  fresh\n"
+        "╭────────────────────────────────────────────────────────────────────────────────────────────────────────╮\n\
+         │ HLSCREEN   READ-ONLY Hyperliquid spot live screen                                            READ-ONLY │\n\
+         ├────────────────────────────────────────────────────────────────────────────────────────────────────────┤\n\
+         │ DATA       public spot market data only | rows 1 | fresh 1 | stale 0 | incomplete 0              LOCAL │\n\
+         ╰────────────────────────────────────────────────────────────────────────────────────────────────────────╯\n\
+         SYMBOL        STATE         PRICE         SPREAD     TOB DEPTH       IMBAL     RET 1M    SCORE      AGE\n\
+         ────────────  ────────────  ────────────  ─────────  ────────────  ─────────  ─────────  ───────  ───────\n\
+         @107          ● fresh            35.2000   57.1 bps          $245       -15%          -     2.45     6.0s\n\
+         \n\
+         Read-only screen: public spot market data only. Scores are heuristics, not trading signals.\n"
     );
 }

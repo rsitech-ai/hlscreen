@@ -20,7 +20,7 @@ MAX_COLS = 108
 CHAR_WIDTH = 8.6
 LINE_HEIGHT = 20
 PADDING_X = 24
-PADDING_TOP = 60
+PADDING_TOP = 68
 PADDING_BOTTOM = 28
 
 
@@ -98,6 +98,21 @@ def main() -> None:
                 ],
             ),
             Screenshot(
+                filename="health-panel.svg",
+                title="Operations health panel",
+                commands=[
+                    [
+                        str(HLS),
+                        "doctor",
+                        "--live",
+                        "--simulate-health",
+                        "writer-lag",
+                        "--data-dir",
+                        str(temp_dir / "health"),
+                    ]
+                ],
+            ),
+            Screenshot(
                 filename="symbols.svg",
                 title="Spot symbol metadata",
                 commands=[
@@ -113,23 +128,23 @@ def main() -> None:
             ),
         ]
 
+        redactions = [(str(temp_dir), "<tmp>")]
+
         for screenshot in screenshots:
-            lines = run_screenshot(screenshot)
+            lines = run_screenshot(screenshot, redactions)
             svg = render_svg(screenshot.title, lines)
             (OUT_DIR / screenshot.filename).write_text(svg, encoding="utf-8")
             print(f"wrote {OUT_DIR / screenshot.filename}")
 
 
 def ensure_binary() -> None:
-    if HLS.exists():
-        return
     subprocess.run(["cargo", "build", "-p", "hls-cli"], cwd=ROOT, check=True)
 
 
-def run_screenshot(screenshot: Screenshot) -> list[str]:
+def run_screenshot(screenshot: Screenshot, redactions: list[tuple[str, str]]) -> list[str]:
     lines: list[str] = []
     for command in screenshot.commands:
-        display = printable_command(command)
+        display = printable_command(command, redactions)
         lines.append(f"$ {display}")
         completed = subprocess.run(
             command,
@@ -141,7 +156,7 @@ def run_screenshot(screenshot: Screenshot) -> list[str]:
         )
         output = completed.stdout.rstrip("\n")
         if output:
-            lines.extend(output.splitlines())
+            lines.extend(redact(line, redactions) for line in output.splitlines())
         if completed.returncode != 0:
             raise SystemExit(
                 f"command failed ({completed.returncode}): {display}\n{completed.stdout}"
@@ -152,7 +167,7 @@ def run_screenshot(screenshot: Screenshot) -> list[str]:
     return wrap_lines(lines)
 
 
-def printable_command(command: list[str]) -> str:
+def printable_command(command: list[str], redactions: list[tuple[str, str]]) -> str:
     display = []
     for part in command:
         if part == str(HLS):
@@ -160,8 +175,15 @@ def printable_command(command: list[str]) -> str:
         elif part.startswith(str(ROOT)):
             display.append(part.replace(str(ROOT) + "/", ""))
         else:
-            display.append(part)
+            display.append(redact(part, redactions))
     return " ".join(shlex.quote(part) for part in display)
+
+
+def redact(value: str, redactions: list[tuple[str, str]]) -> str:
+    redacted = value
+    for before, after in redactions:
+        redacted = redacted.replace(before, after)
+    return redacted
 
 
 def wrap_lines(lines: list[str]) -> list[str]:
@@ -186,16 +208,18 @@ def render_svg(title: str, lines: list[str]) -> str:
     width = int(MAX_COLS * CHAR_WIDTH + PADDING_X * 2)
     height = PADDING_TOP + PADDING_BOTTOM + len(lines) * LINE_HEIGHT
     parts = [
-        '<svg xmlns="http://www.w3.org/2000/svg" role="img" '
+        '<svg xmlns="http://www.w3.org/2000/svg" role="img" xml:space="preserve" '
         f'aria-label="{html.escape(title)} terminal screenshot" '
         f'viewBox="0 0 {width} {height}" width="{width}" height="{height}">',
         "<defs>",
         "<linearGradient id=\"bg\" x1=\"0\" x2=\"1\" y1=\"0\" y2=\"1\">",
-        "<stop offset=\"0\" stop-color=\"#101418\"/>",
-        "<stop offset=\"1\" stop-color=\"#1d242c\"/>",
+        "<stop offset=\"0\" stop-color=\"#0d1117\"/>",
+        "<stop offset=\"1\" stop-color=\"#18212b\"/>",
         "</linearGradient>",
         "</defs>",
-        f'<rect width="{width}" height="{height}" rx="10" fill="url(#bg)"/>',
+        f'<rect width="{width}" height="{height}" rx="8" fill="url(#bg)"/>',
+        f'<rect x="0" y="0" width="{width}" height="50" rx="8" fill="#141b24"/>',
+        f'<rect x="0" y="42" width="{width}" height="8" fill="#141b24"/>',
         '<circle cx="24" cy="24" r="6" fill="#ff5f57"/>',
         '<circle cx="44" cy="24" r="6" fill="#ffbd2e"/>',
         '<circle cx="64" cy="24" r="6" fill="#28c840"/>',
@@ -206,15 +230,33 @@ def render_svg(title: str, lines: list[str]) -> str:
     ]
     y = PADDING_TOP
     for line in lines:
-        fill = "#98c379" if line.startswith("$ ") else "#d8dee9"
+        fill, weight = line_style(line)
         parts.append(
             f'<text x="{PADDING_X}" y="{y}" fill="{fill}" '
             'font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" '
-            f'font-size="14">{html.escape(line)}</text>'
+            f'font-size="14" font-weight="{weight}">{html.escape(line)}</text>'
         )
         y += LINE_HEIGHT
     parts.append("</svg>")
     return "\n".join(parts) + "\n"
+
+
+def line_style(line: str) -> tuple[str, str]:
+    if line.startswith("$ "):
+        return "#7ee787", "700"
+    if "HLSCREEN" in line:
+        return "#79c0ff", "700"
+    if line.startswith(("╭", "├", "╰", "─")):
+        return "#53616f", "400"
+    if "● fresh" in line or "PASS" in line:
+        return "#7ee787", "600"
+    if "DEGRADED" in line or "WATCH" in line or line.startswith("- "):
+        return "#f2cc60", "600"
+    if line.startswith("Read-only screen"):
+        return "#a7b3c2", "400"
+    if "READ-ONLY" in line:
+        return "#ffa657", "700"
+    return "#d8dee9", "400"
 
 
 if __name__ == "__main__":

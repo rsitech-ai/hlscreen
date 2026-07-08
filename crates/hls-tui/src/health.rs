@@ -1,21 +1,46 @@
 use hls_core::health::HealthSnapshot;
 
+use crate::theme::{bottom_border, divider, panel_line, top_border};
+
 pub fn render_health_pane(snapshot: &HealthSnapshot) -> String {
-    let mut output = String::from("READ-ONLY health\n");
-    output.push_str(&format!("status: {}\n", snapshot.status.as_str()));
-    output.push_str(&format!("read-only: {}\n", snapshot.read_only));
-    output.push_str(&format!("subscriptions: {}\n", snapshot.subscription_count));
-    output.push_str(&format!(
-        "last message age ms: {}\n",
-        optional_u64(snapshot.last_message_age_ms)
+    let mut output = String::new();
+    output.push_str(&top_border());
+    output.push_str(&panel_line(
+        "HLSCREEN",
+        "Read-only Operations Health",
+        &snapshot.status.as_str().to_uppercase(),
     ));
-    output.push_str(&format!("lag ms: {}\n", optional_u64(snapshot.lag_ms)));
-    output.push_str(&format!("writer backlog: {}\n", snapshot.writer_backlog));
-    output.push_str(&format!("rows written: {}\n", snapshot.rows_written));
-    output.push_str(&format!("gaps: {}\n", snapshot.gap_count));
+    output.push_str(&divider());
+    output.push_str(&panel_line(
+        "SAFETY",
+        &format!(
+            "read-only {} | subscriptions {} | reconnects {} | gaps: {}",
+            snapshot.read_only,
+            snapshot.subscription_count,
+            snapshot.reconnect_count,
+            snapshot.gap_count
+        ),
+        if snapshot.read_only { "PASS" } else { "FAIL" },
+    ));
+    output.push_str(&panel_line(
+        "LATENCY",
+        &format!(
+            "last msg {} | lag {} | writer backlog: {} | rows {}",
+            format_ms(snapshot.last_message_age_ms),
+            format_ms(snapshot.lag_ms),
+            snapshot.writer_backlog,
+            snapshot.rows_written
+        ),
+        if snapshot.degraded_reasons.is_empty() {
+            "CLEAR"
+        } else {
+            "WATCH"
+        },
+    ));
+    output.push_str(&bottom_border());
 
     if !snapshot.degraded_reasons.is_empty() {
-        output.push_str("reasons:\n");
+        output.push_str("Degraded reasons\n");
         for reason in &snapshot.degraded_reasons {
             output.push_str(&format!("- {reason}\n"));
         }
@@ -24,8 +49,8 @@ pub fn render_health_pane(snapshot: &HealthSnapshot) -> String {
     output
 }
 
-fn optional_u64(value: Option<u64>) -> String {
+fn format_ms(value: Option<u64>) -> String {
     value
-        .map(|value| value.to_string())
+        .map(|value| format!("{value} ms"))
         .unwrap_or_else(|| "-".to_owned())
 }

@@ -1,20 +1,27 @@
-<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Terminal live screen test capture terminal screenshot" viewBox="0 0 976 228" width="976" height="228">
+<svg xmlns="http://www.w3.org/2000/svg" role="img" xml:space="preserve" aria-label="Terminal live screen test capture terminal screenshot" viewBox="0 0 976 336" width="976" height="336">
 <defs>
 <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
-<stop offset="0" stop-color="#101418"/>
-<stop offset="1" stop-color="#1d242c"/>
+<stop offset="0" stop-color="#0d1117"/>
+<stop offset="1" stop-color="#18212b"/>
 </linearGradient>
 </defs>
-<rect width="976" height="228" rx="10" fill="url(#bg)"/>
+<rect width="976" height="336" rx="8" fill="url(#bg)"/>
+<rect x="0" y="0" width="976" height="50" rx="8" fill="#141b24"/>
+<rect x="0" y="42" width="976" height="8" fill="#141b24"/>
 <circle cx="24" cy="24" r="6" fill="#ff5f57"/>
 <circle cx="44" cy="24" r="6" fill="#ffbd2e"/>
 <circle cx="64" cy="24" r="6" fill="#28c840"/>
 <text x="24" y="40" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="700">Terminal live screen test capture</text>
-<text x="24" y="60" fill="#98c379" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">$ ./target/debug/hls live --symbols @107 --fixture-file tests/fixtures/hyperliquid/ws_mock_live.ndjson</text>
-<text x="24" y="80" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">  --preset thin_books --once</text>
-<text x="24" y="100" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">READ-ONLY Hyperliquid spot live screen</text>
-<text x="24" y="120" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">scope: public spot market data only | rows=1 fresh=1 stale=0 incomplete=0</text>
-<text x="24" y="140" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">symbol        price       spread   TOB depth      ret 1m   score   age ms   state</text>
-<text x="24" y="160" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">------------  ----------  -------  -------------  -------  ------  -------  ----------</text>
-<text x="24" y="180" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">@107             35.2000     57.1            245    0.57%    2.45        0  fresh</text>
+<text x="24" y="68" fill="#7ee787" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="700">$ ./target/debug/hls live --symbols @107 --fixture-file tests/fixtures/hyperliquid/ws_mock_live.ndjson</text>
+<text x="24" y="88" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">  --preset thin_books --once</text>
+<text x="24" y="108" fill="#53616f" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">╭────────────────────────────────────────────────────────────────────────────────────────────────────────╮</text>
+<text x="24" y="128" fill="#79c0ff" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="700">│ HLSCREEN   READ-ONLY Hyperliquid spot live screen                                            READ-ONLY │</text>
+<text x="24" y="148" fill="#53616f" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">├────────────────────────────────────────────────────────────────────────────────────────────────────────┤</text>
+<text x="24" y="168" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">│ DATA       public spot market data only | rows 1 | fresh 1 | stale 0 | incomplete 0              LOCAL │</text>
+<text x="24" y="188" fill="#53616f" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">╰────────────────────────────────────────────────────────────────────────────────────────────────────────╯</text>
+<text x="24" y="208" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">SYMBOL        STATE         PRICE         SPREAD     TOB DEPTH       IMBAL     RET 1M    SCORE      AGE</text>
+<text x="24" y="228" fill="#53616f" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">────────────  ────────────  ────────────  ─────────  ────────────  ─────────  ─────────  ───────  ───────</text>
+<text x="24" y="248" fill="#7ee787" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="600">@107          ● fresh            35.2000   57.1 bps          $245       -15%     +0.57%     2.45      0ms</text>
+<text x="24" y="268" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400"></text>
+<text x="24" y="288" fill="#a7b3c2" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">Read-only screen: public spot market data only. Scores are heuristics, not trading signals.</text>
 </svg>
