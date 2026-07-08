@@ -12,13 +12,13 @@
 
 **Purpose**: Prepare fixture locations, docs, and module placeholders without changing runtime behavior.
 
-- [ ] T001 Create microstructure fixture directories in `/Users/s1kor/dev/trading/rsibot/hlscreen/tests/fixtures/microstructure/`
-- [ ] T002 [P] Create microstructure golden output directory in `/Users/s1kor/dev/trading/rsibot/hlscreen/tests/golden/microstructure/`
-- [ ] T003 [P] Create microstructure documentation stub in `/Users/s1kor/dev/trading/rsibot/hlscreen/docs/microstructure.md`
-- [ ] T004 [P] Create benchmark fixture README in `/Users/s1kor/dev/trading/rsibot/hlscreen/tests/fixtures/microstructure/README.md`
-- [ ] T005 Add microstructure module exports placeholders in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/src/lib.rs`
-- [ ] T006 Add microstructure module exports placeholders in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-features/src/lib.rs`
-- [ ] T007 Add CLI command placeholder registration comments in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/src/commands/mod.rs`
+- [x] T001 Create microstructure fixture directories in `/Users/s1kor/dev/trading/rsibot/hlscreen/tests/fixtures/microstructure/`
+- [x] T002 [P] Create microstructure golden output directory in `/Users/s1kor/dev/trading/rsibot/hlscreen/tests/golden/microstructure/`
+- [x] T003 [P] Create microstructure documentation stub in `/Users/s1kor/dev/trading/rsibot/hlscreen/docs/microstructure.md`
+- [x] T004 [P] Create benchmark fixture README in `/Users/s1kor/dev/trading/rsibot/hlscreen/tests/fixtures/microstructure/README.md`
+- [x] T005 Add microstructure module exports placeholders in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/src/lib.rs`
+- [x] T006 Add microstructure module exports placeholders in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-features/src/lib.rs`
+- [x] T007 Add CLI command placeholder registration comments in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/src/commands/mod.rs`
 
 ---
 
@@ -30,21 +30,21 @@
 
 ### Tests for Foundation
 
-- [ ] T008 [P] Add confidence model unit tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/tests/confidence_state.rs`
-- [ ] T009 [P] Add score breakdown unit tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/tests/score_breakdown.rs`
-- [ ] T010 [P] Add metrics contract unit tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/tests/metrics_contract.rs`
-- [ ] T011 [P] Add benchmark manifest parsing tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-store/tests/benchmark_manifest.rs`
-- [ ] T012 [P] Add read-only safety regression tests for new CLI fields in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/tests/microstructure_safety.rs`
+- [x] T008 [P] Add confidence model unit tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/tests/confidence_state.rs`
+- [x] T009 [P] Add score breakdown unit tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/tests/score_breakdown.rs`
+- [x] T010 [P] Add metrics contract unit tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/tests/metrics_contract.rs`
+- [x] T011 [P] Add benchmark manifest parsing tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-store/tests/benchmark_manifest.rs`
+- [x] T012 [P] Add read-only safety regression tests for new CLI fields in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/tests/microstructure_safety.rs`
 
 ### Implementation for Foundation
 
-- [ ] T013 Implement `DataConfidenceSnapshot` and reason codes in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/src/confidence.rs`
-- [ ] T014 Implement `ScoreBreakdown` and score component contracts in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/src/score.rs`
-- [ ] T015 Implement metric definition registry and label validation in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/src/metrics.rs`
-- [ ] T016 Implement benchmark fixture manifest model in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-store/src/benchmark.rs`
-- [ ] T017 Wire new foundation modules into `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/src/lib.rs`
-- [ ] T018 Wire benchmark module into `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-store/src/lib.rs`
-- [ ] T019 Update feature definitions docs for confidence and score terminology in `/Users/s1kor/dev/trading/rsibot/hlscreen/docs/feature-definitions.md`
+- [x] T013 Implement `DataConfidenceSnapshot` and reason codes in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/src/confidence.rs`
+- [x] T014 Implement `ScoreBreakdown` and score component contracts in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/src/score.rs`
+- [x] T015 Implement metric definition registry and label validation in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/src/metrics.rs`
+- [x] T016 Implement benchmark fixture manifest model in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-store/src/benchmark.rs`
+- [x] T017 Wire new foundation modules into `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/src/lib.rs`
+- [x] T018 Wire benchmark module into `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-store/src/lib.rs`
+- [x] T019 Update feature definitions docs for confidence and score terminology in `/Users/s1kor/dev/trading/rsibot/hlscreen/docs/feature-definitions.md`
 
 **Checkpoint**: Foundation ready when `cargo test -p hls-core --test confidence_state --test score_breakdown --test metrics_contract` and `cargo test -p hls-store --test benchmark_manifest` pass.
 

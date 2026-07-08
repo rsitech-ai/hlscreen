@@ -246,3 +246,26 @@
 
 - [x] Close out notes
   DoD: `PLAN.md`, `TODO.md`, `MEMORY.md`, daily memory, and lesson stores reflect the final state.
+
+## 2026-07-08 Microstructure Foundation Contracts
+
+- [x] Confirm v2 task scope and branch
+  DoD: `PLAN.md` identifies T001-T019 as the active foundation slice on a fresh feature branch.
+
+- [x] Add setup scaffolding
+  DoD: Microstructure fixture/golden directories, fixture README, and `docs/microstructure.md` exist without changing runtime behavior.
+
+- [x] Add failing foundation tests
+  DoD: Confidence, score, metrics, benchmark manifest, and CLI safety tests describe public behavior before implementation.
+
+- [x] Implement foundation contracts
+  DoD: `hls-core` exposes confidence, score, and metrics modules; `hls-store` exposes benchmark manifests; tests pass.
+
+- [x] Update terminology docs and Spec Kit task markers
+  DoD: `docs/feature-definitions.md`, `docs/microstructure.md`, and `specs/002-microstructure-workstation/tasks.md` reflect T001-T019 completion only.
+
+- [x] Run validation gates
+  DoD: Focused tests, full Rust gates, build, `git diff --check`, JSONL validation, and read-only scan pass.
+
+- [-] Review, PR, merge, and close out
+  DoD: Diff is reviewed, stable branch is pushed, PR checks pass, merge to `main` occurs only if stable, and memory/reflection notes are complete.
