@@ -42,7 +42,7 @@ fn renders_read_only_main_table_for_fixture_snapshot() {
     assert!(table.contains("Spread recovery"));
     assert!(table.contains("Signed flow    5s:-  30s:"));
     assert!(table.contains("RV 1m/5m/1h   0.00/0.00/0.00"));
-    assert!(table.contains("Confidence     gap:0 stale:0 sparse:0 reconnect:0 parser_drop:0"));
+    assert!(table.contains("Confidence     window:0 stale:0 sparse:0 reconnect:0 parser_drop:0"));
     assert!(table.contains("Why ranked"));
     assert!(table.contains("No wallet"));
     assert!(table.contains("Scores are screen heuristics, not orders or advice."));

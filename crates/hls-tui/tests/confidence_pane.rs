@@ -21,6 +21,6 @@ fn renders_degraded_confidence_in_market_board_and_detail_pane() {
     assert!(table.contains("conf"));
     assert!(table.contains("0.60"));
     assert!(table.contains("low confidence"));
-    assert!(table.contains("Confidence     gap:3 stale:0 sparse:1 reconnect:0 parser_drop:0"));
+    assert!(table.contains("Confidence     window:3 stale:0 sparse:1 reconnect:0 parser_drop:0"));
     assert!(table.contains("missing:return_window"));
 }

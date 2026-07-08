@@ -1340,3 +1340,64 @@
 - What changed: Replaced the broad dashboard/detail-card primary renderer with a compact `Hyperliquid Spot Microstructure Workstation` box table plus selected-pair detail pane. `render_screened_table` now passes screen request context so `filter:` and `mode:` reflect the active preset/custom rule/sort. CLI/TUI integration tests now assert the compact live, replay, screen, record/replay, confidence, and full-pipeline output. Screenshot styling and SVG assets were regenerated for the new box table.
 - Validation run: Red tests first: `cargo test -p hls-tui --test main_table_golden` and `cargo test -p hls-cli --test live_mock` failed on the old renderer. Final green gates: `cargo test -p hls-tui --test main_table_golden`; `cargo test -p hls-cli --test live_mock`; `python3 scripts/generate-screenshots.py`; `rsvg-convert docs/assets/screenshots/live-screen.svg -o /tmp/hlscreen-preview/live-screen.png`; `rsvg-convert docs/assets/screenshots/resilience-screen.svg -o /tmp/hlscreen-preview/resilience-screen.png`; direct fixture TUI smoke with zero stderr; `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`; `scripts/check-release-packaging.sh`; `git diff --check`; read-only/private-surface scan reviewed with only expected docs/tests/fixtures/read-only caveats.
 - Follow-ups: The compact mock uses current feature support: `flow30` is real 30s signed notional flow, and `amihud` is a liquidity-cost proxy from spread/depth/liquidity score. Add real 1m signed-flow sigma or true Amihud only as a separate feature-engine slice with tests before renaming those columns.
+
+## 2026-07-08 All-Data Live Smoke And End-to-End Audit
+
+### Task
+- Objective: Run a fresh all-available-public-data smoke test, capture TUI screenshot evidence, audit the implementation against official Hyperliquid docs and project standards, fix any blocking findings, and merge only if local and GitHub gates are green.
+- Owner repo(s): standalone `hlscreen/` repository only.
+- Capital impact: research-only / read-only public market-data ingestion and visualization. No wallet, private stream, signing, order placement, live trading, or external capital action.
+
+### Context
+- Background: `main` already contains the compact workstation TUI and previous live/CI hardening. The operator requested another full smoke/audit pass with current live evidence and screenshots before PR/merge.
+- Inputs: current `main` at `ab01664`, official Hyperliquid WebSocket/API docs, `specs/002-microstructure-workstation/plan.md`, CLI/TUI/store/feature/source modules, existing CI and release-packaging gates.
+- Outputs: dated audit report with live-run artifacts, screenshot PNG/SVG paths, validation matrix, code-review notes, any focused fixes, PR, and post-merge CI evidence if stable.
+
+### Assumptions
+- A bounded current all-symbol live run is sufficient for this pass; prior 15-minute runs remain historical evidence but are not a substitute for current smoke proof.
+- The live run must use public Hyperliquid data only and must not introduce mock/fallback paths into production evidence.
+- The PR can be merged only after local validation and GitHub checks pass; if any blocker remains, the branch stays unmerged with an explicit blocker report.
+
+### Constraints
+- Technical: keep the change audit/report-focused unless a real bug is found; no fake metrics, no mock data in live proof, no unbounded background services left running.
+- Operational: use `feat/andrzej_all_data_e2e_audit`; do not touch parent `rsibot` or unrelated repos; keep artifact paths explicit.
+- Risk/capital: read-only public REST/WebSocket only; no credentials, account endpoints, private streams, order APIs, or trading recommendations.
+
+### Options Considered
+1. Rely on the previous all-pairs 15-minute evidence.
+   - Pros: fastest and already validated.
+   - Cons: does not satisfy the request for current smoke evidence and screenshots.
+2. Run a fresh bounded all-symbol smoke, replay/screen it, run validation, and document the results.
+   - Pros: current evidence, catches drift in live payloads, keeps the report auditable.
+   - Cons: takes longer and can be affected by temporary public network conditions.
+
+### Chosen Approach
+- Choice: option 2.
+- Why: The request is specifically about production readiness, live data, and no mock/workaround behavior. Fresh bounded live proof is the only defensible evidence.
+
+### Execution Plan
+1. Confirm branch/base status and official-doc references.
+2. Run a bounded `hls live --all-symbols` public WebSocket smoke with raw and normalized recording.
+3. Replay and screen the recorded run; inspect logs, registry, file counts, and generated TUI output.
+4. Generate PNG/SVG screenshot artifacts from the current TUI output.
+5. Review source modules for WebSocket/REST contracts, recording/replay, feature semantics, TUI truthfulness, read-only boundaries, dead code, and edge cases.
+6. Run full validation gates and negative-input probes.
+7. Write a dated audit report, update memory/reflection/TODO, commit, push, open PR, wait for checks, and merge only if stable.
+
+### Test Plan
+- Live smoke: `./target/debug/hls live --all-symbols --duration-secs <bounded> --refresh-secs 30 --tui --record --raw --normalized --run-id <id> --data-dir <tmp>`.
+- Replay/screen/API: `hls replay`, `hls screen`, `hls doctor --live --json`, `hls server --print-health` against the captured data where applicable.
+- Negative probes: invalid DSL, unknown preset, missing fixture/live inputs, and read-only/private-surface scan.
+- Regression: `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`; `cargo build --release --workspace --all-features`; `scripts/check-release-packaging.sh`; `python3 scripts/generate-screenshots.py`; `git diff --check`.
+
+### Risks and Rollback
+- Risks: public market quiet periods can yield sparse trade-derived fields; temporary WebSocket/network issues can fail the smoke without proving a code regression; a short smoke cannot prove days-long service stability.
+- Rollback: revert only this audit/report branch. No external exchange/account/release state is mutated by the planned work.
+
+### Memory Impact
+- Add/update in `MEMORY.md`: record current all-symbol smoke command, artifact counts, screenshot path, and any durable production-readiness caveats discovered.
+
+### Final Notes
+- What changed: Ran a fresh all-symbol public Hyperliquid smoke, replayed and screened the captured run, generated a real-data TUI PNG, audited the source against official REST/WebSocket/rate-limit/heartbeat docs, fixed the misleading TUI confidence counter label from `gap` to `window`, regenerated committed screenshots, and wrote `docs/reports/2026-07-08-all-data-e2e-audit.md`.
+- Validation run: 180s all-symbol live capture `allpairs-e2e-20260708-195413` with 308 symbols, 924 subscriptions, 59,384 WS messages, 67,192 normalized events, clean shutdown, 0 reconnects, and 0 data gaps; replay parity baseline then pass; `thin_books` and `flow_pressure` screen commands over the captured run; `doctor --live --json`; `server --print-health`; negative probes for invalid DSL, unknown preset, missing fixture, and unsupported Parquet; post-fix 60s all-symbol live capture `allpairs-postfix-20260708-195842` with 18,470 WS messages, 26,156 normalized events, clean shutdown, 0 reconnects, and 0 data gaps; `cargo test -p hls-tui --test main_table_golden --test confidence_pane`; `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`; `cargo build --release --workspace --all-features`; `scripts/check-release-packaging.sh`; `python3 scripts/generate-screenshots.py`; `git diff --check`; read-only/private-surface and TODO/debug scans.
+- Follow-ups: Automatic public REST backfill after reconnect, true Parquet output, long-running HTTP server mode, keyboard-driven interactive TUI, and multi-day soak testing remain separate future work. Current live proof is public read-only data only and uses top-of-book proxies honestly.

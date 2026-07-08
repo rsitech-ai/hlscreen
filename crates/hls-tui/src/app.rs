@@ -324,7 +324,7 @@ fn notional(px: Option<f64>, qty: Option<f64>) -> Option<f64> {
 
 fn format_confidence_counters(row: &FeatureSnapshot) -> String {
     format!(
-        "gap:{} stale:{} sparse:{} reconnect:{} parser_drop:{}",
+        "window:{} stale:{} sparse:{} reconnect:{} parser_drop:{}",
         row.confidence.incomplete_windows.len(),
         reason_count(row, ConfidenceReason::StaleQuote),
         reason_count(row, ConfidenceReason::SparseTrades),

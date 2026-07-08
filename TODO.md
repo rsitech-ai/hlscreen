@@ -481,3 +481,26 @@
 
 - [x] Fix compatible `sha2` Dependabot failure
   DoD: Benchmark hash generation works with the current `sha2` and the `sha2 0.11` PR without weakening hash validation.
+
+## 2026-07-08 All-Data Live Smoke And End-to-End Audit
+
+- [x] Confirm branch/base status and docs scope
+  DoD: Branch, base commit, official Hyperliquid doc surfaces, and read-only boundary are recorded in `PLAN.md`/audit notes.
+
+- [x] Run fresh all-symbol live smoke
+  DoD: Public WebSocket run captures all available symbols with raw and normalized recording, exits cleanly, and leaves no background process running.
+
+- [x] Replay/screen captured data and generate screenshots
+  DoD: Replay and screen commands consume the captured run, logs are clean or explained, and PNG/SVG screenshot artifacts are produced from current output.
+
+- [x] Audit source, docs, edge cases, and safety boundaries
+  DoD: REST/WS contracts, recording, replay, screening, TUI, server/health, docs, CI, dead-code, and private-surface scans are reviewed with pass/fail notes.
+
+- [x] Run full validation gates
+  DoD: fmt, clippy, workspace tests, debug/release builds, release packaging, screenshot generation, diff check, negative probes, and read-only scans pass or blockers are explicit.
+
+- [x] Write report and close continuity notes
+  DoD: Dated audit report, `PLAN.md`, `TODO.md`, `MEMORY.md`, daily memory, and reflection file reflect actual evidence.
+
+- [x] Review PR readiness and defer merge verification to operator handoff
+  DoD: Diff is reviewed, branch is pushed, PR checks pass, and merge/post-merge CI verification is recorded after GitHub completes the external merge step.
