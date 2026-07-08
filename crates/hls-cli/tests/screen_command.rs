@@ -21,8 +21,12 @@ fn screen_filters_fixture_rows_with_custom_rule() {
         .assert()
         .success()
         .stdout(predicate::str::contains(
-            "READ-ONLY Hyperliquid spot screen",
+            "Hyperliquid Spot Microstructure Workstation",
         ))
+        .stdout(predicate::str::contains(
+            "filter: symbol == \"@107\" and spread_bps < 60",
+        ))
+        .stdout(predicate::str::contains("mode: top-1 by price desc"))
         .stdout(predicate::str::contains("@107"))
         .stdout(predicate::str::contains("35.2000"))
         .stdout(predicate::str::contains("No wallet"))
@@ -43,5 +47,7 @@ fn screen_preset_uses_shared_rule_engine() {
         ])
         .assert()
         .success()
+        .stdout(predicate::str::contains("filter: thin_books"))
+        .stdout(predicate::str::contains("mode: top-1 by tob_depth_usd asc"))
         .stdout(predicate::str::contains("@107"));
 }

@@ -1282,3 +1282,61 @@
 - What changed: Added scoped Dependabot ignore rules for two unsupported automated update classes: `rusqlite` semver-minor updates while the repo MSRV is Rust 1.88, and `actions/checkout` semver-major updates while pinned cargo-dist 0.32.0 owns the generated release workflow. This keeps the current CI/CD contract strict instead of allowing known-invalid automation PRs to stay red.
 - Validation run: `gh auth status`; `gh repo view --json nameWithOwner,defaultBranchRef,url,isPrivate`; `gh pr list --state open --json ...`; `gh run list --branch main --limit 10 --json ...`; failing-check inspection for PR #4, #7, and #28; `.github/workflows/ci.yml`, `.github/workflows/release.yml`, and `.github/dependabot.yml` review; Ruby YAML parse; `cargo fmt --check`; `scripts/check-release-packaging.sh`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --release --workspace --all-features`; `git diff --check`.
 - Follow-ups: PR #27 merged the Dependabot policy at `dcefc8a`, with post-merge main CI run `28960992598` passing. PR #4 (`actions/checkout@v7`) and PR #7 (`rusqlite@0.40.1`) were closed/superseded after the policy landed. PR #29 merged the SHA-256 compatibility fix at `1ba842c`, with post-merge main CI run `28961502684` passing. PR #28 (`sha2@0.11.0`) was updated against the fixed base and is now green. All open PRs were green by check rollup at closeout: #28, #13, #8, and #5. GitHub branch-protection API returned `403` while the repo is private on the current account tier, so enforcement could not be API-verified until the repo is public or upgraded.
+
+## 2026-07-08 Compact Workstation TUI Mock Alignment
+
+### Task
+- Objective: Make the primary terminal renderer closely match the operator-provided Hyperliquid Spot Microstructure Workstation mock for the live/screen command surface.
+- Owner repo(s): standalone `hlscreen/` repository only.
+- Capital impact: research-only / read-only public market-data visualization. No market-data semantics change, private stream, wallet, order, execution, or risk-control surface.
+
+### Context
+- Background: The current TUI is professional but still uses a broad dashboard plus per-row card layout. The operator wants a compact box table with immediate ranked rows and a selected-pair detail pane similar to the provided mock.
+- Inputs: `crates/hls-tui/src/app.rs`, `crates/hls-tui/tests/main_table_golden.rs`, `crates/hls-cli/tests/live_mock.rs`, current screen request fields, and existing public fixture data.
+- Outputs: Golden-tested compact workstation table, selected-pair details, regenerated screenshot assets if the screenshot output changes, and validation evidence.
+
+### Assumptions
+- The renderer should stay deterministic and ANSI-free so screenshots and golden tests remain stable.
+- Labels must not claim unavailable metrics as raw measurements. Existing real fields include spread bps, TOB imbalance, signed notional flow 30s, OFI proxy 30s, RV windows, liquidity score, confidence score/reasons, and screen request preset/filter/sort.
+- The mock's `flow1m`/sigma and `amihud` styling can be approximated only where backed by existing fields; unsupported values should be labeled as proxies or use the closest existing 30s/score fields.
+
+### Constraints
+- Technical: keep the change inside the TUI contract unless a test requires CLI expectation updates; no new dependencies; no ANSI escape codes; no fake streaming/recording claims.
+- Operational: do not mutate runtime live WebSocket behavior or CI workflow state in this slice.
+- Risk/capital: keep read-only/no-wallet/no-order language and avoid advice wording.
+
+### Options Considered
+1. Patch text labels in the existing dashboard.
+   - Pros: minimal diff.
+   - Cons: still does not match the requested compact workstation shape.
+2. Replace the primary render body with a compact framed table and selected-pair detail pane while reusing existing feature fields.
+   - Pros: matches the requested command output and keeps all metrics truthfully derived.
+   - Cons: requires updating golden tests and screenshot expectations.
+
+### Chosen Approach
+- Choice: option 2.
+- Why: The requested outcome is a layout/flow change, not just typography. Reusing existing feature snapshots preserves the current data contract.
+
+### Execution Plan
+1. Add failing golden assertions for the compact header, filter/mode line, row columns, selected pair detail pane, confidence reason counters, and read-only footer.
+2. Refactor `render_screened_table` to pass request context into the renderer and render request-derived filter/mode text.
+3. Replace the verbose board/card body with the compact workstation table and one selected-pair detail pane.
+4. Keep helper functions small and deterministic; add proxy labels only when needed.
+5. Run focused TUI/CLI tests, fmt/clippy/workspace tests, screenshot generation if output assets changed, and diff/read-only scans.
+
+### Test Plan
+- Focused: `cargo test -p hls-tui --test main_table_golden`; relevant CLI live/screen tests if strings change.
+- Regression: `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`; `git diff --check`.
+- Visual: run fixture live command and regenerate/inspect screenshot SVGs if screenshot scripts use the primary renderer.
+
+### Risks and Rollback
+- Risks: old tests/docs may depend on `PAIR DETAIL CARDS`; width assumptions can regress screenshots; the mock includes metrics not available as exact fields.
+- Rollback: revert the TUI renderer/test changes; no persisted data or external market state is modified.
+
+### Memory Impact
+- Add/update in `MEMORY.md`: record the compact workstation renderer contract and any changed screenshot command if durable.
+
+### Final Notes
+- What changed: Replaced the broad dashboard/detail-card primary renderer with a compact `Hyperliquid Spot Microstructure Workstation` box table plus selected-pair detail pane. `render_screened_table` now passes screen request context so `filter:` and `mode:` reflect the active preset/custom rule/sort. CLI/TUI integration tests now assert the compact live, replay, screen, record/replay, confidence, and full-pipeline output. Screenshot styling and SVG assets were regenerated for the new box table.
+- Validation run: Red tests first: `cargo test -p hls-tui --test main_table_golden` and `cargo test -p hls-cli --test live_mock` failed on the old renderer. Final green gates: `cargo test -p hls-tui --test main_table_golden`; `cargo test -p hls-cli --test live_mock`; `python3 scripts/generate-screenshots.py`; `rsvg-convert docs/assets/screenshots/live-screen.svg -o /tmp/hlscreen-preview/live-screen.png`; `rsvg-convert docs/assets/screenshots/resilience-screen.svg -o /tmp/hlscreen-preview/resilience-screen.png`; direct fixture TUI smoke with zero stderr; `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`; `scripts/check-release-packaging.sh`; `git diff --check`; read-only/private-surface scan reviewed with only expected docs/tests/fixtures/read-only caveats.
+- Follow-ups: The compact mock uses current feature support: `flow30` is real 30s signed notional flow, and `amihud` is a liquidity-cost proxy from spread/depth/liquidity score. Add real 1m signed-flow sigma or true Amihud only as a separate feature-engine slice with tests before renaming those columns.

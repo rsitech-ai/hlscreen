@@ -258,6 +258,26 @@
 - [x] Implement benchmark runner and CLI command
   DoD: `hls bench --manifest ...` runs public fixture packs and fails on expected-hash drift.
 
+## 2026-07-08 Compact Workstation TUI Mock Alignment
+
+- [x] Confirm renderer scope and truthfulness contract
+  DoD: `PLAN.md` records the compact mock target, real/proxy metric boundaries, and validation commands.
+
+- [x] Add/update golden tests for compact workstation output
+  DoD: Tests require the box table, filter/mode line, selected-pair pane, confidence counters, and read-only footer.
+
+- [x] Implement compact TUI renderer
+  DoD: Primary live/screen rendering matches the requested workstation shape using existing real fields or explicitly named proxies.
+
+- [x] Regenerate and inspect screenshots if affected
+  DoD: Committed screenshots reflect the current renderer and previews are locally inspectable.
+
+- [x] Run validation gates
+  DoD: Focused TUI/CLI tests, full workspace checks, `git diff --check`, and read-only scans pass or exact blockers are recorded.
+
+- [x] Close out notes
+  DoD: `PLAN.md`, `TODO.md`, `MEMORY.md`, and reflection notes reflect final evidence and any residual caveats.
+
 - [x] Implement metrics snapshot helpers and doctor JSON output
   DoD: Live doctor JSON exposes low-cardinality metrics and Prometheus text without symbol/run/account labels.
 
