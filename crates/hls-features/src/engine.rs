@@ -7,6 +7,8 @@ use hls_core::{
 
 use crate::{
     formulas::{bounded_score, spread_bps, tob_depth_usd, tob_imbalance},
+    resilience::liquidity_resilience_metrics,
+    tradeability::{TradeabilityInput, classify_tradeability},
     windows::{
         latest_candle_trade_count_z, latest_candle_volume_z, window_realized_volatility_since,
         window_return_since,
@@ -138,6 +140,15 @@ impl FeatureEngine {
             incomplete_window_reason.as_deref(),
             confidence_inputs,
         );
+        let resilience =
+            liquidity_resilience_metrics(&state.bbo_events, &state.trades, now_ms, tob_depth_usd);
+        let tradeability_state = classify_tradeability(TradeabilityInput {
+            spread_bps,
+            tob_depth_usd,
+            confidence_level: confidence.level,
+            staleness_state: staleness_state.clone(),
+            resilience_state: resilience.resilience_state,
+        });
 
         FeatureSnapshot {
             symbol: state.hl_coin.clone(),
@@ -151,6 +162,13 @@ impl FeatureEngine {
             ask_px: state.ask_px,
             ask_sz: state.ask_sz,
             spread_bps,
+            spread_shock_bps: resilience.spread_shock_bps,
+            spread_recovery_ms: resilience.spread_recovery_ms,
+            resilience_state: resilience.resilience_state,
+            tradeability_state,
+            adverse_selection_proxy: resilience.adverse_selection_proxy,
+            signed_notional_flow_30s: resilience.signed_notional_flow_30s,
+            bbo_ofi_proxy_30s: resilience.bbo_ofi_proxy_30s,
             tob_depth_usd,
             tob_imbalance,
             ret_1m,

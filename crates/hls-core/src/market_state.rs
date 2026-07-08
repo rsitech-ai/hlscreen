@@ -5,6 +5,8 @@ use serde::{Deserialize, Serialize};
 use crate::confidence::DataConfidenceSnapshot;
 use crate::{HlsError, HlsResult};
 
+const MAX_BBO_EVENTS_PER_SYMBOL: usize = 256;
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum TradeSide {
     Buy,
@@ -119,6 +121,70 @@ pub enum StalenessState {
     Incomplete,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum LiquidityResilienceState {
+    Unknown,
+    Normal,
+    Shock,
+    Recovering,
+    Brittle,
+}
+
+impl LiquidityResilienceState {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Unknown => "unknown",
+            Self::Normal => "normal",
+            Self::Shock => "shock",
+            Self::Recovering => "recovering",
+            Self::Brittle => "brittle",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TradeabilityState {
+    Unknown,
+    Tradeable,
+    Costly,
+    Thin,
+    Stale,
+}
+
+impl TradeabilityState {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Unknown => "unknown",
+            Self::Tradeable => "tradeable",
+            Self::Costly => "costly",
+            Self::Thin => "thin",
+            Self::Stale => "stale",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AdverseSelectionProxy {
+    Unknown,
+    Normal,
+    Watch,
+    Brittle,
+}
+
+impl AdverseSelectionProxy {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Unknown => "unknown",
+            Self::Normal => "normal",
+            Self::Watch => "watch",
+            Self::Brittle => "brittle",
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct FeatureSnapshot {
     pub symbol: String,
@@ -132,6 +198,13 @@ pub struct FeatureSnapshot {
     pub ask_px: Option<f64>,
     pub ask_sz: Option<f64>,
     pub spread_bps: Option<f64>,
+    pub spread_shock_bps: Option<f64>,
+    pub spread_recovery_ms: Option<i64>,
+    pub resilience_state: LiquidityResilienceState,
+    pub tradeability_state: TradeabilityState,
+    pub adverse_selection_proxy: AdverseSelectionProxy,
+    pub signed_notional_flow_30s: Option<f64>,
+    pub bbo_ofi_proxy_30s: Option<f64>,
     pub tob_depth_usd: Option<f64>,
     pub tob_imbalance: Option<f64>,
     pub ret_1m: Option<f64>,
@@ -236,6 +309,7 @@ pub struct SymbolMarketState {
     pub prev_day_px: Option<f64>,
     pub candles: Vec<CandleEvent>,
     pub trades: Vec<TradeEvent>,
+    pub bbo_events: Vec<TopOfBookEvent>,
     pub duplicate_trade_count: u64,
     pub last_update_ms: Option<i64>,
 }
@@ -256,6 +330,7 @@ impl SymbolMarketState {
             prev_day_px: None,
             candles: Vec::new(),
             trades: Vec::new(),
+            bbo_events: Vec::new(),
             duplicate_trade_count: 0,
             last_update_ms: None,
         }
@@ -285,6 +360,11 @@ impl SymbolMarketState {
         self.ask_sz = event.ask_size;
         if let (Some(bid), Some(ask)) = (event.bid_price, event.ask_price) {
             self.mid_px = Some((bid + ask) / 2.0);
+        }
+        self.bbo_events.push(event);
+        if self.bbo_events.len() > MAX_BBO_EVENTS_PER_SYMBOL {
+            let overflow = self.bbo_events.len() - MAX_BBO_EVENTS_PER_SYMBOL;
+            self.bbo_events.drain(0..overflow);
         }
     }
 

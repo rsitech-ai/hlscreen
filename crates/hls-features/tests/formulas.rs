@@ -1,8 +1,8 @@
 use hls_core::{
     confidence::{ConfidenceLevel, ConfidenceReason, DataConfidenceSnapshot},
     market_state::{
-        CandleEvent, FeatureSnapshot, LiveMarketState, MarketEvent, StalenessState, TradeEvent,
-        TradeSide,
+        AdverseSelectionProxy, CandleEvent, FeatureSnapshot, LiquidityResilienceState,
+        LiveMarketState, MarketEvent, StalenessState, TradeEvent, TradeSide, TradeabilityState,
     },
 };
 use hls_features::{
@@ -84,6 +84,13 @@ fn fixture_events_produce_feature_snapshot_with_freshness_state() {
         ask_px: Some(35.10),
         ask_sz: Some(4.0),
         spread_bps: None,
+        spread_shock_bps: None,
+        spread_recovery_ms: None,
+        resilience_state: LiquidityResilienceState::Unknown,
+        tradeability_state: TradeabilityState::Unknown,
+        adverse_selection_proxy: AdverseSelectionProxy::Unknown,
+        signed_notional_flow_30s: Some(-35.20),
+        bbo_ofi_proxy_30s: None,
         tob_depth_usd: None,
         tob_imbalance: None,
         ret_1m: None,
@@ -111,6 +118,25 @@ fn fixture_events_produce_feature_snapshot_with_freshness_state() {
     assert_eq!(snapshot.bid_sz, expected_shape.bid_sz);
     assert_eq!(snapshot.ask_px, expected_shape.ask_px);
     assert_eq!(snapshot.ask_sz, expected_shape.ask_sz);
+    assert_eq!(snapshot.spread_shock_bps, expected_shape.spread_shock_bps);
+    assert_eq!(
+        snapshot.spread_recovery_ms,
+        expected_shape.spread_recovery_ms
+    );
+    assert_eq!(snapshot.resilience_state, expected_shape.resilience_state);
+    assert_eq!(
+        snapshot.tradeability_state,
+        expected_shape.tradeability_state
+    );
+    assert_eq!(
+        snapshot.adverse_selection_proxy,
+        expected_shape.adverse_selection_proxy
+    );
+    assert_eq!(
+        snapshot.signed_notional_flow_30s,
+        expected_shape.signed_notional_flow_30s
+    );
+    assert_eq!(snapshot.bbo_ofi_proxy_30s, expected_shape.bbo_ofi_proxy_30s);
     assert_eq!(snapshot.rv_1m, expected_shape.rv_1m);
     assert_eq!(snapshot.rv_5m, expected_shape.rv_5m);
     assert_eq!(snapshot.rv_1h, expected_shape.rv_1h);
