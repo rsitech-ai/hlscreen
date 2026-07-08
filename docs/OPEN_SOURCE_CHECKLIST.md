@@ -21,10 +21,13 @@ This file tracks the public-release package for `hlscreen`.
 - [x] Dependabot config.
 - [x] Deterministic screenshot generator.
 - [x] Committed screenshot assets.
+- [x] Diagrammed architecture documentation.
+- [x] Truthful production-readiness document with explicit non-goals.
 
 ## Validation
 
-- [ ] GitHub Actions green after the repo is public or actions are enabled.
+- [x] GitHub Actions green while the repo is private: post-merge CI run `28965215942` passed on `main` commit `45b9e7c`.
+- [x] Current live all-symbol public-data smoke recorded in `docs/reports/2026-07-08-production-readiness-live-refresh.md`.
 - [ ] Release tag created.
 - [ ] Release binaries/checksums published.
 
