@@ -87,8 +87,8 @@ Observed:
 - `git diff --check`
 - `python3 scripts/generate-screenshots.py`
 
-## Remaining Limits
+## Remaining Limits At Time Of This Report
 
-- Live mode is bounded and sends heartbeat pings, but it does not yet reconnect/resubscribe automatically after a server-side disconnect.
+- This report predated the later reconnect/resubscribe hardening slice. At the time of this run, server-side disconnect recovery was not implemented.
 - `--parquet` remains intentionally rejected until a real Parquet writer exists.
 - Long-running localhost HTTP serving is still not implemented.

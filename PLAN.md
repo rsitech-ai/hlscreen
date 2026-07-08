@@ -490,3 +490,65 @@
 - Live run: `allpairs-15m-20260708-084527` ran for 900 seconds with 308 symbols, 924 public subscriptions, three public streams per symbol, 298,082 raw WebSocket messages, 306,140 normalized events, 13 raw files, one normalized file, and `clean_shutdown=true`. File counts, SQLite registry, replay, screen, and health preview checks passed.
 - Rollback: revert this branch before merge, or revert the merge commit after merge. Runtime data lives under `/tmp/hlscreen-allpairs-15m-20260708-084527` and is not required for source rollback.
 - PR/Merge result: PR #9 (`https://github.com/s1korrrr/hlscreen/pull/9`) passed the GitHub `Rust workspace` check and merged to `main` at `456911d`.
+
+## 2026-07-08 Live Production Hardening
+
+### Task
+- Objective: Remove the remaining production blockers in the public live-data path: reconnect/resubscribe on server disconnect, receive-timestamp propagation, non-blocking recording, operator-visible live TUI refresh, live-first docs/report updates, full validation, PR review, and merge to `main` only if stable.
+- Owner repo(s): standalone `hlscreen/` repository only.
+- Capital impact: research-only / read-only public market-data ingestion. No wallet, private key, private/user stream, order, exchange action, execution route, or trade recommendation.
+
+### Context
+- Background: The previous live smoke proved a 15-minute all-pairs bounded capture, but `MEMORY.md` and the live report still record automatic reconnect/resubscribe as missing. Hyperliquid’s current WebSocket docs state automated users should handle server-side disconnects and reconnect gracefully. The current code also writes raw/normalized output synchronously inside the WebSocket read loop and leaves normalized event `recv_ts_ns` at zero.
+- Inputs: Official Hyperliquid WebSocket, subscription, heartbeat, rate-limit, and spot metadata docs; current `crates/hls-cli/src/commands/live.rs`; store metadata/data-gap support; Spec Kit US1/US2/US4 contracts.
+- Outputs: Hardened live network path, targeted tests, docs/report/memory updates, screenshot evidence where practical, fresh live smoke, PR, and merge if all gates pass.
+
+### Assumptions
+- "No mocks/workarounds" means production commands and docs must use real public REST/WebSocket data by default. Hidden fixture flags can remain for deterministic tests/CI only and must not be presented as production evidence.
+- "All pairs" means the public spot universe returned by `spotMetaAndAssetCtxs` while staying under Hyperliquid’s documented per-IP WebSocket subscription cap.
+- Four streams per symbol across today’s full public spot universe exceeds the 1,000-subscription cap, so all-symbol live mode must use the explicit real-time stream set (`trades`, `bbo`, `activeAssetCtx`) rather than silently violating the exchange limit.
+
+### Constraints
+- Technical: do not block the WebSocket read loop on disk writes or rendering; fail closed on writer backpressure rather than dropping frames silently; timestamp received raw frames and normalized events; persist reconnect data gaps when recording is enabled.
+- Operational: keep runtime artifacts under `/tmp` or `.hls`; do not commit captured raw market data; do not touch parent `rsibot` work.
+- Risk/capital: no signed endpoints, user-specific subscriptions, wallet/account identifiers, trading routes, credential handling, or profitability language.
+
+### Options Considered
+1. Document the missing reconnect behavior as an external caveat.
+   - Pros: smallest diff.
+   - Cons: conflicts with official docs and the user’s production-readiness requirement.
+2. Add reconnect/resubscribe, receive timestamps, and a bounded writer thread while keeping the current CLI surface stable.
+   - Pros: removes the real production blockers with a focused diff and preserves existing tested parser/state/store boundaries.
+   - Cons: still leaves full Parquet output, long-running HTTP server, and keyboard-driven TUI editing for later slices.
+
+### Chosen Approach
+- Choice: option 2.
+- Why: it aligns the runtime with official WebSocket guidance and the project’s own research note that ingestion must not be blocked by disk/TUI work.
+
+### Execution Plan
+1. Add regression coverage for receive timestamp stamping and reconnect/data-gap behavior.
+2. Refactor live recording into a bounded worker thread with fail-closed backpressure.
+3. Refactor the live WebSocket loop to reconnect/resubscribe until the requested duration elapses, with heartbeat pings and gap persistence.
+4. Add operator-visible live TUI table refresh for real terminal sessions and a `--tui` override for captured smoke evidence.
+5. Update README/docs/reports to lead with live public data and move fixtures into deterministic-test language.
+6. Run focused tests, full Rust gates, read-only/security scans, and a fresh real live smoke including TUI capture.
+7. Review the diff, push, open PR, inspect checks/diff, and merge only if stable.
+
+### Test Plan
+- Unit/integration: `cargo test -p hls-core --test market_state`; `cargo test -p hls-cli --test live_mock`; `cargo test -p hls-cli --test full_pipeline_smoke`; reconnect/metadata tests as added.
+- Static: `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`; `cargo build --release --workspace --all-features`; `git diff --check`.
+- Runtime: live public REST symbol probe; bounded public WebSocket run with `--tui`, raw and normalized recording; replay/screen over the run; SQLite run/gap/file inspection; log review for warnings/errors.
+
+### Risks and Rollback
+- Risks: public network instability can still interrupt a bounded run; reconnect may duplicate snapshots/trades, so state idempotency remains required; writer backpressure now fails closed instead of hiding data loss; docs can overclaim beyond the implemented bounded CLI.
+- Rollback: revert this branch before merge; after merge, revert the merge commit. Live runtime artifacts remain local and are not needed for source rollback.
+
+### Memory Impact
+- Add/update in `MEMORY.md`: reconnect/resubscribe status, live recording worker behavior, confirmed live smoke command, and any remaining explicit limitations.
+
+### Final Notes
+- What changed: Added real live WebSocket reconnect/resubscribe until the run deadline, fail-closed no-message endpoint handling, bounded writer-thread recording for raw/normalized live data, non-zero live receive timestamps on normalized events, reconnect data-gap persistence, asset-context freshness updates, future timestamp age clamping, `--tui` live table refresh, live-first docs, regenerated screenshots, and `docs/reports/2026-07-08-live-production-hardening.md`.
+- Validation run: `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`; `cargo build --release --workspace --all-features`; `git diff --check`; `python3 scripts/generate-screenshots.py`; JSONL validation; Markdown local link check; read-only/no-secret scan; negative endpoint probe with `ws://127.0.0.1:1`; 25-second single-symbol public WebSocket smoke; 900-second all-pairs public WebSocket run.
+- Live run: `allpairs-15m-hardening-20260708-093507` ran for 900 seconds with 308 symbols, 924 public subscriptions, 296,492 raw WebSocket messages, 304,405 normalized events, 13 raw files, one normalized file, `clean_shutdown=true`, `reconnects=0`, `data_gaps=0`, all 304,405 normalized events carrying non-zero `recv_ts_ns`, and 308 fresh replay/screen rows.
+- Tradeoffs: All-symbol mode intentionally uses three public streams per symbol (`trades`, `bbo`, `activeAssetCtx`) because four streams over 308 symbols would exceed Hyperliquid's documented 1,000-subscription per-IP cap. Automatic public REST backfill after reconnect is still not implemented; reconnect windows are explicitly recorded as data gaps. True Parquet and long-running HTTP serving remain future work.
+- PR/Merge result: pending GitHub PR creation and merge after final diff review.
