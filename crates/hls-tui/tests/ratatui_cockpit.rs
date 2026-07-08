@@ -165,6 +165,35 @@ fn medium_cockpit_compacts_market_board_without_truncated_signals() {
 }
 
 #[test]
+fn cockpit_header_renders_market_internals_rail() {
+    let model = RatatuiFrameModel::new(
+        directional_snapshots(),
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        WorkstationUiState::default(),
+    )
+    .with_status("LIVE", "REC ready", "ws=120 events=300 gaps=0");
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 160,
+            height: 40,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders internals rail");
+
+    assert!(rendered.contains("INTERNALS"));
+    assert!(rendered.contains("rows 02"));
+    assert!(rendered.contains("up 01"));
+    assert!(rendered.contains("down 01"));
+    assert!(rendered.contains("flow -$4.2K"));
+    assert!(rendered.contains("depth $490"));
+    assert!(rendered.contains("tradeable"));
+}
+
+#[test]
 fn narrow_cockpit_collapses_to_watchlist_and_detail_without_tape() {
     let model = RatatuiFrameModel::new(
         fixture_snapshots(),

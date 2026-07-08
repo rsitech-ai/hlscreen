@@ -1,4 +1,4 @@
-use hls_core::market_state::{CandleEvent, FeatureSnapshot, StalenessState};
+use hls_core::market_state::{CandleEvent, FeatureSnapshot, StalenessState, TradeabilityState};
 use hls_screen::{ScreenEngine, ScreenRequest, presets::find_preset};
 use ratatui::{
     Frame, Terminal,
@@ -132,7 +132,7 @@ fn render_wide(
     let root = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(4),
+            Constraint::Length(5),
             Constraint::Min(12),
             Constraint::Length(2),
         ])
@@ -176,7 +176,7 @@ fn render_medium(
     let root = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(4),
+            Constraint::Length(5),
             Constraint::Min(12),
             Constraint::Length(2),
         ])
@@ -219,7 +219,7 @@ fn render_narrow(
     let root = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(4),
+            Constraint::Length(5),
             Constraint::Percentage(48),
             Constraint::Min(8),
             Constraint::Length(2),
@@ -284,6 +284,7 @@ fn render_header(
             ),
             Span::raw("j/k row  1-6 panes  tab views  / filter  p preset  s sort  t chart  ? q"),
         ]),
+        market_internals_line(model, color_mode),
     ];
     frame.render_widget(
         Paragraph::new(text).block(
@@ -294,6 +295,54 @@ fn render_header(
         ),
         area,
     );
+}
+
+fn market_internals_line(model: &RatatuiFrameModel, color_mode: RatatuiColorMode) -> Line<'static> {
+    let rows = screened_rows(model);
+    let up = rows
+        .iter()
+        .filter(|row| row.ret_1m.is_some_and(|value| value > 0.0))
+        .count();
+    let down = rows
+        .iter()
+        .filter(|row| row.ret_1m.is_some_and(|value| value < 0.0))
+        .count();
+    let tradeable = rows
+        .iter()
+        .filter(|row| matches!(row.tradeability_state, TradeabilityState::Tradeable))
+        .count();
+    let stale = rows
+        .iter()
+        .filter(|row| row.staleness_state != StalenessState::Fresh)
+        .count();
+    let signed_flow = rows
+        .iter()
+        .filter_map(|row| row.signed_notional_flow_30s)
+        .filter(|value| value.is_finite())
+        .sum::<f64>();
+    let depth = rows
+        .iter()
+        .filter_map(|row| row.tob_depth_usd)
+        .filter(|value| value.is_finite())
+        .sum::<f64>();
+    Line::from(vec![
+        Span::styled(
+            "INTERNALS ",
+            Style::default()
+                .fg(accent(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw(format!(
+            "rows {:02}  up {:02} down {:02}  tradeable {:02} stale {:02}  flow {}  depth {}",
+            rows.len().min(99),
+            up.min(99),
+            down.min(99),
+            tradeable.min(99),
+            stale.min(99),
+            format_usd_signed(Some(signed_flow)),
+            format_usd(Some(depth))
+        )),
+    ])
 }
 
 fn render_watchlist(
