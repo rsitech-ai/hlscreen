@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 OUT_DIR = ROOT / "docs" / "assets" / "screenshots"
 HLS = ROOT / "target" / "debug" / "hls"
 FIXTURE = "tests/fixtures/hyperliquid/ws_mock_live.ndjson"
-MAX_COLS = 128
+MAX_COLS = 144
 CHAR_WIDTH = 8.6
 LINE_HEIGHT = 20
 PADDING_X = 24
@@ -248,12 +248,24 @@ def line_style(line: str) -> tuple[str, str]:
         return "#79c0ff", "700"
     if line.startswith(("╭", "├", "╰", "─")):
         return "#53616f", "400"
-    if line.startswith("#   SYMBOL"):
+    if line.startswith(("#   SYMBOL", "#  SYMBOL")):
         return "#ffa657", "700"
-    if line.startswith("│ SAFETY") or line.startswith("│ UNIVERSE"):
+    if line.startswith(("│ SAFETY", "│ UNIVERSE", "│ SESSION")):
         return "#7ee787", "700"
-    if line.startswith("│ INGEST") or line.startswith("│ STORAGE") or line.startswith("│ QUALITY"):
+    if line.startswith(
+        (
+            "│ INGEST",
+            "│ STORAGE",
+            "│ QUALITY",
+            "│ LATENCY",
+            "│ CONNECTION",
+            "│ RECORDER",
+            "│ RUNBOOK",
+        )
+    ):
         return "#f2cc60", "700"
+    if "SELECTED SYMBOL" in line:
+        return "#79c0ff", "700"
     if "● fresh" in line or "PASS" in line:
         return "#7ee787", "600"
     if "● FRESH" in line:

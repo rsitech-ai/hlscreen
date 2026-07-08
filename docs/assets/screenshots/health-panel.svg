@@ -1,13 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" role="img" xml:space="preserve" aria-label="Operations health panel terminal screenshot" viewBox="0 0 1148 376" width="1148" height="376">
+<svg xmlns="http://www.w3.org/2000/svg" role="img" xml:space="preserve" aria-label="Operations health panel terminal screenshot" viewBox="0 0 1286 396" width="1286" height="396">
 <defs>
 <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
 <stop offset="0" stop-color="#0d1117"/>
 <stop offset="1" stop-color="#18212b"/>
 </linearGradient>
 </defs>
-<rect width="1148" height="376" rx="8" fill="url(#bg)"/>
-<rect x="0" y="0" width="1148" height="50" rx="8" fill="#141b24"/>
-<rect x="0" y="42" width="1148" height="8" fill="#141b24"/>
+<rect width="1286" height="396" rx="8" fill="url(#bg)"/>
+<rect x="0" y="0" width="1286" height="50" rx="8" fill="#141b24"/>
+<rect x="0" y="42" width="1286" height="8" fill="#141b24"/>
 <circle cx="24" cy="24" r="6" fill="#ff5f57"/>
 <circle cx="44" cy="24" r="6" fill="#ffbd2e"/>
 <circle cx="64" cy="24" r="6" fill="#28c840"/>
@@ -17,13 +17,14 @@
 <text x="24" y="108" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">config readable: missing</text>
 <text x="24" y="128" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">data-dir writable: ok</text>
 <text x="24" y="148" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">read-only safety: ok</text>
-<text x="24" y="168" fill="#53616f" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">╭────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮</text>
-<text x="24" y="188" fill="#79c0ff" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="700">│ HLSCREEN   Operations Command Center                                                                          DEGRADED │</text>
-<text x="24" y="208" fill="#53616f" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">├────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤</text>
-<text x="24" y="228" fill="#7ee787" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="700">│ SAFETY     read-only true | public market data | subscriptions 2 | signed actions disabled                        PASS │</text>
-<text x="24" y="248" fill="#f2cc60" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="700">│ INGEST     last msg 500 ms | lag 20 ms | reconnects 0 | gaps: 0                                                  WATCH │</text>
-<text x="24" y="268" fill="#f2cc60" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="700">│ STORAGE    writer backlog: 250 | rows 900 | local metadata only                                                  WATCH │</text>
-<text x="24" y="288" fill="#53616f" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯</text>
-<text x="24" y="308" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">reasons requiring attention</text>
-<text x="24" y="328" fill="#f2cc60" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="600">  • writer backlog high</text>
+<text x="24" y="168" fill="#53616f" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮</text>
+<text x="24" y="188" fill="#79c0ff" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="700">│ HLSCREEN   Operations Command Center                                                                                    DEGRADED │</text>
+<text x="24" y="208" fill="#53616f" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">├──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤</text>
+<text x="24" y="228" fill="#7ee787" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="700">│ SAFETY     read-only true | public market data | subscriptions 2 | signed actions disabled                                  PASS │</text>
+<text x="24" y="248" fill="#f2cc60" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="700">│ CONNECTION state connected | last msg 500 ms | lag 20 ms | reconnects 0 | gaps: 0                                          WATCH │</text>
+<text x="24" y="268" fill="#f2cc60" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="700">│ RECORDER   enabled false | clean n/a | writer backlog 250/100 | rows 900                                                   WATCH │</text>
+<text x="24" y="288" fill="#f2cc60" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="700">│ RUNBOOK    fail closed on writer lag | reconnect gaps visible | local metadata only                                        READY │</text>
+<text x="24" y="308" fill="#53616f" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯</text>
+<text x="24" y="328" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">attention queue</text>
+<text x="24" y="348" fill="#f2cc60" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="600">  • writer backlog high</text>
 </svg>

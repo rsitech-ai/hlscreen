@@ -1,7 +1,7 @@
 use hls_core::market_state::{FeatureSnapshot, StalenessState};
 use hls_screen::{ScreenEngine, ScreenRequest};
 
-use crate::theme::{bottom_border, divider, panel_line, section_rule, top_border};
+use crate::theme::{bottom_border, divider, panel_line, section_rule, top_border, truncate_chars};
 
 pub fn render_main_table(rows: &[FeatureSnapshot]) -> String {
     render_table_with_title(rows, "READ-ONLY Hyperliquid spot live screen")
@@ -27,32 +27,42 @@ pub fn render_table_with_title(rows: &[FeatureSnapshot], title: &str) -> String 
     ));
     output.push_str(&divider());
     output.push_str(&panel_line(
-        "MODE",
+        "SESSION",
         &format!("{title} | PUBLIC WS/REST | local replay ready"),
         "SAFE",
     ));
     output.push_str(&panel_line(
         "UNIVERSE",
         &format!(
-            "rows {} | fresh {} ({}) | stale {} | incomplete {}",
+            "rows {} | fresh {}/{} | stale {} | incomplete {} | coverage {}",
             rows.len(),
             stats.fresh,
-            format_ratio(stats.fresh, rows.len()),
+            rows.len(),
             stats.stale,
-            stats.incomplete
+            stats.incomplete,
+            format_ratio(stats.fresh, rows.len()),
         ),
         "LOCAL",
     ));
     output.push_str(&panel_line(
         "QUALITY",
         &format!(
-            "median spread {} | top depth {} | total TOB {} | top score {}",
+            "spread med {} | depth top {} | depth total {} | top liq {}",
             format_bps(stats.median_spread_bps),
             format_usd(stats.top_tob_depth_usd),
             format_usd(stats.total_tob_depth_usd),
             format_score(stats.top_liquidity_score)
         ),
         stats.quality_status(),
+    ));
+    output.push_str(&panel_line(
+        "LATENCY",
+        &format!(
+            "age med {} | age max {} | freshness-only quality | local render",
+            format_age(stats.median_age_ms),
+            format_age(stats.max_age_ms),
+        ),
+        stats.latency_status(),
     ));
     output.push_str(&bottom_border());
     output.push_str(&section_rule("MARKET BOARD"));
@@ -66,15 +76,15 @@ pub fn render_table_with_title(rows: &[FeatureSnapshot], title: &str) -> String 
     }
 
     output.push_str(
-        "#   SYMBOL        STATE          PRICE       SPREAD   TOB DEPTH    IMBAL    RET 1M     RV 1M    LIQ    MOM     AGE\n",
+        "#  SYMBOL        STATE      PRICE       SPRD      DEPTH     IMB     RET1M    RV1M     SCORE    AGE  OBSERVATION\n",
     );
     output.push_str(
-        "──  ────────────  ─────────────  ───────────  ─────────  ──────────  ───────  ────────  ────────  ─────  ─────  ──────\n",
+        "── ────────────  ─────────  ──────────  ────────  ────────  ───────  ───────  ─────  ─────────  ───── ──────────────────────────────\n",
     );
 
     for (index, row) in rows.iter().enumerate() {
         output.push_str(&format!(
-            "{:>02}  {:<12}  {:<13}  {:>11}  {:>9}  {:>10}  {:>7}  {:>8}  {:>8}  {:>5}  {:>5}  {:>6}\n",
+            "{:>02} {:<12}  {:<9}  {:>10}  {:>8}  {:>8}  {:>7}  {:>7}  {:>5}  {:>9}  {:>5} {}\n",
             index + 1,
             row.symbol,
             format_state(&row.staleness_state),
@@ -84,9 +94,39 @@ pub fn render_table_with_title(rows: &[FeatureSnapshot], title: &str) -> String 
             format_imbalance(row.tob_imbalance),
             format_percent(row.ret_1m),
             format_volatility(row.rv_1m),
-            format!("{:.1}", row.liquidity_score),
-            format!("{:.1}", row.momentum_score),
+            format_score_pair(row),
             format_age(row.updated_ms_ago),
+            truncate_chars(&format_row_observation(row), 34),
+        ));
+    }
+
+    if let Some(selected) = rows.first() {
+        output.push_str(&section_rule("SELECTED SYMBOL"));
+        output.push_str(&format!(
+            "{} | {} | {} | mid {} | mark {}\n",
+            selected.symbol,
+            format_px_qty("bid", selected.bid_px, selected.bid_sz),
+            format_px_qty("ask", selected.ask_px, selected.ask_sz),
+            format_optional(selected.mid_px, 4),
+            format_optional(selected.mark_px, 4),
+        ));
+        output.push_str(&format!(
+            "microstructure | spread {} | imbalance {} | top depth {} | ret 1m {} | rv 1m {}\n",
+            format_bps(selected.spread_bps),
+            format_imbalance(selected.tob_imbalance),
+            format_usd(selected.tob_depth_usd),
+            format_percent(selected.ret_1m),
+            format_volatility(selected.rv_1m),
+        ));
+        output.push_str(&format!(
+            "state | {} | age {} | incomplete {} | observation {}\n",
+            format_state(&selected.staleness_state),
+            format_age(selected.updated_ms_ago),
+            selected
+                .incomplete_window_reason
+                .as_deref()
+                .unwrap_or("none"),
+            format_observation(selected),
         ));
     }
 
@@ -105,6 +145,8 @@ struct TableStats {
     top_tob_depth_usd: Option<f64>,
     total_tob_depth_usd: Option<f64>,
     top_liquidity_score: Option<f64>,
+    median_age_ms: Option<i64>,
+    max_age_ms: Option<i64>,
 }
 
 impl TableStats {
@@ -130,6 +172,8 @@ impl TableStats {
             top_tob_depth_usd: max_value(depths.iter().copied()),
             total_tob_depth_usd: (!depths.is_empty()).then(|| depths.iter().sum()),
             top_liquidity_score: max_value(rows.iter().map(|row| row.liquidity_score)),
+            median_age_ms: median_i64(rows.iter().filter_map(|row| row.updated_ms_ago)),
+            max_age_ms: rows.iter().filter_map(|row| row.updated_ms_ago).max(),
         }
     }
 
@@ -140,6 +184,14 @@ impl TableStats {
             "WATCH"
         } else {
             "GOOD"
+        }
+    }
+
+    fn latency_status(&self) -> &'static str {
+        match self.max_age_ms {
+            Some(age) if age > 10_000 => "WATCH",
+            Some(_) => "FAST",
+            None => "CHECK",
         }
     }
 }
@@ -186,6 +238,18 @@ fn format_score(value: Option<f64>) -> String {
     value.map_or_else(|| "-".to_owned(), |value| format!("{value:.1}"))
 }
 
+fn format_score_pair(row: &FeatureSnapshot) -> String {
+    format!("{:.1}/{:.1}", row.liquidity_score, row.momentum_score)
+}
+
+fn format_px_qty(label: &str, px: Option<f64>, qty: Option<f64>) -> String {
+    match (px, qty) {
+        (Some(px), Some(qty)) => format!("{label} {px:.4} x {qty:.4}"),
+        (Some(px), None) => format!("{label} {px:.4} x -"),
+        _ => format!("{label} -"),
+    }
+}
+
 fn format_ratio(numerator: usize, denominator: usize) -> String {
     if denominator == 0 {
         return "0%".to_owned();
@@ -210,10 +274,58 @@ fn format_age(value: Option<i64>) -> String {
 
 fn format_state(state: &StalenessState) -> &'static str {
     match state {
-        StalenessState::Fresh => "● FRESH",
-        StalenessState::Stale => "▲ STALE",
-        StalenessState::Incomplete => "○ INCOMPLETE",
+        StalenessState::Fresh => "● fresh",
+        StalenessState::Stale => "▲ stale",
+        StalenessState::Incomplete => "○ partial",
     }
+}
+
+fn format_observation(row: &FeatureSnapshot) -> String {
+    let parts = observation_parts(row);
+    if parts.is_empty() {
+        "steady".to_owned()
+    } else {
+        parts.join(" · ")
+    }
+}
+
+fn format_row_observation(row: &FeatureSnapshot) -> String {
+    let parts = observation_parts(row);
+    if parts.is_empty() {
+        "steady".to_owned()
+    } else {
+        parts.into_iter().take(2).collect::<Vec<_>>().join(" · ")
+    }
+}
+
+fn observation_parts(row: &FeatureSnapshot) -> Vec<&'static str> {
+    let mut parts = Vec::new();
+
+    if matches!(row.staleness_state, StalenessState::Stale) {
+        parts.push("stale feed");
+    } else if matches!(row.staleness_state, StalenessState::Incomplete) {
+        parts.push("partial data");
+    }
+
+    if row.tob_depth_usd.is_some_and(|depth| depth < 1_000.0) {
+        parts.push("thin book");
+    }
+    if row.spread_bps.is_some_and(|spread| spread >= 50.0) {
+        parts.push("wide spread");
+    } else if row.spread_bps.is_some_and(|spread| spread <= 10.0) {
+        parts.push("tight spread");
+    }
+    if row.ret_1m.is_some_and(|ret| ret.abs() >= 0.005) {
+        parts.push("move active");
+    }
+    if row
+        .tob_imbalance
+        .is_some_and(|imbalance| imbalance.abs() >= 0.4)
+    {
+        parts.push("imbalanced");
+    }
+
+    parts
 }
 
 fn finite_values(values: impl Iterator<Item = f64>) -> Vec<f64> {
@@ -228,6 +340,20 @@ fn median(mut values: Vec<f64>) -> Option<f64> {
     let mid = values.len() / 2;
     if values.len() % 2 == 0 {
         Some((values[mid - 1] + values[mid]) / 2.0)
+    } else {
+        Some(values[mid])
+    }
+}
+
+fn median_i64(values: impl Iterator<Item = i64>) -> Option<i64> {
+    let mut values: Vec<_> = values.collect();
+    if values.is_empty() {
+        return None;
+    }
+    values.sort_unstable();
+    let mid = values.len() / 2;
+    if values.len() % 2 == 0 {
+        Some((values[mid - 1] + values[mid]) / 2)
     } else {
         Some(values[mid])
     }

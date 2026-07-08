@@ -1,4 +1,4 @@
-use hls_core::health::HealthSnapshot;
+use hls_core::health::{ConnectionState, HealthSnapshot};
 
 use crate::theme::{bottom_border, divider, panel_line, top_border};
 
@@ -19,10 +19,14 @@ pub fn render_health_pane(snapshot: &HealthSnapshot) -> String {
         ),
         if snapshot.read_only { "PASS" } else { "FAIL" },
     ));
+    let connection = snapshot.connections.first();
     output.push_str(&panel_line(
-        "INGEST",
+        "CONNECTION",
         &format!(
-            "last msg {} | lag {} | reconnects {} | gaps: {}",
+            "state {} | last msg {} | lag {} | reconnects {} | gaps: {}",
+            connection
+                .map(|connection| format_connection_state(connection.state))
+                .unwrap_or("unknown"),
             format_ms(snapshot.last_message_age_ms),
             format_ms(snapshot.lag_ms),
             snapshot.reconnect_count,
@@ -35,10 +39,14 @@ pub fn render_health_pane(snapshot: &HealthSnapshot) -> String {
         },
     ));
     output.push_str(&panel_line(
-        "STORAGE",
+        "RECORDER",
         &format!(
-            "writer backlog: {} | rows {} | local metadata only",
-            snapshot.writer_backlog, snapshot.rows_written
+            "enabled {} | clean {} | writer backlog {}/{} | rows {}",
+            snapshot.recording.enabled,
+            format_clean_shutdown(snapshot.recording.clean_shutdown),
+            snapshot.writer_backlog,
+            snapshot.writer_warn_at,
+            snapshot.rows_written
         ),
         if snapshot.degraded_reasons.is_empty() {
             "CLEAR"
@@ -46,10 +54,15 @@ pub fn render_health_pane(snapshot: &HealthSnapshot) -> String {
             "WATCH"
         },
     ));
+    output.push_str(&panel_line(
+        "RUNBOOK",
+        "fail closed on writer lag | reconnect gaps visible | local metadata only",
+        "READY",
+    ));
     output.push_str(&bottom_border());
 
     if !snapshot.degraded_reasons.is_empty() {
-        output.push_str("reasons requiring attention\n");
+        output.push_str("attention queue\n");
         for reason in &snapshot.degraded_reasons {
             output.push_str(&format!("  • {reason}\n"));
         }
@@ -64,4 +77,23 @@ fn format_ms(value: Option<u64>) -> String {
     value
         .map(|value| format!("{value} ms"))
         .unwrap_or_else(|| "-".to_owned())
+}
+
+fn format_connection_state(state: ConnectionState) -> &'static str {
+    match state {
+        ConnectionState::Disconnected => "disconnected",
+        ConnectionState::Connecting => "connecting",
+        ConnectionState::Connected => "connected",
+        ConnectionState::Stale => "stale",
+        ConnectionState::PingSent => "ping sent",
+        ConnectionState::Reconnecting => "reconnecting",
+    }
+}
+
+fn format_clean_shutdown(value: Option<bool>) -> &'static str {
+    match value {
+        Some(true) => "yes",
+        Some(false) => "no",
+        None => "n/a",
+    }
 }

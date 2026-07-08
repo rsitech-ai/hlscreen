@@ -22,7 +22,7 @@ Current US1 live flow:
 1. `hls-hyperliquid::ws::parser` parses public WebSocket envelopes for `trades`, `bbo`, `allMids`, `activeAssetCtx`, and `candle`.
 2. `hls-core::market_state::LiveMarketState` applies typed market events into per-symbol state.
 3. `hls-features::engine::FeatureEngine` builds `FeatureSnapshot` rows with top-of-book, return, freshness, and score fields.
-4. `hls-tui::app::render_main_table` renders a stable read-only terminal table.
+4. `hls-tui::app::render_main_table` renders a stable read-only workstation board with scan KPIs, market rows, and selected-symbol microstructure detail.
 5. `hls-cli live --duration-secs ...` runs a bounded public WebSocket session with heartbeat pings, reconnect/resubscribe, subscription-budget validation, optional recording, live TTY refresh, and clean shutdown.
 6. `hls-cli live --fixture-file ... --once` remains a deterministic test/offline-doc path without live network access.
 
