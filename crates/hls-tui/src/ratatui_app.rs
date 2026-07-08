@@ -243,7 +243,8 @@ fn render_narrow_drilldown(
         WorkstationPane::Chart => render_chart(frame, area, model, color_mode),
         WorkstationPane::Book => render_book(frame, area, model, color_mode),
         WorkstationPane::Tape => render_tape(frame, area, model, color_mode),
-        WorkstationPane::Watchlist | WorkstationPane::Detail | WorkstationPane::Status => {
+        WorkstationPane::Status => render_status_panel(frame, area, model, color_mode),
+        WorkstationPane::Watchlist | WorkstationPane::Detail => {
             render_detail(frame, area, model, "DETAIL", color_mode);
         }
     }
@@ -1080,6 +1081,63 @@ fn render_status_bar(
                         color_mode,
                     )),
             ),
+        area,
+    );
+}
+
+fn render_status_panel(
+    frame: &mut Frame<'_>,
+    area: Rect,
+    model: &RatatuiFrameModel,
+    color_mode: RatatuiColorMode,
+) {
+    let rows = screened_rows(model);
+    let lines = vec![
+        Line::from(vec![
+            Span::styled(
+                "stream ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(model.stream_status.clone()),
+            Span::raw("  "),
+            Span::styled(
+                "recorder ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(model.recorder_status.clone()),
+        ]),
+        Line::from(format!("health {}", model.health_status)),
+        Line::from(format!(
+            "view {} | pane {} | density {} | chart {}",
+            model.ui_state.view().label(),
+            model.ui_state.focused_pane().label(),
+            model.ui_state.density().label(),
+            model.ui_state.chart_window().label()
+        )),
+        Line::from(format!(
+            "screen {} | rows {} | display {}",
+            mode_label(&model.request, rows.len()),
+            rows.len(),
+            pause_label(model)
+        )),
+        Line::from("controls j/k rows | 1-6 panes | tab views | / p s t commands"),
+        Line::from("read-only safety: No wallet, no private streams, no order routes."),
+        Line::from("Screen output is heuristic context only, not orders or advice."),
+    ];
+    frame.render_widget(
+        Paragraph::new(lines)
+            .wrap(Wrap { trim: true })
+            .block(panel_for(
+                "STATUS",
+                WorkstationPane::Status,
+                model,
+                color_mode,
+            ))
+            .style(Style::default().fg(text(color_mode))),
         area,
     );
 }

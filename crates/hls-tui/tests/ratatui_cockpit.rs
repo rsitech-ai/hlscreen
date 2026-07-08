@@ -275,6 +275,42 @@ fn narrow_cockpit_renders_focused_hidden_pane_as_drilldown() {
 }
 
 #[test]
+fn narrow_cockpit_renders_status_focus_as_operational_drilldown() {
+    let snapshots = fixture_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Status),
+        snapshots.len(),
+    );
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    )
+    .with_status("LIVE", "REC ready", "ws=235 events=485 reconnects=0 gaps=0");
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 72,
+            height: 24,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders status drilldown");
+
+    assert!(rendered.contains("[FOCUS] STATUS"));
+    assert!(rendered.contains("stream LIVE"));
+    assert!(rendered.contains("recorder REC ready"));
+    assert!(rendered.contains("ws=235 events=485 reconnects=0 gaps=0"));
+    assert!(rendered.contains("pane status"));
+    assert!(rendered.contains("read-only safety"));
+    assert!(rendered.contains("No wallet"));
+    assert!(!rendered.contains("[FOCUS] DETAIL"));
+}
+
+#[test]
 fn cockpit_color_mode_is_explicit_and_does_not_pollute_no_color_snapshots() {
     let model = RatatuiFrameModel::new(
         fixture_snapshots(),
