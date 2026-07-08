@@ -532,3 +532,36 @@ fn cockpit_chart_uses_real_candle_ohlc_and_volume_when_available() {
     assert!(rendered.contains("C 35.0000"));
     assert!(rendered.contains("VOL 1200"));
 }
+
+#[test]
+fn cockpit_chart_renders_price_axis_and_public_candle_footer() {
+    let snapshots = fixture_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Chart),
+        snapshots.len(),
+    );
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    )
+    .with_candles(fixture_candles());
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 160,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders chart with price axis");
+
+    assert!(rendered.contains("[FOCUS] CANDLES"));
+    assert!(rendered.contains("px axis"));
+    assert!(rendered.contains("candles"));
+    assert!(rendered.contains("window"));
+    assert!(rendered.contains("Public 1m candles only"));
+}
