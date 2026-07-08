@@ -226,3 +226,23 @@
 
 - [x] Close out notes
   DoD: `PLAN.md`, `TODO.md`, `MEMORY.md`, daily memory, and lesson stores reflect the final state.
+
+## 2026-07-08 Workstation TUI Refinement
+
+- [x] Confirm renderer scope and visual contract
+  DoD: `PLAN.md` records deterministic TUI scope, read-only boundary, and validation commands.
+
+- [x] Upgrade market-board layout
+  DoD: The main renderer shows truthful KPI rows, stronger hierarchy, clear units, and an empty state without ANSI-only styling or fake data.
+
+- [x] Upgrade health panel layout
+  DoD: Health output separates safety, ingest, and storage state with clear degraded reasons and no private/order wording.
+
+- [x] Regenerate and inspect screenshots
+  DoD: SVG screenshots are rebuilt from the current binary and PNG previews are inspected locally.
+
+- [x] Run validation gates
+  DoD: Focused TUI/CLI tests, full workspace checks, screenshot generation, `git diff --check`, and read-only scan pass or exact blockers are recorded.
+
+- [x] Close out notes
+  DoD: `PLAN.md`, `TODO.md`, `MEMORY.md`, daily memory, and lesson stores reflect the final state.
