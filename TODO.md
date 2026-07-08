@@ -456,8 +456,8 @@
 - [x] Run local validation gates
   DoD: YAML parse, fmt, clippy, tests, release build, release packaging check, and diff hygiene pass.
 
-- [-] Review, PR, merge, and close out
+- [x] Review, PR, merge, and close out
   DoD: Policy branch is pushed, PR checks pass, unsupported red PRs are closed or superseded, remaining open PRs are green, and memory/reflection notes are complete.
 
-- [-] Fix compatible `sha2` Dependabot failure
+- [x] Fix compatible `sha2` Dependabot failure
   DoD: Benchmark hash generation works with the current `sha2` and the `sha2 0.11` PR without weakening hash validation.
