@@ -40,10 +40,10 @@ fn doctor_live_text_renders_next_gen_health_panel() {
         .stdout(predicate::str::contains("Operations Command Center"))
         .stdout(predicate::str::contains("DEGRADED"))
         .stdout(predicate::str::contains("SAFETY"))
-        .stdout(predicate::str::contains("INGEST"))
-        .stdout(predicate::str::contains("STORAGE"))
-        .stdout(predicate::str::contains("writer backlog: 250"))
-        .stdout(predicate::str::contains("reasons requiring attention"))
+        .stdout(predicate::str::contains("CONNECTION"))
+        .stdout(predicate::str::contains("RECORDER"))
+        .stdout(predicate::str::contains("writer backlog 250/100"))
+        .stdout(predicate::str::contains("attention queue"))
         .stdout(predicate::str::contains("wallet").not())
         .stdout(predicate::str::contains("order").not());
 }

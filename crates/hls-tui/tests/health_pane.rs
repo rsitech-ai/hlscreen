@@ -19,11 +19,12 @@ fn health_pane_renders_degraded_operational_state() {
     assert!(rendered.contains("Operations Command Center"));
     assert!(rendered.contains("DEGRADED"));
     assert!(rendered.contains("SAFETY"));
-    assert!(rendered.contains("INGEST"));
-    assert!(rendered.contains("STORAGE"));
-    assert!(rendered.contains("writer backlog: 250"));
+    assert!(rendered.contains("CONNECTION"));
+    assert!(rendered.contains("RECORDER"));
+    assert!(rendered.contains("RUNBOOK"));
+    assert!(rendered.contains("writer backlog 250/100"));
     assert!(rendered.contains("gaps: 2"));
-    assert!(rendered.contains("reasons requiring attention"));
+    assert!(rendered.contains("attention queue"));
     assert!(rendered.contains("writer backlog high"));
     assert!(rendered.contains("data gaps detected"));
     assert!(!rendered.contains("wallet"));
