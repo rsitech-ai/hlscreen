@@ -1461,3 +1461,60 @@
 - What changed: Ran fresh all-symbol public Hyperliquid validation, replayed and screened the capture, checked health and negative paths, generated a real-data TUI screenshot, and refreshed README/docs around the current read-only production boundary. Replaced the stale architecture prose with Mermaid diagrams for system boundaries, crate ownership, live/replay flows, command surfaces, and deploy-readiness gates. Fixed one audit finding in `hls-tui`: row quality now reports `partial` when any visible row is missing spread or top-of-book depth evidence, and the header says `p95 row age` instead of the misleading `p95 local`.
 - Validation run: Primary 300s all-symbol live capture `allpairs-prodreadiness-20260708-201752` completed with 308 symbols, 924 subscriptions, 99,162 raw WebSocket messages, 106,980 normalized events, 5 raw files, 1 normalized file, clean shutdown, 0 reconnects, and 0 data gaps. Replay parity wrote a baseline then passed with 0 confidence drift/missing/extra rows. `thin_books` and `flow_pressure` screened the captured run with clean stderr; `doctor --live --json` and `server --print-health` reported healthy read-only state; invalid DSL, unknown preset, missing fixture, and unsupported Parquet probes failed closed. Post-fix 60s all-symbol live capture `allpairs-prodreadiness-postfix-20260708-202420` completed with 18,791 WebSocket messages, 26,455 normalized events, clean shutdown, 0 reconnects, 0 data gaps, `p95 row age`, and `quality partial` on sparse visible coverage. Full gate passed: `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`; `cargo build --release --workspace --all-features`; `scripts/check-release-packaging.sh`; `python3 scripts/generate-screenshots.py`; Markdown local-link check; `rsvg-convert docs/assets/screenshots/live-screen.svg -o /tmp/hlscreen-prodreadiness-preview-live.png`; `git diff --check`; read-only/private-surface and TODO/debug scans.
 - Follow-ups: Multi-day soak, deploy-host supervision, long-running HTTP server mode, automatic public REST backfill after reconnect, true Parquet output, keyboard-driven interactive TUI, and tagged release artifact publication remain future gates. Current readiness is a local deployable, public-data, read-only release candidate; it is not trading execution software.
+
+## 2026-07-08 Live Spot Symbol Display Mapping Fix
+
+### Task
+- Objective: Validate and fix Hyperliquid spot symbol display so user-facing surfaces show readable pairs such as `HYPE/USDC` while internal subscriptions still use official feed IDs such as `@107`.
+- Owner repo(s): standalone `hlscreen/` repository only.
+- Capital impact: research-only / read-only public metadata and WebSocket symbol mapping. No private streams, wallet access, order placement, execution, or capital-changing action.
+
+### Context
+- Background: The operator noticed live TUI/screens were showing symbols such as `@107`, which are official Hyperliquid spot feed identifiers but not the intended human-facing market labels.
+- Inputs: official Hyperliquid Info endpoint docs, live `spotMeta` response, existing symbol parser/tests/fixtures, CLI `symbols`, live universe selection, TUI snapshots.
+- Outputs: parser regression test, fixed live metadata display mapping, docs/README command examples updated where user-facing commands should prefer display pairs, validation evidence.
+
+### Assumptions
+- Hyperliquid `spotMeta.universe[].name` is the feed `coin` identifier for most spot markets (`@{index}`), while readable display pairs can be derived from `universe[].tokens` and `tokens[].name`.
+- `PURR/USDC` remains both a feed identifier and display pair per official docs; other spot markets keep `@{index}` internally.
+
+### Constraints
+- Technical: preserve selector matching by both display name and feed ID; do not break replay files or recorded normalized events that store `@{index}` feed IDs.
+- Operational: no broad ingestion/TUI refactor; keep change at REST metadata boundary plus docs/tests.
+- Risk/capital: read-only public API validation only.
+
+### Options Considered
+1. Keep displaying `@{index}` everywhere and document it.
+   - Pros: matches official subscription `coin` exactly.
+   - Cons: poor user experience and violates the existing spec requirement to preserve display names separately from feed identifiers.
+2. Derive display names from token indexes and keep `@{index}` as `hl_coin`.
+   - Pros: matches user expectations, preserves official feed IDs, fixes the bug at the metadata boundary.
+   - Cons: relies on token-name availability in `spotMeta`, which is part of the public response.
+
+### Chosen Approach
+- Choice: option 2.
+- Why: It keeps the transport contract correct while making CLI/TUI output human-readable.
+
+### Execution Plan
+1. Reproduce with live `spotMeta`: confirm HYPE has `universe.name="@107"` and tokens `[150, 0]` deriving `HYPE/USDC`.
+2. Update fixtures to use the live-shaped `@107`/`@108` universe names and run parser tests red.
+3. Update parser to derive `display_name` from token names while keeping `hl_coin` from `feed_id_for_spot`.
+4. Run focused parser/CLI/TUI validation and live `hls symbols` checks for `HYPE/USDC` and `@107`.
+5. Update docs/memory if durable command examples or symbol semantics changed.
+
+### Test Plan
+- Focused: `cargo test -p hls-hyperliquid --test rest_metadata`; `cargo test -p hls-core --test config_symbol`.
+- CLI smoke: `./target/debug/hls symbols --include HYPE/USDC --top 1`; `./target/debug/hls symbols --include @107 --top 1`; JSON output checks.
+- Regression: `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `git diff --check`.
+
+### Risks and Rollback
+- Risks: recorded/replay feature snapshots still carry feed IDs unless metadata/display mapping is explicitly attached later; this fix makes symbol inspection and live selection correct but may require a follow-up to propagate display names into every TUI row.
+- Rollback: revert parser/fixture/docs changes. No exchange/account state is modified.
+
+### Memory Impact
+- Add/update in `MEMORY.md`: live Hyperliquid symbol semantics and confirmed commands for display-name/feed-ID selection.
+
+### Final Notes
+- What changed: Confirmed against official docs and live `spotMeta` that non-PURR spot markets often expose `spotMeta.universe[].name` as the transport feed ID (`@107`) while the readable pair is derived from token indexes (`HYPE/USDC`). Fixed `parse_spot_meta` to derive display names from `tokens[].name`; fixed `spotMetaAndAssetCtxs` parsing to join asset contexts by their explicit `coin` field instead of array position; resolved explicit live selectors such as `HYPE/USDC`, `hype-usdc`, and `@107` to the correct feed ID; updated TUI rendering to prefer metadata display names; refreshed active docs and screenshots.
+- Validation run: The red regression was `cargo test -p hls-hyperliquid --test rest_metadata` after making fixtures live-shaped with `@107`/`@108` names. Final focused checks passed: `cargo test -p hls-core --test config_symbol`; `cargo test -p hls-hyperliquid --test rest_metadata`; `cargo test -p hls-cli commands::live::tests::explicit_live_symbol -- --nocapture`; `cargo test -p hls-tui --test main_table_golden`. Live public checks passed: `hls symbols --include HYPE/USDC --top 1`, `hls symbols --include @107 --top 1`, `hls symbols --include hype-usdc --top 1`, and `hls symbols --include ueth-usdc --top 1`; `ETH/USDC` correctly failed as unknown because current Hyperliquid public metadata uses `UETH/USDC`. A 5s live WebSocket TUI run with `--symbols hype-usdc` completed with 1 symbol, 4 subscriptions, 35 WS messages, 63 market events, 0 reconnects, 0 data gaps, and rendered `HYPE/USDC`. Full gates passed: `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`; `cargo build --release --workspace --all-features`; `scripts/check-release-packaging.sh`; `python3 scripts/generate-screenshots.py`; Markdown link check; `git diff --check`.
+- Follow-ups: Replay/fixture rows without metadata still display feed IDs by design because raw WebSocket events only carry `coin`; if replay TUI should always show display names, persist and reattach symbol metadata from the registry during replay.

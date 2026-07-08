@@ -8,7 +8,7 @@ Fields:
 
 - `symbol_id`: internal stable integer identifier
 - `display_name`: user-facing name, e.g. `HYPE/USDC`
-- `hl_coin`: public feed identifier, e.g. `@107` or `PURR/USDC`
+- `hl_coin`: public feed identifier, e.g. `@107` or `PURR/USDC`; this may differ from the display name for most spot markets
 - `spot_index`: spot pair index from metadata
 - `base_token_index`: base token index
 - `quote_token_index`: quote token index
@@ -23,7 +23,8 @@ Validation rules:
 - `hl_coin` must be unique.
 - `display_name` must not be empty.
 - `spot_index`, token indexes, and decimals must be non-negative.
-- If the market is `PURR/USDC`, the literal coin may be used; otherwise spot feeds use the `@{spot_index}` form unless metadata says otherwise.
+- Display names are derived from `spotMeta.universe[].tokens` and `spotMeta.tokens[].name`; `spotMeta.universe[].name` is often the feed ID, not the readable pair.
+- If the market is `PURR/USDC`, the literal coin may be used as the feed ID; otherwise spot feeds usually use the `@{spot_index}` form.
 
 Relationships:
 

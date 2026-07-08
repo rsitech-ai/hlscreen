@@ -142,7 +142,7 @@ fn render_workstation(
 
     let selected = &rows[0];
     output.push('\n');
-    output.push_str(&format!("Selected: {}\n", selected.symbol));
+    output.push_str(&format!("Selected: {}\n", display_symbol(selected)));
     output.push_str(&format!(
         "Bid/Ask        {:<21} Micro-BBO      {:<12} Mark-Mid basis {}\n",
         format_bid_ask(selected),
@@ -223,7 +223,7 @@ fn workstation_header_row() -> String {
 
 fn workstation_data_row(row: &FeatureSnapshot) -> String {
     let cells = vec![
-        row.symbol.clone(),
+        display_symbol(row).to_owned(),
         format_optional(row.price, 4),
         format_bps_value(row.spread_bps),
         format_imbalance_cell(row.tob_imbalance),
@@ -234,6 +234,14 @@ fn workstation_data_row(row: &FeatureSnapshot) -> String {
         format_why_now(row),
     ];
     workstation_row(&cells, false)
+}
+
+fn display_symbol(row: &FeatureSnapshot) -> &str {
+    row.metadata
+        .as_ref()
+        .map(|metadata| metadata.display_name.as_str())
+        .filter(|display_name| !display_name.trim().is_empty())
+        .unwrap_or(&row.symbol)
 }
 
 fn workstation_row(cells: &[String], header: bool) -> String {

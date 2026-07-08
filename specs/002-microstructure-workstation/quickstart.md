@@ -130,7 +130,7 @@ After confidence and resilience fields exist:
 
 ```bash
 ./target/debug/hls live \
-  --symbols @107 \
+  --symbols HYPE/USDC \
   --duration-secs 30 \
   --refresh-secs 5 \
   --tui \
