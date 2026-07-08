@@ -53,7 +53,9 @@ impl MarketSymbol {
     }
 
     pub fn matches_selector(&self, selector: &str) -> bool {
+        let normalized_selector = selector.trim().replace('-', "/");
         self.display_name.eq_ignore_ascii_case(selector)
+            || self.display_name.eq_ignore_ascii_case(&normalized_selector)
             || self.hl_coin.eq_ignore_ascii_case(selector)
     }
 }

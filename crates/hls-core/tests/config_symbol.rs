@@ -33,6 +33,9 @@ fn symbol_mapping_preserves_display_name_and_feed_identifier() {
     assert_eq!(hype.display_name, "HYPE/USDC");
     assert_eq!(hype.hl_coin, "@107");
     assert_eq!(feed_id_for_spot("HYPE/USDC", 107), "@107");
+    assert!(hype.matches_selector("hype-usdc"));
+    assert!(hype.matches_selector("HYPE/USDC"));
+    assert!(hype.matches_selector("@107"));
 }
 
 #[test]

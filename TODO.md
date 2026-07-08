@@ -527,3 +527,23 @@
 
 - [x] Close continuity notes
   DoD: Report, `PLAN.md`, `TODO.md`, `MEMORY.md`, daily memory, and lesson stores reflect actual evidence and remaining risks.
+
+## 2026-07-08 Live Spot Symbol Display Mapping Fix
+
+- [x] Reproduce and document live symbol mismatch
+  DoD: Live `spotMeta` proof shows `@107` feed ID maps to derived `HYPE/USDC` display pair.
+
+- [x] Add live-shaped parser regression
+  DoD: Fixtures use `@{index}` universe names for non-PURR markets and tests still expect readable display pairs.
+
+- [x] Fix metadata parser boundary
+  DoD: `MarketSymbol.display_name` derives from token names while `MarketSymbol.hl_coin` remains official feed ID.
+
+- [x] Validate CLI/TUI-facing behavior
+  DoD: `hls symbols` accepts both `HYPE/USDC` and `@107` and prints readable symbols with feed IDs.
+
+- [x] Run regression gates
+  DoD: Focused tests, workspace tests, fmt, clippy, and diff hygiene pass.
+
+- [x] Close continuity notes
+  DoD: `PLAN.md`, `TODO.md`, `MEMORY.md`, daily memory, and lesson stores reflect actual evidence and any residual caveats.

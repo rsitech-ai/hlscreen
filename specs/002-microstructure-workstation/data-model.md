@@ -6,6 +6,7 @@ Represents whether a symbol row can be trusted at a specific snapshot time.
 
 Fields:
 - `symbol`: feed identifier such as `@107`.
+- `display_name`: optional metadata-backed display pair such as `HYPE/USDC`; renderer surfaces should prefer this when available.
 - `snapshot_ts_ns`: local snapshot publication timestamp.
 - `confidence_score`: bounded numeric confidence from `0.0..1.0`.
 - `state`: `trusted`, `degraded`, or `invalid`.

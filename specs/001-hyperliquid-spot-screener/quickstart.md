@@ -38,7 +38,7 @@ Expected outcome:
 ## One-Symbol Live Ingestion Smoke
 
 ```bash
-./target/debug/hls live --symbols @107 --duration-secs 30 --refresh-secs 5 --tui --record --raw --normalized --run-id quickstart-live --data-dir /tmp/hlscreen-quickstart
+./target/debug/hls live --symbols HYPE/USDC --duration-secs 30 --refresh-secs 5 --tui --record --raw --normalized --run-id quickstart-live --data-dir /tmp/hlscreen-quickstart
 ```
 
 Expected outcome:
@@ -51,7 +51,7 @@ Expected outcome:
 
 ```bash
 ./target/debug/hls screen --fixture-file tests/fixtures/hyperliquid/ws_mock_live.ndjson --preset thin_books
-./target/debug/hls live --symbols @107 --duration-secs 30 --refresh-secs 5 --tui --preset thin_books
+./target/debug/hls live --symbols hype-usdc --duration-secs 30 --refresh-secs 5 --tui --preset thin_books
 ```
 
 Expected outcome:
