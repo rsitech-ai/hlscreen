@@ -1161,3 +1161,64 @@
 - What changed: Replaced the selected-symbol-only TUI detail pane with `PAIR DETAIL CARDS` rendered for every visible row after screening. Each card uses existing `FeatureSnapshot` fields for price, 24h notional, bid/ask, mid/mark, spread, TOB depth/imbalance, 1m/5m/1h returns and realized volatility, volume/trade z-scores, liquidity/momentum/mean-reversion scores, flow, resilience, metadata, confidence, and why-ranked summary. Updated CLI/TUI tests, screenshot highlighting, regenerated SVG assets, repo memory, daily memory, and lesson store.
 - Validation run: red/green `cargo test -p hls-tui --test main_table_golden`; `cargo test -p hls-cli --test live_mock --test screen_command`; `python3 scripts/generate-screenshots.py`; PNG previews with `rsvg-convert` for `live-screen`, `metadata-discovery`, and `resilience-screen`; `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`; `cargo build --release --workspace --all-features`; `git diff --check`; read-only public smoke `./target/debug/hls live --symbols @107 --duration-secs 10 --refresh-secs 5 --tui` with 57 WebSocket messages, 83 market events, 0 reconnects, and 0 data gaps.
 - Follow-ups: PR #23 merged into `main` at `c7584a2` after PR checks passed; post-merge `main` CI run `28957709994` passed. Full keyboard-driven interactive TUI remains future work. This slice keeps the stable deterministic renderer and does not add trading/private/order surfaces.
+
+## 2026-07-08 End-to-End Audit After Pair Cards
+
+### Task
+- Objective: Audit the current `main` implementation end-to-end against official Hyperliquid docs, repo/Spec Kit contracts, Rust CLI/TUI best practices, and production-readiness gates; fix any findings, publish an audit report, and merge only after PR and post-merge CI pass.
+- Owner repo(s): standalone `hlscreen/` repository only.
+- Capital impact: research-only / read-only public market-data tooling. No wallet, private stream, signing, order placement, execution route, account mutation, or trading action.
+
+### Context
+- Background: `main` now includes all-pair TUI detail cards. The user requested a full code, runtime, integration, service/log, edge-case, and code-review audit before further promotion.
+- Inputs: Hyperliquid official API docs for WebSocket endpoint, subscriptions, heartbeat, spot Info endpoints, and rate limits; `specs/002-microstructure-workstation/*`; current source tree; CI configuration; generated screenshots; existing public live smoke evidence.
+- Outputs: audit report under `docs/reports/`, updated plan/TODO/memory, any required fixes, local validation evidence, PR, merge, and post-merge CI evidence.
+
+### Assumptions
+- No long-running production service is required for this repo; service verification means running CLI/API preview commands, live public WebSocket smokes, local replay/screen/bench flows, and log/stdout/stderr review.
+- A deterministic audit report is a legitimate review artifact even if no runtime code changes are required.
+- External network live smokes may vary in message counts but must exit cleanly, remain read-only, and report reconnect/data-gap counts explicitly.
+
+### Constraints
+- Technical: keep all changes scoped to findings/reporting; do not weaken tests, benchmark hashes, or safety scans.
+- Operational: do not mutate external systems beyond public read-only Hyperliquid REST/WebSocket calls and GitHub PR/merge operations.
+- Risk/capital: no private endpoints, account addresses, keys, order-capable commands, signed actions, or advice language.
+
+### Options Considered
+1. Run only the existing CI suite and report green.
+   - Pros: fast.
+   - Cons: does not satisfy the requested end-to-end review, live behavior, logs, edge cases, or official-doc alignment.
+2. Perform a full local audit matrix, source review, live/replay smokes, security/read-only scans, screenshot checks, report the evidence, and merge via PR.
+   - Pros: creates a reviewable readiness artifact and catches docs/code drift beyond tests.
+   - Cons: takes longer and may require small follow-up fixes.
+
+### Chosen Approach
+- Choice: option 2.
+- Why: this is a trading-adjacent public-data tool; false confidence is more expensive than an extra validation pass.
+
+### Execution Plan
+1. Compare current REST/WS/live/runtime behavior against official docs and Spec Kit contracts.
+2. Inspect source modules for parser, REST, live loop, recorder, feature engine, screen DSL, TUI, API helpers, metrics, benchmark, extension, and CI/release workflow boundaries.
+3. Run focused edge tests and smokes for fixture live, full pipeline, replay parity, screen/explain/bench/doctor/server, screenshots, and live public WebSocket.
+4. Run full gates: fmt, clippy, tests, build, release build, release packaging, diff check, read-only/security/dead-code scans.
+5. Capture findings and fixes in `docs/reports/2026-07-08-e2e-audit-after-pair-cards.md`.
+6. PR, review, merge, wait for post-merge CI, then close memory/TODO/plan.
+
+### Test Plan
+- Official-doc alignment: manual/code review of `hls-hyperliquid`, `hls-cli live`, and docs against current Hyperliquid docs.
+- Focused CLI/runtime: `hls symbols`, fixture `hls live`, fixture record/replay/screen, `hls explain`, `hls bench`, `hls doctor --live --json`, `hls server --print-health`, screenshot generation and PNG preview.
+- Edge/safety: invalid DSL, missing fixture, invalid benchmark path, read-only/private/order scan, TODO/debug scan, log/stdout/stderr review.
+- Full gates: `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`; `cargo build --release --workspace --all-features`; `scripts/check-release-packaging.sh`; `git diff --check`.
+- Live smoke: bounded public `./target/debug/hls live --symbols @107 --duration-secs 10 --refresh-secs 5 --tui` and a short multi-symbol/all-symbol budget probe where safe.
+
+### Risks and Rollback
+- Risks: external WebSocket may be temporarily quiet or unavailable; generated docs/screenshots could churn; audit report could overclaim if not tied to commands actually run.
+- Rollback: revert any audit/fix commits on this branch; no external market/account state is modified.
+
+### Memory Impact
+- Add/update in `MEMORY.md`: confirmed audit matrix, live smoke results, and any durable sharp edge or command discovered.
+
+### Final Notes
+- What changed: Completed a repo-wide source/runtime audit and recorded it in `docs/reports/2026-07-08-e2e-audit-after-pair-cards.md`. Fixed a TUI truthfulness bug where missing spread/depth evidence could still show `QUALITY ... GOOD`; missing quote/depth evidence now reports `PARTIAL` and is covered by `missing_quote_depth_marks_quality_partial`. Fixed screenshot reproducibility by normalizing volatile `generated_at_ms` values in `scripts/generate-screenshots.py`, and regenerated `docs/assets/screenshots/health-json.svg`.
+- Validation run: official-doc/code review of public Hyperliquid WS/REST integration; fixture matrix under `/tmp/hlscreen-e2e-audit.1c4dZD` with zero non-empty stderr logs; negative probes for invalid DSL, fixture live without `--once`, deterministic record without fixture, and private benchmark path; public live smoke `./target/debug/hls live --symbols @107 --duration-secs 15 --refresh-secs 5 --tui` with 92 WS messages, 129 market events, 0 reconnects, 0 data gaps; public multi-symbol live smoke after the fix with 60 WS messages, 135 market events, 0 reconnects, 0 data gaps, and `QUALITY ... PARTIAL` for missing spread/depth evidence; PNG previews with `rsvg-convert`; final `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`; `cargo build --release --workspace --all-features`; `scripts/check-release-packaging.sh`; `python3 scripts/generate-screenshots.py`; `git diff --check`; read-only/private/dead-code scans.
+- Follow-ups: Open PR, wait for CI, merge only if checks pass, then close PR/merge TODO and reflection with post-merge CI evidence. Residual caveats remain documented: no automatic REST backfill after reconnect, no long-running HTTP server loop, and no installed `cargo audit`/`cargo deny`/`cargo machete` result claimed.
