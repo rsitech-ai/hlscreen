@@ -1,11 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" role="img" xml:space="preserve" aria-label="Record and replay terminal screenshot" viewBox="0 0 1286 656" width="1286" height="656">
+<svg xmlns="http://www.w3.org/2000/svg" role="img" xml:space="preserve" aria-label="Record and replay terminal screenshot" viewBox="0 0 1286 696" width="1286" height="696">
 <defs>
 <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
 <stop offset="0" stop-color="#0d1117"/>
 <stop offset="1" stop-color="#18212b"/>
 </linearGradient>
 </defs>
-<rect width="1286" height="656" rx="8" fill="url(#bg)"/>
+<rect width="1286" height="696" rx="8" fill="url(#bg)"/>
 <rect x="0" y="0" width="1286" height="50" rx="8" fill="#141b24"/>
 <rect x="0" y="42" width="1286" height="8" fill="#141b24"/>
 <circle cx="24" cy="24" r="6" fill="#ff5f57"/>
@@ -29,15 +29,17 @@
 <text x="24" y="348" fill="#7ee787" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="700">│ UNIVERSE   rows 1 | fresh 1/1 | stale 0 | incomplete 0 | coverage 100%                                                     LOCAL │</text>
 <text x="24" y="368" fill="#f2cc60" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="700">│ QUALITY    spread med 57.1 bps | depth top $245 | depth total $245 | top liq 2.5                                            GOOD │</text>
 <text x="24" y="388" fill="#f2cc60" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="700">│ LATENCY    age med 0ms | age max 0ms | freshness-only quality | local render                                                FAST │</text>
-<text x="24" y="408" fill="#53616f" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯</text>
-<text x="24" y="428" fill="#53616f" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">─────────────────────────────────────────────────────────── MARKET BOARD ───────────────────────────────────────────────────────────</text>
-<text x="24" y="448" fill="#ffa657" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="700">#  SYMBOL        STATE      PRICE       SPRD      DEPTH     IMB     RET1M    RV1M     SCORE    AGE  OBSERVATION</text>
-<text x="24" y="468" fill="#53616f" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">── ────────────  ─────────  ──────────  ────────  ────────  ───────  ───────  ─────  ─────────  ───── ──────────────────────────────</text>
-<text x="24" y="488" fill="#7ee787" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="600">01 @107          ● fresh       35.2000  57.1 bps      $245     -15%   +0.57%  0.00%   2.5/50.6    0ms thin book · wide spread</text>
-<text x="24" y="508" fill="#53616f" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">───────────────────────────────────────────────────────── SELECTED SYMBOL ──────────────────────────────────────────────────────────</text>
-<text x="24" y="528" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">@107 | bid 34.9000 x 3.0000 | ask 35.1000 x 4.0000 | mid 35.0000 | mark 35.5000</text>
-<text x="24" y="548" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">microstructure | spread 57.1 bps | imbalance -15% | top depth $245 | ret 1m +0.57% | rv 1m 0.00%</text>
-<text x="24" y="568" fill="#7ee787" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="600">state | ● fresh | age 0ms | incomplete none | observation thin book · wide spread · move active</text>
-<text x="24" y="588" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400"></text>
-<text x="24" y="608" fill="#a7b3c2" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">No wallet, no private streams, no order routes. Scores are screen heuristics, not orders or advice.</text>
+<text x="24" y="408" fill="#f2cc60" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="700">│ CONFIDENCE high 1 | medium 0 | low 0 | untrusted 0 | min 100 | reasons 0                                                    GOOD │</text>
+<text x="24" y="428" fill="#53616f" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯</text>
+<text x="24" y="448" fill="#53616f" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">─────────────────────────────────────────────────────────── MARKET BOARD ───────────────────────────────────────────────────────────</text>
+<text x="24" y="468" fill="#ffa657" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="700">#  SYMBOL        STATE      CONF    PRICE       SPRD      DEPTH     IMB     RET1M    RV1M     SCORE    AGE  OBSERVATION</text>
+<text x="24" y="488" fill="#53616f" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">── ────────────  ─────────  ──────  ──────────  ────────  ────────  ───────  ───────  ─────  ─────────  ───── ────────────────────────</text>
+<text x="24" y="508" fill="#7ee787" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="600">01 @107          ● fresh    H100       35.2000  57.1 bps      $245     -15%   +0.57%  0.00%   2.5/50.6    0ms thin book · wide spread</text>
+<text x="24" y="528" fill="#53616f" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">───────────────────────────────────────────────────────── SELECTED SYMBOL ──────────────────────────────────────────────────────────</text>
+<text x="24" y="548" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">@107 | bid 34.9000 x 3.0000 | ask 35.1000 x 4.0000 | mid 35.0000 | mark 35.5000</text>
+<text x="24" y="568" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">microstructure | spread 57.1 bps | imbalance -15% | top depth $245 | ret 1m +0.57% | rv 1m 0.00%</text>
+<text x="24" y="588" fill="#7ee787" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="600">state | ● fresh | age 0ms | incomplete none | observation thin book · wide spread · move active</text>
+<text x="24" y="608" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">confidence | high 100 | reasons none | incomplete windows none</text>
+<text x="24" y="628" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400"></text>
+<text x="24" y="648" fill="#a7b3c2" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400">No wallet, no private streams, no order routes. Scores are screen heuristics, not orders or advice.</text>
 </svg>
