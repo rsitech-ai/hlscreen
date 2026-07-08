@@ -44,11 +44,18 @@ pub fn handle_get(path: &str, query: &str, state: &ApiState) -> HlsResult<ApiRes
 }
 
 fn handle_screen(query: &str, state: &ApiState) -> HlsResult<ApiResponse> {
-    let params = parse_query(query)?;
-    let limit = params
+    let params = match parse_query(query) {
+        Ok(params) => params,
+        Err(error) => return json_response(400, &json!({ "error": error.to_string() })),
+    };
+    let limit = match params
         .get("limit")
         .map(|value| parse_limit(value))
-        .transpose()?;
+        .transpose()
+    {
+        Ok(limit) => limit,
+        Err(error) => return json_response(400, &json!({ "error": error.to_string() })),
+    };
     let request = ScreenRequest {
         preset: params.get("preset").cloned(),
         where_expr: params.get("where").cloned(),
@@ -67,7 +74,10 @@ fn handle_screen(query: &str, state: &ApiState) -> HlsResult<ApiResponse> {
 }
 
 fn handle_symbol(path: &str, state: &ApiState) -> HlsResult<ApiResponse> {
-    let symbol = percent_decode(path.trim_start_matches("/symbol/"))?;
+    let symbol = match percent_decode(path.trim_start_matches("/symbol/")) {
+        Ok(symbol) => symbol,
+        Err(error) => return json_response(400, &json!({ "error": error.to_string() })),
+    };
     let Some(row) = state.rows.iter().find(|row| row.symbol == symbol) else {
         return json_response(404, &json!({ "error": "not found" }));
     };
@@ -97,7 +107,7 @@ fn parse_limit(value: &str) -> HlsResult<usize> {
 
 fn percent_decode(input: &str) -> HlsResult<String> {
     let bytes = input.as_bytes();
-    let mut output = String::with_capacity(input.len());
+    let mut output = Vec::with_capacity(input.len());
     let mut index = 0;
 
     while index < bytes.len() {
@@ -110,21 +120,23 @@ fn percent_decode(input: &str) -> HlsResult<String> {
                     .map_err(|error| HlsError::Parse(format!("invalid percent escape: {error}")))?;
                 let value = u8::from_str_radix(hex, 16)
                     .map_err(|error| HlsError::Parse(format!("invalid percent escape: {error}")))?;
-                output.push(value as char);
+                output.push(value);
                 index += 3;
             }
             b'+' => {
-                output.push(' ');
+                output.push(b' ');
                 index += 1;
             }
             byte => {
-                output.push(byte as char);
+                output.push(byte);
                 index += 1;
             }
         }
     }
 
-    Ok(output)
+    String::from_utf8(output).map_err(|error| {
+        HlsError::Parse(format!("invalid UTF-8 in percent-encoded input: {error}"))
+    })
 }
 
 fn json_response<T: serde::Serialize>(status_code: u16, body: &T) -> HlsResult<ApiResponse> {

@@ -1,3 +1,5 @@
+use std::fs;
+
 use assert_cmd::Command;
 use predicates::prelude::*;
 
@@ -40,6 +42,33 @@ fn doctor_reports_read_only_status_for_local_config() {
         .assert()
         .success()
         .stdout(predicate::str::contains("read-only safety: ok"));
+}
+
+#[test]
+fn doctor_reports_invalid_existing_config_as_safety_failure() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let data_dir = temp.path().join("hls-data");
+    fs::create_dir_all(&data_dir).expect("data dir");
+    fs::write(
+        data_dir.join("config.toml"),
+        r#"
+[safety]
+read_only = false
+wallet_enabled = true
+trading_enabled = true
+"#,
+    )
+    .expect("unsafe config");
+
+    Command::cargo_bin("hls")
+        .expect("hls binary")
+        .args(["doctor", "--data-dir"])
+        .arg(&data_dir)
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("config readable: fail"))
+        .stdout(predicate::str::contains("config error:"))
+        .stdout(predicate::str::contains("read-only safety: fail"));
 }
 
 #[test]

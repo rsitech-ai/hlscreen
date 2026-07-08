@@ -233,6 +233,14 @@ impl SymbolMarketState {
     }
 
     fn apply_trade(&mut self, event: TradeEvent) {
+        if self
+            .trades
+            .iter()
+            .any(|trade| trade.unique_trade_id == event.unique_trade_id)
+        {
+            return;
+        }
+
         self.last_update_ms = Some(event.exchange_ts_ms);
         self.last_trade_ts_ms = Some(event.exchange_ts_ms);
         self.last_trade_price = Some(event.price);

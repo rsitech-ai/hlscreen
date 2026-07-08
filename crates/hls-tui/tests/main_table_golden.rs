@@ -21,6 +21,6 @@ fn renders_read_only_main_table_for_fixture_snapshot() {
         table,
         "READ-ONLY Hyperliquid spot live screen\n\
          symbol        price      spread_bps  tob_depth_usd  ret_1m    liq_score  updated_ms  state\n\
-         @107          35.2000    57.14       245.10         0.57%     2.45       6000        fresh\n"
+         @107          35.2000    57.14       245.10         -         2.45       6000        fresh\n"
     );
 }
