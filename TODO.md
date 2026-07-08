@@ -138,8 +138,8 @@
 - [x] Fix findings and rerun gates
   DoD: Any correctness, security, maintainability, or docs gaps have focused fixes/tests and fresh green evidence.
 
-- [-] Create PR, review, and merge to `main` if stable
-  DoD: PR diff/checks are reviewed, no blocking findings remain, and `main` is pushed/merged only after validation.
+- [x] Create PR, review, and merge to `main` if stable
+  DoD: PR #1 diff/checks were reviewed, no blocking findings remained, and `main` was merged at `73ebdaa`.
 
-- [ ] Final close-out
+- [x] Final close-out
   DoD: Audit report, `PLAN.md`, `TODO.md`, `MEMORY.md`, daily memory, and lesson stores reflect actual state.

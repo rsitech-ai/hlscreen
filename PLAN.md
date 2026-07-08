@@ -365,3 +365,4 @@
 - Tradeoffs: `cargo-audit` and `cargo-deny` are not installed, so advisory/license gates could not be claimed. Real live WebSocket network mode and long-running HTTP service remain intentionally fail-closed/out of scope for this slice.
 - PR strategy: `origin/main` was absent and GitHub default branch was `feat/andrzej_hlscreen_foundation`; establish `main` from a reviewed baseline before opening the PR, then merge only after PR diff/check review.
 - Rollback: before merge, revert the audit commit on the feature branch; after merge, revert the merge commit on `main`.
+- PR/Merge result: PR #1 (`https://github.com/s1korrrr/hlscreen/pull/1`) was reviewed as mergeable with no configured checks, merged to `main` at `73ebdaa`, and the GitHub default branch was changed to `main`.
