@@ -169,6 +169,14 @@ impl WorkstationChartWindow {
             .unwrap_or_default();
         Self::ALL[(index + 1) % Self::ALL.len()]
     }
+
+    fn previous(self) -> Self {
+        let index = Self::ALL
+            .iter()
+            .position(|candidate| *candidate == self)
+            .unwrap_or_default();
+        Self::ALL[(index + Self::ALL.len() - 1) % Self::ALL.len()]
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -242,6 +250,7 @@ pub enum WorkstationAction {
     CycleChartWindow,
     NextPane,
     PreviousPane,
+    FocusPane(WorkstationPane),
     CommandChar(char),
     CommandBackspace,
     SubmitCommand,
@@ -349,18 +358,10 @@ impl WorkstationUiState {
 
     pub fn apply(&mut self, action: WorkstationAction, row_count: usize) {
         match action {
-            WorkstationAction::Up => self.selected = self.selected.saturating_sub(1),
-            WorkstationAction::Down => {
-                if row_count > 0 {
-                    self.selected = (self.selected + 1).min(row_count - 1);
-                }
-            }
-            WorkstationAction::PageUp => self.selected = self.selected.saturating_sub(5),
-            WorkstationAction::PageDown => {
-                if row_count > 0 {
-                    self.selected = (self.selected + 5).min(row_count - 1);
-                }
-            }
+            WorkstationAction::Up => self.apply_directional_up(row_count),
+            WorkstationAction::Down => self.apply_directional_down(row_count),
+            WorkstationAction::PageUp => self.apply_page_up(),
+            WorkstationAction::PageDown => self.apply_page_down(row_count),
             WorkstationAction::Home => self.selected = 0,
             WorkstationAction::End => {
                 if row_count > 0 {
@@ -371,6 +372,7 @@ impl WorkstationUiState {
             WorkstationAction::PreviousView => self.view = self.view.previous(),
             WorkstationAction::NextPane => self.focused_pane = self.focused_pane.next(),
             WorkstationAction::PreviousPane => self.focused_pane = self.focused_pane.previous(),
+            WorkstationAction::FocusPane(pane) => self.focused_pane = pane,
             WorkstationAction::ToggleDensity => self.density = self.density.next(),
             WorkstationAction::ToggleHelp => self.help_open = !self.help_open,
             WorkstationAction::TogglePause => self.paused = !self.paused,
@@ -404,6 +406,58 @@ impl WorkstationUiState {
             WorkstationAction::Quit => self.quit_requested = true,
         }
 
+        if row_count == 0 {
+            self.selected = 0;
+        } else {
+            self.selected = self.selected.min(row_count - 1);
+        }
+    }
+
+    fn apply_directional_up(&mut self, row_count: usize) {
+        match self.focused_pane {
+            WorkstationPane::Watchlist => self.selected = self.selected.saturating_sub(1),
+            WorkstationPane::Detail => self.view = self.view.previous(),
+            WorkstationPane::Chart => self.chart_window = self.chart_window.previous(),
+            WorkstationPane::Book | WorkstationPane::Tape | WorkstationPane::Status => {
+                self.selected = self.selected.saturating_sub(1);
+            }
+        }
+
+        self.clamp_selected(row_count);
+    }
+
+    fn apply_directional_down(&mut self, row_count: usize) {
+        match self.focused_pane {
+            WorkstationPane::Watchlist => {
+                if row_count > 0 {
+                    self.selected = (self.selected + 1).min(row_count - 1);
+                }
+            }
+            WorkstationPane::Detail => self.view = self.view.next(),
+            WorkstationPane::Chart => self.chart_window = self.chart_window.next(),
+            WorkstationPane::Book | WorkstationPane::Tape | WorkstationPane::Status => {
+                if row_count > 0 {
+                    self.selected = (self.selected + 1).min(row_count - 1);
+                }
+            }
+        }
+
+        self.clamp_selected(row_count);
+    }
+
+    fn apply_page_up(&mut self) {
+        if self.focused_pane == WorkstationPane::Watchlist {
+            self.selected = self.selected.saturating_sub(5);
+        }
+    }
+
+    fn apply_page_down(&mut self, row_count: usize) {
+        if self.focused_pane == WorkstationPane::Watchlist && row_count > 0 {
+            self.selected = (self.selected + 5).min(row_count - 1);
+        }
+    }
+
+    fn clamp_selected(&mut self, row_count: usize) {
         if row_count == 0 {
             self.selected = 0;
         } else {
