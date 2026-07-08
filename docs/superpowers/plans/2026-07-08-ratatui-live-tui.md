@@ -200,4 +200,5 @@ Update README and memory with the new TUI behavior, command, key bindings, and v
 - [x] Add bid/ask share and public top-book notional bars to the Ratatui book pane.
 - [x] Add adaptive tape flow-pulse and net-pressure bars while preserving the public-flow safety label at 120 columns.
 - [x] Add price-axis labels and a public 1m candle footer to the Ratatui candle chart.
+- [x] Add a visual score/factor stack to the Ratatui detail and explain panes.
 - Consider deeper order-book/tape interactions and persisted TUI preferences after the focused-pane state is stable.

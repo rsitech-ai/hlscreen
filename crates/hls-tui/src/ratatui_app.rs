@@ -553,30 +553,35 @@ fn detail_lines(
     ]);
 
     match view {
-        WorkstationView::Overview => vec![
-            heading,
-            Line::from(format!(
-                "confidence {} {} | tradeability {} | resilience {}",
-                row.confidence.level.as_str(),
-                row.confidence.score,
-                row.tradeability_state.as_str(),
-                row.resilience_state.as_str()
-            )),
-            Line::from(format!(
-                "flow30 {} | bbo ofi {} | depth {} | imbalance {}",
-                format_usd_signed(row.signed_notional_flow_30s),
-                format_usd_signed(row.bbo_ofi_proxy_30s),
-                format_usd(row.tob_depth_usd),
-                format_signed(row.tob_imbalance, "")
-            )),
-            Line::from(format!(
-                "metadata {} | listing {} | source {}",
-                metadata_label(row),
-                listing_age(row),
-                metadata_source(row)
-            )),
-            Line::from(format!("why-ranked {}", why_tokens(row))),
-        ],
+        WorkstationView::Overview => {
+            let mut lines = vec![
+                heading,
+                Line::from(format!(
+                    "confidence {} {} | tradeability {} | resilience {}",
+                    row.confidence.level.as_str(),
+                    row.confidence.score,
+                    row.tradeability_state.as_str(),
+                    row.resilience_state.as_str()
+                )),
+            ];
+            lines.extend(factor_stack_lines(row, color_mode));
+            lines.extend([
+                Line::from(format!(
+                    "flow30 {} | bbo ofi {} | depth {} | imbalance {}",
+                    format_usd_signed(row.signed_notional_flow_30s),
+                    format_usd_signed(row.bbo_ofi_proxy_30s),
+                    format_usd(row.tob_depth_usd),
+                    format_signed(row.tob_imbalance, "")
+                )),
+                Line::from(format!(
+                    "metadata {} | listing {} | source {}",
+                    metadata_label(row),
+                    listing_age(row),
+                    metadata_source(row)
+                )),
+            ]);
+            lines
+        }
         WorkstationView::Flow => vec![
             heading,
             Line::from("Flow tape"),
@@ -630,18 +635,98 @@ fn detail_lines(
                 row.symbol
             )),
         ],
-        WorkstationView::Explain => vec![
-            heading,
-            Line::from("Explain"),
-            Line::from(format!("why-ranked {}", why_tokens(row))),
-            Line::from(format!(
-                "tradeability {} | resilience {} | confidence {}",
-                row.tradeability_state.as_str(),
-                row.resilience_state.as_str(),
-                row.confidence.level.as_str()
+        WorkstationView::Explain => {
+            let mut lines = vec![heading, Line::from("Explain")];
+            lines.extend(factor_stack_lines(row, color_mode));
+            lines.extend([
+                Line::from(format!("why-ranked {}", why_tokens(row))),
+                Line::from("Screen output is heuristic context only, not orders or advice."),
+            ]);
+            lines
+        }
+    }
+}
+
+fn factor_stack_lines(row: &FeatureSnapshot, color_mode: RatatuiColorMode) -> Vec<Line<'static>> {
+    let Some(breakdown) = row.score_breakdown.as_ref() else {
+        return vec![Line::from(format!(
+            "FACTOR STACK unavailable | confidence {}",
+            row.confidence.score
+        ))];
+    };
+
+    let mut components = breakdown.components.iter().collect::<Vec<_>>();
+    components.sort_by(|left, right| {
+        right
+            .signed_contribution
+            .abs()
+            .partial_cmp(&left.signed_contribution.abs())
+            .unwrap_or(std::cmp::Ordering::Equal)
+            .then_with(|| left.name.cmp(&right.name))
+    });
+
+    let component_text = components
+        .into_iter()
+        .take(3)
+        .map(|component| {
+            format!(
+                "{} {} {}",
+                compact_factor_name(&component.name),
+                score_contribution_bar(component.signed_contribution, 10),
+                format_signed(Some(component.signed_contribution), "")
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(" | ");
+
+    vec![
+        Line::from(vec![
+            Span::styled(
+                "FACTOR STACK ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(format!(
+                "score raw {:.1} adj {:.1} conf {}",
+                breakdown.raw_total, breakdown.adjusted_total, breakdown.confidence_score
             )),
-            Line::from("Screen output is heuristic context only, not orders or advice."),
-        ],
+        ]),
+        Line::from(component_text),
+    ]
+}
+
+fn compact_factor_name(name: &str) -> &'static str {
+    match name {
+        "liquidity_resilience" => "liq",
+        "momentum" => "mom",
+        "mean_reversion_context" => "mean",
+        "signed_flow" => "flow",
+        "spread_cost" => "spread",
+        _ => "factor",
+    }
+}
+
+fn score_contribution_bar(value: f64, width: usize) -> String {
+    let half = (width / 2).max(1);
+    let ratio = (value.abs() / 25.0).clamp(0.0, 1.0);
+    let filled = ((ratio * half as f64).round() as usize).min(half);
+    if value < 0.0 {
+        format!(
+            "{}{}|{}",
+            "░".repeat(half.saturating_sub(filled)),
+            "█".repeat(filled),
+            "░".repeat(half)
+        )
+    } else if value > 0.0 {
+        format!(
+            "{}|{}{}",
+            "░".repeat(half),
+            "█".repeat(filled),
+            "░".repeat(half.saturating_sub(filled))
+        )
+    } else {
+        format!("{}|{}", "░".repeat(half), "░".repeat(half))
     }
 }
 
