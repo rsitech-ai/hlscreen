@@ -197,4 +197,5 @@ Update README and memory with the new TUI behavior, command, key bindings, and v
 - [x] Render focused status as a real operational drilldown with stream, recorder, health, layout, controls, and read-only safety context.
 - [x] Add explicit `--color auto|always|never` control so terminal/theme behavior is reproducible across shells.
 - [x] Add a market internals rail with screened row count, breadth, tradeable count, stale count, aggregate signed flow, and aggregate top-book depth.
+- [x] Add bid/ask share and public top-book notional bars to the Ratatui book pane.
 - Consider deeper order-book/tape interactions and persisted TUI preferences after the focused-pane state is stable.
