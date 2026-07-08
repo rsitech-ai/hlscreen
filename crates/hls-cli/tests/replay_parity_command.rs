@@ -39,7 +39,7 @@ fn replay_verify_parity_writes_matches_and_fails_on_confidence_drift() {
         .stdout(predicate::str::contains("replay_parity=baseline_written"))
         .stdout(predicate::str::contains("confidence_drift=0"))
         .stdout(predicate::str::contains(
-            "READ-ONLY Hyperliquid spot replay",
+            "Hyperliquid Spot Microstructure Workstation",
         ));
 
     Command::cargo_bin("hls")

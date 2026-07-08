@@ -42,9 +42,12 @@ fn record_then_replay_fixture_without_network() {
         .assert()
         .success()
         .stdout(predicate::str::contains(
-            "READ-ONLY Hyperliquid spot replay",
+            "Hyperliquid Spot Microstructure Workstation",
+        ))
+        .stdout(predicate::str::contains(
+            "filter: READ-ONLY Hyperliquid spot replay",
         ))
         .stdout(predicate::str::contains("@107"))
         .stdout(predicate::str::contains("35.2000"))
-        .stdout(predicate::str::contains("fresh"));
+        .stdout(predicate::str::contains("Selected: @107"));
 }
