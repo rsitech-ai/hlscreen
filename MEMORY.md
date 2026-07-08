@@ -27,7 +27,8 @@
 - US1 mock-live implementation covers public WebSocket fixture parsing, subscription budgeting, live market state, feature snapshots, stable terminal table rendering, and fixture-backed `hls live --once`; real network connection/reconnect, DSL, and full interactive TUI are still future tasks.
 - US2 record/replay implementation covers fixture-backed compressed raw `.ndjson.zst`, deterministic normalized JSONL, local SQLite metadata, bounded raw-writer channel orchestration, replay snapshots, `hls record`, `hls replay`, and `hls live --record`; true Parquet output and live network recording remain future tasks.
 - US3 screening implementation covers deterministic DSL parsing/evaluation, built-in presets, filtering/sorting over `FeatureSnapshot`, `hls screen`, and fixture-backed `hls live --preset/--where/--sort`; keyboard-driven interactive TUI filter editing remains future work.
-- US4 health/safety implementation covers serializable health snapshots, latency percentiles, deterministic heartbeat/reconnect simulation, TUI health rendering, read-only local API response helpers, `hls doctor --live`, and `hls server --print-health`; the long-running HTTP server loop and real external WebSocket I/O remain future work.
+- US4 health/safety implementation covers serializable health snapshots, latency percentiles, deterministic heartbeat/reconnect simulation, TUI health rendering, read-only local API response helpers, `hls doctor --live`, and `hls server --print-health`; the long-running HTTP server loop remains future work.
+- Live public WebSocket implementation covers bounded duration-based `hls live`, public REST universe selection, official subscription messages, heartbeat pings, optional raw/normalized recording, and replayable local files. Automatic reconnect/resubscribe and gap backfill after server-side disconnects remain future work.
 - 2026-07-08 audit hardening keeps feature windows timestamp-bounded (`1m`, `5m`, `1h`), duplicate trades idempotent by `unique_trade_id`, health status monotonic by severity, and invalid existing configs fail-closed in `hls doctor`.
 
 ## Conventions
@@ -40,7 +41,8 @@
 - `--parquet` is intentionally rejected in the current US2 CLI; use `--normalized` for replayable JSONL until a real Parquet writer exists.
 - Screen presets are row-inspection heuristics only, not signals, recommendations, predictions, or profitability claims.
 - The local API helper intentionally exposes read-only JSON response contracts only. Do not add wallet, private, order, or trading routes.
-- Real live WebSocket mode is intentionally not implemented in the current slice and must keep failing closed until a real connection loop is added and validated.
+- Hyperliquid live spot runtime payloads differ from the docs in important ways: spot asset context updates can arrive on channel `activeSpotAssetCtx` after subscribing with type `activeAssetCtx`, and asset-context/candle numeric fields can be string-encoded. Keep parser tests for those live shapes.
+- All-symbol live mode must budget subscriptions before connecting. On 2026-07-08 public REST returned 308 spot markets; four streams per market would be 1,232 subscriptions, so `--all-symbols` used three public streams (`trades`, `bbo`, `activeAssetCtx`) for 924 subscriptions under the 980 configured headroom.
 
 ## Decision Log
 - 2026-07-07: Initialize Spec Kit locally in `hlscreen/` for the read-only Hyperliquid spot screener plan. This keeps planning artifacts isolated from existing dirty `rsibot` parent work.
@@ -54,3 +56,4 @@
 - 2026-07-08: PR #1 merged `feat/andrzej_hlscreen_foundation` into `main` at `73ebdaa`; GitHub default branch is now `main`.
 - 2026-07-08: Open-source readiness package added: MIT `LICENSE`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, `SUPPORT.md`, `CHANGELOG.md`, GitHub CI/templates/dependabot, release/privacy/threat-model/roadmap docs, deterministic screenshot generator, and committed SVG screenshots under `docs/assets/screenshots/`.
 - 2026-07-08: PR #3 merged the open-source readiness package into `main` at `1f93af8`; GitHub Actions passed before merge.
+- 2026-07-08: Added bounded public WebSocket live mode and full-pipeline smoke coverage. Confirmed command: `./target/debug/hls live --all-symbols --duration-secs 900 --refresh-secs 60 --record --raw --normalized --run-id allpairs-15m-20260708-084527 --data-dir /tmp/hlscreen-allpairs-15m-20260708-084527`, which completed cleanly with 308 symbols, 924 public subscriptions, 298,082 raw WS messages, 306,140 normalized events, 13 raw files, one normalized file, and zero SQLite data gaps. Replay/screen verification commands over that run succeeded.

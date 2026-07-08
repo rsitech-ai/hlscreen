@@ -427,3 +427,65 @@
 - Tradeoffs: Screenshots are deterministic SVG terminal captures rather than bitmap desktop screenshots. This keeps them reproducible and GitHub-renderable without adding image tooling.
 - Follow-ups: After merge, confirm GitHub Actions status on `main` once Actions run for the now-public-ready repo.
 - PR/Merge result: PR #3 (`https://github.com/s1korrrr/hlscreen/pull/3`) passed GitHub Actions and merged to `main` at `1f93af8`.
+
+## 2026-07-08 Live Smoke / TUI Screenshot Slice
+
+### Task
+- Objective: Add a deterministic full-pipeline smoke test, improve the terminal/TUI table enough for professional screenshots, regenerate screenshot assets, and run a bounded 15-minute read-only live public-market-data pipeline across the selected Hyperliquid spot universe.
+- Owner repo(s): standalone `hlscreen/` repository only.
+- Capital impact: research-only / read-only public market-data ingestion. No wallet, private key, private/user stream, order, exchange action, or execution-capable route.
+
+### Context
+- Background: The merged v1 is fixture-backed for live behavior and explicitly fails closed for real external WebSocket mode. The user now wants a smoke test, better TUI evidence, screenshots, and a 15-minute full-pipeline run for all pairs.
+- Inputs: Official Hyperliquid WebSocket, subscription, rate-limit, heartbeat, and spot metadata docs; Spec Kit CLI/data-file contracts; current CLI/TUI/store implementation.
+- Outputs: Live public WebSocket capture path, tests, smoke helper or integration coverage, refreshed screenshots, validation evidence, and a 15-minute run artifact if the public network path is stable.
+
+### Assumptions
+- "All pairs" means the public spot universe returned by `spotMetaAndAssetCtxs` after local selection and budget validation, not private/user account feeds.
+- If all pairs multiplied by requested public streams exceeds the official 1,000-subscription cap, the command must fail closed with a clear message or reduce scope only when explicitly requested by flags.
+- A bounded 15-minute run should use a temp/local data directory and produce raw plus normalized replayable files.
+
+### Constraints
+- Technical: keep ingestion async and non-blocking relative to recording/rendering; preserve raw frames before normalization; honor Hyperliquid ping/pong heartbeat behavior; keep subscription count below configured headroom.
+- Operational: keep parent `rsibot/` untouched; do not mutate Dependabot PR branches; commit only after validation and live evidence.
+- Risk/capital: no Exchange endpoint, signing, wallet addresses, user-specific streams, or trading recommendations.
+
+### Options Considered
+1. Add only fixture smoke and screenshots.
+   - Pros: deterministic, small diff, no network dependency.
+   - Cons: does not satisfy the requested 15-minute all-pairs live pipeline.
+2. Add a minimal public WebSocket live client over existing parser/state/store paths plus fixture smoke and screenshots.
+   - Pros: proves the actual read-only pipeline while reusing existing tested boundaries.
+   - Cons: requires live-network validation and careful subscription/heartbeat handling.
+
+### Chosen Approach
+- Choice: option 2.
+- Why: the repo is already designed for public WebSocket ingestion; adding the narrow live read loop is the smallest honest path to the requested 15-minute full-pipeline proof.
+
+### Execution Plan
+1. Inspect current live, parser, subscription, store, TUI, screenshot, and CLI tests.
+2. Add or update tests for subscription message construction, control-message handling, deterministic full-pipeline smoke, and TUI output.
+3. Implement a bounded public WebSocket read loop with heartbeat, public subscription sends, raw frame preservation, normalized event handling, and clean duration-based shutdown.
+4. Add `--all-symbols` and duration/refresh controls if missing, with budget validation before connecting.
+5. Polish terminal rendering and regenerate committed screenshot assets.
+6. Run fmt, clippy, workspace tests/builds, smoke commands, link/screenshot checks, and read-only scans.
+7. Run the 900-second all-pairs pipeline, inspect raw/normalized/metadata outputs, replay/screen the run, and record final evidence.
+8. Review, commit, push, open PR, review/merge only if stable.
+
+### Test Plan
+- Unit/integration: WebSocket subscription/control-message tests; CLI full-pipeline smoke test; TUI golden/screenshot command validation.
+- Runtime: fixture-backed live/record/replay/screen/health; public REST symbol selection; live WebSocket dry run; 900-second all-pairs run with raw and normalized outputs.
+- Regression/audit: `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`; `git diff --check`; read-only/no-secrets scan; screenshot/link check.
+
+### Risks and Rollback
+- Risks: public WebSocket disconnects during the run; spot universe size can approach subscription headroom; payload drift can expose parser gaps; GitHub Actions can fail after merge if live-only behavior is not exercised in CI.
+- Rollback: revert this branch before merge; after merge, revert the merge commit. Runtime artifacts stay in temp/local data dirs and are not required for rollback.
+
+### Memory Impact
+- Add/update in `MEMORY.md`: confirmed live command, all-pairs subscription behavior, smoke command, screenshot generation command, and any live-run caveats.
+
+### Final Notes
+- What changed: Added bounded public WebSocket live mode with duration shutdown, heartbeat ping handling, public REST universe selection, `--all-symbols`, subscription budget adaptation, streaming raw/normalized recording, tolerant live payload parsing, a full-pipeline fixture smoke test, polished terminal table output, refreshed screenshots, and `docs/reports/2026-07-08-live-smoke.md`.
+- Validation run: `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`; `cargo build --release --workspace --all-features`; `git diff --check`; `python3 scripts/generate-screenshots.py`; screenshot asset existence check; read-only/no-secret diff scan.
+- Live run: `allpairs-15m-20260708-084527` ran for 900 seconds with 308 symbols, 924 public subscriptions, three public streams per symbol, 298,082 raw WebSocket messages, 306,140 normalized events, 13 raw files, one normalized file, and `clean_shutdown=true`. File counts, SQLite registry, replay, screen, and health preview checks passed.
+- Rollback: revert this branch before merge, or revert the merge commit after merge. Runtime data lives under `/tmp/hlscreen-allpairs-15m-20260708-084527` and is not required for source rollback.

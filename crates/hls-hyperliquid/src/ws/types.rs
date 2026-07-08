@@ -3,6 +3,7 @@ use serde::Deserialize;
 #[derive(Debug, Deserialize)]
 pub(crate) struct WsEnvelope {
     pub channel: String,
+    #[serde(default)]
     pub data: serde_json::Value,
 }
 
@@ -45,24 +46,29 @@ pub(crate) struct WsActiveSpotAssetCtx {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct WsSpotAssetCtx {
-    pub day_ntl_vlm: Option<f64>,
-    pub prev_day_px: Option<f64>,
-    pub mark_px: Option<f64>,
-    pub mid_px: Option<f64>,
-    pub circulating_supply: Option<f64>,
+    #[serde(default)]
+    pub day_ntl_vlm: Option<serde_json::Value>,
+    #[serde(default)]
+    pub prev_day_px: Option<serde_json::Value>,
+    #[serde(default)]
+    pub mark_px: Option<serde_json::Value>,
+    #[serde(default)]
+    pub mid_px: Option<serde_json::Value>,
+    #[serde(default)]
+    pub circulating_supply: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct WsCandle {
-    pub t: i64,
+    pub t: serde_json::Value,
     #[serde(rename = "T")]
-    pub close_ms: i64,
+    pub close_ms: serde_json::Value,
     pub s: String,
     pub i: String,
-    pub o: f64,
-    pub c: f64,
-    pub h: f64,
-    pub l: f64,
-    pub v: f64,
-    pub n: u64,
+    pub o: serde_json::Value,
+    pub c: serde_json::Value,
+    pub h: serde_json::Value,
+    pub l: serde_json::Value,
+    pub v: serde_json::Value,
+    pub n: serde_json::Value,
 }
