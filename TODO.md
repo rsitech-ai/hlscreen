@@ -183,3 +183,26 @@
 
 - [x] Review, PR, merge, and close out
   DoD: Diff is reviewed, stable branch is pushed, PR is merged only if checks and live evidence are acceptable, and plan/TODO/memory/reflection are complete.
+
+## 2026-07-08 Live Production Hardening
+
+- [x] Confirm official docs, runtime gaps, and live-only production boundary
+  DoD: `PLAN.md` records WebSocket reconnect, heartbeat, subscription-cap, low-latency, and no-private-surface constraints.
+
+- [x] Harden WebSocket reconnect/resubscribe and gap handling
+  DoD: Server close/read failure reconnects until duration ends, subscriptions are resent, and recording persists explicit data gaps.
+
+- [x] Move live recording off the WebSocket read loop
+  DoD: Raw/normalized writes use a bounded worker queue and fail closed on backpressure instead of silently dropping or blocking ingestion.
+
+- [x] Stamp receive timestamps and improve TUI live refresh
+  DoD: Normalized events preserve non-zero receive timestamps in live mode, and `--tui`/TTY sessions render live table refreshes.
+
+- [x] Update docs/reports/screenshots for live-first readiness
+  DoD: Public docs lead with real public live data, fixture language is clearly test-only, and live smoke evidence is current.
+
+- [x] Run validation and live smoke gates
+  DoD: Rust gates, diff/security scans, live public smoke, replay/screen checks, and log review pass or exact blockers are recorded.
+
+- [x] Review, PR, merge, and close out
+  DoD: Diff is reviewed, PR checks pass, merge to `main` occurs only if stable, and plan/TODO/memory/reflection are complete.
