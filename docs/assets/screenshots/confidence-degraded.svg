@@ -26,7 +26,7 @@
 <text x="24" y="288" fill="#a5d6ff" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="600">Bid/Ask        34.9000 / 35.4000     Micro-BBO      35.1500      Mark-Mid basis -</text>
 <text x="24" y="308" fill="#a5d6ff" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="600">Top book       $17 / $14             OFI 30s        -            Spread recovery -</text>
 <text x="24" y="328" fill="#a5d6ff" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="600">Signed flow    5s:-  30s:+$4 1m:-       RV 1m/5m/1h   0.00/0.00/0.00</text>
-<text x="24" y="348" fill="#a5d6ff" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="600">Confidence     gap:3 stale:0 sparse:1 reconnect:0 parser_drop:0</text>
+<text x="24" y="348" fill="#a5d6ff" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="600">Confidence     window:3 stale:0 sparse:1 reconnect:0 parser_drop:0</text>
 <text x="24" y="368" fill="#a5d6ff" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="600">Why ranked     +momentum +mean_reversion_context -spread_cost missing:return_window | tradeability unknown | resilience unknown</text>
 <text x="24" y="388" fill="#a5d6ff" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="600">Metadata       metadata | tags unknown_metadata | listing age - | seeded - | source missing</text>
 <text x="24" y="408" fill="#d8dee9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="400"></text>
