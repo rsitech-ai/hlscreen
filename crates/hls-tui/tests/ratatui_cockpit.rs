@@ -81,8 +81,18 @@ fn fixture_candles() -> Vec<CandleEvent> {
 
 #[test]
 fn wide_cockpit_renders_all_primary_trading_workstation_regions() {
+    let mut snapshots = fixture_snapshots();
+    snapshots[0].ret_1m = Some(0.0057);
+    let mut down_row = snapshots[0].clone();
+    down_row.symbol = "DOWN/USDC".to_owned();
+    down_row.metadata = None;
+    down_row.price = Some(12.34);
+    down_row.ret_1m = Some(-0.0123);
+    down_row.signed_notional_flow_30s = Some(-4_200.0);
+    snapshots.push(down_row);
+
     let model = RatatuiFrameModel::new(
-        fixture_snapshots(),
+        snapshots,
         "READ-ONLY Hyperliquid spot live screen",
         ScreenRequest::default(),
         WorkstationUiState::default(),
@@ -117,6 +127,13 @@ fn wide_cockpit_renders_all_primary_trading_workstation_regions() {
     assert!(rendered.contains("STATUS LIVE"));
     assert!(rendered.contains("CONTROLS"));
     assert!(rendered.contains("1-6 panes"));
+    assert!(rendered.contains("RANK"));
+    assert!(rendered.contains("FLOW30"));
+    assert!(rendered.contains("DEPTH"));
+    assert!(rendered.contains("Q"));
+    assert!(rendered.contains("01"));
+    assert!(rendered.contains("UP"));
+    assert!(rendered.contains("DN"));
 }
 
 #[test]
