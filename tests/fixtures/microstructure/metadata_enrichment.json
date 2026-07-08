@@ -37,13 +37,13 @@
       ],
       "universe": [
         {
-          "name": "HYPE/USDC",
+          "name": "@107",
           "tokens": [150, 0],
           "index": 107,
           "isCanonical": true
         },
         {
-          "name": "PARTIAL/USDC",
+          "name": "@404",
           "tokens": [404, 0],
           "index": 404,
           "isCanonical": false
@@ -52,6 +52,7 @@
     },
     [
       {
+        "coin": "@107",
         "dayNtlVlm": "25000000.5",
         "prevDayPx": "34.0",
         "markPx": "35.5",
@@ -59,6 +60,7 @@
         "circulatingSupply": "100000000.0"
       },
       {
+        "coin": "@404",
         "dayNtlVlm": "10000",
         "prevDayPx": "1.0",
         "markPx": "1.1",
