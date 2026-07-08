@@ -193,4 +193,5 @@ Update README and memory with the new TUI behavior, command, key bindings, and v
 - [x] Add direct `1`-`6` pane hotkeys for watchlist, detail, chart, book, tape, and status.
 - [x] Split the Ratatui header into a two-line status/control rail so live mode, focused pane, density, chart window, filter, and primary keyboard controls stay readable on smaller terminals.
 - [x] Upgrade the watchlist into a denser market board with rank, UP/DN movement, signed flow, top-book depth, and quality badges.
+- [x] Make the market board width-aware so 120-column terminals use compact columns without clipping movement signals.
 - Consider deeper order-book/tape interactions and persisted TUI preferences after the focused-pane state is stable.
