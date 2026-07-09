@@ -422,6 +422,8 @@ fn cockpit_header_renders_adaptive_layout_profile() {
     assert!(medium.contains("layout medium 120x40"));
     assert!(narrow.contains("layout narrow 72x24"));
     assert!(wide.contains("VISUAL plain fallback"));
+    assert!(medium.contains("VIS plain"));
+    assert!(narrow.contains("VIS plain"));
     assert!(!medium.contains("VISUAL plain fallback"));
     assert!(!wide.contains("\u{1b}["));
 
@@ -441,6 +443,19 @@ fn cockpit_header_renders_adaptive_layout_profile() {
         active_fg_before(&colored, "VISUAL"),
         Some("\u{1b}[38;2;0;229;255m")
     );
+
+    let compact_colored = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 120,
+            height: 40,
+        },
+        RatatuiColorMode::Color,
+    )
+    .expect("renders colored compact visual rail");
+    assert!(compact_colored.contains("VIS"));
+    assert!(compact_colored.contains("ansi"));
+    assert!(compact_colored.contains("\u{1b}[38;2;0;255;154m▲"));
 }
 
 #[test]
@@ -1004,7 +1019,7 @@ fn compact_medium_and_standard_wide_rails_fit_without_half_words() {
     .expect("renders standard-wide compact rails");
 
     assert!(compact.contains(
-        "STATUS LIVE  REC ready  view overview pane watchlist chart 15m  filter RO-live"
+        "STATUS LIVE  REC ready  VIS plain  view overview pane watchlist chart 15m  filter RO-live"
     ));
     assert!(compact.contains(
         "DESK CMD g/p/s/t/d/z/sp/?/q | visible watch/detail/chart/book/tape | hidden status"
@@ -2098,7 +2113,7 @@ fn narrow_cockpit_collapses_to_watchlist_and_detail_without_tape() {
 
     assert!(rendered.contains("WATCHLIST"));
     assert!(rendered.contains("DETAIL"));
-    assert!(rendered.contains("v:overview p:watchlist d:balanced c:15m"));
+    assert!(rendered.contains("v:ov p:watch d:bal c:15m"));
     assert!(rendered.contains("j/k ent /pstdzsp h? q"));
     assert!(rendered.contains("INT rows"));
     assert!(rendered.contains(" dn "));

@@ -667,7 +667,30 @@ fn render_header(
 
 fn header_visual_path_spans(color_mode: RatatuiColorMode, compact: bool) -> Vec<Span<'static>> {
     if compact {
-        return Vec::new();
+        let mut spans = vec![
+            Span::raw("  "),
+            Span::styled(
+                "VIS ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(
+                color_mode.palette_label(),
+                Style::default()
+                    .fg(visual_path_color(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+        ];
+        if color_mode != RatatuiColorMode::NoColor {
+            spans.extend([
+                Span::raw(" "),
+                Span::styled("▲", Style::default().fg(success(color_mode))),
+                Span::styled("▼", Style::default().fg(danger(color_mode))),
+                Span::styled("●", Style::default().fg(warn(color_mode))),
+            ]);
+        }
+        return spans;
     }
 
     vec![
@@ -4159,13 +4182,43 @@ fn narrow_ui_mode_label(state: &WorkstationUiState) -> String {
     };
     format!(
         "v:{} p:{} d:{} c:{}{}{}",
-        state.view().label(),
-        state.focused_pane().label(),
-        state.density().label(),
+        compact_view_label(state.view()),
+        compact_pane_label(state.focused_pane()),
+        compact_density_label(state.density().label()),
         state.chart_window().label(),
         zoom,
         command
     )
+}
+
+fn compact_view_label(view: WorkstationView) -> &'static str {
+    match view {
+        WorkstationView::Overview => "ov",
+        WorkstationView::Flow => "fl",
+        WorkstationView::Quality => "ql",
+        WorkstationView::Metadata => "mt",
+        WorkstationView::Explain => "ex",
+    }
+}
+
+fn compact_pane_label(pane: WorkstationPane) -> &'static str {
+    match pane {
+        WorkstationPane::Watchlist => "watch",
+        WorkstationPane::Detail => "detail",
+        WorkstationPane::Chart => "chart",
+        WorkstationPane::Book => "book",
+        WorkstationPane::Tape => "tape",
+        WorkstationPane::Status => "ops",
+    }
+}
+
+fn compact_density_label(label: &str) -> &'static str {
+    match label {
+        "compact" => "cmp",
+        "balanced" => "bal",
+        "dense" => "dns",
+        _ => "bal",
+    }
 }
 
 fn centered_rect(percent_x: u16, percent_y: u16, area: Rect) -> Rect {
