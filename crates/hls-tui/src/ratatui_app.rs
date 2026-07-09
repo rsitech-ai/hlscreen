@@ -119,18 +119,34 @@ pub fn render_ratatui_snapshot_for_test(
     let buffer = terminal.backend().buffer();
     let area = buffer.area;
     let mut rendered = String::new();
-    if color_mode == RatatuiColorMode::Color {
-        rendered.push_str("\x1b[36m");
-    }
     for y in area.y..area.y + area.height {
-        for x in area.x..area.x + area.width {
-            rendered.push_str(buffer[(x, y)].symbol());
+        let mut line = String::new();
+        let last_visible_x = (area.x..area.x + area.width)
+            .rev()
+            .find(|x| !buffer[(*x, y)].symbol().trim().is_empty());
+        if let Some(last_visible_x) = last_visible_x {
+            let mut active_fg = Color::Reset;
+            let mut active_bg = Color::Reset;
+            for x in area.x..=last_visible_x {
+                let cell = &buffer[(x, y)];
+                if color_mode == RatatuiColorMode::Color && cell.fg != active_fg {
+                    push_ansi_fg(&mut line, cell.fg);
+                    active_fg = cell.fg;
+                }
+                if color_mode == RatatuiColorMode::Color && cell.bg != active_bg {
+                    push_ansi_bg(&mut line, cell.bg);
+                    active_bg = cell.bg;
+                }
+                line.push_str(cell.symbol());
+            }
+            if color_mode == RatatuiColorMode::Color
+                && (active_fg != Color::Reset || active_bg != Color::Reset)
+            {
+                line.push_str("\x1b[0m");
+            }
         }
-        trim_trailing_spaces(&mut rendered);
+        rendered.push_str(&line);
         rendered.push('\n');
-    }
-    if color_mode == RatatuiColorMode::Color {
-        rendered.push_str("\x1b[0m");
     }
     Ok(rendered)
 }
@@ -2645,30 +2661,80 @@ fn signed_meter(value: f64) -> String {
         .collect()
 }
 
-fn trim_trailing_spaces(value: &mut String) {
-    while value.ends_with(' ') {
-        value.pop();
+fn push_ansi_fg(output: &mut String, color: Color) {
+    match color {
+        Color::Reset => output.push_str("\x1b[39m"),
+        Color::Black => output.push_str("\x1b[30m"),
+        Color::Red => output.push_str("\x1b[31m"),
+        Color::Green => output.push_str("\x1b[32m"),
+        Color::Yellow => output.push_str("\x1b[33m"),
+        Color::Blue => output.push_str("\x1b[34m"),
+        Color::Magenta => output.push_str("\x1b[35m"),
+        Color::Cyan => output.push_str("\x1b[36m"),
+        Color::Gray => output.push_str("\x1b[37m"),
+        Color::DarkGray => output.push_str("\x1b[90m"),
+        Color::LightRed => output.push_str("\x1b[91m"),
+        Color::LightGreen => output.push_str("\x1b[92m"),
+        Color::LightYellow => output.push_str("\x1b[93m"),
+        Color::LightBlue => output.push_str("\x1b[94m"),
+        Color::LightMagenta => output.push_str("\x1b[95m"),
+        Color::LightCyan => output.push_str("\x1b[96m"),
+        Color::White => output.push_str("\x1b[97m"),
+        Color::Rgb(red, green, blue) => {
+            output.push_str(&format!("\x1b[38;2;{red};{green};{blue}m"));
+        }
+        Color::Indexed(index) => {
+            output.push_str(&format!("\x1b[38;5;{index}m"));
+        }
+    }
+}
+
+fn push_ansi_bg(output: &mut String, color: Color) {
+    match color {
+        Color::Reset => output.push_str("\x1b[49m"),
+        Color::Black => output.push_str("\x1b[40m"),
+        Color::Red => output.push_str("\x1b[41m"),
+        Color::Green => output.push_str("\x1b[42m"),
+        Color::Yellow => output.push_str("\x1b[43m"),
+        Color::Blue => output.push_str("\x1b[44m"),
+        Color::Magenta => output.push_str("\x1b[45m"),
+        Color::Cyan => output.push_str("\x1b[46m"),
+        Color::Gray => output.push_str("\x1b[47m"),
+        Color::DarkGray => output.push_str("\x1b[100m"),
+        Color::LightRed => output.push_str("\x1b[101m"),
+        Color::LightGreen => output.push_str("\x1b[102m"),
+        Color::LightYellow => output.push_str("\x1b[103m"),
+        Color::LightBlue => output.push_str("\x1b[104m"),
+        Color::LightMagenta => output.push_str("\x1b[105m"),
+        Color::LightCyan => output.push_str("\x1b[106m"),
+        Color::White => output.push_str("\x1b[107m"),
+        Color::Rgb(red, green, blue) => {
+            output.push_str(&format!("\x1b[48;2;{red};{green};{blue}m"));
+        }
+        Color::Indexed(index) => {
+            output.push_str(&format!("\x1b[48;5;{index}m"));
+        }
     }
 }
 
 fn accent(color_mode: RatatuiColorMode) -> Color {
     match color_mode {
         RatatuiColorMode::NoColor => Color::White,
-        RatatuiColorMode::Auto | RatatuiColorMode::Color => Color::Cyan,
+        RatatuiColorMode::Auto | RatatuiColorMode::Color => Color::Rgb(0, 229, 255),
     }
 }
 
 fn success(color_mode: RatatuiColorMode) -> Color {
     match color_mode {
         RatatuiColorMode::NoColor => Color::White,
-        RatatuiColorMode::Auto | RatatuiColorMode::Color => Color::Green,
+        RatatuiColorMode::Auto | RatatuiColorMode::Color => Color::Rgb(0, 255, 154),
     }
 }
 
 fn danger(color_mode: RatatuiColorMode) -> Color {
     match color_mode {
         RatatuiColorMode::NoColor => Color::White,
-        RatatuiColorMode::Auto | RatatuiColorMode::Color => Color::Red,
+        RatatuiColorMode::Auto | RatatuiColorMode::Color => Color::Rgb(255, 77, 109),
     }
 }
 
@@ -2685,13 +2751,13 @@ fn flow_color(value: f64, color_mode: RatatuiColorMode) -> Color {
 fn warn(color_mode: RatatuiColorMode) -> Color {
     match color_mode {
         RatatuiColorMode::NoColor => Color::White,
-        RatatuiColorMode::Auto | RatatuiColorMode::Color => Color::Yellow,
+        RatatuiColorMode::Auto | RatatuiColorMode::Color => Color::Rgb(255, 214, 102),
     }
 }
 
 fn text(color_mode: RatatuiColorMode) -> Color {
     match color_mode {
         RatatuiColorMode::NoColor => Color::White,
-        RatatuiColorMode::Auto | RatatuiColorMode::Color => Color::Gray,
+        RatatuiColorMode::Auto | RatatuiColorMode::Color => Color::Rgb(198, 208, 222),
     }
 }
