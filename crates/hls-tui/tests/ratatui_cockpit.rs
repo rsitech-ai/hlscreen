@@ -1551,6 +1551,60 @@ fn expanded_watchlist_renders_market_heatmap_deck() {
 }
 
 #[test]
+fn expanded_watchlist_renders_metadata_cohort_intelligence() {
+    let mut snapshots = directional_snapshots();
+    snapshots[0]
+        .metadata
+        .as_mut()
+        .expect("hype metadata")
+        .cohort_tags = vec![
+        "new_listing".to_owned(),
+        "fresh_liquidity".to_owned(),
+        "low_float".to_owned(),
+    ];
+    snapshots[0]
+        .metadata
+        .as_mut()
+        .expect("hype metadata")
+        .seeded_usdc = Some(1_250_000.0);
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Watchlist),
+        snapshots.len(),
+    );
+    state.apply(WorkstationAction::TogglePaneZoom, snapshots.len());
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    )
+    .with_candles(fixture_candles());
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 190,
+            height: 52,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders expanded watchlist cohort intelligence");
+
+    assert!(rendered.contains("COHORT INTELLIGENCE"));
+    assert!(rendered.contains("new 01"));
+    assert!(rendered.contains("fresh 01"));
+    assert!(rendered.contains("low-float 01"));
+    assert!(rendered.contains("unknown 01"));
+    assert!(rendered.contains("seed leader HYPE/USDC $1.2M"));
+    assert!(rendered.contains("selected HYPE/USDC"));
+    assert!(rendered.contains("listing"));
+    assert!(rendered.contains("tags new_listing,fresh_liquidity,low_float"));
+    assert!(rendered.contains("public metadata only"));
+    assert!(rendered.contains("not advice"));
+}
+
+#[test]
 fn expanded_watchlist_renders_command_center_deck() {
     let mut snapshots = directional_snapshots();
     snapshots[0].tob_depth_usd = Some(245.0);
