@@ -283,6 +283,22 @@ fn render_header(
     color_mode: RatatuiColorMode,
 ) {
     let filter = filter_label(&model.title, &model.request);
+    let narrow = area.width < 90;
+    let mode_label = if narrow {
+        narrow_ui_mode_label(&model.ui_state)
+    } else {
+        compact_ui_mode_label(&model.ui_state)
+    };
+    let status_tail = if narrow {
+        format!("  {mode_label}")
+    } else {
+        format!("  {mode_label}  filter:{filter}")
+    };
+    let controls = if narrow {
+        "j/k 1-6 tab / p s t ? q"
+    } else {
+        "j/k row  1-6 panes  tab views  / filter  p preset  s sort  t chart  ? q"
+    };
     let text = vec![
         Line::from(vec![
             Span::styled(
@@ -296,10 +312,7 @@ fn render_header(
                 model.recorder_status.clone(),
                 Style::default().fg(success(color_mode)),
             ),
-            Span::raw(format!(
-                "  {}  filter:{filter}",
-                compact_ui_mode_label(&model.ui_state)
-            )),
+            Span::raw(status_tail),
         ]),
         Line::from(vec![
             Span::styled(
@@ -308,9 +321,9 @@ fn render_header(
                     .fg(accent(color_mode))
                     .add_modifier(Modifier::BOLD),
             ),
-            Span::raw("j/k row  1-6 panes  tab views  / filter  p preset  s sort  t chart  ? q"),
+            Span::raw(controls),
         ]),
-        market_internals_line(model, color_mode),
+        market_internals_line(model, color_mode, narrow),
     ];
     frame.render_widget(
         Paragraph::new(text).block(
@@ -323,7 +336,11 @@ fn render_header(
     );
 }
 
-fn market_internals_line(model: &RatatuiFrameModel, color_mode: RatatuiColorMode) -> Line<'static> {
+fn market_internals_line(
+    model: &RatatuiFrameModel,
+    color_mode: RatatuiColorMode,
+    compact: bool,
+) -> Line<'static> {
     let rows = screened_rows(model);
     let up = rows
         .iter()
@@ -351,6 +368,27 @@ fn market_internals_line(model: &RatatuiFrameModel, color_mode: RatatuiColorMode
         .filter_map(|row| row.tob_depth_usd)
         .filter(|value| value.is_finite())
         .sum::<f64>();
+    if compact {
+        return Line::from(vec![
+            Span::styled(
+                "INT ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(format!(
+                "rows {:02} up {:02} dn {:02} tr {:02} st {:02} fl {} dp {}",
+                rows.len().min(99),
+                up.min(99),
+                down.min(99),
+                tradeable.min(99),
+                stale.min(99),
+                format_usd_signed(Some(signed_flow)),
+                format_usd(Some(depth))
+            )),
+        ]);
+    }
+
     Line::from(vec![
         Span::styled(
             "INTERNALS ",
@@ -1010,6 +1048,21 @@ fn compact_ui_mode_label(state: &WorkstationUiState) -> String {
         .unwrap_or_default();
     format!(
         "view:{} pane:{} dens:{} chart:{}{}",
+        state.view().label(),
+        state.focused_pane().label(),
+        state.density().label(),
+        state.chart_window().label(),
+        command
+    )
+}
+
+fn narrow_ui_mode_label(state: &WorkstationUiState) -> String {
+    let command = state
+        .command()
+        .map(|command| format!(" cmd:{}", command.target().label()))
+        .unwrap_or_default();
+    format!(
+        "v:{} p:{} d:{} c:{}{}",
         state.view().label(),
         state.focused_pane().label(),
         state.density().label(),
