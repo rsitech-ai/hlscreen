@@ -1181,27 +1181,24 @@ fn detail_lines(
 
     match view {
         WorkstationView::Overview => {
-            let mut lines = vec![heading, tabs, quote_strip_line(row, color_mode)];
+            let show_pair_snapshot = !compact && width >= 96;
+            let mut lines = vec![
+                heading,
+                tabs,
+                quote_strip_line(row, color_mode, show_pair_snapshot),
+            ];
             if compact {
                 lines.insert(2, selected_bbo_line(row, color_mode));
             }
             lines.extend(factor_stack_lines(row, color_mode, compact));
             lines.extend(liquidity_radar_lines(row, color_mode));
-            lines.extend([
-                Line::from(format!(
-                    "flow30 {} | bbo ofi {} | depth {} | imbalance {}",
-                    format_usd_signed(row.signed_notional_flow_30s),
-                    format_usd_signed(row.bbo_ofi_proxy_30s),
-                    format_usd(row.tob_depth_usd),
-                    format_signed(row.tob_imbalance, "")
-                )),
-                Line::from(format!(
-                    "metadata {} | listing {} | source {}",
-                    metadata_label(row),
-                    listing_age(row),
-                    metadata_source(row)
-                )),
-            ]);
+            lines.extend([Line::from(format!(
+                "flow30 {} | bbo ofi {} | depth {} | imbalance {}",
+                format_usd_signed(row.signed_notional_flow_30s),
+                format_usd_signed(row.bbo_ofi_proxy_30s),
+                format_usd(row.tob_depth_usd),
+                format_signed(row.tob_imbalance, "")
+            ))]);
             lines
         }
         WorkstationView::Flow => {
@@ -1333,21 +1330,60 @@ fn detail_heading_line(
     Line::from(spans)
 }
 
-fn quote_strip_line(row: &FeatureSnapshot, color_mode: RatatuiColorMode) -> Line<'static> {
-    Line::from(vec![
-        Span::styled(
-            "QUOTE STRIP ",
-            Style::default()
-                .fg(accent(color_mode))
-                .add_modifier(Modifier::BOLD),
-        ),
+fn quote_strip_line(
+    row: &FeatureSnapshot,
+    color_mode: RatatuiColorMode,
+    show_pair_snapshot: bool,
+) -> Line<'static> {
+    let mut spans = vec![Span::styled(
+        "QUOTE STRIP ",
+        Style::default()
+            .fg(accent(color_mode))
+            .add_modifier(Modifier::BOLD),
+    )];
+    if show_pair_snapshot {
+        spans.extend(pair_snapshot_spans(row, color_mode));
+        spans.push(Span::raw(" | "));
+    }
+    spans.extend([
         Span::styled("bid ", Style::default().fg(success(color_mode))),
         Span::raw(format!("{}  ", format_price(row.bid_px))),
         Span::styled("ask ", Style::default().fg(danger(color_mode))),
         Span::raw(format!("{}  ", format_price(row.ask_px))),
         Span::raw(format!("mid {}  ", format_price(mid_price(row)))),
         Span::raw("read-only quote"),
-    ])
+    ]);
+    Line::from(spans)
+}
+
+fn pair_snapshot_spans(row: &FeatureSnapshot, color_mode: RatatuiColorMode) -> Vec<Span<'static>> {
+    vec![
+        Span::styled(
+            "PAIR SNAPSHOT ",
+            Style::default()
+                .fg(accent(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw("read-only selected pair | "),
+        Span::raw(format!(
+            "trade {} | resilience {} | freshness {} | ",
+            row.tradeability_state.as_str(),
+            row.resilience_state.as_str(),
+            staleness_label(&row.staleness_state)
+        )),
+        Span::styled(
+            format!("conf {}", row.confidence.score),
+            Style::default().fg(confidence_color(row.confidence.score, color_mode)),
+        ),
+    ]
+}
+
+fn staleness_label(staleness: &StalenessState) -> &'static str {
+    match staleness {
+        StalenessState::Fresh => "fresh",
+        StalenessState::Stale => "stale",
+        StalenessState::Incomplete => "incomplete",
+    }
 }
 
 fn mid_price(row: &FeatureSnapshot) -> Option<f64> {
@@ -1556,21 +1592,21 @@ fn factor_stack_lines(
         .collect::<Vec<_>>()
         .join(" | ");
 
-    vec![
-        Line::from(vec![
-            Span::styled(
-                "FACTOR STACK ",
-                Style::default()
-                    .fg(accent(color_mode))
-                    .add_modifier(Modifier::BOLD),
-            ),
-            Span::raw(format!(
-                "score raw {:.1} adj {:.1} conf {}",
-                breakdown.raw_total, breakdown.adjusted_total, breakdown.confidence_score
-            )),
-        ]),
-        Line::from(component_text),
-    ]
+    vec![Line::from(vec![
+        Span::styled(
+            "FACTOR STACK ",
+            Style::default()
+                .fg(accent(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw(format!(
+            "score raw {:.1} adj {:.1} conf {} | {}",
+            breakdown.raw_total,
+            breakdown.adjusted_total,
+            breakdown.confidence_score,
+            component_text
+        )),
+    ])]
 }
 
 fn why_ranked_deck_lines(
@@ -3946,6 +3982,16 @@ fn flow_color(value: f64, color_mode: RatatuiColorMode) -> Color {
         danger(color_mode)
     } else {
         text(color_mode)
+    }
+}
+
+fn confidence_color(score: u8, color_mode: RatatuiColorMode) -> Color {
+    if score >= 85 {
+        success(color_mode)
+    } else if score >= 70 {
+        warn(color_mode)
+    } else {
+        danger(color_mode)
     }
 }
 
