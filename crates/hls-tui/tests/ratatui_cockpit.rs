@@ -2199,6 +2199,41 @@ fn wide_chart_renders_selected_pair_public_prints_strip() {
 }
 
 #[test]
+fn wide_chart_renders_public_print_markers_on_candles() {
+    let snapshots = fixture_snapshots();
+    let candles = directional_chart_candles(&snapshots[0].symbol);
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Chart),
+        snapshots.len(),
+    );
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    )
+    .with_candles(candles)
+    .with_trades(fixture_trades());
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 220,
+            height: 52,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders chart print markers");
+
+    assert!(rendered.contains("[FOCUS] CANDLES"));
+    assert!(rendered.contains("PRINT MARKERS"));
+    assert!(rendered.contains("BS buy 1 sell 1"));
+    assert!(rendered.contains("net +$35"));
+    assert!(rendered.contains("public prints no fills"));
+}
+
+#[test]
 fn wide_chart_renders_selected_pair_order_pressure_lane() {
     let snapshots = directional_snapshots();
     let mut state = WorkstationUiState::default();
