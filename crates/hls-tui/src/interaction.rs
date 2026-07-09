@@ -285,6 +285,7 @@ impl Default for WorkstationUiPreferences {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorkstationUiState {
     selected: usize,
+    selected_symbol: Option<String>,
     view: WorkstationView,
     focused_pane: WorkstationPane,
     density: WorkstationDensity,
@@ -301,6 +302,7 @@ impl Default for WorkstationUiState {
     fn default() -> Self {
         Self {
             selected: 0,
+            selected_symbol: None,
             view: WorkstationView::Overview,
             focused_pane: WorkstationPane::Watchlist,
             density: WorkstationDensity::Balanced,
@@ -341,11 +343,26 @@ impl WorkstationUiState {
         }
     }
 
+    pub fn selected_symbol(&self) -> Option<&str> {
+        self.selected_symbol.as_deref()
+    }
+
     pub fn select_index(&mut self, index: usize, row_count: usize) {
+        self.selected_symbol = None;
         if row_count == 0 {
             self.selected = 0;
         } else {
             self.selected = index.min(row_count - 1);
+        }
+    }
+
+    pub fn select_symbol(&mut self, symbol: impl Into<String>, index: usize, row_count: usize) {
+        if row_count == 0 {
+            self.selected = 0;
+            self.selected_symbol = None;
+        } else {
+            self.selected = index.min(row_count - 1);
+            self.selected_symbol = Some(symbol.into());
         }
     }
 
@@ -417,9 +434,13 @@ impl WorkstationUiState {
             WorkstationAction::Down => self.apply_directional_down(row_count),
             WorkstationAction::PageUp => self.apply_page_up(),
             WorkstationAction::PageDown => self.apply_page_down(row_count),
-            WorkstationAction::Home => self.selected = 0,
+            WorkstationAction::Home => {
+                self.selected_symbol = None;
+                self.selected = 0;
+            }
             WorkstationAction::End => {
                 if row_count > 0 {
+                    self.selected_symbol = None;
                     self.selected = row_count - 1;
                 }
             }
@@ -475,10 +496,14 @@ impl WorkstationUiState {
 
     fn apply_directional_up(&mut self, row_count: usize) {
         match self.focused_pane {
-            WorkstationPane::Watchlist => self.selected = self.selected.saturating_sub(1),
+            WorkstationPane::Watchlist => {
+                self.selected_symbol = None;
+                self.selected = self.selected.saturating_sub(1);
+            }
             WorkstationPane::Detail => self.view = self.view.previous(),
             WorkstationPane::Chart => self.chart_window = self.chart_window.previous(),
             WorkstationPane::Book | WorkstationPane::Tape | WorkstationPane::Status => {
+                self.selected_symbol = None;
                 self.selected = self.selected.saturating_sub(1);
             }
         }
@@ -490,6 +515,7 @@ impl WorkstationUiState {
         match self.focused_pane {
             WorkstationPane::Watchlist => {
                 if row_count > 0 {
+                    self.selected_symbol = None;
                     self.selected = (self.selected + 1).min(row_count - 1);
                 }
             }
@@ -497,6 +523,7 @@ impl WorkstationUiState {
             WorkstationPane::Chart => self.chart_window = self.chart_window.next(),
             WorkstationPane::Book | WorkstationPane::Tape | WorkstationPane::Status => {
                 if row_count > 0 {
+                    self.selected_symbol = None;
                     self.selected = (self.selected + 1).min(row_count - 1);
                 }
             }
@@ -507,12 +534,14 @@ impl WorkstationUiState {
 
     fn apply_page_up(&mut self) {
         if self.focused_pane == WorkstationPane::Watchlist {
+            self.selected_symbol = None;
             self.selected = self.selected.saturating_sub(5);
         }
     }
 
     fn apply_page_down(&mut self, row_count: usize) {
         if self.focused_pane == WorkstationPane::Watchlist && row_count > 0 {
+            self.selected_symbol = None;
             self.selected = (self.selected + 5).min(row_count - 1);
         }
     }

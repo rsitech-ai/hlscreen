@@ -499,6 +499,35 @@ fn narrow_watchlist_scrolls_keyboard_selection_into_view() {
 }
 
 #[test]
+fn watchlist_keeps_symbol_jump_selected_after_live_rank_reorder() {
+    let mut snapshots = directional_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.select_symbol("DOWN/USDC", 1, snapshots.len());
+    snapshots.swap(0, 1);
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    );
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 120,
+            height: 36,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders symbol-pinned selection after reorder");
+
+    assert!(rendered.contains("[FOCUS] WATCHLIST 1/2"));
+    assert!(rendered.contains(">01"));
+    assert!(rendered.contains("DOWN/USDC"));
+    assert!(!rendered.contains("[FOCUS] WATCHLIST 2/2"));
+}
+
+#[test]
 fn market_board_renders_score_and_bias_columns() {
     let model = RatatuiFrameModel::new(
         fixture_snapshots(),
