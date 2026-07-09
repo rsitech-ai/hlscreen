@@ -583,8 +583,12 @@ fn book_pane_renders_bid_ask_share_and_notional_bars() {
     assert!(rendered.contains("[FOCUS] BOOK"));
     assert!(rendered.contains("share bid"));
     assert!(rendered.contains("ask"));
+    assert!(rendered.contains("DEPTH CONSOLE"));
+    assert!(rendered.contains("bid pressure"));
+    assert!(rendered.contains("ask pressure"));
     assert!(rendered.contains("BID notional"));
     assert!(rendered.contains("ASK notional"));
+    assert!(rendered.contains("BBO depth proxy"));
     assert!(rendered.contains("BOOK proxy only"));
 }
 
