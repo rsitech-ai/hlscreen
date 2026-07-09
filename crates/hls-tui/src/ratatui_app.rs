@@ -834,6 +834,10 @@ fn market_pulse_line(model: &RatatuiFrameModel, color_mode: RatatuiColorMode) ->
             )
         },
     );
+    let p95_age = row_age_p95_ms(&rows);
+    let reconnects = health_metric(&model.health_status, "reconnects").unwrap_or(0);
+    let gaps = health_metric(&model.health_status, "gaps").unwrap_or(0);
+    let pipeline_color = pipeline_health_color(p95_age, reconnects, gaps, color_mode);
 
     Line::from(vec![
         Span::styled(
@@ -850,13 +854,42 @@ fn market_pulse_line(model: &RatatuiFrameModel, color_mode: RatatuiColorMode) ->
         ),
         Span::raw(format!("pulse {}  ", market_heat_bar(up, down))),
         Span::raw(format!(
-            "breadth {:02}/{:02}  {}  {}  public rows",
+            "breadth {:02}/{:02}  {}  {}  public rows  ",
             up.min(99),
             down.min(99),
             move_text,
             flow_text
         )),
+        Span::styled(
+            "PIPELINE ",
+            Style::default()
+                .fg(accent(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::styled(
+            format!("p95 {} ", format_duration_ms(p95_age)),
+            Style::default()
+                .fg(pipeline_color)
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw(format!("re {reconnects} gaps {gaps}")),
     ])
+}
+
+fn pipeline_health_color(
+    p95_age: Option<i64>,
+    reconnects: u64,
+    gaps: u64,
+    color_mode: RatatuiColorMode,
+) -> Color {
+    let stale = p95_age.is_some_and(|age| age > 2_000);
+    if gaps > 0 || stale {
+        danger(color_mode)
+    } else if reconnects > 0 || p95_age.is_some_and(|age| age > 1_000) {
+        warn(color_mode)
+    } else {
+        success(color_mode)
+    }
 }
 
 fn market_regime_label(up: usize, down: usize) -> &'static str {
