@@ -65,6 +65,9 @@ use crate::commands::record::{default_run_id, enabled_outputs, parse_symbols};
 const DEFAULT_WS_URL: &str = "wss://api.hyperliquid.xyz/ws";
 const DEFAULT_LIVE_DURATION_SECS: u64 = 60;
 const DEFAULT_REFRESH_SECS: u64 = 30;
+const DEFAULT_LIVE_TOP: usize = 50;
+const DEFAULT_TUI_TOP: usize = 10;
+const DEFAULT_TUI_REFRESH_SECS: u64 = 1;
 const DEFAULT_MAX_SUBSCRIPTIONS: usize = 980;
 const LIVE_RECORDER_QUEUE_CAPACITY: usize = 65_536;
 const INITIAL_RECONNECT_BACKOFF_MS: u64 = 1_000;
@@ -77,7 +80,7 @@ pub struct LiveArgs {
     #[arg(long)]
     pub symbols: Option<String>,
 
-    #[arg(long, default_value_t = 50)]
+    #[arg(long, default_value_t = DEFAULT_LIVE_TOP)]
     pub top: usize,
 
     #[arg(long)]
@@ -139,6 +142,98 @@ pub struct LiveArgs {
     pub once: bool,
 }
 
+#[derive(Debug, Args)]
+pub struct TuiArgs {
+    #[arg(long)]
+    pub symbols: Option<String>,
+
+    #[arg(long, default_value_t = DEFAULT_TUI_TOP)]
+    pub top: usize,
+
+    #[arg(long)]
+    pub all_symbols: bool,
+
+    #[arg(long, default_value_t = DEFAULT_LIVE_DURATION_SECS)]
+    pub duration_secs: u64,
+
+    #[arg(long, default_value_t = DEFAULT_TUI_REFRESH_SECS)]
+    pub refresh_secs: u64,
+
+    /// TUI color policy: always forces ANSI color, auto follows terminal/env detection, never disables it.
+    #[arg(long, value_enum, default_value_t = LiveTuiColor::Always)]
+    pub color: LiveTuiColor,
+
+    #[arg(long, default_value_t = DEFAULT_MAX_SUBSCRIPTIONS)]
+    pub max_subscriptions: usize,
+
+    #[arg(long, default_value = DEFAULT_WS_URL)]
+    pub ws_url: String,
+
+    #[arg(long)]
+    pub preset: Option<String>,
+
+    #[arg(long)]
+    pub r#where: Option<String>,
+
+    #[arg(long)]
+    pub sort: Option<String>,
+
+    #[arg(long)]
+    pub record: bool,
+
+    #[arg(long)]
+    pub raw: bool,
+
+    #[arg(long)]
+    pub parquet: bool,
+
+    #[arg(long)]
+    pub normalized: bool,
+
+    #[arg(long)]
+    pub run_id: Option<String>,
+
+    #[arg(long, default_value = ".hls")]
+    pub data_dir: PathBuf,
+
+    #[arg(long, hide = true)]
+    pub fixture_file: Option<PathBuf>,
+
+    #[arg(long, hide = true)]
+    pub metadata_file: Option<PathBuf>,
+
+    #[arg(long, hide = true)]
+    pub once: bool,
+}
+
+impl TuiArgs {
+    pub(crate) fn into_live_args(self) -> LiveArgs {
+        LiveArgs {
+            symbols: self.symbols,
+            top: self.top,
+            all_symbols: self.all_symbols,
+            duration_secs: self.duration_secs,
+            refresh_secs: self.refresh_secs,
+            tui: true,
+            color: self.color,
+            max_subscriptions: self.max_subscriptions,
+            ws_url: self.ws_url,
+            preset: self.preset,
+            r#where: self.r#where,
+            sort: self.sort,
+            record: self.record,
+            raw: self.raw,
+            parquet: self.parquet,
+            normalized: self.normalized,
+            run_id: self.run_id,
+            data_dir: self.data_dir,
+            fixture_file: self.fixture_file,
+            metadata_file: self.metadata_file,
+            once: self.once,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq, ValueEnum)]
 pub enum LiveTuiColor {
     Auto,
@@ -159,6 +254,10 @@ pub async fn run(args: LiveArgs) -> anyhow::Result<()> {
     }
 
     run_network_live(args).await
+}
+
+pub async fn run_tui(args: TuiArgs) -> anyhow::Result<()> {
+    run(args.into_live_args()).await
 }
 
 async fn run_fixture_live(args: LiveArgs, fixture_file: &PathBuf) -> anyhow::Result<()> {
@@ -283,6 +382,7 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
     let keyboard_interactive =
         render_live_tui && io::stdin().is_terminal() && io::stderr().is_terminal();
     let _terminal_mode = LiveTuiGuard::enable(keyboard_interactive)?;
+    let mut tui_renderer = render_live_tui.then(LiveTuiRenderer::new).transpose()?;
     let mut tui_state = render_live_tui
         .then(|| WorkstationUiState::from_preferences(load_tui_preferences(&args.data_dir)));
 
@@ -304,7 +404,7 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
         &mut state,
         &mut screen_request,
         &metadata,
-        render_live_tui,
+        tui_renderer.as_mut(),
         color_mode,
         keyboard_interactive,
         tui_state.as_mut(),
@@ -472,7 +572,6 @@ struct LiveProgressContext<'a> {
     state: &'a LiveMarketState,
     screen_request: &'a ScreenRequest,
     metadata: &'a [MetadataEnrichment],
-    render_live_tui: bool,
     color_mode: RatatuiColorMode,
     tui_state: Option<&'a WorkstationUiState>,
     started: Instant,
@@ -508,7 +607,7 @@ async fn drive_live_ws(
     state: &mut LiveMarketState,
     screen_request: &mut ScreenRequest,
     metadata: &[MetadataEnrichment],
-    render_live_tui: bool,
+    mut tui_frame_sink: Option<&mut LiveTuiRenderer>,
     color_mode: RatatuiColorMode,
     keyboard_interactive: bool,
     mut tui_state: Option<&mut WorkstationUiState>,
@@ -531,7 +630,7 @@ async fn drive_live_ws(
             state,
             screen_request,
             metadata,
-            render_live_tui,
+            tui_frame_sink.as_deref_mut(),
             color_mode,
             keyboard_interactive,
             tui_state.as_deref_mut(),
@@ -604,7 +703,7 @@ async fn drive_live_connection(
     state: &mut LiveMarketState,
     screen_request: &mut ScreenRequest,
     metadata: &[MetadataEnrichment],
-    render_live_tui: bool,
+    mut tui_frame_sink: Option<&mut LiveTuiRenderer>,
     color_mode: RatatuiColorMode,
     keyboard_interactive: bool,
     mut tui_state: Option<&mut WorkstationUiState>,
@@ -667,12 +766,11 @@ async fn drive_live_connection(
                     state,
                     screen_request,
                     metadata,
-                    render_live_tui,
                     color_mode,
                     tui_state: tui_state.as_deref(),
                     started,
                     summary,
-                })?;
+                }, tui_frame_sink.as_deref_mut())?;
             }
             _ = ui_events.tick(), if keyboard_interactive => {
                 if let Some(ui_state) = tui_state.as_deref_mut()
@@ -682,12 +780,11 @@ async fn drive_live_connection(
                         state,
                         screen_request,
                         metadata,
-                        render_live_tui,
                         color_mode,
                         tui_state: Some(ui_state),
                         started,
                         summary,
-                    })?;
+                    }, tui_frame_sink.as_deref_mut())?;
                     if ui_state.quit_requested() {
                         let _ = write.send(Message::Close(None)).await;
                         return Ok(ConnectionOutcome::DurationElapsed);
@@ -1018,8 +1115,14 @@ impl LiveRecorderWorker {
     }
 }
 
-fn render_live_progress(ctx: LiveProgressContext<'_>) -> anyhow::Result<()> {
-    if ctx.render_live_tui {
+fn render_live_progress<S>(
+    ctx: LiveProgressContext<'_>,
+    tui_frame_sink: Option<&mut S>,
+) -> anyhow::Result<()>
+where
+    S: LiveTuiFrameSink + ?Sized,
+{
+    if let Some(tui_frame_sink) = tui_frame_sink {
         let mut snapshots = FeatureEngine::default().snapshots(ctx.state, now_ms_i64()?);
         attach_metadata(&mut snapshots, ctx.metadata.to_vec());
         let model = live_tui_model(
@@ -1042,7 +1145,7 @@ fn render_live_progress(ctx: LiveProgressContext<'_>) -> anyhow::Result<()> {
                 ),
             ),
         );
-        draw_live_tui_frame(&model, ctx.color_mode)?;
+        tui_frame_sink.draw(&model, ctx.color_mode)?;
     } else {
         eprintln!(
             "live progress: elapsed_secs={} ws_messages={} market_events={} reconnects={} data_gaps={}",
@@ -1122,21 +1225,6 @@ fn live_tui_trades(state: &LiveMarketState) -> Vec<TradeEvent> {
         .states()
         .flat_map(|state| state.trades.iter().cloned())
         .collect()
-}
-
-fn draw_live_tui_frame(
-    model: &RatatuiFrameModel,
-    color_mode: RatatuiColorMode,
-) -> anyhow::Result<()> {
-    let stderr = io::stderr();
-    let backend = CrosstermBackend::new(stderr);
-    let mut terminal = Terminal::new(backend)?;
-    terminal.clear()?;
-    terminal.draw(|frame| {
-        hls_tui::ratatui_app::render_ratatui_frame(frame, model, color_mode);
-    })?;
-    terminal.backend_mut().flush()?;
-    Ok(())
 }
 
 fn live_ratatui_viewport() -> RatatuiViewport {
@@ -2626,6 +2714,42 @@ impl Drop for LiveTuiGuard {
         if self.raw_enabled {
             let _ = disable_raw_mode();
         }
+    }
+}
+
+trait LiveTuiFrameSink {
+    fn draw(
+        &mut self,
+        model: &RatatuiFrameModel,
+        color_mode: RatatuiColorMode,
+    ) -> anyhow::Result<()>;
+}
+
+struct LiveTuiRenderer {
+    terminal: Terminal<CrosstermBackend<io::Stderr>>,
+}
+
+impl LiveTuiRenderer {
+    fn new() -> anyhow::Result<Self> {
+        let stderr = io::stderr();
+        let backend = CrosstermBackend::new(stderr);
+        let mut terminal = Terminal::new(backend)?;
+        terminal.clear()?;
+        Ok(Self { terminal })
+    }
+}
+
+impl LiveTuiFrameSink for LiveTuiRenderer {
+    fn draw(
+        &mut self,
+        model: &RatatuiFrameModel,
+        color_mode: RatatuiColorMode,
+    ) -> anyhow::Result<()> {
+        self.terminal.draw(|frame| {
+            hls_tui::ratatui_app::render_ratatui_frame(frame, model, color_mode);
+        })?;
+        self.terminal.backend_mut().flush()?;
+        Ok(())
     }
 }
 
@@ -4420,6 +4544,58 @@ mod tests {
         assert!(!env_flag_value_enabled(Some("false")));
         assert!(!env_flag_value_enabled(Some("")));
         assert!(!env_flag_value_enabled(None));
+    }
+
+    #[derive(Default)]
+    struct CountingTuiFrameSink {
+        draws: usize,
+        color_modes: Vec<RatatuiColorMode>,
+    }
+
+    impl LiveTuiFrameSink for CountingTuiFrameSink {
+        fn draw(
+            &mut self,
+            _model: &RatatuiFrameModel,
+            color_mode: RatatuiColorMode,
+        ) -> anyhow::Result<()> {
+            self.draws += 1;
+            self.color_modes.push(color_mode);
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn live_progress_reuses_supplied_tui_frame_sink() {
+        let state = LiveMarketState::new(vec!["HYPE/USDC".to_owned()]);
+        let screen_request = ScreenRequest::default();
+        let summary = LiveDriveSummary {
+            ws_messages: 12,
+            market_events: 34,
+            ..LiveDriveSummary::default()
+        };
+        let mut sink = CountingTuiFrameSink::default();
+
+        for _ in 0..2 {
+            render_live_progress(
+                LiveProgressContext {
+                    state: &state,
+                    screen_request: &screen_request,
+                    metadata: &[],
+                    color_mode: RatatuiColorMode::Color,
+                    tui_state: None,
+                    started: Instant::now(),
+                    summary: &summary,
+                },
+                Some(&mut sink),
+            )
+            .expect("progress render through persistent sink");
+        }
+
+        assert_eq!(sink.draws, 2);
+        assert_eq!(
+            sink.color_modes,
+            vec![RatatuiColorMode::Color, RatatuiColorMode::Color]
+        );
     }
 
     #[derive(Debug, Parser)]
