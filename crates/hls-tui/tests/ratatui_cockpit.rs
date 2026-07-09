@@ -1485,6 +1485,41 @@ fn cockpit_chart_renders_selected_pair_edge_hud() {
 }
 
 #[test]
+fn wide_chart_renders_selected_pair_order_pressure_lane() {
+    let snapshots = directional_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Chart),
+        snapshots.len(),
+    );
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    )
+    .with_candles(fixture_candles());
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 220,
+            height: 52,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders wide chart pressure lane");
+
+    assert!(rendered.contains("ORDER PRESSURE"));
+    assert!(rendered.contains("BID"));
+    assert!(rendered.contains("ASK"));
+    assert!(rendered.contains("bid wall"));
+    assert!(rendered.contains("ask wall"));
+    assert!(rendered.contains("book skew"));
+    assert!(rendered.contains("read-only top-book lens"));
+}
+
+#[test]
 fn cockpit_chart_renders_session_microstructure_strip() {
     let snapshots = directional_snapshots();
     let mut state = WorkstationUiState::default();

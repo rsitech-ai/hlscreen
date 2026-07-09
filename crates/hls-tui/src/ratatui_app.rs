@@ -2038,6 +2038,9 @@ fn render_chart(
                     area.width <= 72,
                 )];
                 lines.extend(selected_pair_edge_hud_lines(row, color_mode));
+                if show_chart_order_pressure(area) {
+                    lines.extend(selected_pair_order_pressure_lines(row, color_mode));
+                }
                 lines.extend(chart_session_strip_lines(row, color_mode));
                 lines.extend([
                     Line::from("Waiting for public 1m candle frames."),
@@ -2071,13 +2074,18 @@ fn render_chart(
         color_mode,
         area.width <= 72,
     )];
+    let show_order_pressure = show_chart_order_pressure(area);
     chart_lines.extend(selected_pair_edge_hud_lines(row, color_mode));
+    if show_order_pressure {
+        chart_lines.extend(selected_pair_order_pressure_lines(row, color_mode));
+    }
     chart_lines.push(chart_move_summary_line(&candles, color_mode));
     chart_lines.push(chart_candle_hud_line(latest, color_mode));
     chart_lines.extend(chart_session_strip_lines(row, color_mode));
     chart_lines.extend(candle_chart_lines(
         &candles,
-        area.height.saturating_sub(11) as usize,
+        area.height
+            .saturating_sub(if show_order_pressure { 14 } else { 11 }) as usize,
         model.ui_state.chart_window().label(),
         color_mode,
     ));
@@ -2088,6 +2096,10 @@ fn render_chart(
             .style(Style::default().fg(text(color_mode))),
         area,
     );
+}
+
+fn show_chart_order_pressure(area: Rect) -> bool {
+    area.width >= 96 && area.height >= 26
 }
 
 fn chart_window_tabs_line(
@@ -2191,6 +2203,68 @@ fn selected_pair_edge_hud_lines(
             ),
             Span::raw(format!(
                 "spread gate {spread_gate} | no execution | public bbo proxy"
+            )),
+        ]),
+    ]
+}
+
+fn selected_pair_order_pressure_lines(
+    row: &FeatureSnapshot,
+    color_mode: RatatuiColorMode,
+) -> Vec<Line<'static>> {
+    let bid_notional = notional(row.bid_px, row.bid_sz);
+    let ask_notional = notional(row.ask_px, row.ask_sz);
+    let (bid_share, ask_share) = quote_share(bid_notional, ask_notional).unwrap_or((0.0, 0.0));
+    let skew = bid_share - ask_share;
+    let bid_wall = depth_bar(bid_share, 12);
+    let ask_wall = depth_bar(ask_share, 12);
+    let skew_label = if skew > 0.08 {
+        "bid-heavy"
+    } else if skew < -0.08 {
+        "ask-heavy"
+    } else {
+        "balanced"
+    };
+
+    vec![
+        Line::from(vec![
+            Span::styled(
+                "ORDER PRESSURE ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw("selected pair "),
+            Span::styled("BID ", Style::default().fg(success(color_mode))),
+            Span::raw(format!(
+                "{} {} | ",
+                percent_label(bid_share),
+                format_usd(bid_notional)
+            )),
+            Span::styled("ASK ", Style::default().fg(danger(color_mode))),
+            Span::raw(format!(
+                "{} {} | read-only top-book lens",
+                percent_label(ask_share),
+                format_usd(ask_notional)
+            )),
+        ]),
+        Line::from(vec![
+            Span::styled("bid wall ", Style::default().fg(success(color_mode))),
+            Span::raw(bid_wall),
+            Span::raw("  "),
+            Span::styled("ask wall ", Style::default().fg(danger(color_mode))),
+            Span::raw(ask_wall),
+        ]),
+        Line::from(vec![
+            Span::styled(
+                "book skew ",
+                Style::default().fg(flow_color(skew, color_mode)),
+            ),
+            Span::raw(signed_meter(skew)),
+            Span::raw(format!(
+                " {skew_label} | tob imbalance {} | ofi {}",
+                format_signed(row.tob_imbalance, ""),
+                format_usd_signed(row.bbo_ofi_proxy_30s)
             )),
         ]),
     ]
