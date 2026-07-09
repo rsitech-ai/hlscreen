@@ -2020,6 +2020,48 @@ fn medium_cockpit_keeps_book_and_tape_visible() {
 }
 
 #[test]
+fn medium_cockpit_renders_lower_pane_keyboard_router() {
+    let model = RatatuiFrameModel::new(
+        fixture_snapshots(),
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        WorkstationUiState::default(),
+    )
+    .with_candles(fixture_candles())
+    .with_trades(fixture_trades());
+
+    let plain = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 120,
+            height: 36,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("plain medium lower pane router renders");
+    let colored = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 120,
+            height: 36,
+        },
+        RatatuiColorMode::Color,
+    )
+    .expect("colored medium lower pane router renders");
+
+    assert!(!plain.contains("\u{1b}["));
+    assert!(plain.contains("ADAPTIVE DESK"));
+    assert!(plain.contains("4 book"));
+    assert!(plain.contains("5 tape"));
+    assert!(plain.contains("public BBO/trades only"));
+    assert!(plain.contains("z zoom"));
+    assert_eq!(
+        active_fg_before(&colored, "ADAPTIVE DESK"),
+        Some("\u{1b}[38;2;0;229;255m")
+    );
+}
+
+#[test]
 fn medium_cockpit_keeps_compact_tape_flow_and_safety_visible() {
     let model = RatatuiFrameModel::new(
         fixture_snapshots(),
