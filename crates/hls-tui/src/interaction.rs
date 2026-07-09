@@ -99,6 +99,8 @@ pub enum WorkstationDensity {
 }
 
 impl WorkstationDensity {
+    pub const ALL: [Self; 3] = [Self::Compact, Self::Balanced, Self::Dense];
+
     pub fn label(self) -> &'static str {
         match self {
             Self::Compact => "compact",
@@ -258,6 +260,23 @@ pub enum WorkstationAction {
     Quit,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct WorkstationUiPreferences {
+    pub view: WorkstationView,
+    pub density: WorkstationDensity,
+    pub chart_window: WorkstationChartWindow,
+}
+
+impl Default for WorkstationUiPreferences {
+    fn default() -> Self {
+        Self {
+            view: WorkstationView::Overview,
+            density: WorkstationDensity::Balanced,
+            chart_window: WorkstationChartWindow::FifteenMinutes,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorkstationUiState {
     selected: usize,
@@ -290,6 +309,23 @@ impl Default for WorkstationUiState {
 }
 
 impl WorkstationUiState {
+    pub fn from_preferences(preferences: WorkstationUiPreferences) -> Self {
+        Self {
+            view: preferences.view,
+            density: preferences.density,
+            chart_window: preferences.chart_window,
+            ..Self::default()
+        }
+    }
+
+    pub fn preferences(&self) -> WorkstationUiPreferences {
+        WorkstationUiPreferences {
+            view: self.view,
+            density: self.density,
+            chart_window: self.chart_window,
+        }
+    }
+
     pub fn selected_index(&self, row_count: usize) -> Option<usize> {
         if row_count == 0 {
             None
