@@ -401,10 +401,11 @@ fn market_internals_line(
                     .add_modifier(Modifier::BOLD),
             ),
             Span::raw(format!(
-                "rows {:02} up {:02} dn {:02} tr {:02} st {:02} fl {} dp {}",
+                "rows {:02} up {:02} dn {:02} heat {} tr {:02} st {:02} fl {} dp {}",
                 rows.len().min(99),
                 up.min(99),
                 down.min(99),
+                market_heat_bar(up, down),
                 tradeable.min(99),
                 stale.min(99),
                 format_usd_signed(Some(signed_flow)),
@@ -421,8 +422,9 @@ fn market_internals_line(
                 .add_modifier(Modifier::BOLD),
         ),
         Span::raw(format!(
-            "rows {:02}  up {:02} down {:02}  tradeable {:02} stale {:02}  flow {}  depth {}",
+            "rows {:02}  heat {}  up {:02} down {:02}  tradeable {:02} stale {:02}  flow {}  depth {}",
             rows.len().min(99),
+            market_heat_bar(up, down),
             up.min(99),
             down.min(99),
             tradeable.min(99),
@@ -431,6 +433,16 @@ fn market_internals_line(
             format_usd(Some(depth))
         )),
     ])
+}
+
+fn market_heat_bar(up: usize, down: usize) -> String {
+    let total = up + down;
+    if total == 0 {
+        return "----".to_owned();
+    }
+    let up_slots = ((up * 4) + (total / 2)) / total;
+    let down_slots = 4usize.saturating_sub(up_slots);
+    format!("{}{}", "█".repeat(up_slots), "░".repeat(down_slots))
 }
 
 fn render_watchlist(
