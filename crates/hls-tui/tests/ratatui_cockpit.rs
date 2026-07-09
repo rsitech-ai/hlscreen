@@ -856,6 +856,39 @@ fn book_pane_renders_bid_ask_share_and_notional_bars() {
 }
 
 #[test]
+fn book_pane_renders_read_only_bbo_ladder() {
+    let snapshots = fixture_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Book),
+        snapshots.len(),
+    );
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    );
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 320,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders bbo ladder");
+
+    assert!(rendered.contains("BBO LADDER"));
+    assert!(rendered.contains("bid 34.9000"));
+    assert!(rendered.contains("mid 35.0000"));
+    assert!(rendered.contains("ask 35.1000"));
+    assert!(rendered.contains("spr 57.1bps"));
+    assert!(rendered.contains("read-only BBO"));
+}
+
+#[test]
 fn wide_book_pane_renders_queue_share_snap() {
     let snapshots = fixture_snapshots();
     let mut state = WorkstationUiState::default();
