@@ -670,14 +670,29 @@ fn score_signal_value(row: &FeatureSnapshot) -> f64 {
 }
 
 fn score_edge_bar(row: &FeatureSnapshot) -> String {
-    let width = 5;
+    let width = 4;
     let ratio = (score_signal_value(row) / 100.0).clamp(0.0, 1.0);
     let filled = ((ratio * width as f64).round() as usize).clamp(1, width);
     format!(
-        "{}{}",
+        "{}{}{}",
+        edge_direction_glyph(row),
         "█".repeat(filled),
         "░".repeat(width.saturating_sub(filled))
     )
+}
+
+fn edge_direction_glyph(row: &FeatureSnapshot) -> &'static str {
+    if row.ret_1m.unwrap_or(0.0) > 0.0 {
+        "▲"
+    } else if row.ret_1m.unwrap_or(0.0) < 0.0 {
+        "▼"
+    } else if row.signed_notional_flow_30s.unwrap_or(0.0) > 0.0 {
+        "▲"
+    } else if row.signed_notional_flow_30s.unwrap_or(0.0) < 0.0 {
+        "▼"
+    } else {
+        "◆"
+    }
 }
 
 fn score_bias_label(row: &FeatureSnapshot) -> String {
