@@ -3515,6 +3515,7 @@ fn cockpit_reflects_keyboard_view_pause_density_and_help_state() {
     assert!(rendered.contains("If the cockpit is black/white"));
     assert!(rendered.contains("avoid --color never"));
     assert!(rendered.contains("wheel panes"));
+    assert!(rendered.contains("active pane click zoom"));
     assert!(rendered.contains("click rows/panes/views/windows/cmds"));
     assert!(rendered.contains("READ-ONLY public market data only"));
     assert!(rendered.contains("[ / ]"));
@@ -3585,6 +3586,7 @@ fn help_overlay_color_mode_renders_operator_keyboard_map() {
     );
     assert!(colored.contains("active pane chart"));
     assert!(colored.contains("wheel panes"));
+    assert!(colored.contains("active pane click zoom"));
     assert!(colored.contains("click rows/panes/views/windows/cmds"));
     assert!(colored.contains("public market data only"));
 }
@@ -3629,7 +3631,8 @@ fn narrow_help_overlay_renders_compact_operator_map() {
     assert!(plain.contains("pane book"));
     assert!(plain.contains("j/k rows"));
     assert!(plain.contains("wheel panes"));
-    assert!(plain.contains("click rows/rails/tabs/cmds"));
+    assert!(plain.contains("active zoom"));
+    assert!(plain.contains("click rows/rails/tabs"));
     assert!(plain.contains("1-6 panes"));
     assert!(plain.contains("w/i/c/b/r/o focus"));
     assert!(plain.contains("g symbol"));
