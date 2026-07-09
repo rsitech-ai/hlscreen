@@ -4588,6 +4588,12 @@ fn render_chart(
             model.ui_state.chart_window(),
             color_mode,
         ));
+        chart_lines.extend(chart_price_action_terminal_lines(
+            row,
+            &candles,
+            model.ui_state.chart_window(),
+            color_mode,
+        ));
     }
     chart_lines.push(chart_move_summary_line(&candles, color_mode));
     chart_lines.push(chart_candle_hud_line(latest, color_mode));
@@ -4607,7 +4613,7 @@ fn render_chart(
         + u16::from(show_trade_markers) * 2
         + u16::from(show_strategy_hud) * 3
         + u16::from(show_structure_tape)
-        + u16::from(show_chart_intel) * 7;
+        + u16::from(show_chart_intel) * 11;
     chart_lines.extend(candle_chart_lines(
         &candles,
         area.height.saturating_sub(chart_overhead) as usize,
@@ -5328,6 +5334,95 @@ fn chart_tactical_matrix_lines(
         Line::from(format!(
             "confidence {} | public candles/BBO/trades only | no orders | not advice",
             row.confidence.score
+        )),
+    ]
+}
+
+fn chart_price_action_terminal_lines(
+    row: &FeatureSnapshot,
+    candles: &[&CandleEvent],
+    active_window: WorkstationChartWindow,
+    color_mode: RatatuiColorMode,
+) -> Vec<Line<'static>> {
+    let Some(first) = candles.first().copied() else {
+        return Vec::new();
+    };
+    let latest = candles.last().copied().unwrap_or(first);
+    let high = candles
+        .iter()
+        .map(|candle| candle.high)
+        .fold(f64::NEG_INFINITY, f64::max);
+    let low = candles
+        .iter()
+        .map(|candle| candle.low)
+        .fold(f64::INFINITY, f64::min);
+    let total_volume = candles
+        .iter()
+        .map(|candle| candle.volume_base.max(0.0))
+        .sum::<f64>();
+    let vwap = if total_volume > 0.0 {
+        candles
+            .iter()
+            .map(|candle| candle.close * candle.volume_base.max(0.0))
+            .sum::<f64>()
+            / total_volume
+    } else {
+        latest.close
+    };
+    let range_pct = if first.open.abs() > f64::EPSILON {
+        Some(((high - low).abs() / first.open.abs()) * 100.0)
+    } else {
+        None
+    };
+    let move_pct = if first.open.abs() > f64::EPSILON {
+        Some(((latest.close - first.open) / first.open) * 100.0)
+    } else {
+        None
+    };
+
+    vec![
+        Line::from(vec![
+            Span::styled(
+                "PRICE ACTION TERMINAL ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(format!(
+                "{} public OHLCV tape | window {}",
+                display_symbol(row),
+                active_window.label()
+            )),
+        ]),
+        Line::from(vec![
+            Span::styled("open ", Style::default().fg(accent(color_mode))),
+            Span::raw(format!("{}  ", format_plain_number(first.open))),
+            Span::styled("high ", Style::default().fg(success(color_mode))),
+            Span::raw(format!("{}  ", format_plain_number(high))),
+            Span::styled("low ", Style::default().fg(danger(color_mode))),
+            Span::raw(format!("{}  ", format_plain_number(low))),
+            Span::styled(
+                "close ",
+                Style::default().fg(flow_color(latest.close - first.open, color_mode)),
+            ),
+            Span::raw(format_plain_number(latest.close)),
+        ]),
+        Line::from(vec![
+            Span::styled("range ", Style::default().fg(warn(color_mode))),
+            Span::raw(format!("{}%  ", format_optional(range_pct, 2))),
+            Span::styled(
+                "move ",
+                Style::default().fg(flow_color(move_pct.unwrap_or_default(), color_mode)),
+            ),
+            Span::raw(format!("{}  ", format_signed(move_pct, "%"))),
+            Span::styled("VWAP ", Style::default().fg(accent(color_mode))),
+            Span::raw(format!("{}  ", format_plain_number(vwap))),
+            Span::styled("volume ", Style::default().fg(warn(color_mode))),
+            Span::raw(format_volume(total_volume)),
+        ]),
+        Line::from(format!(
+            "candles {} | public OHLCV only | no orders | no fills | read-only chart",
+            candles.len()
         )),
     ]
 }
