@@ -1583,9 +1583,12 @@ fn mouse_short_command_cluster_hit(column: u16, start_column: u16) -> Option<Wor
         1 => Some(WorkstationAction::CyclePreset),
         2 => Some(WorkstationAction::CycleSort),
         3 => Some(WorkstationAction::CycleChartWindow),
-        4 => Some(WorkstationAction::TogglePaneZoom),
-        5 => Some(WorkstationAction::FocusPane(WorkstationPane::Status)),
-        6 => Some(WorkstationAction::ToggleHelp),
+        4 => Some(WorkstationAction::ToggleDensity),
+        5 => Some(WorkstationAction::TogglePaneZoom),
+        6 | 7 => Some(WorkstationAction::TogglePause),
+        9 => Some(WorkstationAction::FocusPane(WorkstationPane::Status)),
+        10 => Some(WorkstationAction::ToggleHelp),
+        12 => Some(WorkstationAction::Quit),
         _ => None,
     }
 }
@@ -3135,7 +3138,7 @@ mod tests {
                 Some((72, 24)),
                 20,
             ),
-            Some(WorkstationAction::TogglePaneZoom)
+            Some(WorkstationAction::ToggleDensity)
         );
         assert_eq!(
             mouse_to_workstation_action(
@@ -3149,7 +3152,7 @@ mod tests {
                 Some((72, 24)),
                 20,
             ),
-            Some(WorkstationAction::FocusPane(WorkstationPane::Status))
+            Some(WorkstationAction::TogglePaneZoom)
         );
         assert_eq!(
             mouse_to_workstation_action(
@@ -3163,7 +3166,63 @@ mod tests {
                 Some((72, 24)),
                 20,
             ),
+            Some(WorkstationAction::TogglePause)
+        );
+        assert_eq!(
+            mouse_to_workstation_action(
+                MouseEvent {
+                    kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
+                    column: 61,
+                    row: 2,
+                    modifiers: KeyModifiers::NONE,
+                },
+                &state,
+                Some((72, 24)),
+                20,
+            ),
+            Some(WorkstationAction::TogglePause)
+        );
+        assert_eq!(
+            mouse_to_workstation_action(
+                MouseEvent {
+                    kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
+                    column: 63,
+                    row: 2,
+                    modifiers: KeyModifiers::NONE,
+                },
+                &state,
+                Some((72, 24)),
+                20,
+            ),
+            Some(WorkstationAction::FocusPane(WorkstationPane::Status))
+        );
+        assert_eq!(
+            mouse_to_workstation_action(
+                MouseEvent {
+                    kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
+                    column: 64,
+                    row: 2,
+                    modifiers: KeyModifiers::NONE,
+                },
+                &state,
+                Some((72, 24)),
+                20,
+            ),
             Some(WorkstationAction::ToggleHelp)
+        );
+        assert_eq!(
+            mouse_to_workstation_action(
+                MouseEvent {
+                    kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
+                    column: 66,
+                    row: 2,
+                    modifiers: KeyModifiers::NONE,
+                },
+                &state,
+                Some((72, 24)),
+                20,
+            ),
+            Some(WorkstationAction::Quit)
         );
         assert_eq!(
             mouse_to_workstation_action(
