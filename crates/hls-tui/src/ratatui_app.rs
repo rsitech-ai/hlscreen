@@ -3804,7 +3804,20 @@ fn market_status_bar_line(
         ),
     ]);
     spans.extend(risk_strip_spans(model, color_mode));
-    spans.extend([Span::raw(" | ACTION STRIP | ")]);
+    spans.extend([
+        Span::raw(" | ACTION STRIP | "),
+        Span::styled(
+            "THEME ",
+            Style::default()
+                .fg(accent(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw(format!("{} ", color_mode.palette_label())),
+        Span::styled("▲", Style::default().fg(success(color_mode))),
+        Span::styled("▼", Style::default().fg(danger(color_mode))),
+        Span::styled("● ", Style::default().fg(warn(color_mode))),
+        Span::raw("--color always | "),
+    ]);
     Line::from(spans)
 }
 

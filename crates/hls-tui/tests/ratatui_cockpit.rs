@@ -1413,6 +1413,44 @@ fn cockpit_color_mode_is_explicit_and_does_not_pollute_no_color_snapshots() {
 }
 
 #[test]
+fn wide_status_bar_renders_theme_calibration_rail() {
+    let model = RatatuiFrameModel::new(
+        fixture_snapshots(),
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        WorkstationUiState::default(),
+    );
+
+    let plain = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 240,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("plain wide cockpit renders");
+    let colored = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 240,
+            height: 48,
+        },
+        RatatuiColorMode::Color,
+    )
+    .expect("colored wide cockpit renders");
+
+    assert!(!plain.contains("\u{1b}["));
+    assert!(plain.contains("THEME plain"));
+    assert!(plain.contains("--color always"));
+    assert!(colored.contains("THEME"));
+    assert!(colored.contains("ansi"));
+    assert!(colored.contains("--color always"));
+    assert!(colored.contains("\u{1b}[38;2;0;255;154m▲"));
+    assert!(colored.contains("\u{1b}[38;2;255;77;109m▼"));
+}
+
+#[test]
 fn cockpit_chart_colorizes_directional_candles_in_color_mode() {
     let snapshots = fixture_snapshots();
     let candles = directional_chart_candles(&snapshots[0].symbol);
