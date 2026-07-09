@@ -5825,7 +5825,8 @@ fn render_status_bar(
                 .block(
                     Block::default()
                         .borders(Borders::TOP)
-                        .border_style(focus_style(
+                        .border_style(pane_border_style(
+                            WorkstationPane::Status,
                             model.ui_state.focused_pane() == WorkstationPane::Status,
                             color_mode,
                         ))
@@ -5843,7 +5844,8 @@ fn render_status_bar(
             .block(
                 Block::default()
                     .borders(Borders::TOP)
-                    .border_style(focus_style(
+                    .border_style(pane_border_style(
+                        WorkstationPane::Status,
                         model.ui_state.focused_pane() == WorkstationPane::Status,
                         color_mode,
                     ))
@@ -6899,7 +6901,7 @@ fn panel_for(
     Block::default()
         .title(title)
         .borders(Borders::ALL)
-        .border_style(focus_style(focused, color_mode))
+        .border_style(pane_border_style(pane, focused, color_mode))
         .style(pane_surface_style(focused, color_mode))
 }
 
@@ -6919,12 +6921,8 @@ fn pane_surface_style(focused: bool, color_mode: RatatuiColorMode) -> Style {
     }
 }
 
-fn focus_style(focused: bool, color_mode: RatatuiColorMode) -> Style {
-    let style = if focused {
-        Style::default().fg(warn(color_mode))
-    } else {
-        Style::default().fg(accent(color_mode))
-    };
+fn pane_border_style(pane: WorkstationPane, focused: bool, color_mode: RatatuiColorMode) -> Style {
+    let style = Style::default().fg(pane_accent(pane, color_mode));
     if focused {
         style.add_modifier(Modifier::BOLD)
     } else {
@@ -7215,6 +7213,20 @@ fn accent(color_mode: RatatuiColorMode) -> Color {
     match color_mode {
         RatatuiColorMode::NoColor => Color::White,
         RatatuiColorMode::Auto | RatatuiColorMode::Color => Color::Rgb(0, 229, 255),
+    }
+}
+
+fn pane_accent(pane: WorkstationPane, color_mode: RatatuiColorMode) -> Color {
+    match color_mode {
+        RatatuiColorMode::NoColor => Color::White,
+        RatatuiColorMode::Auto | RatatuiColorMode::Color => match pane {
+            WorkstationPane::Watchlist => Color::Rgb(0, 229, 255),
+            WorkstationPane::Detail => Color::Rgb(0, 255, 154),
+            WorkstationPane::Chart => Color::Rgb(255, 209, 102),
+            WorkstationPane::Book => Color::Rgb(255, 77, 109),
+            WorkstationPane::Tape => Color::Rgb(168, 85, 247),
+            WorkstationPane::Status => Color::Rgb(96, 165, 250),
+        },
     }
 }
 
