@@ -1272,6 +1272,37 @@ fn wide_watchlist_renders_dynamic_scanner_rail() {
 }
 
 #[test]
+fn standard_wide_watchlist_keeps_row_context_rail() {
+    let mut snapshots = directional_snapshots();
+    snapshots[0].tob_depth_usd = Some(245.0);
+    snapshots[1].tob_depth_usd = Some(8_800.0);
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        WorkstationUiState::default(),
+    )
+    .with_candles(fixture_candles());
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 220,
+            height: 56,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders standard-wide watchlist context rail");
+
+    assert!(rendered.contains("ROW ROUTER"));
+    assert!(rendered.contains("ROW ACTION MAP"));
+    assert!(rendered.contains("SCANNER RAIL"));
+    assert!(rendered.contains("mover DOWN/USDC DN-1.23%"));
+    assert!(rendered.contains("depth DOWN/USDC $8.8K"));
+    assert!(rendered.contains("read-only row context"));
+}
+
+#[test]
 fn expanded_watchlist_renders_market_heatmap_deck() {
     let mut snapshots = directional_snapshots();
     snapshots[0].tob_depth_usd = Some(245.0);
