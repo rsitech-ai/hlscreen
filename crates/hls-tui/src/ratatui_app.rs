@@ -1352,11 +1352,19 @@ fn render_chart(
     );
     let Some(latest) = candles.last() else {
         frame.render_widget(
-            Paragraph::new(vec![
-                chart_window_tabs_line(model.ui_state.chart_window(), color_mode, area.width <= 72),
-                Line::from("Waiting for public 1m candle frames."),
-                Line::from("No synthetic candles are rendered."),
-            ])
+            Paragraph::new({
+                let mut lines = vec![chart_window_tabs_line(
+                    model.ui_state.chart_window(),
+                    color_mode,
+                    area.width <= 72,
+                )];
+                lines.extend(selected_pair_edge_hud_lines(row, color_mode));
+                lines.extend([
+                    Line::from("Waiting for public 1m candle frames."),
+                    Line::from("No synthetic candles are rendered."),
+                ]);
+                lines
+            })
             .wrap(Wrap { trim: true })
             .block(panel_for(
                 "CHART  1m OHLC",
@@ -1383,10 +1391,11 @@ fn render_chart(
         color_mode,
         area.width <= 72,
     )];
+    chart_lines.extend(selected_pair_edge_hud_lines(row, color_mode));
     chart_lines.push(chart_move_summary_line(&candles, color_mode));
     chart_lines.extend(candle_chart_lines(
         &candles,
-        area.height.saturating_sub(4) as usize,
+        area.height.saturating_sub(6) as usize,
         model.ui_state.chart_window().label(),
     ));
     frame.render_widget(
@@ -1439,6 +1448,54 @@ fn chart_window_tabs_line(
         Style::default().fg(text(color_mode)),
     ));
     Line::from(spans)
+}
+
+fn selected_pair_edge_hud_lines(
+    row: &FeatureSnapshot,
+    color_mode: RatatuiColorMode,
+) -> Vec<Line<'static>> {
+    let flow = row.signed_notional_flow_30s.unwrap_or(0.0);
+    vec![
+        Line::from(vec![
+            Span::styled(
+                "EDGE HUD ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(format!("trade {}  ", row.tradeability_state.as_str())),
+            Span::styled(
+                format!("conf {}  ", row.confidence.score),
+                Style::default().fg(if row.confidence.score >= 85 {
+                    success(color_mode)
+                } else if row.confidence.score >= 70 {
+                    warn(color_mode)
+                } else {
+                    danger(color_mode)
+                }),
+            ),
+            Span::raw(format!("spr {}bps  ", format_optional(row.spread_bps, 1))),
+            Span::raw(format!("risk {}", row.resilience_state.as_str())),
+        ]),
+        Line::from(vec![
+            Span::styled(
+                "LIQ ",
+                Style::default()
+                    .fg(success(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(
+                format!("flow {}  ", format_usd_signed(row.signed_notional_flow_30s)),
+                Style::default().fg(flow_color(flow, color_mode)),
+            ),
+            Span::raw(format!("depth {}  ", format_usd(row.tob_depth_usd))),
+            Span::styled(
+                format!("imb {}  ", format_signed(row.tob_imbalance, "")),
+                Style::default().fg(flow_color(row.tob_imbalance.unwrap_or(0.0), color_mode)),
+            ),
+            Span::raw(format!("score {:.0}", row.liquidity_score)),
+        ]),
+    ]
 }
 
 fn chart_move_summary_line(
