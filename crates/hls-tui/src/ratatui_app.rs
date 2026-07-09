@@ -2459,28 +2459,31 @@ fn render_status_panel(
                     .add_modifier(Modifier::BOLD),
             ),
             Span::raw(model.recorder_status.clone()),
+            Span::raw(format!(" | terminal color {}", color_mode.label())),
         ]),
         Line::from(format!("health {}", model.health_status)),
         Line::from(format!(
-            "view {} | pane {} | density {} | chart {}",
+            "view {} | pane {} | palette {} | --color always",
             model.ui_state.view().label(),
             model.ui_state.focused_pane().label(),
-            model.ui_state.density().label(),
-            model.ui_state.chart_window().label()
-        )),
-        Line::from(format!(
-            "screen {} | rows {} | display {}",
-            mode_label(&model.request, rows.len()),
-            rows.len(),
-            pause_label(model)
-        )),
-        Line::from(format!(
-            "terminal color {} | --color always | palette {}",
-            color_mode.label(),
             color_mode.palette_label(),
         )),
-        Line::from("read-only safety: No wallet, no private streams, no order routes."),
-        Line::from("Screen output is heuristic context only, not orders or advice."),
+        Line::from(vec![
+            Span::styled(
+                "OPS DECK ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw("1-6 focus | / filter | p preset | s sort | t chart"),
+        ]),
+        Line::from(format!(
+            "active {} | space pause | ? help | q quit",
+            mode_label(&model.request, rows.len()),
+        )),
+        Line::from(
+            "read-only safety: No wallet, no private streams, no order routes; heuristics only.",
+        ),
     ];
     frame.render_widget(
         Paragraph::new(lines)
