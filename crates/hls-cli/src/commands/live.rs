@@ -219,14 +219,7 @@ async fn run_fixture_live(args: LiveArgs, fixture_file: &PathBuf) -> anyhow::Res
             live_tui_trades(&state),
             LiveTuiStatus::new("fixture", "REC ready", "fixture replay"),
         );
-        let table = render_live_tui_snapshot(
-            &model,
-            Some(RatatuiViewport {
-                width: 160,
-                height: 48,
-            }),
-            color_mode,
-        )?;
+        let table = render_live_tui_snapshot(&model, None, color_mode)?;
         print!("{table}");
     } else {
         println!("{}", render_confidence_summary(&snapshots));
@@ -1146,7 +1139,13 @@ fn draw_live_tui_frame(
 }
 
 fn live_ratatui_viewport() -> RatatuiViewport {
-    let (width, height) = terminal_size().unwrap_or((120, 36));
+    live_ratatui_viewport_from_size(terminal_size().ok())
+}
+
+fn live_ratatui_viewport_from_size(size: Option<(u16, u16)>) -> RatatuiViewport {
+    let (width, height) = size
+        .filter(|(width, height)| *width > 0 && *height > 0)
+        .unwrap_or((160, 48));
     RatatuiViewport { width, height }
 }
 
@@ -1713,6 +1712,31 @@ mod tests {
         assert_eq!(reconnect_backoff(1), Duration::from_millis(2_000));
         assert_eq!(reconnect_backoff(5), Duration::from_millis(30_000));
         assert_eq!(reconnect_backoff(100), Duration::from_millis(30_000));
+    }
+
+    #[test]
+    fn live_ratatui_viewport_uses_terminal_size_with_workstation_fallback() {
+        assert_eq!(
+            live_ratatui_viewport_from_size(Some((240, 64))),
+            RatatuiViewport {
+                width: 240,
+                height: 64
+            }
+        );
+        assert_eq!(
+            live_ratatui_viewport_from_size(None),
+            RatatuiViewport {
+                width: 160,
+                height: 48
+            }
+        );
+        assert_eq!(
+            live_ratatui_viewport_from_size(Some((0, 0))),
+            RatatuiViewport {
+                width: 160,
+                height: 48
+            }
+        );
     }
 
     #[test]

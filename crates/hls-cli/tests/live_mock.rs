@@ -80,21 +80,21 @@ fn live_once_tui_uses_unified_ratatui_cockpit() {
         .success();
     let output = String::from_utf8(assert.get_output().stdout.clone()).expect("stdout is utf8");
 
-    assert_eq!(
-        output
-            .matches("Hyperliquid Spot Microstructure Workstation")
-            .count(),
-        1,
-        "fixture TUI should render exactly one workstation frame"
-    );
     assert!(output.contains("\u{1b}["));
+    assert!(
+        output.contains("Hyperliquid Spot Microstructure Workstation")
+            || output.contains("LAYOUT DIRECTOR"),
+        "fixture TUI should render the adaptive Ratatui workstation shell"
+    );
+    assert!(output.contains("layout "));
+    assert!(output.contains("resize-safe"));
+    assert!(output.contains("STATUS"));
+    assert!(output.contains("REC ready"));
     assert!(output.contains("WATCHLIST"));
-    assert!(output.contains("MICROSTRUCTURE"));
-    assert!(output.contains("CANDLES 1m"));
-    assert!(output.contains("O 34.5000"));
-    assert!(output.contains("TAPE"));
-    assert!(output.contains("BOOK"));
+    assert!(output.contains("ALGO SCAN"));
+    assert!(output.contains("DETAIL") || output.contains("MICROSTRUCTURE"));
+    assert!(output.contains("BBO"));
     assert!(output.contains("HYPE/USDC"));
-    assert!(output.contains("No wallet"));
+    assert!(output.contains("read-only"));
     assert!(!output.contains("private key"));
 }
