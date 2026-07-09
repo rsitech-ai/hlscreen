@@ -196,6 +196,7 @@ TTY mouse controls for terminals with mouse reporting enabled:
 - Click an inactive pane rail/tab: focuses that pane.
 - Click the already-active pane rail/tab: expands or collapses that pane, matching `z`.
 - Click detail view tabs, chart window tabs, or header command controls: activates the visible read-only display control.
+- Click the market internals rail: rows/heat/up/down focuses watchlist, tradeability/staleness focuses status, flow focuses tape, and depth focuses book.
 - On wide terminals, click the selected-pair quote rail: symbol/quote focuses detail, bid/ask/top-book focuses book, and flow focuses tape.
 - On ultra-wide terminals, click the top `CMD DOCK` for pane focus, symbol jump, filter, preset, sort, chart window, density, zoom, pause, help, and quit.
 - On medium and standard-wide terminals, click the header `CMD g / p s t d z sp ? q` rail for symbol jump, filter, preset, sort, timeframe, density, zoom, pause, help, and quit.
