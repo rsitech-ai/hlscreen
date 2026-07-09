@@ -2968,6 +2968,9 @@ fn tape_pane_renders_flow_pulse_and_net_pressure_bars() {
 
     assert!(rendered.contains("[FOCUS] TAPE"));
     assert!(rendered.contains("TAPE RAIL"));
+    assert!(rendered.contains("TAPE INTENT"));
+    assert!(rendered.contains("public prints/flow only"));
+    assert!(rendered.contains("no private streams"));
     assert!(rendered.contains("Selected flow"));
     assert!(rendered.contains("FLOW pulse"));
     assert!(rendered.contains("net pressure"));
@@ -3007,6 +3010,8 @@ fn tape_pane_renders_public_recent_trades_when_available() {
     .expect("renders public trade tape");
 
     assert!(rendered.contains("[FOCUS] TAPE"));
+    assert!(rendered.contains("TAPE INTENT"));
+    assert!(rendered.contains("no fills"));
     assert!(rendered.contains("TAPE RADAR"));
     assert!(rendered.contains("prints 2"));
     assert!(rendered.contains("buy 1"));
