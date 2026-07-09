@@ -60,6 +60,12 @@ fn cockpit_renders_command_palette_with_validation_error() {
     .expect("renders");
 
     assert!(rendered.contains("COMMAND"));
+    assert!(rendered.contains("COMMAND CENTER"));
+    assert!(rendered.contains("TARGET filter"));
+    assert!(rendered.contains("SCOPE read-only screened rows"));
+    assert!(rendered.contains("EXAMPLES"));
+    assert!(rendered.contains("filter: spread_bps < 5"));
+    assert!(rendered.contains("SAFETY no orders"));
     assert!(rendered.contains("filter"));
     assert!(rendered.contains("symbol > 10"));
     assert!(rendered.contains("type-incompatible comparison"));
