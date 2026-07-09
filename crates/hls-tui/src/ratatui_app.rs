@@ -910,9 +910,9 @@ fn render_watchlist(
         !compact && !quality_view && !explain_view && area.width >= 72 && !model.candles.is_empty();
     let show_row_router = !compact && area.width >= 72 && area.height >= 18 && !rows.is_empty();
     let row_router_height = if expanded_watchlist {
-        11
+        12
     } else if area.height >= 20 {
-        5
+        7
     } else {
         4
     };
@@ -1344,12 +1344,28 @@ fn watchlist_row_router_lines(
             quality_badge(row)
         )),
     ];
+    lines.extend(row_action_map_lines(color_mode));
     lines.extend(watchlist_scanner_rail_lines(rows, color_mode));
     if expanded {
         lines.extend(watchlist_heatmap_deck_lines(rows, color_mode));
         lines.extend(watchlist_command_center_lines(row, rows, color_mode));
     }
     lines
+}
+
+fn row_action_map_lines(color_mode: RatatuiColorMode) -> Vec<Line<'static>> {
+    vec![
+        Line::from(vec![
+            Span::styled(
+                "ROW ACTION MAP ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw("enter detail | 3 chart | 4 book | 5 tape"),
+        ]),
+        Line::from("route / filter | z expand | display only"),
+    ]
 }
 
 fn watchlist_command_center_lines(
