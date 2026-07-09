@@ -88,8 +88,8 @@ pub struct LiveArgs {
     #[arg(long)]
     pub tui: bool,
 
-    /// TUI color policy: auto follows terminal/env detection, always forces ANSI color, never disables it.
-    #[arg(long, value_enum, default_value_t = LiveTuiColor::Auto)]
+    /// TUI color policy: always forces ANSI color, auto follows terminal/env detection, never disables it.
+    #[arg(long, value_enum, default_value_t = LiveTuiColor::Always)]
     pub color: LiveTuiColor,
 
     #[arg(long, default_value_t = DEFAULT_MAX_SUBSCRIPTIONS)]
@@ -1527,6 +1527,7 @@ fn now_ms_i64() -> HlsResult<i64> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use clap::Parser;
     use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
     use hls_core::{
         metadata::{COHORT_UNKNOWN_METADATA, MetadataEnrichmentInput},
@@ -1742,6 +1743,24 @@ mod tests {
         assert!(!env_flag_value_enabled(Some("false")));
         assert!(!env_flag_value_enabled(Some("")));
         assert!(!env_flag_value_enabled(None));
+    }
+
+    #[derive(Debug, Parser)]
+    struct LiveArgsParseHarness {
+        #[command(flatten)]
+        args: LiveArgs,
+    }
+
+    #[test]
+    fn live_tui_defaults_to_colored_workstation_theme() {
+        let parsed = LiveArgsParseHarness::try_parse_from(["hls-live", "--tui"])
+            .expect("default live tui args parse");
+
+        assert_eq!(parsed.args.color, LiveTuiColor::Always);
+        assert_eq!(
+            resolve_live_ratatui_color_mode(parsed.args.color, false),
+            RatatuiColorMode::Color
+        );
     }
 
     #[test]
