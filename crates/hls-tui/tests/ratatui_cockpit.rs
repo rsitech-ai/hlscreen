@@ -63,6 +63,11 @@ fn cockpit_renders_command_palette_with_validation_error() {
     .expect("renders");
 
     assert!(rendered.contains("COMMAND"));
+    assert!(rendered.contains("COMMAND HUD"));
+    assert!(rendered.contains("[enter] apply"));
+    assert!(rendered.contains("[esc] close"));
+    assert!(rendered.contains("[tab] target"));
+    assert!(rendered.contains("RO no orders"));
     assert!(rendered.contains("COMMAND CENTER"));
     assert!(rendered.contains("TARGET filter"));
     assert!(rendered.contains("COMMAND ROUTER"));
@@ -121,6 +126,14 @@ fn command_palette_color_mode_renders_semantic_command_deck() {
     .expect("colored command deck renders");
 
     assert!(!plain.contains("\u{1b}["));
+    assert!(plain.contains("COMMAND HUD"));
+    assert!(plain.contains("[enter] apply"));
+    assert!(plain.contains("[tab] target"));
+    assert!(plain.contains("RO no orders"));
+    assert_eq!(
+        active_fg_before(&colored, "COMMAND HUD"),
+        Some("\u{1b}[38;2;255;214;102m")
+    );
     assert_eq!(
         active_fg_before(&colored, "COMMAND CENTER"),
         Some("\u{1b}[38;2;0;229;255m")
