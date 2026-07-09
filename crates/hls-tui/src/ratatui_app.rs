@@ -2093,6 +2093,12 @@ fn detail_heading_line(
                 .fg(accent(color_mode))
                 .add_modifier(Modifier::BOLD),
         ),
+        Span::styled(
+            "  QUOTE CARD",
+            Style::default()
+                .fg(warn(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
         Span::raw(format!(
             "  px {}  spread {} bps",
             format_price(row.price),
