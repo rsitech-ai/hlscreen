@@ -4143,6 +4143,9 @@ fn render_status_panel(
         ]),
     ];
     if !compact {
+        lines.push(status_latency_strip_line(
+            &rows, reconnects, gaps, color_mode,
+        ));
         lines.push(status_regime_board_line(&rows, color_mode));
     }
     lines.extend([
@@ -4250,6 +4253,65 @@ fn status_regime_board_line(
             avg_confidence
         )),
     ])
+}
+
+fn status_latency_strip_line(
+    rows: &[FeatureSnapshot],
+    reconnects: u64,
+    gaps: u64,
+    color_mode: RatatuiColorMode,
+) -> Line<'static> {
+    let p95_age = row_age_p95_ms(rows);
+    let low_confidence = rows.iter().filter(|row| row.confidence.score < 70).count();
+    let stale = rows
+        .iter()
+        .filter(|row| row.staleness_state != StalenessState::Fresh)
+        .count();
+    let age_color = p95_age.map_or_else(
+        || warn(color_mode),
+        |age_ms| {
+            if age_ms > 2_000 {
+                danger(color_mode)
+            } else if age_ms > 1_000 {
+                warn(color_mode)
+            } else {
+                success(color_mode)
+            }
+        },
+    );
+
+    Line::from(vec![
+        Span::styled(
+            "LATENCY STRIP ",
+            Style::default()
+                .fg(accent(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::styled(
+            format!("p95 row age {} ", format_duration_ms(p95_age)),
+            Style::default().fg(age_color).add_modifier(Modifier::BOLD),
+        ),
+        Span::raw(format!(
+            "low confidence {:02} stale {:02} reconnects {reconnects} gaps {gaps} | read-only local processing",
+            low_confidence.min(99),
+            stale.min(99)
+        )),
+    ])
+}
+
+fn row_age_p95_ms(rows: &[FeatureSnapshot]) -> Option<i64> {
+    let mut ages = rows
+        .iter()
+        .filter_map(|row| row.updated_ms_ago)
+        .filter(|age| *age >= 0)
+        .collect::<Vec<_>>();
+    if ages.is_empty() {
+        return None;
+    }
+    ages.sort_unstable();
+    let rank = ((ages.len() as f64) * 0.95).ceil() as usize;
+    ages.get(rank.saturating_sub(1).min(ages.len() - 1))
+        .copied()
 }
 
 fn status_quality_matrix_line(

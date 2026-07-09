@@ -1,4 +1,7 @@
-use hls_core::market_state::{CandleEvent, LiveMarketState, MarketEvent, TradeEvent};
+use hls_core::{
+    confidence::ConfidenceLevel,
+    market_state::{CandleEvent, LiveMarketState, MarketEvent, StalenessState, TradeEvent},
+};
 use hls_features::engine::FeatureEngine;
 use hls_hyperliquid::{rest::parse_metadata_enrichment_bundle, ws::parser::parse_ws_ndjson};
 use hls_screen::ScreenRequest;
@@ -1331,6 +1334,47 @@ fn wide_status_focus_renders_market_regime_board() {
     assert!(rendered.contains("avg conf 100"));
     assert!(rendered.contains("status ? help"));
     assert!(rendered.contains("No wallet"));
+}
+
+#[test]
+fn wide_status_focus_renders_latency_strip() {
+    let mut snapshots = directional_snapshots();
+    snapshots[0].updated_ms_ago = Some(120);
+    snapshots[1].updated_ms_ago = Some(2_400);
+    snapshots[1].confidence.score = 55;
+    snapshots[1].confidence.level = ConfidenceLevel::Low;
+    snapshots[1].staleness_state = StalenessState::Stale;
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Status),
+        snapshots.len(),
+    );
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    )
+    .with_status("LIVE", "REC ready", "ws=235 events=485 reconnects=2 gaps=1");
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 240,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders wide status latency strip");
+
+    assert!(rendered.contains("[FOCUS] STATUS"));
+    assert!(rendered.contains("LATENCY STRIP"));
+    assert!(rendered.contains("p95 row age 2.4s"));
+    assert!(rendered.contains("low confidence 01"));
+    assert!(rendered.contains("stale 01"));
+    assert!(rendered.contains("reconnects 2"));
+    assert!(rendered.contains("gaps 1"));
+    assert!(rendered.contains("read-only local processing"));
 }
 
 #[test]
