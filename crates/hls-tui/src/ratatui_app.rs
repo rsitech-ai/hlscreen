@@ -232,7 +232,7 @@ fn render_micro_header(
         ]),
         Line::from(vec![
             Span::styled("CMD ", Style::default().fg(warn(color_mode))),
-            Span::raw("g / p s t d z sp ? q | 1-6 focus | z zoom | "),
+            Span::raw("g / p s t d z sp ? q | PANES 1W 2D 3C 4B 5T 6S | "),
             Span::styled("read-only", Style::default().fg(success(color_mode))),
         ]),
     ];

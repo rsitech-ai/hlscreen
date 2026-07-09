@@ -1511,19 +1511,59 @@ fn mouse_header_command_action(
     height: u16,
     ui_state: &WorkstationUiState,
 ) -> Option<WorkstationAction> {
-    mouse_micro_command_action(column, row, height)
+    mouse_micro_command_action(column, row, height, ui_state)
         .or_else(|| mouse_top_command_strip_action(column, row, width, ui_state))
         .or_else(|| mouse_adaptive_desk_command_action(column, row, width, ui_state))
         .or_else(|| mouse_compact_command_cluster_action(column, row, width))
 }
 
-fn mouse_micro_command_action(column: u16, row: u16, height: u16) -> Option<WorkstationAction> {
+fn mouse_micro_command_action(
+    column: u16,
+    row: u16,
+    height: u16,
+    ui_state: &WorkstationUiState,
+) -> Option<WorkstationAction> {
     if height >= 20 || row != 2 {
         return None;
     }
 
     let start_column = 1 + "CMD ".len() as u16;
     mouse_compact_command_rail_hit(column, start_column)
+        .or_else(|| mouse_micro_pane_action(column, start_column, ui_state))
+}
+
+fn mouse_micro_pane_action(
+    column: u16,
+    command_start_column: u16,
+    ui_state: &WorkstationUiState,
+) -> Option<WorkstationAction> {
+    let pane_start =
+        command_start_column.saturating_add("g / p s t d z sp ? q | PANES ".len() as u16);
+    mouse_micro_pane_hit(column, pane_start)
+        .map(|pane| mouse_focus_or_zoom_pane_action(pane, ui_state))
+}
+
+fn mouse_micro_pane_hit(column: u16, start_column: u16) -> Option<WorkstationPane> {
+    let labels = [
+        (WorkstationPane::Watchlist, "1W"),
+        (WorkstationPane::Detail, "2D"),
+        (WorkstationPane::Chart, "3C"),
+        (WorkstationPane::Book, "4B"),
+        (WorkstationPane::Tape, "5T"),
+        (WorkstationPane::Status, "6S"),
+    ];
+    let mut cursor = start_column;
+    for (index, (pane, label)) in labels.iter().enumerate() {
+        if index > 0 {
+            cursor = cursor.saturating_add(1);
+        }
+        let label_width = label.len() as u16;
+        if column >= cursor && column < cursor.saturating_add(label_width) {
+            return Some(*pane);
+        }
+        cursor = cursor.saturating_add(label_width);
+    }
+    None
 }
 
 fn mouse_top_command_strip_action(
@@ -3316,6 +3356,62 @@ mod tests {
             mouse_to_workstation_action(
                 MouseEvent {
                     kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
+                    column: 34,
+                    row: 2,
+                    modifiers: KeyModifiers::NONE,
+                },
+                &state,
+                Some((80, 16)),
+                20,
+            ),
+            Some(WorkstationAction::TogglePaneZoom)
+        );
+        assert_eq!(
+            mouse_to_workstation_action(
+                MouseEvent {
+                    kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
+                    column: 37,
+                    row: 2,
+                    modifiers: KeyModifiers::NONE,
+                },
+                &state,
+                Some((80, 16)),
+                20,
+            ),
+            Some(WorkstationAction::FocusPane(WorkstationPane::Detail))
+        );
+        assert_eq!(
+            mouse_to_workstation_action(
+                MouseEvent {
+                    kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
+                    column: 40,
+                    row: 2,
+                    modifiers: KeyModifiers::NONE,
+                },
+                &state,
+                Some((80, 16)),
+                20,
+            ),
+            Some(WorkstationAction::FocusPane(WorkstationPane::Chart))
+        );
+        assert_eq!(
+            mouse_to_workstation_action(
+                MouseEvent {
+                    kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
+                    column: 49,
+                    row: 2,
+                    modifiers: KeyModifiers::NONE,
+                },
+                &state,
+                Some((80, 16)),
+                20,
+            ),
+            Some(WorkstationAction::FocusPane(WorkstationPane::Status))
+        );
+        assert_eq!(
+            mouse_to_workstation_action(
+                MouseEvent {
+                    kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
                     column: 5,
                     row: 2,
                     modifiers: KeyModifiers::NONE,
@@ -3866,6 +3962,20 @@ mod tests {
                 MouseEvent {
                     kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
                     column: 5,
+                    row: 2,
+                    modifiers: KeyModifiers::NONE,
+                },
+                &command_state,
+                Some((80, 16)),
+                20,
+            ),
+            None
+        );
+        assert_eq!(
+            mouse_to_workstation_action(
+                MouseEvent {
+                    kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
+                    column: 37,
                     row: 2,
                     modifiers: KeyModifiers::NONE,
                 },
