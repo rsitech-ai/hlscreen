@@ -488,6 +488,7 @@ fn render_watchlist(
         .selected_index(rows.len())
         .unwrap_or_default();
     let compact = area.width <= 64;
+    let enhanced = !compact && area.width >= 72 && !model.candles.is_empty();
     let visible_range = watchlist_visible_range(
         selected,
         rows.len(),
@@ -498,11 +499,12 @@ fn render_watchlist(
         "WATCHLIST 0/0".to_owned()
     } else {
         format!(
-            "WATCHLIST {}/{} VIEW {:02}-{:02}",
+            "WATCHLIST {}/{} VIEW {:02}-{:02}{}",
             selected + 1,
             rows.len(),
             visible_range.start + 1,
-            visible_range.end
+            visible_range.end,
+            if enhanced { " 1m spark" } else { "" }
         )
     };
     let table_rows = rows
@@ -529,6 +531,23 @@ fn render_watchlist(
                     Cell::from(micro_heat_lane(row, true)),
                     Cell::from(trend_label(row.ret_1m)),
                     Cell::from(format_usd_signed(row.signed_notional_flow_30s)),
+                    Cell::from(quality_badge(row)),
+                ])
+                .style(style)
+            } else if enhanced {
+                Row::new(vec![
+                    Cell::from(watchlist_rank_label(index, selected)),
+                    Cell::from(display_symbol(row).to_owned()),
+                    Cell::from(format_board_price(row.price)),
+                    Cell::from(watchlist_candle_sparkline(&model.candles, &row.symbol, 5)),
+                    Cell::from(score_signal_label(row)),
+                    Cell::from(score_edge_bar(row)),
+                    Cell::from(micro_heat_lane(row, false)),
+                    Cell::from(score_bias_label(row)),
+                    Cell::from(format_optional(row.spread_bps, 1)),
+                    Cell::from(trend_label(row.ret_1m)),
+                    Cell::from(format_usd_signed(row.signed_notional_flow_30s)),
+                    Cell::from(format_usd(row.tob_depth_usd)),
                     Cell::from(quality_badge(row)),
                 ])
                 .style(style)
@@ -566,6 +585,36 @@ fn render_watchlist(
         )
         .header(
             Row::new(["RK", "CODE", "PX", "HT", "1M", "FLOW", "Q"]).style(
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+        )
+    } else if enhanced {
+        Table::new(
+            table_rows,
+            [
+                Constraint::Length(4),
+                Constraint::Min(8),
+                Constraint::Length(7),
+                Constraint::Length(5),
+                Constraint::Length(3),
+                Constraint::Length(5),
+                Constraint::Length(5),
+                Constraint::Length(4),
+                Constraint::Length(4),
+                Constraint::Length(7),
+                Constraint::Length(6),
+                Constraint::Length(5),
+                Constraint::Length(1),
+            ],
+        )
+        .header(
+            Row::new([
+                "RANK", "CODE", "PX", "SPK", "SIG", "EDGE", "HEAT", "BIAS", "SPR", "1M", "FLOW30",
+                "DEPTH", "Q",
+            ])
+            .style(
                 Style::default()
                     .fg(accent(color_mode))
                     .add_modifier(Modifier::BOLD),
@@ -637,6 +686,68 @@ fn watchlist_visible_range(
         start = row_count - capacity;
     }
     start..start + capacity
+}
+
+fn watchlist_candle_sparkline(candles: &[CandleEvent], symbol: &str, width: usize) -> String {
+    if width == 0 {
+        return String::new();
+    }
+    let mut closes = candles
+        .iter()
+        .filter(|candle| candle.hl_coin == symbol && candle.interval == "1m")
+        .map(|candle| (candle.open_ts_ms, candle.close))
+        .filter(|(_, close)| close.is_finite())
+        .collect::<Vec<_>>();
+    closes.sort_by_key(|(ts, _)| *ts);
+    if closes.len() > width {
+        closes.drain(0..closes.len() - width);
+    }
+    if closes.is_empty() {
+        return "-".repeat(width);
+    }
+
+    let min = closes
+        .iter()
+        .map(|(_, close)| *close)
+        .fold(f64::INFINITY, f64::min);
+    let max = closes
+        .iter()
+        .map(|(_, close)| *close)
+        .fold(f64::NEG_INFINITY, f64::max);
+    let range = max - min;
+    let body = closes
+        .iter()
+        .map(|(_, close)| {
+            if range.abs() < f64::EPSILON {
+                '▄'
+            } else {
+                spark_price_glyph((*close - min) / range)
+            }
+        })
+        .collect::<String>();
+    left_pad_to_width(body, width)
+}
+
+fn spark_price_glyph(ratio: f64) -> char {
+    match (ratio.clamp(0.0, 1.0) * 7.0).round() as u8 {
+        0 => '▁',
+        1 => '▂',
+        2 => '▃',
+        3 => '▄',
+        4 => '▅',
+        5 => '▆',
+        6 => '▇',
+        _ => '█',
+    }
+}
+
+fn left_pad_to_width(value: String, width: usize) -> String {
+    let len = value.chars().count();
+    if len >= width {
+        value
+    } else {
+        format!("{}{}", " ".repeat(width - len), value)
+    }
 }
 
 fn market_row_style(row: &FeatureSnapshot, color_mode: RatatuiColorMode) -> Style {

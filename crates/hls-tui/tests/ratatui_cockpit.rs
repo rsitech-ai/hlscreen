@@ -258,6 +258,36 @@ fn market_board_renders_score_and_bias_columns() {
 }
 
 #[test]
+fn wide_market_board_renders_public_candle_sparkline_lane() {
+    let model = RatatuiFrameModel::new(
+        fixture_snapshots(),
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        WorkstationUiState::default(),
+    )
+    .with_candles(fixture_candles());
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 240,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders wide market board with sparklines");
+
+    assert!(rendered.contains("1m spark"));
+    assert!(rendered.contains("SPK"));
+    assert!(rendered.contains("HYPE/USDC"));
+    assert!(
+        ["▁", "▂", "▃", "▄", "▅", "▆", "▇", "█"]
+            .iter()
+            .any(|glyph| rendered.contains(glyph))
+    );
+}
+
+#[test]
 fn market_board_renders_directional_edge_pulses() {
     let model = RatatuiFrameModel::new(
         directional_snapshots(),
