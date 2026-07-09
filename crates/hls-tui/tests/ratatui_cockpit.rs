@@ -419,6 +419,7 @@ fn micro_cockpit_uses_focused_pane_on_very_short_terminals() {
     assert!(rendered.contains("RESIZE-SAFE MICRO DESK"));
     assert!(rendered.contains("pane chart"));
     assert!(rendered.contains("read-only"));
+    assert!(rendered.contains("CMD g / p s t d z sp ? q"));
     assert!(rendered.contains("1-6 focus"));
     assert!(rendered.contains("z zoom"));
     assert!(rendered.contains("CANDLES"));
