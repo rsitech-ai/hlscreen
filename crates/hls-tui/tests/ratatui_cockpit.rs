@@ -1225,6 +1225,42 @@ fn cockpit_chart_renders_selected_pair_edge_hud() {
 }
 
 #[test]
+fn cockpit_chart_renders_session_microstructure_strip() {
+    let snapshots = directional_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Chart),
+        snapshots.len(),
+    );
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    )
+    .with_candles(fixture_candles());
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 160,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders chart session strip");
+
+    assert!(rendered.contains("SESSION STRIP"));
+    assert!(rendered.contains("RET 1m"));
+    assert!(rendered.contains("RV 1m/5m/1h"));
+    assert!(rendered.contains("OFI"));
+    assert!(rendered.contains("adverse"));
+    assert!(rendered.contains("spread"));
+    assert!(rendered.contains("age"));
+    assert!(rendered.contains("public signal context"));
+}
+
+#[test]
 fn cockpit_chart_renders_interactive_window_tab_rail() {
     let snapshots = fixture_snapshots();
     let mut state = WorkstationUiState::default();
