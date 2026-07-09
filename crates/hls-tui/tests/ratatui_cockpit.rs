@@ -214,7 +214,7 @@ fn narrow_watchlist_scrolls_keyboard_selection_into_view() {
     )
     .expect("renders selected watchlist row");
 
-    assert!(rendered.contains("[FOCUS] WATCHLIST 10/10"));
+    assert!(rendered.contains("[FOCUS] WATCHLIST 10/10 VIEW 05-10"));
     assert!(rendered.contains("ROW10/USDC"));
     assert!(!rendered.contains("01 HYPE/USDC"));
     assert!(rendered.contains("DETAIL"));
