@@ -186,6 +186,7 @@ pub enum WorkstationCommandTarget {
     Filter,
     Preset,
     Sort,
+    Symbol,
 }
 
 impl WorkstationCommandTarget {
@@ -194,6 +195,7 @@ impl WorkstationCommandTarget {
             Self::Filter => "filter",
             Self::Preset => "preset",
             Self::Sort => "sort",
+            Self::Symbol => "symbol",
         }
     }
 
@@ -202,6 +204,7 @@ impl WorkstationCommandTarget {
             Self::Filter => "where",
             Self::Preset => "preset",
             Self::Sort => "sort",
+            Self::Symbol => "symbol",
         }
     }
 }
@@ -249,6 +252,7 @@ pub enum WorkstationAction {
     CycleFilter,
     CyclePreset,
     CycleSort,
+    OpenSymbolSearch,
     CycleChartWindow,
     TogglePaneZoom,
     NextPane,
@@ -334,6 +338,14 @@ impl WorkstationUiState {
             None
         } else {
             Some(self.selected.min(row_count - 1))
+        }
+    }
+
+    pub fn select_index(&mut self, index: usize, row_count: usize) {
+        if row_count == 0 {
+            self.selected = 0;
+        } else {
+            self.selected = index.min(row_count - 1);
         }
     }
 
@@ -431,6 +443,10 @@ impl WorkstationUiState {
             }
             WorkstationAction::CycleSort => {
                 self.command = Some(WorkstationCommand::new(WorkstationCommandTarget::Sort));
+                self.command_error = None;
+            }
+            WorkstationAction::OpenSymbolSearch => {
+                self.command = Some(WorkstationCommand::new(WorkstationCommandTarget::Symbol));
                 self.command_error = None;
             }
             WorkstationAction::CommandChar(ch) => {

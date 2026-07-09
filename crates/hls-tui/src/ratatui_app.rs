@@ -2029,7 +2029,7 @@ fn render_help_overlay(
             "PANES 1W 2D 3C 4B 5T 6S | enter detail | h health/status | watchlist detail chart book tape status",
         ),
         Line::from(
-            "MARKET OPS / filter p preset s sort | t chart window | z pane zoom | d density",
+            "MARKET OPS g symbol / filter p preset s sort | t chart window | z pane zoom | d density",
         ),
         Line::from("MOUSE wheel rows | click focus | terminal support required"),
         Line::from("j/k or arrows  act on focused pane: rows, detail view, or chart window"),
@@ -2043,7 +2043,7 @@ fn render_help_overlay(
         )),
         Line::from("mouse wheel moves rows; click focuses panes when terminal mouse is available"),
         Line::from(
-            "/ filter  |  p preset  |  s sort  |  t chart window  |  z zoom  |  enter detail  |  h health",
+            "g symbol  |  / filter  |  p preset  |  s sort  |  t chart window  |  z zoom  |  enter detail  |  h health",
         ),
         Line::from("d  density  |  space  pause display  |  ?  help  |  q  quit"),
         Line::from(vec![
@@ -2103,7 +2103,7 @@ fn command_palette_lines(
         Line::from(active_command_context_line(&model.request)),
         command_result_preview_line(model),
         Line::from(
-            "KEYFLOW / filter | p preset | s sort | t timeframe | enter detail | h health | d density | ? help",
+            "KEYFLOW g symbol | / filter | p preset | s sort | t timeframe | enter detail | h health | d density | ? help",
         ),
         Line::from("GUARDRAILS read-only display mutation only | last valid screen retained"),
         Line::from(format!(
@@ -2121,6 +2121,7 @@ fn command_palette_lines(
             "filter" => "Enter apply filter | Esc cancel | empty clears custom filter",
             "preset" => "Enter apply preset | Esc cancel | empty clears preset",
             "sort" => "Enter apply sort | Esc cancel | empty clears custom sort",
+            "symbol" => "Enter jump visible row | Esc cancel | input matches display/feed symbol",
             _ => "Enter apply | Esc cancel",
         }),
         Line::from("EXAMPLES"),
@@ -2168,7 +2169,8 @@ fn command_examples_line(target: &str) -> &'static str {
         "filter" => "filter: spread_bps < 5 | abs(ret_1m) > 0.001 | confidence >= 70",
         "preset" => "preset: tight | resilient | metadata_partial | clear empty",
         "sort" => "sort: score desc | spread_bps asc | signed_flow desc",
-        _ => "filter: spread_bps < 5 | preset: tight | sort: score desc",
+        "symbol" => "symbol: hype | @107 | ueth/usdc | visible rows only",
+        _ => "symbol: hype | filter: spread_bps < 5 | preset: tight | sort: score desc",
     }
 }
 
@@ -2189,6 +2191,9 @@ fn command_deck_line(target: crate::interaction::WorkstationCommandTarget) -> Li
         ),
         crate::interaction::WorkstationCommandTarget::Sort => Line::from(
             "SORT DECK score:desc spread_bps:asc signed_notional_flow_30s:desc listing_age_ms:asc",
+        ),
+        crate::interaction::WorkstationCommandTarget::Symbol => Line::from(
+            "SYMBOL DECK visible rows only | matches display name, feed id, or raw symbol",
         ),
     }
 }
@@ -3961,12 +3966,12 @@ fn action_status_bar_line(
 ) -> Line<'static> {
     let action_copy = if width < 132 {
         format!(
-            "j/k ent tab z {} / p s t ? q | ",
+            "j/k ent tab g z {} / p s t ? q | ",
             pane_zoom_action_label(state)
         )
     } else {
         format!(
-            "j/k row ent detail tab view z {} / filter p preset s sort t win ? help q quit | ",
+            "j/k row ent detail tab view g symbol z {} / filter p preset s sort t win ? help q quit | ",
             pane_zoom_action_label(state)
         )
     };

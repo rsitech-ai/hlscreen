@@ -66,6 +66,14 @@ fn workstation_state_handles_keyboard_actions() {
     state.apply(WorkstationAction::TogglePause, 3);
     assert!(state.paused());
 
+    state.apply(WorkstationAction::OpenSymbolSearch, 3);
+    assert_eq!(
+        state.command().expect("symbol command opens").target(),
+        WorkstationCommandTarget::Symbol
+    );
+    state.apply(WorkstationAction::CancelCommand, 3);
+    assert!(state.command().is_none());
+
     assert_eq!(state.chart_window().label(), "15m");
     state.apply(WorkstationAction::CycleChartWindow, 3);
     assert_eq!(state.chart_window().label(), "30m");

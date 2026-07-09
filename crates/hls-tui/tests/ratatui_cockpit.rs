@@ -128,6 +128,41 @@ fn command_palette_renders_preset_deck_with_active_context() {
 }
 
 #[test]
+fn command_palette_renders_symbol_jump_deck() {
+    let snapshots = fixture_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(WorkstationAction::OpenSymbolSearch, snapshots.len());
+    for ch in "hype".chars() {
+        state.apply(WorkstationAction::CommandChar(ch), snapshots.len());
+    }
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    );
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 140,
+            height: 40,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders symbol command deck");
+
+    assert!(rendered.contains("COMMAND CENTER"));
+    assert!(rendered.contains("TARGET symbol"));
+    assert!(rendered.contains("INPUT hype"));
+    assert!(rendered.contains("KEYFLOW g symbol"));
+    assert!(rendered.contains("symbol: hype"));
+    assert!(rendered.contains("Enter jump visible row"));
+    assert!(rendered.contains("SYMBOL DECK visible rows only"));
+    assert!(rendered.contains("SAFETY no orders"));
+}
+
+#[test]
 fn cockpit_header_renders_adaptive_layout_profile() {
     let model = RatatuiFrameModel::new(
         directional_snapshots(),
@@ -337,6 +372,7 @@ fn wide_status_bar_renders_action_key_rail() {
     assert!(rendered.contains("j/k row"));
     assert!(rendered.contains("ent detail"));
     assert!(rendered.contains("tab view"));
+    assert!(rendered.contains("g symbol"));
     assert!(rendered.contains("z zoom"));
     assert!(rendered.contains("/ filter"));
     assert!(rendered.contains("p preset"));
@@ -370,7 +406,7 @@ fn medium_status_bar_compacts_action_and_theme_rails() {
     .expect("renders medium compact action rail");
 
     assert!(rendered.contains("ACTION STRIP"));
-    assert!(rendered.contains("j/k ent tab"));
+    assert!(rendered.contains("j/k ent tab g"));
     assert!(rendered.contains("z zoom"));
     assert!(rendered.contains("/ p s t ? q"));
     assert!(rendered.contains("THEME plain"));
@@ -1740,7 +1776,7 @@ fn cockpit_reflects_keyboard_view_pause_density_and_help_state() {
     assert!(rendered.contains("z pane zoom"));
     assert!(rendered.contains("enter detail"));
     assert!(rendered.contains("h health/status"));
-    assert!(rendered.contains("MARKET OPS / filter p preset s sort"));
+    assert!(rendered.contains("MARKET OPS g symbol / filter p preset s sort"));
     assert!(rendered.contains("STATE view flow | pane chart | density dense"));
     assert!(rendered.contains("PALETTE DIAGNOSTIC"));
     assert!(rendered.contains("mode no-color"));
@@ -1749,6 +1785,7 @@ fn cockpit_reflects_keyboard_view_pause_density_and_help_state() {
     assert!(rendered.contains("READ-ONLY public market data only"));
     assert!(rendered.contains("[ / ]"));
     assert!(rendered.contains("1-6 panes"));
+    assert!(rendered.contains("g symbol"));
     assert!(rendered.contains("/ filter"));
     assert!(!rendered.contains("reserved"));
 }
