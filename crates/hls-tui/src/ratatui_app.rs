@@ -231,8 +231,8 @@ fn render_micro_header(
             )),
         ]),
         Line::from(vec![
-            Span::styled("KEYS ", Style::default().fg(warn(color_mode))),
-            Span::raw("1-6 focus | w/i/c/b/r/o | j/k | z zoom | / p s t d sp ? q | "),
+            Span::styled("CMD ", Style::default().fg(warn(color_mode))),
+            Span::raw("g / p s t d z sp ? q | 1-6 focus | z zoom | "),
             Span::styled("read-only", Style::default().fg(success(color_mode))),
         ]),
     ];
