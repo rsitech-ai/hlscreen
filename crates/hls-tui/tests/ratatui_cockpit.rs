@@ -152,6 +152,21 @@ fn directional_snapshots() -> Vec<hls_core::market_state::FeatureSnapshot> {
     snapshots
 }
 
+fn ten_directional_snapshots() -> Vec<hls_core::market_state::FeatureSnapshot> {
+    let mut snapshots = directional_snapshots();
+    let seed = snapshots[0].clone();
+    for index in snapshots.len()..10 {
+        let mut row = seed.clone();
+        row.symbol = format!("ROW{}/USDC", index + 1);
+        row.metadata = None;
+        row.price = Some(10.0 + index as f64);
+        row.ret_1m = Some(if index % 2 == 0 { 0.003 } else { -0.003 });
+        row.signed_notional_flow_30s = Some(if index % 2 == 0 { 1_000.0 } else { -1_000.0 });
+        snapshots.push(row);
+    }
+    snapshots
+}
+
 #[test]
 fn medium_cockpit_compacts_market_board_without_truncated_signals() {
     let model = RatatuiFrameModel::new(
@@ -175,6 +190,34 @@ fn medium_cockpit_compacts_market_board_without_truncated_signals() {
     assert!(rendered.contains("FLOW"));
     assert!(rendered.contains("UP+0.57%"));
     assert!(rendered.contains("DN-1.23%"));
+}
+
+#[test]
+fn narrow_watchlist_scrolls_keyboard_selection_into_view() {
+    let snapshots = ten_directional_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(WorkstationAction::End, snapshots.len());
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    );
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 72,
+            height: 24,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders selected watchlist row");
+
+    assert!(rendered.contains("[FOCUS] WATCHLIST 10/10"));
+    assert!(rendered.contains("ROW10/USDC"));
+    assert!(!rendered.contains("01 HYPE/USDC"));
+    assert!(rendered.contains("DETAIL"));
 }
 
 #[test]

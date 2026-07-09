@@ -421,10 +421,22 @@ fn render_watchlist(
         .selected_index(rows.len())
         .unwrap_or_default();
     let compact = area.width < 60;
+    let visible_range = watchlist_visible_range(
+        selected,
+        rows.len(),
+        model.ui_state.visible_row_limit(),
+        area.height,
+    );
+    let title = if rows.is_empty() {
+        "WATCHLIST 0/0".to_owned()
+    } else {
+        format!("WATCHLIST {}/{}", selected + 1, rows.len())
+    };
     let table_rows = rows
         .iter()
-        .take(model.ui_state.visible_row_limit())
         .enumerate()
+        .skip(visible_range.start)
+        .take(visible_range.len())
         .map(|(index, row)| {
             let style = if index == selected {
                 Style::default()
@@ -511,12 +523,32 @@ fn render_watchlist(
     }
     .column_spacing(1)
     .block(panel_for(
-        "WATCHLIST",
+        &title,
         WorkstationPane::Watchlist,
         model,
         color_mode,
     ));
     frame.render_widget(table, area);
+}
+
+fn watchlist_visible_range(
+    selected: usize,
+    row_count: usize,
+    density_limit: usize,
+    area_height: u16,
+) -> std::ops::Range<usize> {
+    if row_count == 0 || density_limit == 0 {
+        return 0..0;
+    }
+
+    let table_row_capacity = usize::from(area_height.saturating_sub(3)).max(1);
+    let capacity = density_limit.min(table_row_capacity).min(row_count);
+    let selected = selected.min(row_count - 1);
+    let mut start = selected.saturating_sub(capacity / 2);
+    if start + capacity > row_count {
+        start = row_count - capacity;
+    }
+    start..start + capacity
 }
 
 fn market_row_style(row: &FeatureSnapshot, color_mode: RatatuiColorMode) -> Style {
