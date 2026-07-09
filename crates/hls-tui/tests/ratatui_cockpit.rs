@@ -151,6 +151,44 @@ fn active_fg_before<'a>(rendered: &'a str, label: &str) -> Option<&'a str> {
 }
 
 #[test]
+fn ultrawide_header_renders_stateful_command_dock() {
+    let snapshots = fixture_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(WorkstationAction::ToggleDensity, snapshots.len());
+    state.apply(WorkstationAction::CycleChartWindow, snapshots.len());
+    state.apply(WorkstationAction::TogglePaneZoom, snapshots.len());
+    state.apply(WorkstationAction::TogglePause, snapshots.len());
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    );
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 240,
+            height: 56,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("ultrawide command dock renders");
+
+    assert!(rendered.contains("CMD DOCK"));
+    assert!(rendered.contains("[w/1]WATCH"));
+    assert!(rendered.contains("g SYMBOL"));
+    assert!(rendered.contains("/ FILTER"));
+    assert!(rendered.contains("p PRESET"));
+    assert!(rendered.contains("s SORT"));
+    assert!(rendered.contains("t WIN:30m"));
+    assert!(rendered.contains("d DEN:dense"));
+    assert!(rendered.contains("z grid"));
+    assert!(rendered.contains("sp paused"));
+    assert!(rendered.contains("EXEC GUARD read-only"));
+}
+
+#[test]
 fn command_palette_renders_preset_deck_with_active_context() {
     let snapshots = fixture_snapshots();
     let mut state = WorkstationUiState::default();
@@ -421,19 +459,26 @@ fn cockpit_header_renders_terminal_top_command_strip() {
     )
     .expect("renders top command strip");
 
-    assert!(rendered.contains("TOP BAR"));
-    assert!(rendered.contains("DESK NAV"));
-    assert!(rendered.contains("[w/1] WATCH"));
-    assert!(rendered.contains("[i/2] DETAIL"));
-    assert!(rendered.contains("[c/3] CHART"));
-    assert!(rendered.contains("[b/4] BOOK"));
-    assert!(rendered.contains("[r/5] TAPE"));
-    assert!(rendered.contains("[o/6] OPS"));
-    assert!(rendered.contains("SEARCH [/]"));
-    assert!(rendered.contains("HELP [?]"));
-    assert!(rendered.contains("QUIT [q]"));
+    assert!(rendered.contains("CMD DOCK"));
+    assert!(rendered.contains("NAV"));
+    assert!(rendered.contains("[w/1]WATCH"));
+    assert!(rendered.contains("[i/2]DETAIL"));
+    assert!(rendered.contains("[c/3]CHART"));
+    assert!(rendered.contains("[b/4]BOOK"));
+    assert!(rendered.contains("[r/5]TAPE"));
+    assert!(rendered.contains("[o/6]OPS"));
+    assert!(rendered.contains("g SYMBOL"));
+    assert!(rendered.contains("/ FILTER"));
+    assert!(rendered.contains("p PRESET"));
+    assert!(rendered.contains("s SORT"));
+    assert!(rendered.contains("t WIN:15m"));
+    assert!(rendered.contains("d DEN:balanced"));
+    assert!(rendered.contains("z zoom"));
+    assert!(rendered.contains("sp live"));
+    assert!(rendered.contains("? HELP"));
+    assert!(rendered.contains("q QUIT"));
     assert!(rendered.contains("EXEC GUARD"));
-    assert!(rendered.contains("read-only proxy"));
+    assert!(rendered.contains("read-only"));
 }
 
 #[test]

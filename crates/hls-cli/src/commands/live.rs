@@ -1524,41 +1524,126 @@ fn mouse_top_command_strip_action(
         return None;
     }
 
-    let labels = [
+    let nav_start = 1 + "CMD DOCK ".len() as u16 + "NAV ".len() as u16;
+    let nav_labels = [
         (
-            "[w/1] WATCH",
+            "[w/1]WATCH",
             WorkstationAction::FocusPane(WorkstationPane::Watchlist),
         ),
         (
-            "[i/2] DETAIL",
+            "[i/2]DETAIL",
             WorkstationAction::FocusPane(WorkstationPane::Detail),
         ),
         (
-            "[c/3] CHART",
+            "[c/3]CHART",
             WorkstationAction::FocusPane(WorkstationPane::Chart),
         ),
         (
-            "[b/4] BOOK",
+            "[b/4]BOOK",
             WorkstationAction::FocusPane(WorkstationPane::Book),
         ),
         (
-            "[r/5] TAPE",
+            "[r/5]TAPE",
             WorkstationAction::FocusPane(WorkstationPane::Tape),
         ),
         (
-            "[o/6] OPS",
+            "[o/6]OPS",
             WorkstationAction::FocusPane(WorkstationPane::Status),
         ),
-        ("SEARCH [/]", WorkstationAction::OpenSymbolSearch),
-        ("HELP [?]", WorkstationAction::ToggleHelp),
-        ("QUIT [q]", WorkstationAction::Quit),
     ];
-    mouse_action_label_hit(
-        column,
-        1 + "TOP BAR ".len() as u16 + "DESK NAV ".len() as u16,
-        &labels,
-        Some(ui_state.focused_pane()),
-    )
+    if let Some(action) = mouse_double_spaced_action_label_hit(column, nav_start, &nav_labels) {
+        return match action {
+            WorkstationAction::FocusPane(pane) if pane == ui_state.focused_pane() => {
+                Some(WorkstationAction::TogglePaneZoom)
+            }
+            _ => Some(action),
+        };
+    }
+
+    let ops_start = nav_start
+        .saturating_add(double_spaced_labels_width(&nav_labels))
+        .saturating_add("  | OPS ".len() as u16);
+    let ops_labels = [
+        ("g SYMBOL".to_owned(), WorkstationAction::OpenSymbolSearch),
+        ("/ FILTER".to_owned(), WorkstationAction::CycleFilter),
+        ("p PRESET".to_owned(), WorkstationAction::CyclePreset),
+        ("s SORT".to_owned(), WorkstationAction::CycleSort),
+        (
+            format!("t WIN:{}", ui_state.chart_window().label()),
+            WorkstationAction::CycleChartWindow,
+        ),
+        (
+            format!("d DEN:{}", ui_state.density().label()),
+            WorkstationAction::ToggleDensity,
+        ),
+        (
+            format!(
+                "z {}",
+                if ui_state.pane_expanded() {
+                    "grid"
+                } else {
+                    "zoom"
+                }
+            ),
+            WorkstationAction::TogglePaneZoom,
+        ),
+        (
+            format!("sp {}", if ui_state.paused() { "paused" } else { "live" }),
+            WorkstationAction::TogglePause,
+        ),
+        ("? HELP".to_owned(), WorkstationAction::ToggleHelp),
+        ("q QUIT".to_owned(), WorkstationAction::Quit),
+    ];
+    mouse_double_spaced_owned_action_label_hit(column, ops_start, &ops_labels)
+}
+
+fn double_spaced_labels_width(labels: &[(&str, WorkstationAction)]) -> u16 {
+    labels
+        .iter()
+        .enumerate()
+        .fold(0_u16, |width, (index, (label, _))| {
+            width
+                .saturating_add(if index > 0 { 2 } else { 0 })
+                .saturating_add(label.len() as u16)
+        })
+}
+
+fn mouse_double_spaced_action_label_hit(
+    column: u16,
+    start_column: u16,
+    labels: &[(&str, WorkstationAction)],
+) -> Option<WorkstationAction> {
+    let mut cursor = start_column;
+    for (index, (label, action)) in labels.iter().enumerate() {
+        if index > 0 {
+            cursor = cursor.saturating_add(2);
+        }
+        let label_width = label.len() as u16;
+        if column >= cursor && column < cursor.saturating_add(label_width) {
+            return Some(*action);
+        }
+        cursor = cursor.saturating_add(label_width);
+    }
+    None
+}
+
+fn mouse_double_spaced_owned_action_label_hit(
+    column: u16,
+    start_column: u16,
+    labels: &[(String, WorkstationAction)],
+) -> Option<WorkstationAction> {
+    let mut cursor = start_column;
+    for (index, (label, action)) in labels.iter().enumerate() {
+        if index > 0 {
+            cursor = cursor.saturating_add(2);
+        }
+        let label_width = label.len() as u16;
+        if column >= cursor && column < cursor.saturating_add(label_width) {
+            return Some(*action);
+        }
+        cursor = cursor.saturating_add(label_width);
+    }
+    None
 }
 
 fn mouse_compact_command_cluster_action(
@@ -1591,36 +1676,6 @@ fn mouse_short_command_cluster_hit(column: u16, start_column: u16) -> Option<Wor
         12 => Some(WorkstationAction::Quit),
         _ => None,
     }
-}
-
-fn mouse_action_label_hit(
-    column: u16,
-    start_column: u16,
-    labels: &[(&'static str, WorkstationAction)],
-    active_pane: Option<WorkstationPane>,
-) -> Option<WorkstationAction> {
-    let mut cursor = start_column;
-    for (index, (label, action)) in labels.iter().enumerate() {
-        if index > 0 {
-            cursor = cursor.saturating_add(2);
-        }
-        let label_width = match (active_pane, action) {
-            (Some(active), WorkstationAction::FocusPane(pane)) if active == *pane => {
-                label.len().saturating_add(2)
-            }
-            _ => label.len(),
-        } as u16;
-        if column >= cursor && column < cursor.saturating_add(label_width) {
-            return match (active_pane, action) {
-                (Some(active), WorkstationAction::FocusPane(pane)) if active == *pane => {
-                    Some(WorkstationAction::TogglePaneZoom)
-                }
-                _ => Some(*action),
-            };
-        }
-        cursor = cursor.saturating_add(label_width);
-    }
-    None
 }
 
 fn mouse_status_action_strip_action(
@@ -3046,7 +3101,7 @@ mod tests {
             mouse_to_workstation_action(
                 MouseEvent {
                     kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
-                    column: 98,
+                    column: 91,
                     row: 2,
                     modifiers: KeyModifiers::NONE,
                 },
@@ -3060,7 +3115,105 @@ mod tests {
             mouse_to_workstation_action(
                 MouseEvent {
                     kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
-                    column: 110,
+                    column: 101,
+                    row: 2,
+                    modifiers: KeyModifiers::NONE,
+                },
+                &state,
+                Some((240, 56)),
+                20,
+            ),
+            Some(WorkstationAction::CycleFilter)
+        );
+        assert_eq!(
+            mouse_to_workstation_action(
+                MouseEvent {
+                    kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
+                    column: 111,
+                    row: 2,
+                    modifiers: KeyModifiers::NONE,
+                },
+                &state,
+                Some((240, 56)),
+                20,
+            ),
+            Some(WorkstationAction::CyclePreset)
+        );
+        assert_eq!(
+            mouse_to_workstation_action(
+                MouseEvent {
+                    kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
+                    column: 121,
+                    row: 2,
+                    modifiers: KeyModifiers::NONE,
+                },
+                &state,
+                Some((240, 56)),
+                20,
+            ),
+            Some(WorkstationAction::CycleSort)
+        );
+        assert_eq!(
+            mouse_to_workstation_action(
+                MouseEvent {
+                    kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
+                    column: 129,
+                    row: 2,
+                    modifiers: KeyModifiers::NONE,
+                },
+                &state,
+                Some((240, 56)),
+                20,
+            ),
+            Some(WorkstationAction::CycleChartWindow)
+        );
+        assert_eq!(
+            mouse_to_workstation_action(
+                MouseEvent {
+                    kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
+                    column: 140,
+                    row: 2,
+                    modifiers: KeyModifiers::NONE,
+                },
+                &state,
+                Some((240, 56)),
+                20,
+            ),
+            Some(WorkstationAction::ToggleDensity)
+        );
+        assert_eq!(
+            mouse_to_workstation_action(
+                MouseEvent {
+                    kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
+                    column: 156,
+                    row: 2,
+                    modifiers: KeyModifiers::NONE,
+                },
+                &state,
+                Some((240, 56)),
+                20,
+            ),
+            Some(WorkstationAction::TogglePaneZoom)
+        );
+        assert_eq!(
+            mouse_to_workstation_action(
+                MouseEvent {
+                    kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
+                    column: 164,
+                    row: 2,
+                    modifiers: KeyModifiers::NONE,
+                },
+                &state,
+                Some((240, 56)),
+                20,
+            ),
+            Some(WorkstationAction::TogglePause)
+        );
+        assert_eq!(
+            mouse_to_workstation_action(
+                MouseEvent {
+                    kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
+                    column: 173,
                     row: 2,
                     modifiers: KeyModifiers::NONE,
                 },
@@ -3069,6 +3222,20 @@ mod tests {
                 20,
             ),
             Some(WorkstationAction::ToggleHelp)
+        );
+        assert_eq!(
+            mouse_to_workstation_action(
+                MouseEvent {
+                    kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
+                    column: 181,
+                    row: 2,
+                    modifiers: KeyModifiers::NONE,
+                },
+                &state,
+                Some((240, 56)),
+                20,
+            ),
+            Some(WorkstationAction::Quit)
         );
         assert_eq!(
             mouse_to_workstation_action(
