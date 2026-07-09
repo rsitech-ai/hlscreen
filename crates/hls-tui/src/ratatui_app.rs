@@ -596,6 +596,13 @@ fn market_pulse_line(model: &RatatuiFrameModel, color_mode: RatatuiColorMode) ->
                 .fg(accent(color_mode))
                 .add_modifier(Modifier::BOLD),
         ),
+        Span::styled(
+            format!("regime {} ", market_regime_label(up, down)),
+            Style::default()
+                .fg(market_regime_color(up, down, color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw(format!("pulse {}  ", market_heat_bar(up, down))),
         Span::raw(format!(
             "breadth {:02}/{:02}  {}  {}  public rows",
             up.min(99),
@@ -604,6 +611,30 @@ fn market_pulse_line(model: &RatatuiFrameModel, color_mode: RatatuiColorMode) ->
             flow_text
         )),
     ])
+}
+
+fn market_regime_label(up: usize, down: usize) -> &'static str {
+    let total = up + down;
+    if total == 0 {
+        return "idle";
+    }
+    let up_ratio = up as f64 / total as f64;
+    if up_ratio >= 0.65 {
+        "risk-on"
+    } else if up_ratio <= 0.35 {
+        "risk-off"
+    } else {
+        "mixed"
+    }
+}
+
+fn market_regime_color(up: usize, down: usize, color_mode: RatatuiColorMode) -> Color {
+    match market_regime_label(up, down) {
+        "risk-on" => success(color_mode),
+        "risk-off" => danger(color_mode),
+        "mixed" => warn(color_mode),
+        _ => text(color_mode),
+    }
 }
 
 fn market_heat_bar(up: usize, down: usize) -> String {

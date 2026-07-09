@@ -462,6 +462,8 @@ fn cockpit_header_renders_market_internals_rail() {
     assert!(rendered.contains("tradeable"));
     assert!(rendered.contains("MARKET PULSE"));
     assert!(rendered.contains("breadth 01/01"));
+    assert!(rendered.contains("regime mixed"));
+    assert!(rendered.contains("pulse ██░░"));
     assert!(rendered.contains("move DOWN/USDC DN-1.23%"));
     assert!(rendered.contains("flow DOWN/USDC -$4.2K"));
     assert!(rendered.contains("public rows"));
