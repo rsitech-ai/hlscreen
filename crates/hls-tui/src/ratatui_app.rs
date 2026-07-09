@@ -6874,6 +6874,7 @@ fn render_status_panel(
         lines.push(status_latency_strip_line(
             &rows, reconnects, gaps, color_mode,
         ));
+        lines.push(status_data_quality_watch_line(&rows, color_mode));
         lines.push(status_regime_board_line(&rows, color_mode));
         lines.push(status_signal_matrix_line(&rows, area.width, color_mode));
     }
@@ -7266,6 +7267,85 @@ fn status_latency_strip_line(
             stale.min(99)
         )),
     ])
+}
+
+fn status_data_quality_watch_line(
+    rows: &[FeatureSnapshot],
+    color_mode: RatatuiColorMode,
+) -> Line<'static> {
+    let mut watched = rows
+        .iter()
+        .filter(|row| {
+            row.confidence.score < 70
+                || row.staleness_state != StalenessState::Fresh
+                || row.updated_ms_ago.is_some_and(|age| age > 2_000)
+        })
+        .collect::<Vec<_>>();
+
+    watched.sort_by(|left, right| {
+        status_quality_watch_rank(right)
+            .cmp(&status_quality_watch_rank(left))
+            .then_with(|| display_symbol(left).cmp(display_symbol(right)))
+    });
+
+    let mut spans = vec![Span::styled(
+        "DATA QUALITY WATCH ",
+        Style::default()
+            .fg(accent(color_mode))
+            .add_modifier(Modifier::BOLD),
+    )];
+
+    if watched.is_empty() {
+        spans.push(Span::styled(
+            "all screened rows fresh/trusted",
+            Style::default().fg(success(color_mode)),
+        ));
+        spans.push(Span::raw(" | public rows only"));
+        return Line::from(spans);
+    }
+
+    for (index, row) in watched.into_iter().take(3).enumerate() {
+        if index > 0 {
+            spans.push(Span::raw(" | "));
+        }
+        let stale = row.staleness_state != StalenessState::Fresh;
+        let symbol_color = if stale || row.confidence.score < 50 {
+            danger(color_mode)
+        } else {
+            warn(color_mode)
+        };
+        spans.push(Span::styled(
+            display_symbol(row).to_owned(),
+            Style::default()
+                .fg(symbol_color)
+                .add_modifier(Modifier::BOLD),
+        ));
+        spans.push(Span::raw(format!(
+            " {} ",
+            staleness_label(&row.staleness_state)
+        )));
+        spans.push(Span::styled(
+            format!("conf{} ", row.confidence.score),
+            Style::default()
+                .fg(confidence_color(row.confidence.score, color_mode))
+                .add_modifier(Modifier::BOLD),
+        ));
+        spans.push(Span::raw(format!(
+            "age {}",
+            format_duration_ms(row.updated_ms_ago)
+        )));
+    }
+    spans.push(Span::raw(" | public rows only"));
+    Line::from(spans)
+}
+
+fn status_quality_watch_rank(row: &FeatureSnapshot) -> (u8, u8, i64, u8) {
+    (
+        u8::from(row.staleness_state != StalenessState::Fresh),
+        u8::from(row.confidence.score < 70),
+        row.updated_ms_ago.unwrap_or_default(),
+        100_u8.saturating_sub(row.confidence.score),
+    )
 }
 
 fn status_signal_matrix_line(
