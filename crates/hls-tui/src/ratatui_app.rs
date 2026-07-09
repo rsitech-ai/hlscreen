@@ -4201,6 +4201,11 @@ fn render_chart(
     let show_trade_markers = show_prints_strip && !chart_trades.is_empty();
     if show_trade_markers {
         chart_lines.push(chart_trade_marker_line(&candles, &chart_trades, color_mode));
+        chart_lines.push(chart_orderflow_ribbon_line(
+            &candles,
+            &chart_trades,
+            color_mode,
+        ));
     }
     if show_chart_intel {
         chart_lines.extend(chart_intelligence_deck_lines(
@@ -4231,7 +4236,7 @@ fn render_chart(
         + u16::from(show_prints_strip) * 3
         + u16::from(show_crosshair_context) * 2
         + u16::from(show_profile_rail)
-        + u16::from(show_trade_markers)
+        + u16::from(show_trade_markers) * 2
         + u16::from(show_strategy_hud) * 3
         + u16::from(show_chart_intel) * 7;
     chart_lines.extend(candle_chart_lines(
@@ -4689,6 +4694,75 @@ fn chart_trade_marker_line(
         format_usd_signed(Some(net_notional))
     )));
     Line::from(spans)
+}
+
+fn chart_orderflow_ribbon_line(
+    candles: &[&CandleEvent],
+    trades: &[&TradeEvent],
+    color_mode: RatatuiColorMode,
+) -> Line<'static> {
+    let mut ribbon = String::new();
+    let mut buy_notional_total = 0.0;
+    let mut sell_notional_total = 0.0;
+    let mut net_notional = 0.0;
+
+    for candle in candles {
+        let mut buy_notional = 0.0;
+        let mut sell_notional = 0.0;
+        for trade in trades.iter().filter(|trade| {
+            trade.exchange_ts_ms >= candle.open_ts_ms && trade.exchange_ts_ms <= candle.close_ts_ms
+        }) {
+            match trade.side {
+                TradeSide::Buy => {
+                    buy_notional += trade.notional;
+                    buy_notional_total += trade.notional;
+                    net_notional += trade.notional;
+                }
+                TradeSide::Sell => {
+                    sell_notional += trade.notional;
+                    sell_notional_total += trade.notional;
+                    net_notional -= trade.notional;
+                }
+            }
+        }
+        ribbon.push(if buy_notional > 0.0 && sell_notional > 0.0 {
+            'X'
+        } else if buy_notional > 0.0 {
+            'B'
+        } else if sell_notional > 0.0 {
+            'S'
+        } else {
+            '·'
+        });
+    }
+
+    Line::from(vec![
+        Span::styled(
+            "ORDERFLOW RIBBON ",
+            Style::default()
+                .fg(accent(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw("ribbon "),
+        Span::styled(
+            ribbon,
+            Style::default().fg(flow_color(net_notional, color_mode)),
+        ),
+        Span::raw(" | "),
+        Span::styled(
+            format!("buy {} ", format_usd(Some(buy_notional_total))),
+            Style::default().fg(success(color_mode)),
+        ),
+        Span::styled(
+            format!("sell {} ", format_usd(Some(sell_notional_total))),
+            Style::default().fg(danger(color_mode)),
+        ),
+        Span::styled(
+            format!("net {} ", format_usd_signed(Some(net_notional))),
+            Style::default().fg(flow_color(net_notional, color_mode)),
+        ),
+        Span::raw("| public prints mapped to candles"),
+    ])
 }
 
 fn chart_intelligence_deck_lines(
