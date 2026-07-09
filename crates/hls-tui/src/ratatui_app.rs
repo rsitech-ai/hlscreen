@@ -2774,6 +2774,7 @@ fn detail_lines(
             if expanded_detail {
                 lines.extend(quote_terminal_deck_lines(row, color_mode));
                 lines.extend(instrument_dossier_lines(row, color_mode));
+                lines.extend(selected_pair_route_deck_lines(row, color_mode, width));
             }
             lines.extend(factor_stack_lines(row, color_mode, compact));
             lines.extend(liquidity_radar_lines(row, color_mode));
@@ -3089,6 +3090,50 @@ fn instrument_dossier_lines(
             staleness_label(&row.staleness_state)
         )),
         Line::from("screen-only profile | public metadata + BBO/trades | no wallet | no orders"),
+    ]
+}
+
+fn selected_pair_route_deck_lines(
+    row: &FeatureSnapshot,
+    color_mode: RatatuiColorMode,
+    width: u16,
+) -> Vec<Line<'static>> {
+    let compact = width < 118;
+    let route_label = if compact {
+        "tab views | 3 chart | 4 book | 5 tape | 6 status"
+    } else {
+        "tab views | 3 chart structure | 4 book depth | 5 tape flow | 6 status risk"
+    };
+    let execution_label = if compact {
+        "read-only cockpit | no wallet/order route"
+    } else {
+        "read-only cockpit | screen heuristic only | no wallet/order route"
+    };
+
+    vec![
+        Line::from(vec![
+            Span::styled(
+                "PAIR ROUTE DECK ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(format!("{} operator routes", display_symbol(row))),
+        ]),
+        Line::from(vec![
+            Span::styled("focus ", Style::default().fg(warn(color_mode))),
+            Span::raw(route_label),
+            Span::raw(" | "),
+            Span::styled("enter ", Style::default().fg(success(color_mode))),
+            Span::raw("selected-pair dossier"),
+        ]),
+        Line::from(vec![
+            Span::styled(
+                "boundary ",
+                Style::default().fg(risk_label_color(selected_pair_risk_label(row), color_mode)),
+            ),
+            Span::raw(execution_label),
+        ]),
     ]
 }
 
