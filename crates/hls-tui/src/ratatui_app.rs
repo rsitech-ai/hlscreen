@@ -376,7 +376,11 @@ fn render_medium(
     render_detail(frame, center[0], model, "MICROSTRUCTURE", color_mode);
     render_chart(frame, center[1], model, color_mode);
     frame.render_widget(
-        Paragraph::new(medium_lower_pane_router_line(&model.ui_state, color_mode)),
+        Paragraph::new(medium_lower_pane_router_line(
+            &model.ui_state,
+            color_mode,
+            center[2].width,
+        )),
         center[2],
     );
     let lower = Layout::default()
@@ -392,6 +396,7 @@ fn render_medium(
 fn medium_lower_pane_router_line(
     state: &WorkstationUiState,
     color_mode: RatatuiColorMode,
+    width: u16,
 ) -> Line<'static> {
     let pane = state.focused_pane();
     let book_style = Style::default()
@@ -418,7 +423,11 @@ fn medium_lower_pane_router_line(
         Span::styled("4 book", book_style),
         Span::raw(" / "),
         Span::styled("5 tape", tape_style),
-        Span::raw(" | public BBO/trades only | z zoom"),
+        Span::raw(if width < 72 {
+            " | RO BBO/trades | z zoom"
+        } else {
+            " | public BBO/trades only | z zoom"
+        }),
     ])
 }
 
@@ -1241,6 +1250,14 @@ fn render_watchlist(
     );
     let title = if rows.is_empty() {
         "WATCHLIST 0/0 ALGO SCAN".to_owned()
+    } else if area.width < 42 {
+        format!(
+            "WATCH {}/{} SCAN {:02}-{:02}",
+            selected + 1,
+            rows.len(),
+            visible_range.start + 1,
+            visible_range.end
+        )
     } else {
         format!(
             "WATCHLIST {}/{} ALGO SCAN VIEW {:02}-{:02}{}",
@@ -4213,15 +4230,27 @@ fn render_chart(
         return;
     };
 
-    let title = format!(
-        "CANDLES 1m/{}  O {} H {} L {} C {} VOL {}",
-        model.ui_state.chart_window().label(),
-        format_plain_number(latest.open),
-        format_plain_number(latest.high),
-        format_plain_number(latest.low),
-        format_plain_number(latest.close),
-        format_volume(latest.volume_base)
-    );
+    let title = if area.width < 72 {
+        format!(
+            "CANDLES {} O {} H {} L {} C {} V {}",
+            model.ui_state.chart_window().label(),
+            format_plain_number(latest.open),
+            format_plain_number(latest.high),
+            format_plain_number(latest.low),
+            format_plain_number(latest.close),
+            format_volume(latest.volume_base)
+        )
+    } else {
+        format!(
+            "CANDLES 1m/{}  O {} H {} L {} C {} VOL {}",
+            model.ui_state.chart_window().label(),
+            format_plain_number(latest.open),
+            format_plain_number(latest.high),
+            format_plain_number(latest.low),
+            format_plain_number(latest.close),
+            format_volume(latest.volume_base)
+        )
+    };
     let mut chart_lines = vec![chart_window_tabs_line(
         model.ui_state.chart_window(),
         color_mode,

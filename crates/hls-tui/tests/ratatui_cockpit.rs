@@ -1019,6 +1019,36 @@ fn compact_medium_and_standard_wide_rails_fit_without_half_words() {
 }
 
 #[test]
+fn compact_medium_panel_titles_and_router_fit_without_half_words() {
+    let model = RatatuiFrameModel::new(
+        fixture_snapshots(),
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        WorkstationUiState::default(),
+    )
+    .with_candles(fixture_candles())
+    .with_trades(fixture_trades())
+    .with_status("fixture", "REC ready", "ws=12 events=20 gaps=0");
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 100,
+            height: 30,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders compact medium panel titles");
+
+    assert!(rendered.contains("[FOCUS] WATCH 1/1 SCAN 01-01"));
+    assert!(rendered.contains("CANDLES 15m O 34.5000"));
+    assert!(rendered.contains("ADAPTIVE DESK 4 book / 5 tape | RO BBO/trades | z zoom"));
+    assert!(!rendered.contains("ALGO SCAN VIE"));
+    assert!(!rendered.contains("VOL┐"));
+    assert!(!rendered.contains("z zoo\n"));
+}
+
+#[test]
 fn medium_status_bar_surfaces_compact_quality_alert() {
     let mut snapshots = ten_directional_snapshots();
     snapshots[1].confidence.score = 44;
