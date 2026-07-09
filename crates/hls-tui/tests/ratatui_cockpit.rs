@@ -388,6 +388,7 @@ fn narrow_cockpit_collapses_to_watchlist_and_detail_without_tape() {
     assert!(rendered.contains("INT rows"));
     assert!(rendered.contains(" dn "));
     assert!(rendered.contains(" tr "));
+    assert!(rendered.contains(" heat "));
     assert!(rendered.contains(" dp "));
     assert!(rendered.contains("ws=235 ev=485 rc=0 gp=0"));
     assert!(rendered.contains("live | watchlist | top1"));
