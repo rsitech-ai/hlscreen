@@ -647,6 +647,56 @@ fn medium_status_bar_compacts_action_and_theme_rails() {
     assert!(rendered.contains("TICKER"));
 }
 
+#[test]
+fn medium_status_bar_surfaces_compact_quality_alert() {
+    let mut snapshots = ten_directional_snapshots();
+    snapshots[1].confidence.score = 44;
+    snapshots[1].confidence.level = ConfidenceLevel::Low;
+    snapshots[1].staleness_state = StalenessState::Stale;
+    snapshots[1].updated_ms_ago = Some(3_400);
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        WorkstationUiState::default(),
+    )
+    .with_status("LIVE", "REC ready", "ws=120 events=300 gaps=0");
+
+    let plain = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 120,
+            height: 40,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("plain medium status quality alert renders");
+    let colored = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 120,
+            height: 40,
+        },
+        RatatuiColorMode::Color,
+    )
+    .expect("colored medium status quality alert renders");
+
+    assert!(!plain.contains("\u{1b}["));
+    assert!(plain.contains("QALERT"));
+    assert!(plain.contains("conf44"));
+    assert!(plain.contains("TICKER"));
+    assert!(plain.contains("ACTION STRIP"));
+    assert!(plain.contains("No wallet"));
+    assert_eq!(
+        active_fg_before(&colored, "QALERT"),
+        Some("\u{1b}[38;2;255;77;109m")
+    );
+    assert_eq!(
+        active_fg_before(&colored, "conf44"),
+        Some("\u{1b}[38;2;255;77;109m")
+    );
+}
+
 fn directional_snapshots() -> Vec<hls_core::market_state::FeatureSnapshot> {
     let mut snapshots = fixture_snapshots();
     snapshots[0].ret_1m = Some(0.0057);
