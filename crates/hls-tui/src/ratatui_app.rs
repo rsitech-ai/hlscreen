@@ -2048,10 +2048,31 @@ fn book_lines(
     let (bid_bar, ask_bar) = quote_share
         .map(|(bid, ask)| (depth_bar(bid, 16), depth_bar(ask, 16)))
         .unwrap_or_else(|| (depth_bar_empty(16), depth_bar_empty(16)));
+    let compact_book = content_height <= 7;
     let share_prefix = if view == WorkstationView::Flow {
         "share bid "
     } else {
         "DEPTH CONSOLE share bid "
+    };
+    let book_snap = if compact_book {
+        book_snap_compact_line(quote_share, color_mode)
+    } else {
+        Line::from(vec![
+            Span::raw(share_prefix),
+            Span::styled(
+                bid_share,
+                Style::default()
+                    .fg(success(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(" / "),
+            Span::styled(
+                format!("ask {ask_share}"),
+                Style::default()
+                    .fg(danger(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+        ])
     };
     let mut lines = vec![
         Line::from(vec![
@@ -2080,23 +2101,18 @@ fn book_lines(
                 format_size(row.ask_sz)
             )),
         ]),
-        Line::from(vec![
-            Span::raw(share_prefix),
-            Span::styled(
-                bid_share,
-                Style::default()
-                    .fg(success(color_mode))
-                    .add_modifier(Modifier::BOLD),
-            ),
-            Span::raw(" / "),
-            Span::styled(
-                format!("ask {ask_share}"),
-                Style::default()
-                    .fg(danger(color_mode))
-                    .add_modifier(Modifier::BOLD),
-            ),
-        ]),
+        book_snap,
     ];
+    if !compact_book {
+        lines.extend(book_snap_lines(
+            row,
+            quote_share,
+            bid_notional,
+            ask_notional,
+            color_mode,
+            false,
+        ));
+    }
 
     if view == WorkstationView::Flow {
         lines.extend([
@@ -2141,7 +2157,7 @@ fn book_lines(
         return lines;
     }
 
-    if content_height <= 7 {
+    if compact_book {
         let (bid_bar, ask_bar) = quote_share
             .map(|(bid, ask)| (depth_bar(bid, 8), depth_bar(ask, 8)))
             .unwrap_or_else(|| (depth_bar_empty(8), depth_bar_empty(8)));
@@ -2161,11 +2177,11 @@ fn book_lines(
                 )),
             ]),
             Line::from(format!(
-                "imbalance {}  OFI {}",
+                "queue map imbalance {}  OFI {}",
                 format_signed(row.tob_imbalance, ""),
                 format_usd_signed(row.bbo_ofi_proxy_30s)
             )),
-            Line::from("BBO depth proxy | BOOK proxy only | public top-book"),
+            Line::from("BBO depth proxy | BOOK proxy only | read-only top-book"),
         ]);
         return lines;
     }
@@ -2208,6 +2224,69 @@ fn book_lines(
         Line::from(format!("adverse {}", row.adverse_selection_proxy.as_str())),
     ]);
     lines
+}
+
+fn book_snap_compact_line(
+    quote_share: Option<(f64, f64)>,
+    color_mode: RatatuiColorMode,
+) -> Line<'static> {
+    let (bid_share, ask_share) = quote_share
+        .map(|(bid, ask)| (percent_label(bid), percent_label(ask)))
+        .unwrap_or_else(|| ("-".to_owned(), "-".to_owned()));
+    Line::from(vec![
+        Span::styled(
+            "BOOK SNAP DEPTH CONSOLE queue map ",
+            Style::default()
+                .fg(accent(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::styled("share bid ", Style::default().fg(success(color_mode))),
+        Span::raw(format!("{bid_share} / ")),
+        Span::styled("ask share ", Style::default().fg(danger(color_mode))),
+        Span::raw(ask_share),
+    ])
+}
+
+fn book_snap_lines(
+    row: &FeatureSnapshot,
+    quote_share: Option<(f64, f64)>,
+    bid_notional: Option<f64>,
+    ask_notional: Option<f64>,
+    color_mode: RatatuiColorMode,
+    compact: bool,
+) -> Vec<Line<'static>> {
+    let (bid_share, ask_share) = quote_share
+        .map(|(bid, ask)| (percent_label(bid), percent_label(ask)))
+        .unwrap_or_else(|| ("-".to_owned(), "-".to_owned()));
+    let (bid_bar, ask_bar) = quote_share
+        .map(|(bid, ask)| {
+            let width = if compact { 6 } else { 8 };
+            (depth_bar(bid, width), depth_bar(ask, width))
+        })
+        .unwrap_or_else(|| {
+            let width = if compact { 6 } else { 8 };
+            (depth_bar_empty(width), depth_bar_empty(width))
+        });
+    vec![
+        Line::from(vec![
+            Span::styled(
+                "BOOK SNAP ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::styled("bid share ", Style::default().fg(success(color_mode))),
+            Span::raw(format!("{bid_share} {bid_bar} ")),
+            Span::styled("ask share ", Style::default().fg(danger(color_mode))),
+            Span::raw(format!("{ask_share} {ask_bar}")),
+        ]),
+        Line::from(format!(
+            "queue map read-only top-book {} / {} spr {} bps",
+            format_usd(bid_notional),
+            format_usd(ask_notional),
+            format_optional(row.spread_bps, 1)
+        )),
+    ]
 }
 
 fn render_tape(
