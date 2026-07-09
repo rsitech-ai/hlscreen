@@ -413,7 +413,21 @@ fn medium_lower_pane_router_line(
         } else {
             Modifier::empty()
         });
+    let suffix = if width < 72 {
+        " | RO BBO/trades | z zoom"
+    } else {
+        " | public BBO/trades only | z zoom"
+    };
+    let fixed_width = "╞ ".chars().count()
+        + "ADAPTIVE DESK ".chars().count()
+        + "4 book".chars().count()
+        + " / ".chars().count()
+        + "5 tape".chars().count()
+        + suffix.chars().count()
+        + " ╡".chars().count();
+    let fill = "─".repeat(usize::from(width).saturating_sub(fixed_width).max(1));
     Line::from(vec![
+        Span::raw("╞ "),
         Span::styled(
             "ADAPTIVE DESK ",
             Style::default()
@@ -423,11 +437,7 @@ fn medium_lower_pane_router_line(
         Span::styled("4 book", book_style),
         Span::raw(" / "),
         Span::styled("5 tape", tape_style),
-        Span::raw(if width < 72 {
-            " | RO BBO/trades | z zoom"
-        } else {
-            " | public BBO/trades only | z zoom"
-        }),
+        Span::raw(format!("{suffix} {fill}╡")),
     ])
 }
 
