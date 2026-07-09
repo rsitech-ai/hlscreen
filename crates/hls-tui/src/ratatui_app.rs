@@ -294,11 +294,6 @@ fn render_header(
     } else {
         format!("  {mode_label}  filter:{filter}")
     };
-    let controls = if narrow {
-        "j/k 1-6 tab / p s t ? q"
-    } else {
-        "j/k row  1-6 panes  tab views  / filter  p preset  s sort  t chart  ? q"
-    };
     let text = vec![
         Line::from(vec![
             Span::styled(
@@ -321,7 +316,12 @@ fn render_header(
                     .fg(accent(color_mode))
                     .add_modifier(Modifier::BOLD),
             ),
-            Span::raw(controls),
+            Span::raw(pane_hotkey_rail(&model.ui_state, narrow)),
+            Span::raw(if narrow {
+                " | j/k 1-6 tab / p s t ? q"
+            } else {
+                " | j/k row 1-6 panes tab views / p s t ? q"
+            }),
         ]),
         market_internals_line(model, color_mode, narrow),
     ];
@@ -334,6 +334,29 @@ fn render_header(
         ),
         area,
     );
+}
+
+fn pane_hotkey_rail(state: &WorkstationUiState, narrow: bool) -> String {
+    let panes = [
+        (WorkstationPane::Watchlist, "1W", "1 WATCH"),
+        (WorkstationPane::Detail, "2D", "2 DETAIL"),
+        (WorkstationPane::Chart, "3C", "3 CHART"),
+        (WorkstationPane::Book, "4B", "4 BOOK"),
+        (WorkstationPane::Tape, "5T", "5 TAPE"),
+        (WorkstationPane::Status, "6S", "6 STATUS"),
+    ];
+    panes
+        .iter()
+        .map(|(pane, compact, full)| {
+            let label = if narrow { *compact } else { *full };
+            if state.focused_pane() == *pane {
+                format!("[{label}]")
+            } else {
+                label.to_owned()
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 fn market_internals_line(
