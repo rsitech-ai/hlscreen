@@ -526,6 +526,7 @@ fn render_watchlist(
                     Cell::from(watchlist_rank_label(index, selected)),
                     Cell::from(display_symbol(row).to_owned()),
                     Cell::from(format_board_price(row.price)),
+                    Cell::from(micro_heat_lane(row, true)),
                     Cell::from(trend_label(row.ret_1m)),
                     Cell::from(format_usd_signed(row.signed_notional_flow_30s)),
                     Cell::from(quality_badge(row)),
@@ -538,6 +539,7 @@ fn render_watchlist(
                     Cell::from(format_board_price(row.price)),
                     Cell::from(score_signal_label(row)),
                     Cell::from(score_edge_bar(row)),
+                    Cell::from(micro_heat_lane(row, false)),
                     Cell::from(score_bias_label(row)),
                     Cell::from(format_optional(row.spread_bps, 1)),
                     Cell::from(trend_label(row.ret_1m)),
@@ -555,14 +557,15 @@ fn render_watchlist(
             [
                 Constraint::Length(3),
                 Constraint::Min(8),
-                Constraint::Length(7),
+                Constraint::Length(6),
+                Constraint::Length(4),
                 Constraint::Length(8),
-                Constraint::Length(7),
+                Constraint::Length(6),
                 Constraint::Length(1),
             ],
         )
         .header(
-            Row::new(["RK", "CODE", "PX", "1M", "FLOW", "Q"]).style(
+            Row::new(["RK", "CODE", "PX", "HT", "1M", "FLOW", "Q"]).style(
                 Style::default()
                     .fg(accent(color_mode))
                     .add_modifier(Modifier::BOLD),
@@ -577,6 +580,7 @@ fn render_watchlist(
                 Constraint::Length(7),
                 Constraint::Length(3),
                 Constraint::Length(5),
+                Constraint::Length(5),
                 Constraint::Length(4),
                 Constraint::Length(4),
                 Constraint::Length(7),
@@ -587,7 +591,8 @@ fn render_watchlist(
         )
         .header(
             Row::new([
-                "RANK", "CODE", "PX", "SIG", "EDGE", "BIAS", "SPR", "1M", "FLOW30", "DEPTH", "Q",
+                "RANK", "CODE", "PX", "SIG", "EDGE", "HEAT", "BIAS", "SPR", "1M", "FLOW30",
+                "DEPTH", "Q",
             ])
             .style(
                 Style::default()
@@ -711,6 +716,35 @@ fn score_edge_bar(row: &FeatureSnapshot) -> String {
         edge_direction_glyph(row),
         "█".repeat(filled),
         "░".repeat(width.saturating_sub(filled))
+    )
+}
+
+fn micro_heat_lane(row: &FeatureSnapshot, compact: bool) -> String {
+    let spread_quality = row
+        .spread_bps
+        .filter(|value| value.is_finite())
+        .map(|value| 1.0 - (value / 20.0).clamp(0.0, 1.0))
+        .unwrap_or(0.0);
+    let depth_quality = row
+        .tob_depth_usd
+        .filter(|value| value.is_finite() && *value > 0.0)
+        .map(|value| (value.log10() / 6.0).clamp(0.0, 1.0))
+        .unwrap_or(0.0);
+    let liquidity_heat = (spread_quality * 0.55) + (depth_quality * 0.45);
+    let flow = row.signed_notional_flow_30s.unwrap_or(0.0);
+    let flow_glyph = if flow > 0.0 {
+        '+'
+    } else if flow < 0.0 {
+        '-'
+    } else {
+        '='
+    };
+    let width = if compact { 2 } else { 3 };
+    format!(
+        "{}{}{}",
+        edge_direction_glyph(row),
+        depth_bar(liquidity_heat, width),
+        flow_glyph
     )
 }
 
