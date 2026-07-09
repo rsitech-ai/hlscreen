@@ -2133,7 +2133,7 @@ fn render_status_bar(
             "{} | {} | {} | {} | RO no-wallet",
             compact_health_label(&model.health_status),
             display_state_label(model),
-            model.ui_state.focused_pane().label(),
+            focused_pane_key_label(model.ui_state.focused_pane(), true),
             compact_mode_label(&model.request, model.rows.len())
         ))
     } else {
@@ -2163,7 +2163,7 @@ fn market_status_bar_line(
             " {} | {} | focus {} | {} | ",
             model.health_status,
             pause_label(model),
-            model.ui_state.focused_pane().label(),
+            focused_pane_key_label(model.ui_state.focused_pane(), false),
             mode_label(&model.request, model.rows.len())
         )),
         Span::styled(
@@ -2178,6 +2178,53 @@ fn market_status_bar_line(
         " | No wallet, no private streams, no order routes. Screen heuristic, not advice. ",
     ));
     Line::from(spans)
+}
+
+fn focused_pane_key_label(pane: WorkstationPane, compact: bool) -> &'static str {
+    match pane {
+        WorkstationPane::Watchlist => {
+            if compact {
+                "watchlist:j/k"
+            } else {
+                "watchlist j/k rows"
+            }
+        }
+        WorkstationPane::Detail => {
+            if compact {
+                "detail:tab"
+            } else {
+                "detail tab views"
+            }
+        }
+        WorkstationPane::Chart => {
+            if compact {
+                "chart:t"
+            } else {
+                "chart t window"
+            }
+        }
+        WorkstationPane::Book => {
+            if compact {
+                "book:tab"
+            } else {
+                "book tab flow"
+            }
+        }
+        WorkstationPane::Tape => {
+            if compact {
+                "tape:tab"
+            } else {
+                "tape tab flow"
+            }
+        }
+        WorkstationPane::Status => {
+            if compact {
+                "status:?"
+            } else {
+                "status ? help"
+            }
+        }
+    }
 }
 
 fn market_ticker_spans(
