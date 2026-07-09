@@ -3,7 +3,7 @@ use std::{
     collections::VecDeque,
     fs,
     future::{Future, pending},
-    io::{self, IsTerminal},
+    io::{self, IsTerminal, Write},
     path::{Path, PathBuf},
     pin::Pin,
     sync::{
@@ -64,6 +64,8 @@ use hls_tui::{
     },
 };
 use ratatui::{Terminal, backend::CrosstermBackend};
+#[cfg(test)]
+use ratatui::{TerminalOptions, Viewport, layout::Rect};
 use serde::{Deserialize, Serialize};
 use tokio::time::{interval, sleep, sleep_until};
 use tokio_tungstenite::{connect_async, tungstenite::Message};
@@ -556,8 +558,8 @@ pub async fn run_tui(args: TuiArgs) -> anyhow::Result<()> {
 }
 
 async fn run_fixture_live(args: LiveArgs, fixture_file: &PathBuf) -> anyhow::Result<()> {
-    if !args.once {
-        bail!("fixture-backed live mode currently requires --once");
+    if !args.once && !args.tui {
+        bail!("fixture-backed interactive mode requires --tui when --once is absent");
     }
 
     let raw = fs::read_to_string(fixture_file)
@@ -593,37 +595,133 @@ async fn run_fixture_live(args: LiveArgs, fixture_file: &PathBuf) -> anyhow::Res
         state.apply(event)?;
     }
 
-    let mut snapshots = FeatureEngine::default().snapshots(&state, latest_update_ms(&state));
-    attach_metadata(
-        &mut snapshots,
-        load_metadata_enrichments(args.metadata_file.as_ref())?,
-    );
-    let screen_request = ScreenRequest {
-        preset: args.preset,
-        where_expr: args.r#where,
-        sort: args.sort,
-    };
-    let color_mode = live_ratatui_color_mode(args.color);
-    if args.tui {
-        let model = live_tui_model(
-            &snapshots,
-            live_table_title(args.record),
-            &screen_request,
-            None,
-            live_tui_candles(&state),
-            live_tui_trades(&state),
-            LiveTuiStatus::new("fixture", "REC ready", "fixture replay"),
+    if args.once {
+        let mut snapshots = FeatureEngine::default().snapshots(&state, latest_update_ms(&state));
+        attach_metadata(
+            &mut snapshots,
+            load_metadata_enrichments(args.metadata_file.as_ref())?,
         );
-        let table = render_live_tui_snapshot(&model, None, color_mode)?;
-        print!("{table}");
-    } else {
-        println!("{}", render_confidence_summary(&snapshots));
-        let table =
-            render_screened_table(&snapshots, live_table_title(args.record), &screen_request)?;
-        print!("{table}");
+        let screen_request = ScreenRequest {
+            preset: args.preset,
+            where_expr: args.r#where,
+            sort: args.sort,
+        };
+        let color_mode = live_ratatui_color_mode(args.color);
+        if args.tui {
+            let model = live_tui_model(
+                &snapshots,
+                live_table_title(args.record),
+                &screen_request,
+                None,
+                live_tui_candles(&state),
+                live_tui_trades(&state),
+                LiveTuiStatus::new("fixture", "REC ready", "fixture replay"),
+            );
+            let table = render_live_tui_snapshot(&model, None, color_mode)?;
+            print!("{table}");
+        } else {
+            println!("{}", render_confidence_summary(&snapshots));
+            let table =
+                render_screened_table(&snapshots, live_table_title(args.record), &screen_request)?;
+            print!("{table}");
+        }
+        return Ok(());
     }
 
-    Ok(())
+    let metadata = load_metadata_enrichments(args.metadata_file.as_ref())?;
+    let screen_request = ScreenRequest {
+        preset: args.preset.clone(),
+        where_expr: args.r#where.clone(),
+        sort: args.sort.clone(),
+    };
+    run_interactive_fixture_tui(&args, state, screen_request, metadata).await
+}
+
+async fn run_interactive_fixture_tui(
+    args: &LiveArgs,
+    state: LiveMarketState,
+    mut screen_request: ScreenRequest,
+    metadata: Vec<MetadataEnrichment>,
+) -> anyhow::Result<()> {
+    let color_mode = live_ratatui_color_mode(args.color);
+    let keyboard_interactive = io::stdin().is_terminal() && io::stderr().is_terminal();
+    let lifetime =
+        LiveRunLifetime::from_duration_secs(args.duration_secs, tokio::time::Instant::now())?;
+    let mut diagnostics = LiveDiagnostics::default();
+    let preflight = preflight_tui_preferences(&args.data_dir);
+    if let Some(warning) = preflight.warning {
+        diagnostics.emit(true, warning);
+    }
+    let mut ui_state = WorkstationUiState::from_preferences(preflight.preferences);
+
+    let terminal_mode = match LiveTuiGuard::enable(keyboard_interactive) {
+        Ok(guard) => guard,
+        Err(err) => {
+            diagnostics.flush_deferred();
+            return Err(err);
+        }
+    };
+    let renderer_enforcement = if keyboard_interactive {
+        LiveTuiSessionEnforcement::Interactive
+    } else {
+        LiveTuiSessionEnforcement::Unmanaged
+    };
+    let mut tui_renderer = match LiveTuiRenderer::new(renderer_enforcement) {
+        Ok(renderer) => renderer,
+        Err(err) => {
+            drop(terminal_mode);
+            diagnostics.flush_deferred();
+            return Err(err);
+        }
+    };
+
+    let started = Instant::now();
+    let summary = LiveDriveSummary::default();
+    let mut shutdown_signal = Box::pin(wait_for_shutdown_signal());
+    let session_result = async {
+        render_live_progress(
+            LiveProgressContext {
+                state: &state,
+                screen_request: &screen_request,
+                metadata: &metadata,
+                color_mode,
+                tui_state: Some(&ui_state),
+                started,
+                summary: &summary,
+            },
+            Some(&mut tui_renderer),
+        )?;
+        wait_for_live_stop(
+            lifetime,
+            &mut shutdown_signal,
+            keyboard_interactive,
+            Some(&mut ui_state),
+            &state,
+            &mut screen_request,
+            &metadata,
+            color_mode,
+            started,
+            &summary,
+            Some(&mut tui_renderer),
+        )
+        .await
+    }
+    .await;
+
+    let (_, preference_save) = after_live_tui_teardown(
+        || {
+            drop(tui_renderer);
+            drop(terminal_mode);
+            diagnostics.flush_deferred();
+        },
+        || (),
+        || save_tui_preferences(&args.data_dir, ui_state.preferences()),
+    );
+    if let Err(err) = preference_save {
+        diagnostics.emit(false, format!("tui preferences save skipped: {err}"));
+    }
+
+    session_result.map(|_| ())
 }
 
 async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
@@ -3492,12 +3590,12 @@ trait LiveTuiFrameSink {
     ) -> anyhow::Result<()>;
 }
 
-struct LiveTuiRenderer {
-    terminal: Option<Terminal<CrosstermBackend<io::Stderr>>>,
+struct LiveTuiRenderer<W: Write = io::Stderr> {
+    terminal: Option<Terminal<CrosstermBackend<W>>>,
     enforcement: LiveTuiSessionEnforcement,
 }
 
-impl LiveTuiRenderer {
+impl LiveTuiRenderer<io::Stderr> {
     fn new(enforcement: LiveTuiSessionEnforcement) -> anyhow::Result<Self> {
         let terminal = TERMINAL_OPERATION_COORDINATOR
             .with_session_operation(enforcement, || -> anyhow::Result<_> {
@@ -3515,7 +3613,34 @@ impl LiveTuiRenderer {
     }
 }
 
-impl LiveTuiFrameSink for LiveTuiRenderer {
+impl<W: Write> LiveTuiRenderer<W> {
+    #[cfg(test)]
+    fn with_fixed_viewport_writer(
+        writer: W,
+        viewport: RatatuiViewport,
+        enforcement: LiveTuiSessionEnforcement,
+    ) -> anyhow::Result<Self> {
+        let terminal = TERMINAL_OPERATION_COORDINATOR
+            .with_session_operation(enforcement, || -> anyhow::Result<_> {
+                let backend = CrosstermBackend::new(writer);
+                let mut terminal = Terminal::with_options(
+                    backend,
+                    TerminalOptions {
+                        viewport: Viewport::Fixed(Rect::new(0, 0, viewport.width, viewport.height)),
+                    },
+                )?;
+                ratatui::backend::Backend::clear(terminal.backend_mut())?;
+                Ok(terminal)
+            })
+            .map_err(live_tui_session_operation_error)??;
+        Ok(Self {
+            terminal: Some(terminal),
+            enforcement,
+        })
+    }
+}
+
+impl<W: Write> LiveTuiFrameSink for LiveTuiRenderer<W> {
     fn draw(
         &mut self,
         model: &RatatuiFrameModel,
@@ -3536,7 +3661,7 @@ impl LiveTuiFrameSink for LiveTuiRenderer {
     }
 }
 
-impl Drop for LiveTuiRenderer {
+impl<W: Write> Drop for LiveTuiRenderer<W> {
     fn drop(&mut self) {
         let Some(terminal) = self.terminal.take() else {
             return;
@@ -5882,6 +6007,93 @@ mod tests {
             sink.color_modes,
             vec![RatatuiColorMode::Color, RatatuiColorMode::Color]
         );
+    }
+
+    fn count_full_screen_clears(output: &[u8]) -> usize {
+        output
+            .windows(b"\x1b[2J".len())
+            .filter(|window| *window == b"\x1b[2J")
+            .count()
+    }
+
+    #[derive(Clone, Default)]
+    struct CapturedWriter(std::sync::Arc<std::sync::Mutex<Vec<u8>>>);
+
+    impl io::Write for CapturedWriter {
+        fn write(&mut self, buffer: &[u8]) -> io::Result<usize> {
+            self.0
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner())
+                .extend_from_slice(buffer);
+            Ok(buffer.len())
+        }
+
+        fn flush(&mut self) -> io::Result<()> {
+            Ok(())
+        }
+    }
+
+    impl CapturedWriter {
+        fn output(&self) -> Vec<u8> {
+            self.0
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner())
+                .clone()
+        }
+    }
+
+    #[test]
+    fn live_tui_renderer_reuses_terminal_and_diffs_identical_frames() {
+        let model = live_tui_model(
+            &[],
+            "fixture renderer regression",
+            &ScreenRequest::default(),
+            None,
+            vec![],
+            vec![],
+            LiveTuiStatus::new("fixture", "REC ready", "static fixture"),
+        );
+        let capture = CapturedWriter::default();
+        let mut renderer = LiveTuiRenderer::with_fixed_viewport_writer(
+            capture.clone(),
+            RatatuiViewport {
+                width: 120,
+                height: 40,
+            },
+            LiveTuiSessionEnforcement::Unmanaged,
+        )
+        .expect("fixed viewport renderer");
+
+        let constructor_output = capture.output();
+        assert_eq!(count_full_screen_clears(&constructor_output), 1);
+        let constructor_end = constructor_output.len();
+
+        renderer
+            .draw(&model, RatatuiColorMode::Color)
+            .expect("first frame draws");
+        let first_output = capture.output();
+        let first_frame_end = first_output.len();
+        assert!(
+            first_output[constructor_end..first_frame_end]
+                .windows(b"WATCHLIST".len())
+                .any(|window| window == b"WATCHLIST")
+        );
+
+        renderer
+            .draw(&model, RatatuiColorMode::Color)
+            .expect("identical frame draws through the same terminal");
+        let output = capture.output();
+        let repeated_frame = &output[first_frame_end..];
+
+        assert_eq!(count_full_screen_clears(&output), 1);
+        assert_eq!(count_full_screen_clears(repeated_frame), 0);
+        assert!(
+            !repeated_frame
+                .windows(b"WATCHLIST".len())
+                .any(|window| window == b"WATCHLIST"),
+            "Ratatui should diff an identical second frame instead of repainting it"
+        );
+        assert!(repeated_frame.len() < first_frame_end - constructor_end);
     }
 
     #[derive(Debug, Parser)]
