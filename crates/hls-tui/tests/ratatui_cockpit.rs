@@ -252,6 +252,32 @@ fn market_board_renders_score_and_bias_columns() {
 }
 
 #[test]
+fn market_board_renders_directional_edge_pulses() {
+    let model = RatatuiFrameModel::new(
+        directional_snapshots(),
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        WorkstationUiState::default(),
+    );
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 200,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders directional market board");
+
+    assert!(rendered.contains("EDGE"));
+    assert!(rendered.contains("▲"));
+    assert!(rendered.contains("▼"));
+    assert!(rendered.contains("UP+0.57%"));
+    assert!(rendered.contains("DN-1.23%"));
+}
+
+#[test]
 fn cockpit_header_renders_market_internals_rail() {
     let model = RatatuiFrameModel::new(
         directional_snapshots(),
