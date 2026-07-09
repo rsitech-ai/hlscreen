@@ -1738,13 +1738,18 @@ fn volume_bar(candles: &[&CandleEvent]) -> String {
         .map(|candle| candle.volume_base)
         .fold(0.0_f64, f64::max);
     if max_volume <= 0.0 {
-        return "vol -".to_owned();
+        return "VOL LANE -".to_owned();
     }
     let bars = candles
         .iter()
         .map(|candle| volume_glyph(candle.volume_base / max_volume))
         .collect::<String>();
-    format!("vol {bars}")
+    let latest_volume = candles.last().map_or(0.0, |candle| candle.volume_base);
+    format!(
+        "VOL LANE {bars} max {} last {}",
+        format_volume(max_volume),
+        format_volume(latest_volume)
+    )
 }
 
 fn volume_glyph(ratio: f64) -> char {
