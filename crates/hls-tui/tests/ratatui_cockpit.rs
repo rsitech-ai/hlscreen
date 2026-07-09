@@ -270,6 +270,41 @@ fn wide_status_bar_renders_dynamic_market_ticker_rail() {
     assert!(rendered.contains("No wallet"));
 }
 
+#[test]
+fn wide_status_bar_renders_action_key_rail() {
+    let model = RatatuiFrameModel::new(
+        directional_snapshots(),
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        WorkstationUiState::default(),
+    )
+    .with_status("LIVE", "REC ready", "ws=120 events=300 gaps=0");
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 240,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders wide action key rail");
+
+    assert!(rendered.contains("ACTION STRIP"));
+    assert!(rendered.contains("j/k row"));
+    assert!(rendered.contains("ent detail"));
+    assert!(rendered.contains("tab view"));
+    assert!(rendered.contains("/ filter"));
+    assert!(rendered.contains("p preset"));
+    assert!(rendered.contains("s sort"));
+    assert!(rendered.contains("t win"));
+    assert!(rendered.contains("? help"));
+    assert!(rendered.contains("q quit"));
+    assert!(rendered.contains("THEME plain"));
+    assert!(rendered.contains("No wallet"));
+    assert!(rendered.contains("RISK STRIP"));
+}
+
 fn directional_snapshots() -> Vec<hls_core::market_state::FeatureSnapshot> {
     let mut snapshots = fixture_snapshots();
     snapshots[0].ret_1m = Some(0.0057);
