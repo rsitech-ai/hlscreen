@@ -1367,9 +1367,10 @@ fn render_chart(
         color_mode,
         area.width <= 72,
     )];
+    chart_lines.push(chart_move_summary_line(&candles, color_mode));
     chart_lines.extend(candle_chart_lines(
         &candles,
-        area.height.saturating_sub(3) as usize,
+        area.height.saturating_sub(4) as usize,
         model.ui_state.chart_window().label(),
     ));
     frame.render_widget(
@@ -1422,6 +1423,47 @@ fn chart_window_tabs_line(
         Style::default().fg(text(color_mode)),
     ));
     Line::from(spans)
+}
+
+fn chart_move_summary_line(
+    candles: &[&CandleEvent],
+    color_mode: RatatuiColorMode,
+) -> Line<'static> {
+    let first = candles[0];
+    let latest = candles.last().copied().unwrap_or(first);
+    let high = candles
+        .iter()
+        .map(|candle| candle.high)
+        .fold(f64::NEG_INFINITY, f64::max);
+    let low = candles
+        .iter()
+        .map(|candle| candle.low)
+        .fold(f64::INFINITY, f64::min);
+    let move_abs = latest.close - first.open;
+    let range_pct = if first.open.abs() < f64::EPSILON {
+        0.0
+    } else {
+        ((high - low).abs() / first.open.abs()) * 100.0
+    };
+    let summary_style = if move_abs < 0.0 {
+        Style::default().fg(danger(color_mode))
+    } else {
+        Style::default().fg(success(color_mode))
+    };
+    Line::from(vec![
+        Span::styled("MOVE ", Style::default().fg(accent(color_mode))),
+        Span::styled(format!("{move_abs:+.4}"), summary_style),
+        Span::raw("  RANGE "),
+        Span::styled(
+            format!("{range_pct:.2}%"),
+            Style::default().fg(warn(color_mode)),
+        ),
+        Span::raw(format!(
+            "  LAST {}  VOL {}",
+            format_plain_number(latest.close),
+            format_volume(latest.volume_base)
+        )),
+    ])
 }
 
 fn selected_candles<'a>(
