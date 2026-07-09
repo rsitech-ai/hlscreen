@@ -1364,6 +1364,8 @@ fn key_to_workstation_action(
         KeyCode::Enter => Some(WorkstationAction::FocusPane(WorkstationPane::Detail)),
         KeyCode::Tab => Some(WorkstationAction::NextView),
         KeyCode::BackTab => Some(WorkstationAction::PreviousView),
+        KeyCode::Right => Some(WorkstationAction::NextPane),
+        KeyCode::Left => Some(WorkstationAction::PreviousPane),
         KeyCode::Char(']') => Some(WorkstationAction::NextPane),
         KeyCode::Char('[') => Some(WorkstationAction::PreviousPane),
         KeyCode::Char('1') => Some(WorkstationAction::FocusPane(WorkstationPane::Watchlist)),
@@ -2800,11 +2802,35 @@ mod tests {
             Some(WorkstationAction::NextPane)
         );
         assert_eq!(
+            key_to_workstation_action(KeyEvent::new(KeyCode::Right, KeyModifiers::NONE), &state),
+            Some(WorkstationAction::NextPane)
+        );
+        assert_eq!(
             key_to_workstation_action(
                 KeyEvent::new(KeyCode::Char('['), KeyModifiers::NONE),
                 &state
             ),
             Some(WorkstationAction::PreviousPane)
+        );
+        assert_eq!(
+            key_to_workstation_action(KeyEvent::new(KeyCode::Left, KeyModifiers::NONE), &state),
+            Some(WorkstationAction::PreviousPane)
+        );
+        let mut command_state = WorkstationUiState::default();
+        command_state.apply(WorkstationAction::CycleFilter, 1);
+        assert_eq!(
+            key_to_workstation_action(
+                KeyEvent::new(KeyCode::Right, KeyModifiers::NONE),
+                &command_state
+            ),
+            None
+        );
+        assert_eq!(
+            key_to_workstation_action(
+                KeyEvent::new(KeyCode::Left, KeyModifiers::NONE),
+                &command_state
+            ),
+            None
         );
         assert_eq!(
             key_to_workstation_action(
