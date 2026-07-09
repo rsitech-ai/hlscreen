@@ -370,6 +370,36 @@ fn narrow_cockpit_collapses_to_watchlist_and_detail_without_tape() {
 }
 
 #[test]
+fn header_renders_keyboard_pane_hotkey_rail() {
+    let snapshots = fixture_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Book),
+        snapshots.len(),
+    );
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    );
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 72,
+            height: 24,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders pane hotkey rail");
+
+    assert!(rendered.contains("CONTROLS 1W 2D 3C [4B] 5T 6S"));
+    assert!(rendered.contains("j/k 1-6 tab / p s t ? q"));
+    assert!(rendered.contains("[FOCUS] BOOK"));
+}
+
+#[test]
 fn medium_cockpit_keeps_book_and_tape_visible() {
     let model = RatatuiFrameModel::new(
         fixture_snapshots(),
