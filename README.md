@@ -186,11 +186,12 @@ TTY keyboard controls for the Ratatui `hls live --tui` cockpit:
 - `Space`: toggle paused UI state while ingestion remains read-only public data.
 - `q` or `Esc`: cleanly stop the bounded live run.
 
-Color defaults to `auto`, which follows terminal and environment detection. Use
-`--color always` to force the Ratatui theme, or `--color never` for deterministic
-monochrome output. The legacy `HLS_FORCE_COLOR=1`, `CLICOLOR_FORCE=1`, and
-`FORCE_COLOR=1` environment overrides still force color in `auto`; `NO_COLOR=1`
-or `TERM=dumb` still disables color in `auto`.
+Color defaults to `always` for `hls live --tui`, so the Ratatui workstation uses
+the ANSI theme out of the box. Use `--color auto` to follow terminal and
+environment detection, or `--color never` for deterministic monochrome output.
+The legacy `HLS_FORCE_COLOR=1`, `CLICOLOR_FORCE=1`, and `FORCE_COLOR=1`
+environment overrides still force color in `auto`; `NO_COLOR=1` or `TERM=dumb`
+still disables color in `auto`.
 
 `hlscreen` keeps Hyperliquid's transport IDs separate from user-facing symbols.
 For example, live `spotMeta` currently maps display `HYPE/USDC` to feed ID
