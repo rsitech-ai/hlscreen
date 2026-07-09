@@ -69,7 +69,7 @@ Run:
 
 ```bash
 cargo test -p hls-tui --test ratatui_cockpit
-cargo test -p hls-tui --test interactive_tui --test main_table_golden
+cargo test -p hls-tui --test workstation_interaction --test main_table_golden
 ```
 
 Expected: all pass.
@@ -139,7 +139,7 @@ Render `WorkstationUiState` view, density, help, pause, and selected row in the 
 Run:
 
 ```bash
-cargo test -p hls-tui --test interactive_tui --test ratatui_cockpit
+cargo test -p hls-tui --test workstation_interaction --test ratatui_cockpit
 ```
 
 Expected: all pass.

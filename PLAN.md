@@ -163,7 +163,7 @@
 6. Run fmt, clippy, workspace tests, screenshot generation, diff check, and a bounded public live smoke.
 
 ### Test Plan
-- Unit/golden: `cargo test -p hls-tui --test main_table_golden --test interactive_tui`.
+- Unit/golden: `cargo test -p hls-tui --test main_table_golden --test workstation_interaction`.
 - CLI/integration: `cargo test -p hls-cli --test live_mock`.
 - Regression/audit: `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`; `python3 scripts/generate-screenshots.py`; `git diff --check`.
 - Smoke: bounded public `hls live --symbols hype-usdc --duration-secs 10 --refresh-secs 5 --tui` after implementation.
@@ -177,7 +177,7 @@
 
 ### Final Notes
 - What changed: Added `hls-tui::interaction` with tested row focus, view tabs, density, help, pause, and quit state; extended the deterministic workstation renderer with a command rail, selected-row marker, view-specific detail panes, and external UI state; wired `hls live --tui` to direct Crossterm raw-mode key polling only for real TTY sessions; attached public metadata to live progress frames so `HYPE/USDC` display names are consistent during refresh and final output; regenerated deterministic SVG screenshots; updated README and architecture docs.
-- Validation run: `cargo test -p hls-tui --test interactive_tui --test main_table_golden`; `cargo test -p hls-cli --test live_mock`; `python3 scripts/generate-screenshots.py`; `rsvg-convert docs/assets/screenshots/live-screen.svg -o /tmp/hlscreen-nextgen-tui-preview/live-screen.png`; `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`; `cargo build --release --workspace --all-features`; `scripts/check-release-packaging.sh`; `git diff --check`; public smoke `./target/debug/hls live --symbols hype-usdc --duration-secs 10 --refresh-secs 5 --tui` completed with 61 WebSocket messages, 105 market events, 0 reconnects, 0 data gaps, and display-name-correct TUI progress/final output.
+- Validation run: `cargo test -p hls-tui --test workstation_interaction --test main_table_golden`; `cargo test -p hls-cli --test live_mock`; `python3 scripts/generate-screenshots.py`; `rsvg-convert docs/assets/screenshots/live-screen.svg -o /tmp/hlscreen-nextgen-tui-preview/live-screen.png`; `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo test --workspace --all-features`; `cargo build --workspace --all-features`; `cargo build --release --workspace --all-features`; `scripts/check-release-packaging.sh`; `git diff --check`; public smoke `./target/debug/hls live --symbols hype-usdc --duration-secs 10 --refresh-secs 5 --tui` completed with 61 WebSocket messages, 105 market events, 0 reconnects, 0 data gaps, and display-name-correct TUI progress/final output.
 - Follow-ups: A full alternate-screen Ratatui widget-grid with mouse support, async input channel, and persistent multi-pane layout remains a future enhancement. Current implementation is keyboard-interactive for real TTY `hls live --tui` while preserving deterministic stdout/screenshots.
 
 ## 2026-07-07 US1 Live Screener Slice

@@ -522,7 +522,7 @@
 ## 2026-07-08 Next-Gen Keyboard-Interactive TUI
 
 - [x] Confirm scope and branch
-  DoD: `PLAN.md` records read-only interactive TUI scope on `feat/andrzej_nextgen_interactive_tui`.
+  DoD: `PLAN.md` records read-only Ratatui workstation scope.
 
 - [x] Add interaction model and focused tests
   DoD: `hls-tui` tests cover row focus, view/density/help/pause actions, and selected-row rendering without terminal I/O.
