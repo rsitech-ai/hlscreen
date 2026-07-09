@@ -285,20 +285,58 @@ fn render_medium(
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Length(detail_height),
-            Constraint::Min(10),
+            Constraint::Min(9),
+            Constraint::Length(1),
             Constraint::Length(9),
         ])
         .split(body[1]);
     render_detail(frame, center[0], model, "MICROSTRUCTURE", color_mode);
     render_chart(frame, center[1], model, color_mode);
+    frame.render_widget(
+        Paragraph::new(medium_lower_pane_router_line(&model.ui_state, color_mode)),
+        center[2],
+    );
     let lower = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
-        .split(center[2]);
+        .split(center[3]);
     render_book(frame, lower[0], model, color_mode);
     render_tape(frame, lower[1], model, color_mode);
     render_help_overlay(frame, area, model, color_mode);
     render_command_palette(frame, area, model, color_mode);
+}
+
+fn medium_lower_pane_router_line(
+    state: &WorkstationUiState,
+    color_mode: RatatuiColorMode,
+) -> Line<'static> {
+    let pane = state.focused_pane();
+    let book_style = Style::default()
+        .fg(pane_accent(WorkstationPane::Book, color_mode))
+        .add_modifier(if pane == WorkstationPane::Book {
+            Modifier::BOLD
+        } else {
+            Modifier::empty()
+        });
+    let tape_style = Style::default()
+        .fg(pane_accent(WorkstationPane::Tape, color_mode))
+        .add_modifier(if pane == WorkstationPane::Tape {
+            Modifier::BOLD
+        } else {
+            Modifier::empty()
+        });
+    Line::from(vec![
+        Span::styled(
+            "ADAPTIVE DESK ",
+            Style::default()
+                .fg(accent(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::styled("4 book", book_style),
+        Span::raw(" / "),
+        Span::styled("5 tape", tape_style),
+        Span::raw(" | public BBO/trades only | z zoom"),
+    ])
 }
 
 fn adaptive_detail_height(
