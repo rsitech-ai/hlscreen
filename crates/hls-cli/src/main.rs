@@ -1,5 +1,7 @@
 #![forbid(unsafe_code)]
 
+use std::{panic, sync::Once};
+
 use clap::{Parser, Subcommand};
 
 use crate::commands::{
@@ -40,8 +42,27 @@ enum Command {
     Server(ServerArgs),
 }
 
+static PANIC_HOOK_INSTALL: Once = Once::new();
+
+fn restore_before_delegating_panic(restore: impl FnOnce(), delegate: impl FnOnce()) {
+    restore();
+    delegate();
+}
+
+fn install_terminal_restoring_panic_hook() {
+    PANIC_HOOK_INSTALL.call_once(|| {
+        let previous = panic::take_hook();
+        panic::set_hook(Box::new(move |panic_info| {
+            restore_before_delegating_panic(commands::live::restore_active_tui_after_panic, || {
+                previous(panic_info)
+            });
+        }));
+    });
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    install_terminal_restoring_panic_hook();
     match Cli::parse().command {
         Command::Init(args) => commands::init::run(args).await,
         Command::Doctor(args) => commands::doctor::run(args).await,
@@ -59,9 +80,11 @@ async fn main() -> anyhow::Result<()> {
 
 #[cfg(test)]
 mod tests {
+    use std::{cell::RefCell, rc::Rc};
+
     use clap::Parser;
 
-    use super::{Cli, Command};
+    use super::{Cli, Command, restore_before_delegating_panic};
     use crate::commands::live::LiveTuiColor;
 
     #[test]
@@ -106,5 +129,19 @@ mod tests {
         assert_eq!(live_args.refresh_secs, 3);
         assert_eq!(live_args.duration_secs, 15);
         assert_eq!(live_args.color, LiveTuiColor::Auto);
+    }
+
+    #[test]
+    fn panic_hook_restores_before_delegating() {
+        let calls = Rc::new(RefCell::new(Vec::new()));
+        let restore_calls = Rc::clone(&calls);
+        let delegate_calls = Rc::clone(&calls);
+
+        restore_before_delegating_panic(
+            move || restore_calls.borrow_mut().push("restore"),
+            move || delegate_calls.borrow_mut().push("delegate"),
+        );
+
+        assert_eq!(*calls.borrow(), vec!["restore", "delegate"]);
     }
 }
