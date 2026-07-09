@@ -2924,6 +2924,7 @@ fn book_lines(
     ];
     if !compact_book && content_width >= 64 {
         lines.insert(2, book_bbo_ladder_line(row, color_mode));
+        lines.insert(3, book_microprice_line(row, quote_share, color_mode));
     }
     if !compact_book {
         lines.extend(book_snap_lines(
@@ -3091,6 +3092,52 @@ fn book_bbo_ladder_line(row: &FeatureSnapshot, color_mode: RatatuiColorMode) -> 
             format_optional(row.spread_bps, 1)
         )),
     ])
+}
+
+fn book_microprice_line(
+    row: &FeatureSnapshot,
+    quote_share: Option<(f64, f64)>,
+    color_mode: RatatuiColorMode,
+) -> Line<'static> {
+    let microprice = microprice(row);
+    let edge_bps = match (microprice, mid_price(row)) {
+        (Some(micro), Some(mid)) if mid.abs() > f64::EPSILON => {
+            Some(((micro - mid) / mid) * 10_000.0)
+        }
+        _ => None,
+    };
+    let skew = quote_share.map_or(0.0, |(bid, ask)| bid - ask);
+    Line::from(vec![
+        Span::styled(
+            "MICROPRICE ",
+            Style::default()
+                .fg(accent(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw("read-only top-book model | "),
+        Span::raw(format!("queue skew {} | ", signed_meter(skew))),
+        Span::raw(format!("px {} ", format_price(microprice))),
+        Span::styled(
+            format!("edge {}bps ", format_signed(edge_bps, "")),
+            Style::default().fg(flow_color(edge_bps.unwrap_or_default(), color_mode)),
+        ),
+    ])
+}
+
+fn microprice(row: &FeatureSnapshot) -> Option<f64> {
+    match (row.bid_px, row.ask_px, row.bid_sz, row.ask_sz) {
+        (Some(bid_px), Some(ask_px), Some(bid_sz), Some(ask_sz))
+            if bid_px.is_finite()
+                && ask_px.is_finite()
+                && bid_sz.is_finite()
+                && ask_sz.is_finite()
+                && bid_sz > 0.0
+                && ask_sz > 0.0 =>
+        {
+            Some(((ask_px * bid_sz) + (bid_px * ask_sz)) / (bid_sz + ask_sz))
+        }
+        _ => None,
+    }
 }
 
 fn book_snap_lines(

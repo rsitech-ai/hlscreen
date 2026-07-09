@@ -982,6 +982,9 @@ fn book_pane_renders_read_only_bbo_ladder() {
     assert!(rendered.contains("ask 35.1000"));
     assert!(rendered.contains("spr 57.1bps"));
     assert!(rendered.contains("read-only BBO"));
+    assert!(rendered.contains("MICROPRICE"));
+    assert!(rendered.contains("queue skew"));
+    assert!(rendered.contains("read-only top-book model"));
 }
 
 #[test]
