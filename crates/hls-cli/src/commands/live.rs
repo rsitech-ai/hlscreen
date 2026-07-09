@@ -1438,7 +1438,7 @@ fn mouse_to_workstation_action(
             } else if let Some(pane) =
                 mouse_header_pane_for_position(mouse.column, mouse.row, width, ui_state)
             {
-                WorkstationAction::FocusPane(pane)
+                mouse_focus_or_zoom_pane_action(pane, ui_state)
             } else if let Some(action) =
                 mouse_panel_tab_action(mouse.column, mouse.row, width, height, ui_state)
             {
@@ -1466,6 +1466,17 @@ fn mouse_to_workstation_action(
             }
         }),
         _ => None,
+    }
+}
+
+fn mouse_focus_or_zoom_pane_action(
+    pane: WorkstationPane,
+    ui_state: &WorkstationUiState,
+) -> WorkstationAction {
+    if pane == ui_state.focused_pane() {
+        WorkstationAction::TogglePaneZoom
+    } else {
+        WorkstationAction::FocusPane(pane)
     }
 }
 
@@ -1593,7 +1604,12 @@ fn mouse_action_label_hit(
             _ => label.len(),
         } as u16;
         if column >= cursor && column < cursor.saturating_add(label_width) {
-            return Some(*action);
+            return match (active_pane, action) {
+                (Some(active), WorkstationAction::FocusPane(pane)) if active == *pane => {
+                    Some(WorkstationAction::TogglePaneZoom)
+                }
+                _ => Some(*action),
+            };
         }
         cursor = cursor.saturating_add(label_width);
     }
@@ -2716,6 +2732,20 @@ mod tests {
             mouse_to_workstation_action(
                 MouseEvent {
                     kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
+                    column: 8,
+                    row: 2,
+                    modifiers: KeyModifiers::NONE,
+                },
+                &state,
+                Some((160, 48)),
+                20,
+            ),
+            Some(WorkstationAction::TogglePaneZoom)
+        );
+        assert_eq!(
+            mouse_to_workstation_action(
+                MouseEvent {
+                    kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
                     column: 22,
                     row: 2,
                     modifiers: KeyModifiers::NONE,
@@ -2725,6 +2755,20 @@ mod tests {
                 20,
             ),
             Some(WorkstationAction::FocusPane(WorkstationPane::Detail))
+        );
+        assert_eq!(
+            mouse_to_workstation_action(
+                MouseEvent {
+                    kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
+                    column: 10,
+                    row: 2,
+                    modifiers: KeyModifiers::NONE,
+                },
+                &state,
+                Some((72, 24)),
+                20,
+            ),
+            Some(WorkstationAction::TogglePaneZoom)
         );
         assert_eq!(
             mouse_to_workstation_action(
@@ -2767,6 +2811,57 @@ mod tests {
                 },
                 &command_state,
                 Some((160, 48)),
+                20,
+            ),
+            None
+        );
+    }
+
+    #[test]
+    fn live_tui_mouse_clicks_active_top_bar_pane_as_zoom_control() {
+        let state = WorkstationUiState::default();
+
+        assert_eq!(
+            mouse_to_workstation_action(
+                MouseEvent {
+                    kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
+                    column: 20,
+                    row: 2,
+                    modifiers: KeyModifiers::NONE,
+                },
+                &state,
+                Some((240, 56)),
+                20,
+            ),
+            Some(WorkstationAction::TogglePaneZoom)
+        );
+        assert_eq!(
+            mouse_to_workstation_action(
+                MouseEvent {
+                    kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
+                    column: 36,
+                    row: 2,
+                    modifiers: KeyModifiers::NONE,
+                },
+                &state,
+                Some((240, 56)),
+                20,
+            ),
+            Some(WorkstationAction::FocusPane(WorkstationPane::Detail))
+        );
+
+        let mut command_state = WorkstationUiState::default();
+        command_state.apply(WorkstationAction::CycleFilter, 1);
+        assert_eq!(
+            mouse_to_workstation_action(
+                MouseEvent {
+                    kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
+                    column: 20,
+                    row: 2,
+                    modifiers: KeyModifiers::NONE,
+                },
+                &command_state,
+                Some((240, 56)),
                 20,
             ),
             None
