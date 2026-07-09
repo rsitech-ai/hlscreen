@@ -175,7 +175,7 @@ fn render_wide(
     let root = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(5),
+            Constraint::Length(6),
             Constraint::Min(12),
             Constraint::Length(2),
         ])
@@ -336,7 +336,7 @@ fn render_header(
     } else {
         format!("  {mode_label}  filter:{filter}")
     };
-    let text = vec![
+    let mut text = vec![
         Line::from(vec![
             Span::styled(
                 "STATUS ",
@@ -367,6 +367,9 @@ fn render_header(
         ]),
         market_internals_line(model, color_mode, narrow),
     ];
+    if !narrow && area.height >= 6 {
+        text.push(market_pulse_line(model, color_mode));
+    }
     frame.render_widget(
         Paragraph::new(text).block(
             Block::default()
@@ -472,6 +475,72 @@ fn market_internals_line(
             stale.min(99),
             format_usd_signed(Some(signed_flow)),
             format_usd(Some(depth))
+        )),
+    ])
+}
+
+fn market_pulse_line(model: &RatatuiFrameModel, color_mode: RatatuiColorMode) -> Line<'static> {
+    let rows = screened_rows(model);
+    let up = rows
+        .iter()
+        .filter(|row| row.ret_1m.is_some_and(|value| value > 0.0))
+        .count();
+    let down = rows
+        .iter()
+        .filter(|row| row.ret_1m.is_some_and(|value| value < 0.0))
+        .count();
+    let move_leader = rows
+        .iter()
+        .filter_map(|row| {
+            row.ret_1m
+                .filter(|value| value.is_finite())
+                .map(|value| (row, value))
+        })
+        .max_by(|(_, left), (_, right)| {
+            left.abs()
+                .partial_cmp(&right.abs())
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
+    let flow_leader = rows
+        .iter()
+        .filter_map(|row| {
+            row.signed_notional_flow_30s
+                .filter(|value| value.is_finite())
+                .map(|value| (row, value))
+        })
+        .max_by(|(_, left), (_, right)| {
+            left.abs()
+                .partial_cmp(&right.abs())
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
+    let move_text = move_leader.map_or_else(
+        || "move -".to_owned(),
+        |(row, _)| format!("move {} {}", display_symbol(row), trend_label(row.ret_1m)),
+    );
+    let flow_text = flow_leader.map_or_else(
+        || "flow -".to_owned(),
+        |(row, flow)| {
+            format!(
+                "flow {} {}",
+                display_symbol(row),
+                format_usd_signed(Some(flow))
+            )
+        },
+    );
+
+    Line::from(vec![
+        Span::styled(
+            "MARKET PULSE ",
+            Style::default()
+                .fg(accent(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw(format!(
+            "breadth {:02}/{:02}  {}  {}  public rows",
+            up.min(99),
+            down.min(99),
+            move_text,
+            flow_text
         )),
     ])
 }
