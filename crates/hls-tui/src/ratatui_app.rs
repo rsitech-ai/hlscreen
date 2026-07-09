@@ -1338,7 +1338,7 @@ fn render_watchlist(
         !compact && !quality_view && !explain_view && area.width >= 72 && !model.candles.is_empty();
     let show_row_router = !compact && area.width >= 65 && area.height >= 18 && !rows.is_empty();
     let row_router_height = if expanded_watchlist {
-        17
+        20
     } else if area.height >= 20 {
         11
     } else {
@@ -2094,6 +2094,7 @@ fn watchlist_row_router_lines(
     if expanded {
         lines.extend(watchlist_selector_ladder_lines(row, rows, color_mode));
         lines.extend(watchlist_heatmap_deck_lines(rows, color_mode));
+        lines.extend(watchlist_cohort_intelligence_lines(row, rows, color_mode));
         lines.extend(watchlist_command_center_lines(row, rows, color_mode));
     }
     lines
@@ -2385,6 +2386,87 @@ fn watchlist_heatmap_deck_lines(
     }
     lines.push(Line::from(leader_line));
     lines
+}
+
+fn watchlist_cohort_intelligence_lines(
+    selected: &FeatureSnapshot,
+    rows: &[FeatureSnapshot],
+    color_mode: RatatuiColorMode,
+) -> Vec<Line<'static>> {
+    let mut new_listings = 0usize;
+    let mut fresh_liquidity = 0usize;
+    let mut low_float = 0usize;
+    let mut unknown = 0usize;
+    let seed_leader = rows
+        .iter()
+        .filter_map(|row| {
+            row.metadata
+                .as_ref()
+                .and_then(|metadata| metadata.seeded_usdc)
+                .filter(|value| value.is_finite() && *value > 0.0)
+                .map(|seeded| (row, seeded))
+        })
+        .max_by(|left, right| {
+            left.1
+                .partial_cmp(&right.1)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
+
+    for row in rows {
+        let Some(metadata) = row.metadata.as_ref() else {
+            unknown += 1;
+            continue;
+        };
+        if metadata.has_tag("new_listing") {
+            new_listings += 1;
+        }
+        if metadata.has_tag("fresh_liquidity") {
+            fresh_liquidity += 1;
+        }
+        if metadata.has_tag("low_float") {
+            low_float += 1;
+        }
+        if metadata.has_tag("unknown_metadata") || !metadata.is_complete() {
+            unknown += 1;
+        }
+    }
+
+    let seed_leader_label = seed_leader.map_or_else(
+        || "-".to_owned(),
+        |(row, seeded)| format!("{} {}", display_symbol(row), format_usd(Some(seeded))),
+    );
+
+    vec![
+        Line::from(vec![
+            Span::styled(
+                "COHORT INTELLIGENCE ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(format!(
+                "new {:02} fresh {:02} low-float {:02} unknown {:02} | public metadata only",
+                new_listings.min(99),
+                fresh_liquidity.min(99),
+                low_float.min(99),
+                unknown.min(99)
+            )),
+        ]),
+        Line::from(vec![
+            Span::styled("seed leader ", Style::default().fg(success(color_mode))),
+            Span::raw(seed_leader_label),
+            Span::raw(format!(
+                " | selected {} listing {}",
+                display_symbol(selected),
+                listing_age(selected)
+            )),
+        ]),
+        Line::from(format!(
+            "tags {} | source {} | not advice | no wallet | no orders",
+            metadata_tags(selected),
+            metadata_source(selected)
+        )),
+    ]
 }
 
 fn watchlist_scanner_rail_lines(
