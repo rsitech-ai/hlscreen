@@ -3278,6 +3278,9 @@ fn tape_lines(
         )),
     ];
     if !compact {
+        lines.extend(flow_spectrum_lines(rows, pulse_width, color_mode));
+    }
+    if !compact {
         lines.push(Line::from(format!(
             "ret1m {} | rv1m {} | spread {} bps",
             format_signed(selected.ret_1m.map(|value| value * 100.0), "%"),
@@ -3359,6 +3362,47 @@ fn tape_lines(
     );
     lines.push(Line::from("Tape proxy only | public BBO/flow; no fills."));
     lines
+}
+
+fn flow_spectrum_lines(
+    rows: &[FeatureSnapshot],
+    pulse_width: usize,
+    color_mode: RatatuiColorMode,
+) -> Vec<Line<'static>> {
+    let buy_flow = rows
+        .iter()
+        .filter_map(|row| row.signed_notional_flow_30s)
+        .filter(|value| value.is_finite() && *value > 0.0)
+        .sum::<f64>();
+    let sell_flow = rows
+        .iter()
+        .filter_map(|row| row.signed_notional_flow_30s)
+        .filter(|value| value.is_finite() && *value < 0.0)
+        .map(f64::abs)
+        .sum::<f64>();
+    let total = buy_flow + sell_flow;
+    let buy_share = if total > 0.0 { buy_flow / total } else { 0.0 };
+    let sell_share = if total > 0.0 { sell_flow / total } else { 0.0 };
+    let bar_width = (pulse_width / 3).clamp(3, 6);
+    vec![
+        Line::from(vec![Span::styled(
+            "FLOW SPECTRUM",
+            Style::default()
+                .fg(accent(color_mode))
+                .add_modifier(Modifier::BOLD),
+        )]),
+        Line::from("read-only public flow"),
+        Line::from(vec![
+            Span::styled(
+                format!("buy pressure {} ", depth_bar(buy_share, bar_width)),
+                Style::default().fg(success(color_mode)),
+            ),
+            Span::styled(
+                format!("sell pressure {}", depth_bar(sell_share, bar_width)),
+                Style::default().fg(danger(color_mode)),
+            ),
+        ]),
+    ]
 }
 
 fn last_trade_hud_line(trade: &TradeEvent, color_mode: RatatuiColorMode) -> Line<'static> {

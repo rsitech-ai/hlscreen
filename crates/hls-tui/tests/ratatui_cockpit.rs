@@ -1072,7 +1072,7 @@ fn tape_pane_renders_flow_pulse_and_net_pressure_bars() {
     let rendered = render_ratatui_snapshot_for_test(
         &model,
         RatatuiViewport {
-            width: 160,
+            width: 240,
             height: 48,
         },
         RatatuiColorMode::NoColor,
@@ -1082,6 +1082,10 @@ fn tape_pane_renders_flow_pulse_and_net_pressure_bars() {
     assert!(rendered.contains("[FOCUS] TAPE"));
     assert!(rendered.contains("FLOW pulse"));
     assert!(rendered.contains("net pressure"));
+    assert!(rendered.contains("FLOW SPECTRUM"));
+    assert!(rendered.contains("buy pressure"));
+    assert!(rendered.contains("sell pressure"));
+    assert!(rendered.contains("read-only public flow"));
     assert!(rendered.contains("Tape proxy only"));
     assert!(rendered.contains("HYPE/USDC"));
     assert!(rendered.contains("DOWN/USDC"));
