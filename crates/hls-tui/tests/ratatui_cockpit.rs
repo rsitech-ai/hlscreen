@@ -305,6 +305,35 @@ fn wide_status_bar_renders_action_key_rail() {
     assert!(rendered.contains("RISK STRIP"));
 }
 
+#[test]
+fn medium_status_bar_compacts_action_and_theme_rails() {
+    let model = RatatuiFrameModel::new(
+        directional_snapshots(),
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        WorkstationUiState::default(),
+    )
+    .with_status("LIVE", "REC ready", "ws=120 events=300 gaps=0");
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 120,
+            height: 40,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders medium compact action rail");
+
+    assert!(rendered.contains("ACTION STRIP"));
+    assert!(rendered.contains("j/k ent tab"));
+    assert!(rendered.contains("/ p s t ? q"));
+    assert!(rendered.contains("THEME plain"));
+    assert!(rendered.contains("--color always"));
+    assert!(rendered.contains("No wallet"));
+    assert!(rendered.contains("TICKER"));
+}
+
 fn directional_snapshots() -> Vec<hls_core::market_state::FeatureSnapshot> {
     let mut snapshots = fixture_snapshots();
     snapshots[0].ret_1m = Some(0.0057);
