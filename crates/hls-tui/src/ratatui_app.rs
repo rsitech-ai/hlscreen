@@ -3585,6 +3585,22 @@ fn tape_lines(
     }
 
     let recent_trades = selected_trades(model, &selected.symbol, content_height);
+    if matches!(
+        model.ui_state.view(),
+        WorkstationView::Quality | WorkstationView::Metadata | WorkstationView::Explain
+    ) {
+        return tape_quality_mode_lines(TapeQualityContext {
+            selected,
+            recent_trades: &recent_trades,
+            net_flow,
+            pressure_scale,
+            pulse_width,
+            compact,
+            color_mode,
+            view: model.ui_state.view(),
+        });
+    }
+
     if !recent_trades.is_empty() {
         lines.push(tape_radar_line(&recent_trades, color_mode));
         if let Some(latest_trade) = recent_trades.first() {
@@ -3656,6 +3672,124 @@ fn tape_lines(
             .map(|row| tape_leader_line(row, max_abs_flow, color_mode)),
     );
     lines.push(Line::from("Tape proxy only | public BBO/flow; no fills."));
+    lines
+}
+
+struct TapeQualityContext<'a> {
+    selected: &'a FeatureSnapshot,
+    recent_trades: &'a [&'a TradeEvent],
+    net_flow: f64,
+    pressure_scale: f64,
+    pulse_width: usize,
+    compact: bool,
+    color_mode: RatatuiColorMode,
+    view: WorkstationView,
+}
+
+fn tape_quality_mode_lines(ctx: TapeQualityContext<'_>) -> Vec<Line<'static>> {
+    let TapeQualityContext {
+        selected,
+        recent_trades,
+        net_flow,
+        pressure_scale,
+        pulse_width,
+        compact,
+        color_mode,
+        view,
+    } = ctx;
+    let title = match view {
+        WorkstationView::Quality => "TAPE QUALITY MODE ",
+        WorkstationView::Metadata => "TAPE METADATA MODE ",
+        WorkstationView::Explain => "TAPE EXPLAIN MODE ",
+        WorkstationView::Overview | WorkstationView::Flow => "TAPE QUALITY MODE ",
+    };
+    let buy_count = recent_trades
+        .iter()
+        .filter(|trade| trade.side == TradeSide::Buy)
+        .count();
+    let sell_count = recent_trades
+        .iter()
+        .filter(|trade| trade.side == TradeSide::Sell)
+        .count();
+    let buy_notional = recent_trades
+        .iter()
+        .filter(|trade| trade.side == TradeSide::Buy)
+        .map(|trade| trade.notional)
+        .sum::<f64>();
+    let sell_notional = recent_trades
+        .iter()
+        .filter(|trade| trade.side == TradeSide::Sell)
+        .map(|trade| trade.notional)
+        .sum::<f64>();
+    let print_net = buy_notional - sell_notional;
+
+    let mut lines = vec![
+        Line::from(vec![
+            Span::styled(
+                title,
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw("prints"),
+        ]),
+        Line::from("public print diagnostics | read-only"),
+        Line::from(format!(
+            "prints {} | buy {} {} | sell {} {}",
+            recent_trades.len(),
+            buy_count,
+            format_usd(Some(buy_notional)),
+            sell_count,
+            format_usd(Some(sell_notional))
+        )),
+        Line::from(vec![
+            Span::styled(
+                "confidence ",
+                Style::default().fg(confidence_color(selected.confidence.score, color_mode)),
+            ),
+            Span::raw(format!(
+                "{} {} | freshness {}",
+                selected.confidence.level.as_str(),
+                selected.confidence.score,
+                staleness_label(&selected.staleness_state)
+            )),
+        ]),
+        Line::from(format!(
+            "flow gate {} | print net {} | OFI {}",
+            format_usd_signed(selected.signed_notional_flow_30s),
+            format_usd_signed(Some(print_net)),
+            format_usd_signed(selected.bbo_ofi_proxy_30s)
+        )),
+        Line::from(format!(
+            "tradeability {} | resilience {} | adverse {}",
+            selected.tradeability_state.as_str(),
+            selected.resilience_state.as_str(),
+            selected.adverse_selection_proxy.as_str()
+        )),
+        Line::from(vec![
+            Span::styled(
+                "net pressure ",
+                Style::default().fg(flow_color(net_flow, color_mode)),
+            ),
+            Span::raw(signed_flow_bar(net_flow, pressure_scale, pulse_width)),
+            Span::raw(format!(" {}", format_usd_signed(Some(net_flow)))),
+        ]),
+    ];
+
+    if !compact {
+        lines.extend([
+            Line::from(format!(
+                "ret1m {} | rv1m {} | spread {} bps",
+                format_signed(selected.ret_1m.map(|value| value * 100.0), "%"),
+                format_optional(selected.rv_1m, 2),
+                format_optional(selected.spread_bps, 1)
+            )),
+            Line::from("Public trades only | no fills, no private streams."),
+        ]);
+    } else {
+        lines.push(Line::from("Public trades only | no fills."));
+    }
+
     lines
 }
 
