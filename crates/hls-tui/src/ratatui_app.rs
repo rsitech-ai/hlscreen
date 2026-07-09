@@ -836,21 +836,57 @@ fn detail_lines(
             ]);
             lines
         }
-        WorkstationView::Flow => vec![
-            heading,
-            tabs,
-            Line::from("Flow tape"),
-            Line::from(format!(
-                "signed flow 5s - | 30s {} | 1m -",
-                format_usd_signed(row.signed_notional_flow_30s),
-            )),
-            Line::from(format!(
-                "bbo ofi 30s {} | adverse proxy {} | spread recovery {}",
-                format_usd_signed(row.bbo_ofi_proxy_30s),
-                row.adverse_selection_proxy.as_str(),
-                format_duration_ms(row.spread_recovery_ms)
-            )),
-        ],
+        WorkstationView::Flow => {
+            let flow = row.signed_notional_flow_30s.unwrap_or(0.0);
+            let imbalance = row.tob_imbalance.unwrap_or(0.0);
+            let flow_scale = flow
+                .abs()
+                .max(row.tob_depth_usd.unwrap_or(0.0).abs())
+                .max(1.0);
+            let bar_width = if compact { 8 } else { 12 };
+
+            vec![
+                heading,
+                tabs,
+                Line::from("Flow tape | Public BBO/trade context only"),
+                Line::from(vec![
+                    Span::styled(
+                        "FLOW LADDER ",
+                        Style::default()
+                            .fg(accent(color_mode))
+                            .add_modifier(Modifier::BOLD),
+                    ),
+                    Span::raw("public microstructure console"),
+                ]),
+                Line::from(format!(
+                    "signed flow 30s {} | bbo ofi {} | depth {}",
+                    format_usd_signed(row.signed_notional_flow_30s),
+                    format_usd_signed(row.bbo_ofi_proxy_30s),
+                    format_usd(row.tob_depth_usd),
+                )),
+                Line::from(vec![
+                    Span::styled(
+                        "pressure ",
+                        Style::default().fg(flow_color(flow, color_mode)),
+                    ),
+                    Span::raw(signed_flow_bar(flow, flow_scale, bar_width)),
+                    Span::raw(" | "),
+                    Span::styled(
+                        "imbalance ",
+                        Style::default().fg(flow_color(imbalance, color_mode)),
+                    ),
+                    Span::raw(signed_meter(imbalance)),
+                    Span::raw(format!(" {}", format_signed(row.tob_imbalance, ""))),
+                ]),
+                Line::from(format!(
+                    "friction spr {} bps | recovery {} | adverse {}",
+                    format_optional(row.spread_bps, 1),
+                    format_duration_ms(row.spread_recovery_ms),
+                    row.adverse_selection_proxy.as_str()
+                )),
+                Line::from("Public BBO/trade context only | display heuristic, not advice."),
+            ]
+        }
         WorkstationView::Quality => vec![
             heading,
             tabs,
