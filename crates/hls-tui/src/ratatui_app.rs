@@ -8324,6 +8324,9 @@ fn render_status_panel(
             gaps,
             color_mode,
         ));
+        lines.extend(status_execution_boundary_ladder_lines(
+            &rows, reconnects, gaps, color_mode,
+        ));
         lines.extend(status_portfolio_risk_terminal_lines(&rows, color_mode));
         lines.extend(status_color_lab_lines(color_mode));
     }
@@ -8427,6 +8430,77 @@ fn status_ops_command_center_lines(
             Span::raw(format!(
                 "degraded {degraded:02} stale {stale:02} recorder {}",
                 model.recorder_status
+            )),
+        ]),
+    ]
+}
+
+fn status_execution_boundary_ladder_lines(
+    rows: &[FeatureSnapshot],
+    reconnects: u64,
+    gaps: u64,
+    color_mode: RatatuiColorMode,
+) -> Vec<Line<'static>> {
+    let degraded = rows
+        .iter()
+        .filter(|row| row.confidence.score < 70 || row.staleness_state != StalenessState::Fresh)
+        .count();
+    let stale = rows
+        .iter()
+        .filter(|row| row.staleness_state != StalenessState::Fresh)
+        .count();
+    let wide_spread = rows
+        .iter()
+        .filter(|row| {
+            row.spread_bps
+                .is_some_and(|value| value.is_finite() && value > 25.0)
+        })
+        .count();
+    let thin_depth = rows
+        .iter()
+        .filter(|row| row.tob_depth_usd.is_none_or(|value| value < 1_000.0))
+        .count();
+    let data_gate = if gaps == 0 && reconnects <= 1 && degraded == 0 && stale == 0 {
+        "clear"
+    } else if gaps <= 2 && degraded <= 2 {
+        "watch"
+    } else {
+        "degraded"
+    };
+    let liquidity_gate = if wide_spread == 0 && thin_depth == 0 {
+        "clear"
+    } else if wide_spread <= 2 && thin_depth <= 2 {
+        "watch"
+    } else {
+        "degraded"
+    };
+
+    vec![
+        Line::from(vec![
+            Span::styled(
+                "EXECUTION BOUNDARY LADDER ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw("operator mode observe-only | screen gates, not orders"),
+        ]),
+        Line::from(vec![
+            Span::styled(
+                format!("data gate {data_gate} "),
+                Style::default().fg(gate_color(data_gate, color_mode)),
+            ),
+            Span::raw(format!(
+                "degraded {degraded:02} stale {stale:02} reconnects {reconnects} gaps {gaps}"
+            )),
+        ]),
+        Line::from(vec![
+            Span::styled(
+                format!("liquidity gate {liquidity_gate} "),
+                Style::default().fg(gate_color(liquidity_gate, color_mode)),
+            ),
+            Span::raw(format!(
+                "wide spread {wide_spread:02} thin depth {thin_depth:02} | no wallet no private streams no orders"
             )),
         ]),
     ]
