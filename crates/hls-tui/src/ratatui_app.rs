@@ -7371,14 +7371,18 @@ fn market_status_bar_line(
         if width <= 180 {
             medium_quality_label(model)
         } else {
-            format!("{} | ", operational_quality_label(model, false))
+            operational_quality_label(model, false)
         },
         Style::default()
             .fg(warn(color_mode))
             .add_modifier(Modifier::BOLD),
     ));
     if width > 180 {
-        spans.extend(status_bar_quality_alert_spans(model, color_mode));
+        let alert_spans = status_bar_quality_alert_spans(model, color_mode);
+        if !alert_spans.is_empty() {
+            spans.push(Span::raw(" | "));
+            spans.extend(alert_spans);
+        }
     }
     spans.extend(risk_strip_spans(model, color_mode, width <= 180));
     Line::from(spans)
@@ -7445,7 +7449,7 @@ fn status_bar_quality_alert_spans(
                 .fg(confidence_color(row.confidence.score, color_mode))
                 .add_modifier(Modifier::BOLD),
         ),
-        Span::raw(format!("age {} | ", format_duration_ms(row.updated_ms_ago))),
+        Span::raw(format!("age {}", format_duration_ms(row.updated_ms_ago))),
     ]
 }
 

@@ -812,6 +812,8 @@ fn wide_status_bar_renders_dynamic_market_ticker_rail() {
     assert!(rendered.contains("conf"));
     assert!(rendered.contains("degraded00"));
     assert!(rendered.contains("net flow -$4.2K"));
+    assert!(rendered.contains("QUALITY T00 !00 stale00 | RISK STRIP"));
+    assert!(!rendered.contains("QUALITY T00 !00 stale00 |  | RISK STRIP"));
     assert!(rendered.contains("ACTION STRIP"));
     assert!(rendered.contains("No wallet"));
 }
