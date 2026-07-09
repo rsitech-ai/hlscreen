@@ -381,19 +381,21 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
     let color_mode = live_ratatui_color_mode(args.color);
     let keyboard_interactive =
         render_live_tui && io::stdin().is_terminal() && io::stderr().is_terminal();
-    let _terminal_mode = LiveTuiGuard::enable(keyboard_interactive)?;
+    let terminal_mode = LiveTuiGuard::enable(keyboard_interactive)?;
     let mut tui_renderer = render_live_tui.then(LiveTuiRenderer::new).transpose()?;
     let mut tui_state = render_live_tui
         .then(|| WorkstationUiState::from_preferences(load_tui_preferences(&args.data_dir)));
 
-    eprintln!(
-        "read-only live run: symbols={} subscriptions={} streams_per_symbol={} duration_secs={} ws_url={}",
-        symbols.len(),
-        subscription_messages.len(),
-        plan.streams().len(),
-        args.duration_secs,
-        args.ws_url
-    );
+    if !render_live_tui {
+        eprintln!(
+            "read-only live run: symbols={} subscriptions={} streams_per_symbol={} duration_secs={} ws_url={}",
+            symbols.len(),
+            subscription_messages.len(),
+            plan.streams().len(),
+            args.duration_secs,
+            args.ws_url
+        );
+    }
 
     let drive_result = drive_live_ws(
         &args.ws_url,
@@ -432,6 +434,9 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
     };
 
     let mut summary = drive_result?;
+    drop(tui_renderer);
+    drop(terminal_mode);
+
     if let Err(err) = tui_preference_save {
         eprintln!("tui preferences save skipped: {err}");
     }
