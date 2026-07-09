@@ -938,6 +938,11 @@ fn cockpit_reflects_keyboard_view_pause_density_and_help_state() {
     assert!(rendered.contains("display paused"));
     assert!(rendered.contains("HELP"));
     assert!(rendered.contains("Command Deck"));
+    assert!(rendered.contains("KEY MATRIX"));
+    assert!(rendered.contains("PANES 1W 2D 3C 4B 5T 6S"));
+    assert!(rendered.contains("MARKET OPS / filter p preset s sort"));
+    assert!(rendered.contains("STATE view flow | pane chart | density dense"));
+    assert!(rendered.contains("READ-ONLY public market data only"));
     assert!(rendered.contains("[ / ]"));
     assert!(rendered.contains("1-6 panes"));
     assert!(rendered.contains("/ filter"));
