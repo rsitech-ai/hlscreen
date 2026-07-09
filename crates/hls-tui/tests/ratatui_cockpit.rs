@@ -346,6 +346,40 @@ fn cockpit_header_renders_market_internals_rail() {
     assert!(rendered.contains("flow -$4.2K"));
     assert!(rendered.contains("depth $490"));
     assert!(rendered.contains("tradeable"));
+    assert!(rendered.contains("MARKET PULSE"));
+    assert!(rendered.contains("breadth 01/01"));
+    assert!(rendered.contains("move DOWN/USDC DN-1.23%"));
+    assert!(rendered.contains("flow DOWN/USDC -$4.2K"));
+    assert!(rendered.contains("public rows"));
+}
+
+#[test]
+fn market_pulse_uses_display_symbols_for_metadata_backed_rows() {
+    let mut snapshots = fixture_snapshots();
+    snapshots[0].ret_1m = Some(0.01);
+    snapshots[0].signed_notional_flow_30s = Some(12_345.0);
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        WorkstationUiState::default(),
+    );
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 180,
+            height: 40,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders market pulse display symbols");
+
+    assert!(rendered.contains("MARKET PULSE"));
+    assert!(rendered.contains("move HYPE/USDC"));
+    assert!(rendered.contains("flow HYPE/USDC"));
+    assert!(!rendered.contains("move @107"));
+    assert!(!rendered.contains("flow @107"));
 }
 
 #[test]
