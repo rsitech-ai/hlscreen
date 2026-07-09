@@ -560,6 +560,40 @@ fn market_board_renders_score_and_bias_columns() {
 }
 
 #[test]
+fn market_board_quality_view_renders_pair_quality_columns() {
+    let snapshots = directional_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(WorkstationAction::NextView, snapshots.len());
+    state.apply(WorkstationAction::NextView, snapshots.len());
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    );
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 240,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders quality market board");
+
+    assert!(rendered.contains("view:quality"));
+    assert!(rendered.contains("QUALITY SCAN"));
+    assert!(rendered.contains("CONF"));
+    assert!(rendered.contains("FRESH"));
+    assert!(rendered.contains("TRADE"));
+    assert!(rendered.contains("RISK"));
+    assert!(rendered.contains("DEPTH"));
+    assert!(rendered.contains("HYPE/USDC"));
+    assert!(rendered.contains("fresh"));
+}
+
+#[test]
 fn wide_market_board_renders_public_candle_sparkline_lane() {
     let model = RatatuiFrameModel::new(
         fixture_snapshots(),

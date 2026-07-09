@@ -1,5 +1,6 @@
 use hls_core::market_state::{
-    CandleEvent, FeatureSnapshot, StalenessState, TradeEvent, TradeSide, TradeabilityState,
+    CandleEvent, FeatureSnapshot, LiquidityResilienceState, StalenessState, TradeEvent, TradeSide,
+    TradeabilityState,
 };
 use hls_screen::{
     ScreenEngine, ScreenRequest,
@@ -798,7 +799,8 @@ fn render_watchlist(
     let rows = screened_rows(model);
     let selected = selected_row_index(&rows, model).unwrap_or_default();
     let compact = area.width <= 64;
-    let enhanced = !compact && area.width >= 72 && !model.candles.is_empty();
+    let quality_view = model.ui_state.view() == WorkstationView::Quality;
+    let enhanced = !compact && !quality_view && area.width >= 72 && !model.candles.is_empty();
     let show_row_router = !compact && area.width >= 72 && area.height >= 18 && !rows.is_empty();
     let row_router_height = if area.height >= 20 { 5 } else { 4 };
     let chunks = if show_row_router {
@@ -828,7 +830,13 @@ fn render_watchlist(
             rows.len(),
             visible_range.start + 1,
             visible_range.end,
-            if enhanced { " 1m spark" } else { "" }
+            if quality_view {
+                " QUALITY SCAN"
+            } else if enhanced {
+                " 1m spark"
+            } else {
+                ""
+            }
         )
     };
     let table_rows = rows
@@ -854,6 +862,21 @@ fn render_watchlist(
                     Cell::from(format_board_price(row.price)),
                     Cell::from(micro_heat_lane(row, true)),
                     Cell::from(trend_label(row.ret_1m)),
+                    Cell::from(format_usd_signed(row.signed_notional_flow_30s)),
+                    Cell::from(quality_badge(row)),
+                ])
+                .style(style)
+            } else if quality_view {
+                Row::new(vec![
+                    Cell::from(watchlist_rank_label(index, selected)),
+                    Cell::from(display_symbol(row).to_owned()),
+                    Cell::from(format_board_price(row.price)),
+                    Cell::from(confidence_compact_label(row)),
+                    Cell::from(staleness_label(&row.staleness_state)),
+                    Cell::from(tradeability_compact_label(row.tradeability_state)),
+                    Cell::from(resilience_compact_label(row.resilience_state)),
+                    Cell::from(format_optional(row.spread_bps, 1)),
+                    Cell::from(format_usd(row.tob_depth_usd)),
                     Cell::from(format_usd_signed(row.signed_notional_flow_30s)),
                     Cell::from(quality_badge(row)),
                 ])
@@ -909,6 +932,34 @@ fn render_watchlist(
         )
         .header(
             Row::new(["RK", "CODE", "PX", "HT", "1M", "FLOW", "Q"]).style(
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+        )
+    } else if quality_view {
+        Table::new(
+            table_rows,
+            [
+                Constraint::Length(4),
+                Constraint::Min(8),
+                Constraint::Length(7),
+                Constraint::Length(4),
+                Constraint::Length(5),
+                Constraint::Length(5),
+                Constraint::Length(5),
+                Constraint::Length(4),
+                Constraint::Length(5),
+                Constraint::Length(6),
+                Constraint::Length(1),
+            ],
+        )
+        .header(
+            Row::new([
+                "RANK", "CODE", "PX", "CONF", "FRESH", "TRADE", "RISK", "SPR", "DEPTH", "FLOW30",
+                "Q",
+            ])
+            .style(
                 Style::default()
                     .fg(accent(color_mode))
                     .add_modifier(Modifier::BOLD),
@@ -1268,6 +1319,37 @@ fn quality_badge(row: &FeatureSnapshot) -> &'static str {
         "T"
     } else {
         "Q"
+    }
+}
+
+fn confidence_compact_label(row: &FeatureSnapshot) -> String {
+    let level = match row.confidence.level.as_str() {
+        "high" => "H",
+        "medium" => "M",
+        "low" => "L",
+        "zero" => "Z",
+        _ => "?",
+    };
+    format!("{level}{:02}", row.confidence.score.min(99))
+}
+
+fn tradeability_compact_label(state: TradeabilityState) -> &'static str {
+    match state {
+        TradeabilityState::Unknown => "unk",
+        TradeabilityState::Tradeable => "trd",
+        TradeabilityState::Costly => "cost",
+        TradeabilityState::Thin => "thin",
+        TradeabilityState::Stale => "stale",
+    }
+}
+
+fn resilience_compact_label(state: LiquidityResilienceState) -> &'static str {
+    match state {
+        LiquidityResilienceState::Unknown => "unk",
+        LiquidityResilienceState::Normal => "norm",
+        LiquidityResilienceState::Shock => "shock",
+        LiquidityResilienceState::Recovering => "recv",
+        LiquidityResilienceState::Brittle => "brit",
     }
 }
 
