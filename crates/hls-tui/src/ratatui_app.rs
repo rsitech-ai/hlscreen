@@ -4632,6 +4632,18 @@ fn book_lines(
     if !compact_book && content_width >= 64 {
         lines.insert(2, book_bbo_ladder_line(row, color_mode));
         lines.insert(3, book_microprice_line(row, quote_share, color_mode));
+        lines.insert(
+            4,
+            book_depth_lens_line(row, quote_share, bid_notional, ask_notional, color_mode),
+        );
+    } else if !compact_book {
+        lines.push(book_depth_lens_line(
+            row,
+            quote_share,
+            bid_notional,
+            ask_notional,
+            color_mode,
+        ));
     }
     if !compact_book {
         lines.push(book_exec_quality_band_line(
@@ -4894,6 +4906,41 @@ fn book_liquidity_wall_monitor_lines(
             )),
         ]),
     ]
+}
+
+fn book_depth_lens_line(
+    row: &FeatureSnapshot,
+    quote_share: Option<(f64, f64)>,
+    bid_notional: Option<f64>,
+    ask_notional: Option<f64>,
+    color_mode: RatatuiColorMode,
+) -> Line<'static> {
+    let width = 10;
+    let (bid_share, ask_share) = quote_share.unwrap_or((0.0, 0.0));
+    let bid_bar = depth_bar(bid_share, width);
+    let ask_bar = depth_bar(ask_share, width);
+    let skew = bid_share - ask_share;
+
+    Line::from(vec![
+        Span::styled(
+            "DEPTH LENS PRESSURE TAPE ",
+            Style::default()
+                .fg(accent(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw("read-only top-book notional "),
+        Span::styled("bid ", Style::default().fg(success(color_mode))),
+        Span::styled(bid_bar, Style::default().fg(success(color_mode))),
+        Span::raw(format!(" {} ", format_usd(bid_notional))),
+        Span::styled("ask ", Style::default().fg(danger(color_mode))),
+        Span::styled(ask_bar, Style::default().fg(danger(color_mode))),
+        Span::raw(format!(" {} ", format_usd(ask_notional))),
+        Span::styled(
+            format!("queue skew {} ", signed_meter(skew)),
+            Style::default().fg(flow_color(skew, color_mode)),
+        ),
+        Span::raw(format!("spr {}bps", format_optional(row.spread_bps, 1))),
+    ])
 }
 
 fn book_exec_quality_band_line(
