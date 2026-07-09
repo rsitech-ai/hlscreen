@@ -5,8 +5,8 @@ use hls_screen::ScreenRequest;
 use hls_tui::{
     app::{RenderOptions, render_screened_table_with_options, render_screened_table_with_state},
     interaction::{
-        WorkstationAction, WorkstationCommandTarget, WorkstationPane, WorkstationUiState,
-        WorkstationView,
+        WorkstationAction, WorkstationChartWindow, WorkstationCommandTarget, WorkstationPane,
+        WorkstationUiState, WorkstationView,
     },
 };
 
@@ -93,6 +93,22 @@ fn workstation_state_selects_clicked_watchlist_row() {
 
     state.apply(WorkstationAction::SelectRow(99), 10);
     assert_eq!(state.selected_index(10), Some(9));
+}
+
+#[test]
+fn workstation_state_jumps_to_clicked_view_and_chart_tabs() {
+    let mut state = WorkstationUiState::default();
+
+    state.apply(WorkstationAction::SetView(WorkstationView::Quality), 10);
+    assert_eq!(state.view(), WorkstationView::Quality);
+    assert_eq!(state.focused_pane(), WorkstationPane::Detail);
+
+    state.apply(
+        WorkstationAction::SetChartWindow(WorkstationChartWindow::ThirtyMinutes),
+        10,
+    );
+    assert_eq!(state.chart_window(), WorkstationChartWindow::ThirtyMinutes);
+    assert_eq!(state.focused_pane(), WorkstationPane::Chart);
 }
 
 #[test]

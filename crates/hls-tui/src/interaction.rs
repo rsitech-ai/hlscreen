@@ -259,6 +259,8 @@ pub enum WorkstationAction {
     PreviousPane,
     FocusPane(WorkstationPane),
     SelectRow(usize),
+    SetView(WorkstationView),
+    SetChartWindow(WorkstationChartWindow),
     CommandChar(char),
     CommandBackspace,
     SubmitCommand,
@@ -458,6 +460,14 @@ impl WorkstationUiState {
                 } else {
                     index.min(row_count - 1)
                 };
+            }
+            WorkstationAction::SetView(view) => {
+                self.view = view;
+                self.focused_pane = WorkstationPane::Detail;
+            }
+            WorkstationAction::SetChartWindow(window) => {
+                self.chart_window = window;
+                self.focused_pane = WorkstationPane::Chart;
             }
             WorkstationAction::ToggleDensity => self.density = self.density.next(),
             WorkstationAction::ToggleHelp => self.help_open = !self.help_open,
