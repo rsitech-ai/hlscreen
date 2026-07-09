@@ -779,7 +779,7 @@ fn narrow_cockpit_collapses_to_watchlist_and_detail_without_tape() {
     assert!(rendered.contains("WATCHLIST"));
     assert!(rendered.contains("DETAIL"));
     assert!(rendered.contains("v:overview p:watchlist d:balanced c:15m"));
-    assert!(rendered.contains("j/k 1-6 tab / p s t ? q"));
+    assert!(rendered.contains("j/k ent h 1-6 /pst? q"));
     assert!(rendered.contains("INT rows"));
     assert!(rendered.contains(" dn "));
     assert!(rendered.contains(" tr "));
@@ -856,7 +856,7 @@ fn header_renders_keyboard_pane_hotkey_rail() {
     .expect("renders pane hotkey rail");
 
     assert!(rendered.contains("CONTROLS 1W 2D 3C [4B] 5T 6S"));
-    assert!(rendered.contains("j/k 1-6 tab / p s t ? q"));
+    assert!(rendered.contains("j/k ent h 1-6 /pst? q"));
     assert!(rendered.contains("[FOCUS] BOOK"));
 }
 
@@ -1287,6 +1287,7 @@ fn narrow_cockpit_renders_status_focus_as_operational_drilldown() {
     assert!(rendered.contains("space pause"));
     assert!(rendered.contains("active top-1 by screen rank"));
     assert!(rendered.contains("read-only safety"));
+    assert!(rendered.contains("ent detail h health"));
     assert!(rendered.contains("No wallet"));
     assert!(!rendered.contains("[FOCUS] DETAIL"));
 }
@@ -1474,6 +1475,8 @@ fn cockpit_reflects_keyboard_view_pause_density_and_help_state() {
     assert!(rendered.contains("Command Deck"));
     assert!(rendered.contains("KEY MATRIX"));
     assert!(rendered.contains("PANES 1W 2D 3C 4B 5T 6S"));
+    assert!(rendered.contains("enter detail"));
+    assert!(rendered.contains("h health/status"));
     assert!(rendered.contains("MARKET OPS / filter p preset s sort"));
     assert!(rendered.contains("STATE view flow | pane chart | density dense"));
     assert!(rendered.contains("PALETTE DIAGNOSTIC"));
