@@ -609,6 +609,34 @@ fn cockpit_header_renders_selected_quote_rail() {
     assert!(rendered.contains("public BBO read-only"));
 }
 
+#[test]
+fn standard_wide_header_renders_selected_quote_rail() {
+    let model = RatatuiFrameModel::new(
+        fixture_snapshots(),
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        WorkstationUiState::default(),
+    )
+    .with_status("LIVE", "REC ready", "ws=120 events=300 gaps=0");
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 160,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders standard-wide selected quote rail");
+
+    assert!(rendered.contains("layout wide 160x48"));
+    assert!(rendered.contains("SELECTED QUOTE"));
+    assert!(rendered.contains("HYPE/USDC"));
+    assert!(rendered.contains("bid share"));
+    assert!(rendered.contains("ask share"));
+    assert!(rendered.contains("public BBO read-only"));
+}
+
 fn fixture_candles() -> Vec<CandleEvent> {
     parse_ws_ndjson(include_str!(
         "../../../tests/fixtures/hyperliquid/ws_mock_live.ndjson"
