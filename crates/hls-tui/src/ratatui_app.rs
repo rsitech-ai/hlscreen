@@ -4467,9 +4467,13 @@ fn render_chart(
     let show_order_pressure = show_chart_order_pressure(area);
     let show_crosshair_context = show_chart_crosshair_context(area);
     let show_strategy_hud = show_chart_strategy_hud(area, model);
+    let show_structure_tape = show_chart_structure_tape(area, model);
     let show_chart_intel =
         model.ui_state.pane_expanded() && model.ui_state.focused_pane() == WorkstationPane::Chart;
     chart_lines.extend(selected_pair_edge_hud_lines(row, color_mode));
+    if show_structure_tape {
+        chart_lines.push(chart_structure_tape_line(&candles, color_mode));
+    }
     if show_strategy_hud {
         chart_lines.extend(chart_strategy_hud_lines(row, &candles, color_mode));
     }
@@ -4519,6 +4523,7 @@ fn render_chart(
         + u16::from(show_profile_rail)
         + u16::from(show_trade_markers) * 2
         + u16::from(show_strategy_hud) * 3
+        + u16::from(show_structure_tape)
         + u16::from(show_chart_intel) * 7;
     chart_lines.extend(candle_chart_lines(
         &candles,
@@ -4544,6 +4549,10 @@ fn show_chart_strategy_hud(area: Rect, model: &RatatuiFrameModel) -> bool {
         && area.height >= 24
         && model.ui_state.focused_pane() == WorkstationPane::Chart
         && !model.ui_state.pane_expanded()
+}
+
+fn show_chart_structure_tape(area: Rect, model: &RatatuiFrameModel) -> bool {
+    area.width >= 96 && area.height >= 30 && model.ui_state.focused_pane() == WorkstationPane::Chart
 }
 
 fn show_chart_prints_strip(area: Rect, model: &RatatuiFrameModel, symbol: &str) -> bool {
@@ -5303,6 +5312,74 @@ fn spread_gate_label(spread_bps: Option<f64>) -> &'static str {
         Some(value) if value.is_finite() => "wide",
         _ => "unknown",
     }
+}
+
+fn chart_structure_tape_line(
+    candles: &[&CandleEvent],
+    color_mode: RatatuiColorMode,
+) -> Line<'static> {
+    let first = candles[0];
+    let latest = candles.last().copied().unwrap_or(first);
+    let mut higher_highs = 0usize;
+    let mut lower_lows = 0usize;
+    for pair in candles.windows(2) {
+        let previous = pair[0];
+        let current = pair[1];
+        if current.high > previous.high {
+            higher_highs += 1;
+        }
+        if current.low < previous.low {
+            lower_lows += 1;
+        }
+    }
+    let high = candles
+        .iter()
+        .map(|candle| candle.high)
+        .fold(f64::NEG_INFINITY, f64::max);
+    let low = candles
+        .iter()
+        .map(|candle| candle.low)
+        .fold(f64::INFINITY, f64::min);
+    let range_pct = if first.open.abs() < f64::EPSILON {
+        0.0
+    } else {
+        ((high - low).abs() / first.open.abs()) * 100.0
+    };
+    let avg_volume = candles
+        .iter()
+        .map(|candle| candle.volume_base.max(0.0))
+        .sum::<f64>()
+        / candles.len().max(1) as f64;
+    let volume_pulse = if avg_volume > 0.0 {
+        latest.volume_base.max(0.0) / avg_volume
+    } else {
+        0.0
+    };
+    let structure_bias = match higher_highs.cmp(&lower_lows) {
+        std::cmp::Ordering::Greater => "up-structure",
+        std::cmp::Ordering::Less => "down-structure",
+        std::cmp::Ordering::Equal => "balanced-structure",
+    };
+
+    Line::from(vec![
+        Span::styled(
+            "STRUCTURE TAPE ",
+            Style::default()
+                .fg(accent(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw("public candles only | "),
+        Span::styled(
+            format!("{structure_bias} "),
+            Style::default().fg(flow_color(
+                higher_highs as f64 - lower_lows as f64,
+                color_mode,
+            )),
+        ),
+        Span::raw(format!(
+            "higher highs {higher_highs:02} lower lows {lower_lows:02} | range {range_pct:.2}% vol {volume_pulse:.2}x"
+        )),
+    ])
 }
 
 fn chart_move_summary_line(
