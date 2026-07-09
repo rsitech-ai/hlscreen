@@ -733,6 +733,8 @@ fn narrow_status_bar_renders_contextual_focus_keys() {
     .expect("renders focused chart status hint");
 
     assert!(rendered.contains("live | chart:t | top1"));
+    assert!(rendered.contains("ACTION chart:t window"));
+    assert!(rendered.contains("/ command"));
     assert!(rendered.contains("RO no-wallet"));
 }
 
