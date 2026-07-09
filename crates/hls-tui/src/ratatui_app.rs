@@ -801,10 +801,18 @@ fn render_watchlist(
     let compact = area.width <= 64;
     let quality_view = model.ui_state.view() == WorkstationView::Quality;
     let explain_view = model.ui_state.view() == WorkstationView::Explain;
+    let expanded_watchlist = model.ui_state.pane_expanded()
+        && model.ui_state.focused_pane() == WorkstationPane::Watchlist;
     let enhanced =
         !compact && !quality_view && !explain_view && area.width >= 72 && !model.candles.is_empty();
     let show_row_router = !compact && area.width >= 72 && area.height >= 18 && !rows.is_empty();
-    let row_router_height = if area.height >= 20 { 5 } else { 4 };
+    let row_router_height = if expanded_watchlist {
+        8
+    } else if area.height >= 20 {
+        5
+    } else {
+        4
+    };
     let chunks = if show_row_router {
         Layout::default()
             .direction(Direction::Vertical)
@@ -1094,14 +1102,19 @@ fn render_watchlist(
     if show_row_router {
         if let Some(row) = selected_row(&rows, model) {
             frame.render_widget(
-                Paragraph::new(watchlist_row_router_lines(row, &rows, color_mode))
-                    .wrap(Wrap { trim: true })
-                    .style(Style::default().fg(text(color_mode)))
-                    .block(
-                        Block::default()
-                            .borders(Borders::TOP)
-                            .border_style(Style::default().fg(accent(color_mode))),
-                    ),
+                Paragraph::new(watchlist_row_router_lines(
+                    row,
+                    &rows,
+                    expanded_watchlist,
+                    color_mode,
+                ))
+                .wrap(Wrap { trim: true })
+                .style(Style::default().fg(text(color_mode)))
+                .block(
+                    Block::default()
+                        .borders(Borders::TOP)
+                        .border_style(Style::default().fg(accent(color_mode))),
+                ),
                 chunks[1],
             );
         }
@@ -1201,6 +1214,7 @@ fn left_pad_to_width(value: String, width: usize) -> String {
 fn watchlist_row_router_lines(
     row: &FeatureSnapshot,
     rows: &[FeatureSnapshot],
+    expanded: bool,
     color_mode: RatatuiColorMode,
 ) -> Vec<Line<'static>> {
     let mut lines = vec![
@@ -1228,6 +1242,99 @@ fn watchlist_row_router_lines(
         )),
     ];
     lines.extend(watchlist_scanner_rail_lines(rows, color_mode));
+    if expanded {
+        lines.extend(watchlist_heatmap_deck_lines(rows, color_mode));
+    }
+    lines
+}
+
+fn watchlist_heatmap_deck_lines(
+    rows: &[FeatureSnapshot],
+    color_mode: RatatuiColorMode,
+) -> Vec<Line<'static>> {
+    if rows.is_empty() {
+        return vec![Line::from("MARKET HEATMAP waiting for public rows")];
+    }
+
+    let up = rows
+        .iter()
+        .filter(|row| row.ret_1m.unwrap_or(0.0) > 0.0)
+        .count();
+    let down = rows
+        .iter()
+        .filter(|row| row.ret_1m.unwrap_or(0.0) < 0.0)
+        .count();
+    let top_mover = rows
+        .iter()
+        .filter_map(|row| {
+            row.ret_1m
+                .filter(|value| value.is_finite())
+                .map(|value| (row, value))
+        })
+        .max_by(|(_, left), (_, right)| {
+            left.abs()
+                .partial_cmp(&right.abs())
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
+    let top_flow = rows
+        .iter()
+        .filter_map(|row| {
+            row.signed_notional_flow_30s
+                .filter(|value| value.is_finite())
+                .map(|value| (row, value))
+        })
+        .max_by(|(_, left), (_, right)| {
+            left.abs()
+                .partial_cmp(&right.abs())
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
+
+    let mut lines = vec![Line::from(vec![
+        Span::styled(
+            "MARKET HEATMAP ",
+            Style::default()
+                .fg(accent(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw(format!(
+            "breadth {:02}/{:02} heat {} | read-only scan",
+            up,
+            down,
+            market_heat_bar(up, down)
+        )),
+    ])];
+
+    let mut leader_line = vec![Span::raw("leaders ")];
+    if let Some((row, _)) = top_mover {
+        leader_line.push(Span::styled(
+            format!(
+                "top mover {} {} ",
+                display_symbol(row),
+                trend_label(row.ret_1m)
+            ),
+            market_row_style(row, color_mode).add_modifier(Modifier::BOLD),
+        ));
+    } else {
+        leader_line.push(Span::raw("top mover - ".to_owned()));
+    }
+    if let Some((row, _)) = top_flow {
+        leader_line.push(Span::styled(
+            format!(
+                "| top flow {} {}",
+                display_symbol(row),
+                format_usd_signed(row.signed_notional_flow_30s)
+            ),
+            Style::default()
+                .fg(flow_color(
+                    row.signed_notional_flow_30s.unwrap_or_default(),
+                    color_mode,
+                ))
+                .add_modifier(Modifier::BOLD),
+        ));
+    } else {
+        leader_line.push(Span::raw("| top flow -".to_owned()));
+    }
+    lines.push(Line::from(leader_line));
     lines
 }
 
