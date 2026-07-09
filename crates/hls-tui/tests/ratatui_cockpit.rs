@@ -918,6 +918,7 @@ fn wide_status_bar_renders_action_key_rail() {
     .expect("renders wide action key rail");
 
     assert!(rendered.contains("ACTION STRIP"));
+    assert!(rendered.contains("FOCUS watchlist j/k rows"));
     assert!(rendered.contains("ADAPT w240x48 all"));
     assert!(rendered.contains("j/k row"));
     assert!(rendered.contains("ent detail"));
@@ -4268,6 +4269,7 @@ fn focused_chart_renders_strategy_hud_without_execution_language() {
 
     assert!(!plain.contains("\u{1b}["));
     assert!(plain.contains("STRATEGY HUD"));
+    assert!(plain.contains("FOCUS chart t window"));
     assert!(plain.contains("bias"));
     assert!(plain.contains("signal"));
     assert!(plain.contains("liquidity"));
