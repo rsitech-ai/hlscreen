@@ -1645,6 +1645,8 @@ fn mouse_status_action_strip_action(
             ("tab", WorkstationAction::NextView),
             ("g", WorkstationAction::OpenSymbolSearch),
             (zoom_label, WorkstationAction::TogglePaneZoom),
+            ("d", WorkstationAction::ToggleDensity),
+            ("sp", WorkstationAction::TogglePause),
             ("/", WorkstationAction::CycleFilter),
             ("p", WorkstationAction::CyclePreset),
             ("s", WorkstationAction::CycleSort),
@@ -1664,6 +1666,8 @@ fn mouse_status_action_strip_action(
         ("tab view", WorkstationAction::NextView),
         ("g symbol", WorkstationAction::OpenSymbolSearch),
         (zoom_label, WorkstationAction::TogglePaneZoom),
+        ("d density", WorkstationAction::ToggleDensity),
+        ("space pause", WorkstationAction::TogglePause),
         ("/ filter", WorkstationAction::CycleFilter),
         ("p preset", WorkstationAction::CyclePreset),
         ("s sort", WorkstationAction::CycleSort),
@@ -3201,13 +3205,41 @@ mod tests {
                 Some((160, 48)),
                 20,
             ),
+            Some(WorkstationAction::ToggleDensity)
+        );
+        assert_eq!(
+            mouse_to_workstation_action(
+                MouseEvent {
+                    kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
+                    column: 67,
+                    row: 47,
+                    modifiers: KeyModifiers::NONE,
+                },
+                &state,
+                Some((160, 48)),
+                20,
+            ),
+            Some(WorkstationAction::TogglePause)
+        );
+        assert_eq!(
+            mouse_to_workstation_action(
+                MouseEvent {
+                    kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
+                    column: 79,
+                    row: 47,
+                    modifiers: KeyModifiers::NONE,
+                },
+                &state,
+                Some((160, 48)),
+                20,
+            ),
             Some(WorkstationAction::CycleFilter)
         );
         assert_eq!(
             mouse_to_workstation_action(
                 MouseEvent {
                     kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
-                    column: 82,
+                    column: 104,
                     row: 47,
                     modifiers: KeyModifiers::NONE,
                 },
@@ -3221,7 +3253,7 @@ mod tests {
             mouse_to_workstation_action(
                 MouseEvent {
                     kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
-                    column: 95,
+                    column: 117,
                     row: 47,
                     modifiers: KeyModifiers::NONE,
                 },
@@ -3250,6 +3282,34 @@ mod tests {
                 MouseEvent {
                     kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
                     column: 34,
+                    row: 31,
+                    modifiers: KeyModifiers::NONE,
+                },
+                &state,
+                Some((100, 32)),
+                20,
+            ),
+            Some(WorkstationAction::ToggleDensity)
+        );
+        assert_eq!(
+            mouse_to_workstation_action(
+                MouseEvent {
+                    kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
+                    column: 36,
+                    row: 31,
+                    modifiers: KeyModifiers::NONE,
+                },
+                &state,
+                Some((100, 32)),
+                20,
+            ),
+            Some(WorkstationAction::TogglePause)
+        );
+        assert_eq!(
+            mouse_to_workstation_action(
+                MouseEvent {
+                    kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
+                    column: 39,
                     row: 31,
                     modifiers: KeyModifiers::NONE,
                 },
