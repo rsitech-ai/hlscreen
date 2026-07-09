@@ -760,6 +760,11 @@ fn tape_pane_renders_public_recent_trades_when_available() {
     .expect("renders public trade tape");
 
     assert!(rendered.contains("[FOCUS] TAPE"));
+    assert!(rendered.contains("TAPE RADAR"));
+    assert!(rendered.contains("prints 2"));
+    assert!(rendered.contains("buy 1"));
+    assert!(rendered.contains("sell 1"));
+    assert!(rendered.contains("public tape"));
     assert!(rendered.contains("PUBLIC TRADES"));
     assert!(rendered.contains("BUY"));
     assert!(rendered.contains("SELL"));
