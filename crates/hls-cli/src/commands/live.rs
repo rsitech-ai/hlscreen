@@ -1490,7 +1490,7 @@ fn submit_live_command(
             let rows = hls_screen::ScreenEngine.apply(&snapshots, screen_request)?;
             match find_symbol_row_index(&rows, input) {
                 Some(index) => {
-                    ui_state.select_index(index, rows.len());
+                    ui_state.select_symbol(rows[index].symbol.clone(), index, rows.len());
                     ui_state.close_command();
                 }
                 None => {
@@ -2171,6 +2171,7 @@ chart_window = "15m"
         }
         assert!(submit_live_command(&mut ui_state, &state, &mut request).expect("symbol applies"));
         assert_eq!(ui_state.selected_index(1), Some(0));
+        assert_eq!(ui_state.selected_symbol(), Some("@107"));
         assert!(ui_state.command().is_none());
         assert_eq!(request, ScreenRequest::default());
 

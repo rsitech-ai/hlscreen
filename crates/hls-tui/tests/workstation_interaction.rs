@@ -117,6 +117,22 @@ fn workstation_state_handles_command_entry_without_changing_market_focus() {
 }
 
 #[test]
+fn workstation_symbol_selection_sticks_until_manual_row_navigation() {
+    let mut state = WorkstationUiState::default();
+
+    state.select_symbol("HYPE/USDC", 2, 5);
+    assert_eq!(state.selected_index(5), Some(2));
+    assert_eq!(state.selected_symbol(), Some("HYPE/USDC"));
+
+    state.apply(WorkstationAction::ToggleHelp, 5);
+    assert_eq!(state.selected_symbol(), Some("HYPE/USDC"));
+
+    state.apply(WorkstationAction::Down, 5);
+    assert_eq!(state.selected_index(5), Some(3));
+    assert_eq!(state.selected_symbol(), None);
+}
+
+#[test]
 fn focused_panes_scope_navigation_actions() {
     let mut state = WorkstationUiState::default();
 
