@@ -5802,7 +5802,7 @@ fn render_status_bar(
         frame.render_widget(
             Paragraph::new(vec![
                 market_status_bar_line(model, color_mode),
-                action_status_bar_line(&model.ui_state, color_mode, area.width),
+                action_status_bar_line(model, color_mode, area.width),
             ])
             .style(Style::default().fg(warn(color_mode)))
             .block(
@@ -5872,10 +5872,11 @@ fn market_status_bar_line(
 }
 
 fn action_status_bar_line(
-    state: &WorkstationUiState,
+    model: &RatatuiFrameModel,
     color_mode: RatatuiColorMode,
     width: u16,
 ) -> Line<'static> {
+    let state = &model.ui_state;
     let action_copy = if width < 132 {
         format!(
             "j/k ent tab g z {} / p s t ? q | ",
@@ -5888,7 +5889,7 @@ fn action_status_bar_line(
         )
     };
 
-    Line::from(vec![
+    let mut spans = vec![
         Span::styled(
             "ACTION STRIP ",
             Style::default()
@@ -5908,7 +5909,44 @@ fn action_status_bar_line(
         Span::styled("● ", Style::default().fg(warn(color_mode))),
         Span::raw(format!("COLOR {} | ", color_mode.color_path_label())),
         Span::raw("--color always | "),
-    ])
+    ];
+    if width >= 220 {
+        spans.extend(neon_state_spans(model, color_mode));
+    }
+    Line::from(spans)
+}
+
+fn neon_state_spans(model: &RatatuiFrameModel, color_mode: RatatuiColorMode) -> Vec<Span<'static>> {
+    let rows = screened_rows(model);
+    let up = rows
+        .iter()
+        .filter(|row| row.ret_1m.is_some_and(|value| value > 0.0))
+        .count();
+    let down = rows
+        .iter()
+        .filter(|row| row.ret_1m.is_some_and(|value| value < 0.0))
+        .count();
+    let regime = market_regime_label(up, down);
+    vec![
+        Span::styled(
+            "NEON STATE ",
+            Style::default()
+                .fg(accent(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::styled(
+            format!("regime {regime} "),
+            Style::default()
+                .fg(market_regime_color(up, down, color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw(format!(
+            "heat {} breadth {:02}/{:02} | read-only signal cockpit",
+            market_heat_bar(up, down),
+            up.min(99),
+            down.min(99)
+        )),
+    ]
 }
 
 fn risk_strip_spans(model: &RatatuiFrameModel, color_mode: RatatuiColorMode) -> Vec<Span<'static>> {
