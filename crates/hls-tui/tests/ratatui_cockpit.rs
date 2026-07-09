@@ -394,6 +394,7 @@ fn detail_panel_renders_interactive_view_tab_rail() {
     assert!(rendered.contains("imbalance"));
     assert!(rendered.contains("friction spr"));
     assert!(rendered.contains("Public BBO/trade context only"));
+    assert!(rendered.contains("display heuristic, not advice"));
 }
 
 #[test]
