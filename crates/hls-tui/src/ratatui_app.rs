@@ -7660,6 +7660,20 @@ fn action_status_bar_line(
             .fg(accent(color_mode))
             .add_modifier(Modifier::BOLD),
     )];
+    if (132..220).contains(&width) {
+        spans.extend([
+            Span::styled(
+                "FOCUS ",
+                Style::default()
+                    .fg(pane_accent(state.focused_pane(), color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(format!(
+                "{} | ",
+                focused_pane_key_label(state.focused_pane(), false)
+            )),
+        ]);
+    }
     spans.push(Span::raw(action_copy));
     if width < 110 {
         spans.push(Span::styled(
@@ -8859,7 +8873,10 @@ fn panel_for(
 ) -> Block<'static> {
     let focused = model.ui_state.focused_pane() == pane;
     let title = if focused {
-        format!(" [FOCUS] {title} ")
+        format!(
+            " [FOCUS] {title} | FOCUS {} ",
+            focused_pane_key_label(pane, false)
+        )
     } else {
         format!(" {title} ")
     };
