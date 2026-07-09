@@ -314,6 +314,7 @@ fn cockpit_header_renders_terminal_top_command_strip() {
     assert!(rendered.contains("SEARCH [/]"));
     assert!(rendered.contains("HELP [?]"));
     assert!(rendered.contains("QUIT [q]"));
+    assert!(rendered.contains("EXEC GUARD"));
     assert!(rendered.contains("read-only proxy"));
 }
 
@@ -1050,6 +1051,7 @@ fn cockpit_header_renders_interactive_desk_tab_rail() {
     assert!(rendered.contains("OPS 6"));
     assert!(rendered.contains("view flow"));
     assert!(rendered.contains("density dense"));
+    assert!(rendered.contains("EXEC GUARD"));
     assert!(rendered.contains("read-only"));
 }
 
