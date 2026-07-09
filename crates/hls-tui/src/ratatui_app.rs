@@ -444,7 +444,7 @@ fn render_header(
     } else {
         format!("  {mode_label}  filter:{filter}")
     };
-    let mut text = vec![Line::from(vec![
+    let mut status_spans = vec![
         Span::styled(
             "STATUS ",
             Style::default()
@@ -457,7 +457,11 @@ fn render_header(
             Style::default().fg(success(color_mode)),
         ),
         Span::raw(status_tail),
-    ])];
+    ];
+    if viewport.width >= 220 {
+        status_spans.extend(top_command_strip_spans(color_mode));
+    }
+    let mut text = vec![Line::from(status_spans)];
     if !narrow {
         text.push(desk_tab_rail_line(
             &model.ui_state,
@@ -483,6 +487,21 @@ fn render_header(
         ),
         area,
     );
+}
+
+fn top_command_strip_spans(color_mode: RatatuiColorMode) -> Vec<Span<'static>> {
+    vec![
+        Span::raw("  |  "),
+        Span::styled(
+            "TOP BAR ",
+            Style::default()
+                .fg(accent(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw(
+            "WATCHLIST [1]  PORTFOLIO RISK [6] read-only proxy  SEARCH [/]  HELP [?]  QUIT [q]",
+        ),
+    ]
 }
 
 fn header_title(area: Rect) -> String {
