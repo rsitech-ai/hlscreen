@@ -2597,6 +2597,44 @@ fn expanded_book_renders_liquidity_wall_monitor() {
 }
 
 #[test]
+fn expanded_book_renders_queue_terminal() {
+    let snapshots = fixture_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Book),
+        snapshots.len(),
+    );
+    state.apply(WorkstationAction::TogglePaneZoom, snapshots.len());
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    );
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 190,
+            height: 54,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders expanded book queue terminal");
+
+    assert!(rendered.contains("EXPANDED book"));
+    assert!(rendered.contains("QUEUE TERMINAL"));
+    assert!(rendered.contains("HYPE/USDC public top-book model"));
+    assert!(rendered.contains("passive wall"));
+    assert!(rendered.contains("aggressive OFI"));
+    assert!(rendered.contains("friction gate"));
+    assert!(rendered.contains("resilience"));
+    assert!(rendered.contains("read-only BBO model"));
+    assert!(rendered.contains("no wallet"));
+    assert!(rendered.contains("no orders"));
+}
+
+#[test]
 fn medium_cockpit_keeps_book_and_tape_visible() {
     let model = RatatuiFrameModel::new(
         fixture_snapshots(),
