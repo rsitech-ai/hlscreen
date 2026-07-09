@@ -2269,7 +2269,7 @@ fn poll_live_tui_actions<S>(
     progress_mode: LiveProgressMode,
     started: Instant,
     summary: &LiveDriveSummary,
-    tui_frame_sink: Option<&mut S>,
+    mut tui_frame_sink: Option<&mut S>,
 ) -> anyhow::Result<Option<LiveStopReason>>
 where
     S: LiveTuiFrameSink + ?Sized,
@@ -2277,7 +2277,8 @@ where
     let Some(ui_state) = ui_state else {
         return Ok(None);
     };
-    if apply_pending_tui_actions(ui_state, state, screen_request)? {
+    let event_redraw = apply_pending_tui_actions(ui_state, state, screen_request)?;
+    if live_tui_redraw_requested(event_redraw, tui_frame_sink.as_deref_mut()) {
         render_live_progress(
             LiveProgressContext {
                 state,
@@ -2294,6 +2295,14 @@ where
     }
 
     Ok(operator_stop_reason(ui_state))
+}
+
+fn live_tui_redraw_requested<S>(event_redraw: bool, tui_frame_sink: Option<&mut S>) -> bool
+where
+    S: LiveTuiFrameSink + ?Sized,
+{
+    let viewport_changed = tui_frame_sink.is_some_and(LiveTuiFrameSink::viewport_changed);
+    event_redraw || viewport_changed
 }
 
 fn operator_stop_reason(ui_state: &WorkstationUiState) -> Option<LiveStopReason> {
@@ -3651,6 +3660,10 @@ impl Drop for LiveTuiGuard {
 }
 
 trait LiveTuiFrameSink {
+    fn viewport_changed(&mut self) -> bool {
+        false
+    }
+
     fn draw(
         &mut self,
         model: &RatatuiFrameModel,
@@ -3661,6 +3674,7 @@ trait LiveTuiFrameSink {
 struct LiveTuiRenderer<W: Write = io::Stderr> {
     terminal: Option<Terminal<CrosstermBackend<W>>>,
     enforcement: LiveTuiSessionEnforcement,
+    last_viewport: Option<RatatuiViewport>,
 }
 
 impl LiveTuiRenderer<io::Stderr> {
@@ -3677,6 +3691,7 @@ impl LiveTuiRenderer<io::Stderr> {
         Ok(Self {
             terminal: Some(terminal),
             enforcement,
+            last_viewport: None,
         })
     }
 }
@@ -3704,11 +3719,21 @@ impl<W: Write> LiveTuiRenderer<W> {
         Ok(Self {
             terminal: Some(terminal),
             enforcement,
+            last_viewport: None,
         })
     }
 }
 
 impl<W: Write> LiveTuiFrameSink for LiveTuiRenderer<W> {
+    fn viewport_changed(&mut self) -> bool {
+        // A resize signal can be lost during first-frame handoff on some PTYs.
+        let Ok((width, height)) = terminal_size() else {
+            return false;
+        };
+        self.last_viewport
+            .is_some_and(|viewport| viewport != RatatuiViewport { width, height })
+    }
+
     fn draw(
         &mut self,
         model: &RatatuiFrameModel,
@@ -3718,13 +3743,17 @@ impl<W: Write> LiveTuiFrameSink for LiveTuiRenderer<W> {
             .terminal
             .as_mut()
             .context("live TUI renderer terminal is unavailable")?;
-        TERMINAL_OPERATION_COORDINATOR
+        let completed = TERMINAL_OPERATION_COORDINATOR
             .with_session_operation(self.enforcement, || {
                 terminal.draw(|frame| {
                     hls_tui::ratatui_app::render_ratatui_frame(frame, model, color_mode);
                 })
             })
             .map_err(live_tui_session_operation_error)??;
+        self.last_viewport = Some(RatatuiViewport {
+            width: completed.area.width,
+            height: completed.area.height,
+        });
         Ok(())
     }
 }
@@ -6056,9 +6085,14 @@ mod tests {
     struct CountingTuiFrameSink {
         draws: usize,
         color_modes: Vec<RatatuiColorMode>,
+        viewport_change_pending: bool,
     }
 
     impl LiveTuiFrameSink for CountingTuiFrameSink {
+        fn viewport_changed(&mut self) -> bool {
+            std::mem::take(&mut self.viewport_change_pending)
+        }
+
         fn draw(
             &mut self,
             _model: &RatatuiFrameModel,
@@ -6103,6 +6137,17 @@ mod tests {
             sink.color_modes,
             vec![RatatuiColorMode::Color, RatatuiColorMode::Color]
         );
+    }
+
+    #[test]
+    fn viewport_change_requests_one_redraw_without_a_terminal_event() {
+        let mut sink = CountingTuiFrameSink {
+            viewport_change_pending: true,
+            ..CountingTuiFrameSink::default()
+        };
+
+        assert!(live_tui_redraw_requested(false, Some(&mut sink)));
+        assert!(!live_tui_redraw_requested(false, Some(&mut sink)));
     }
 
     fn count_full_screen_clears(output: &[u8]) -> usize {
