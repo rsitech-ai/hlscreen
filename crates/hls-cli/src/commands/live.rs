@@ -1,4 +1,5 @@
 use std::{
+    cell::Cell,
     collections::VecDeque,
     fs,
     future::{Future, pending},
@@ -6,6 +7,7 @@ use std::{
     path::{Path, PathBuf},
     pin::Pin,
     sync::{
+        Mutex,
         atomic::{AtomicU8, Ordering},
         mpsc::{self, Receiver, SyncSender, TrySendError},
     },
@@ -86,291 +88,186 @@ const MAX_DEFERRED_LIVE_DIAGNOSTICS: usize = 8;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[repr(u8)]
-enum LiveTuiSessionPhase {
+enum LiveTuiSessionState {
     Inactive = 0,
     Activating = 1,
     Active = 2,
-    ActivationIntervened = 3,
-    ActiveIntervened = 4,
-    RestoringActive = 5,
-    RestoringActivation = 6,
-    CleaningActivation = 7,
+    Interrupted = 3,
 }
 
-impl LiveTuiSessionPhase {
+impl LiveTuiSessionState {
     fn from_raw(value: u8) -> Self {
         match value {
             0 => Self::Inactive,
             1 => Self::Activating,
             2 => Self::Active,
-            3 => Self::ActivationIntervened,
-            4 => Self::ActiveIntervened,
-            5 => Self::RestoringActive,
-            6 => Self::RestoringActivation,
-            7 => Self::CleaningActivation,
-            _ => unreachable!("invalid live TUI session phase {value}"),
+            3 => Self::Interrupted,
+            _ => unreachable!("invalid live TUI session state {value}"),
         }
     }
 
     fn label(self) -> &'static str {
         match self {
             Self::Inactive => "inactive",
-            Self::Activating => "activation in progress",
+            Self::Activating => "activating",
             Self::Active => "active",
-            Self::ActivationIntervened => "activation interrupted by panic restoration",
-            Self::ActiveIntervened => "active session interrupted by panic restoration",
-            Self::RestoringActive => "active-session restoration in progress",
-            Self::RestoringActivation => "activation restoration in progress",
-            Self::CleaningActivation => "activation cleanup in progress",
+            Self::Interrupted => "interrupted by panic restoration",
         }
     }
 }
 
 #[derive(Clone, Copy)]
-enum LiveTuiInterventionClaim {
-    Activation,
-    Active,
+enum LiveTuiSessionEnforcement {
+    Interactive,
+    Unmanaged,
 }
 
-#[derive(Clone, Copy)]
-struct LiveTuiCleanupClaim {
-    restoration_required: bool,
+std::thread_local! {
+    static TERMINAL_OPERATION_CONTEXT: Cell<(usize, u32)> = const { Cell::new((0, 0)) };
 }
 
-struct LiveTuiSessionProtocol {
-    phase: AtomicU8,
+struct TerminalOperationContextGuard {
+    previous: (usize, u32),
 }
 
-impl LiveTuiSessionProtocol {
+impl TerminalOperationContextGuard {
+    fn enter(owner: usize, depth: u32) -> Self {
+        let previous = TERMINAL_OPERATION_CONTEXT.with(|context| {
+            let previous = context.get();
+            context.set((owner, depth));
+            previous
+        });
+        Self { previous }
+    }
+}
+
+impl Drop for TerminalOperationContextGuard {
+    fn drop(&mut self) {
+        TERMINAL_OPERATION_CONTEXT.with(|context| context.set(self.previous));
+    }
+}
+
+struct TerminalOperationCoordinator {
+    operation_lock: Mutex<()>,
+    state: AtomicU8,
+}
+
+impl TerminalOperationCoordinator {
     const fn new() -> Self {
         Self {
-            phase: AtomicU8::new(LiveTuiSessionPhase::Inactive as u8),
+            operation_lock: Mutex::new(()),
+            state: AtomicU8::new(LiveTuiSessionState::Inactive as u8),
         }
     }
 
-    fn phase(&self) -> LiveTuiSessionPhase {
-        LiveTuiSessionPhase::from_raw(self.phase.load(Ordering::Acquire))
+    fn state(&self) -> LiveTuiSessionState {
+        LiveTuiSessionState::from_raw(self.state.load(Ordering::Acquire))
     }
 
-    fn transition(&self, current: LiveTuiSessionPhase, next: LiveTuiSessionPhase) -> bool {
-        self.phase
-            .compare_exchange(
-                current as u8,
-                next as u8,
-                Ordering::AcqRel,
-                Ordering::Acquire,
-            )
-            .is_ok()
+    fn set_state(&self, state: LiveTuiSessionState) {
+        self.state.store(state as u8, Ordering::Release);
     }
 
-    fn reserve_activation(&self) -> Result<(), LiveTuiSessionPhase> {
-        self.phase
+    fn with_operation<R>(&self, operation: impl FnOnce(bool) -> R) -> R {
+        let owner = self as *const Self as usize;
+        let context = TERMINAL_OPERATION_CONTEXT.with(Cell::get);
+        if context.0 == owner && context.1 > 0 {
+            let _context = TerminalOperationContextGuard::enter(owner, context.1.saturating_add(1));
+            return operation(true);
+        }
+
+        let _operation_lock = self
+            .operation_lock
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let _context = TerminalOperationContextGuard::enter(owner, 1);
+        operation(false)
+    }
+
+    fn begin_activation(&self) -> Result<(), LiveTuiSessionState> {
+        self.state
             .compare_exchange(
-                LiveTuiSessionPhase::Inactive as u8,
-                LiveTuiSessionPhase::Activating as u8,
+                LiveTuiSessionState::Inactive as u8,
+                LiveTuiSessionState::Activating as u8,
                 Ordering::AcqRel,
                 Ordering::Acquire,
             )
             .map(|_| ())
-            .map_err(LiveTuiSessionPhase::from_raw)
+            .map_err(LiveTuiSessionState::from_raw)
     }
 
-    fn complete_activation(&self) -> Result<(), LiveTuiSessionPhase> {
-        self.phase
+    fn publish_active(&self) -> Result<(), LiveTuiSessionState> {
+        self.state
             .compare_exchange(
-                LiveTuiSessionPhase::Activating as u8,
-                LiveTuiSessionPhase::Active as u8,
+                LiveTuiSessionState::Activating as u8,
+                LiveTuiSessionState::Active as u8,
                 Ordering::AcqRel,
                 Ordering::Acquire,
             )
-            .map_err(LiveTuiSessionPhase::from_raw)?;
-
-        match self.phase() {
-            LiveTuiSessionPhase::Active => Ok(()),
-            phase => Err(phase),
-        }
+            .map(|_| ())
+            .map_err(LiveTuiSessionState::from_raw)
     }
 
-    // Restoring phases are exclusive claims, so a delayed restorer cannot touch a later session.
-    fn claim_intervention(&self) -> Option<LiveTuiInterventionClaim> {
-        loop {
-            let phase = self.phase();
-            let (restoring, claim) = match phase {
-                LiveTuiSessionPhase::Inactive => return None,
-                LiveTuiSessionPhase::Activating | LiveTuiSessionPhase::ActivationIntervened => (
-                    LiveTuiSessionPhase::RestoringActivation,
-                    LiveTuiInterventionClaim::Activation,
-                ),
-                LiveTuiSessionPhase::Active | LiveTuiSessionPhase::ActiveIntervened => (
-                    LiveTuiSessionPhase::RestoringActive,
-                    LiveTuiInterventionClaim::Active,
-                ),
-                LiveTuiSessionPhase::RestoringActive
-                | LiveTuiSessionPhase::RestoringActivation
-                | LiveTuiSessionPhase::CleaningActivation => {
-                    std::hint::spin_loop();
-                    continue;
-                }
-            };
-            if self.transition(phase, restoring) {
-                return Some(claim);
+    fn with_session_operation<R>(
+        &self,
+        enforcement: LiveTuiSessionEnforcement,
+        operation: impl FnOnce() -> R,
+    ) -> Result<R, LiveTuiSessionState> {
+        self.with_operation(|_| {
+            let state = self.state();
+            let allowed = matches!(
+                (enforcement, state),
+                (
+                    LiveTuiSessionEnforcement::Interactive,
+                    LiveTuiSessionState::Active
+                ) | (
+                    LiveTuiSessionEnforcement::Unmanaged,
+                    LiveTuiSessionState::Inactive
+                )
+            );
+            if !allowed {
+                return Err(state);
             }
-        }
-    }
-
-    fn finish_intervention(&self, claim: LiveTuiInterventionClaim) {
-        let phase = match claim {
-            LiveTuiInterventionClaim::Activation => LiveTuiSessionPhase::ActivationIntervened,
-            LiveTuiInterventionClaim::Active => LiveTuiSessionPhase::ActiveIntervened,
-        };
-        self.phase.store(phase as u8, Ordering::Release);
-    }
-
-    fn claim_guard_cleanup(&self, owner_panicking: bool) -> Option<LiveTuiCleanupClaim> {
-        loop {
-            let phase = self.phase();
-            let restoration_required = match phase {
-                LiveTuiSessionPhase::Inactive => return None,
-                LiveTuiSessionPhase::Active => true,
-                LiveTuiSessionPhase::ActiveIntervened => !owner_panicking,
-                LiveTuiSessionPhase::RestoringActive
-                | LiveTuiSessionPhase::RestoringActivation
-                | LiveTuiSessionPhase::CleaningActivation => {
-                    std::hint::spin_loop();
-                    continue;
-                }
-                LiveTuiSessionPhase::Activating | LiveTuiSessionPhase::ActivationIntervened => {
-                    return None;
-                }
-            };
-            if self.transition(phase, LiveTuiSessionPhase::RestoringActive) {
-                return Some(LiveTuiCleanupClaim {
-                    restoration_required,
-                });
-            }
-        }
-    }
-
-    fn finish_guard_cleanup(&self) {
-        self.phase
-            .store(LiveTuiSessionPhase::Inactive as u8, Ordering::Release);
-    }
-
-    fn claim_activation_cleanup(&self, owner_panicking: bool) -> Option<LiveTuiCleanupClaim> {
-        loop {
-            let phase = self.phase();
-            let restoration_required = match phase {
-                LiveTuiSessionPhase::Inactive => return None,
-                LiveTuiSessionPhase::Activating | LiveTuiSessionPhase::Active => true,
-                LiveTuiSessionPhase::ActivationIntervened
-                | LiveTuiSessionPhase::ActiveIntervened => !owner_panicking,
-                LiveTuiSessionPhase::RestoringActive
-                | LiveTuiSessionPhase::RestoringActivation
-                | LiveTuiSessionPhase::CleaningActivation => {
-                    std::hint::spin_loop();
-                    continue;
-                }
-            };
-            if self.transition(phase, LiveTuiSessionPhase::CleaningActivation) {
-                return Some(LiveTuiCleanupClaim {
-                    restoration_required,
-                });
-            }
-        }
-    }
-
-    fn finish_activation_cleanup(&self) {
-        self.phase
-            .store(LiveTuiSessionPhase::Inactive as u8, Ordering::Release);
-    }
-}
-
-fn intervene_tui_session_once(protocol: &LiveTuiSessionProtocol, restore: impl FnOnce()) -> bool {
-    let Some(claim) = protocol.claim_intervention() else {
-        return false;
-    };
-    restore();
-    protocol.finish_intervention(claim);
-    true
-}
-
-fn cleanup_tui_guard_once(
-    protocol: &LiveTuiSessionProtocol,
-    owner_panicking: bool,
-    restore: impl FnOnce(),
-) -> bool {
-    let Some(claim) = protocol.claim_guard_cleanup(owner_panicking) else {
-        return false;
-    };
-    if claim.restoration_required {
-        restore();
-    }
-    protocol.finish_guard_cleanup();
-    claim.restoration_required
-}
-
-fn cleanup_tui_activation_once(
-    protocol: &LiveTuiSessionProtocol,
-    owner_panicking: bool,
-    restore: impl FnOnce(),
-) -> bool {
-    let Some(claim) = protocol.claim_activation_cleanup(owner_panicking) else {
-        return false;
-    };
-    if claim.restoration_required {
-        restore();
-    }
-    protocol.finish_activation_cleanup();
-    claim.restoration_required
-}
-
-struct LiveTuiActivationReservation<'a> {
-    protocol: &'a LiveTuiSessionProtocol,
-    finished: bool,
-}
-
-impl<'a> LiveTuiActivationReservation<'a> {
-    fn reserve(protocol: &'a LiveTuiSessionProtocol) -> Result<Self, LiveTuiSessionPhase> {
-        protocol.reserve_activation()?;
-        Ok(Self {
-            protocol,
-            finished: false,
+            Ok(operation())
         })
     }
 
-    fn cancel(&mut self) {
-        self.cleanup(false);
+    fn handle_panic(&self, restore: impl FnOnce(), delegate: impl FnOnce()) {
+        self.with_operation(|reentrant| {
+            let state = self.state();
+            let session_owned = matches!(
+                state,
+                LiveTuiSessionState::Activating | LiveTuiSessionState::Active
+            );
+            if session_owned {
+                self.set_state(LiveTuiSessionState::Interrupted);
+                restore();
+            }
+            delegate();
+            if reentrant && session_owned {
+                self.set_state(LiveTuiSessionState::Inactive);
+            }
+        });
     }
 
-    fn complete(mut self) -> Result<(), LiveTuiSessionPhase> {
-        match self.protocol.complete_activation() {
-            Ok(()) => {
-                self.finished = true;
-                Ok(())
+    fn finish_session(&self, restore: impl FnOnce()) -> bool {
+        self.with_operation(|_| match self.state() {
+            LiveTuiSessionState::Activating | LiveTuiSessionState::Active => {
+                restore();
+                self.set_state(LiveTuiSessionState::Inactive);
+                true
             }
-            Err(phase) => {
-                self.cleanup(false);
-                Err(phase)
+            LiveTuiSessionState::Interrupted => {
+                self.set_state(LiveTuiSessionState::Inactive);
+                false
             }
-        }
-    }
-
-    fn cleanup(&mut self, owner_panicking: bool) {
-        if self.finished {
-            return;
-        }
-        cleanup_tui_activation_once(self.protocol, owner_panicking, restore_live_tui_terminal);
-        self.finished = true;
+            LiveTuiSessionState::Inactive => false,
+        })
     }
 }
 
-impl Drop for LiveTuiActivationReservation<'_> {
-    fn drop(&mut self) {
-        self.cleanup(thread::panicking());
-    }
-}
-
-static LIVE_TUI_SESSION: LiveTuiSessionProtocol = LiveTuiSessionProtocol::new();
+static TERMINAL_OPERATION_COORDINATOR: TerminalOperationCoordinator =
+    TerminalOperationCoordinator::new();
 
 #[derive(Default)]
 struct LiveDiagnostics {
@@ -807,7 +704,15 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
             return Err(err);
         }
     };
-    let mut tui_renderer = match render_live_tui.then(LiveTuiRenderer::new).transpose() {
+    let renderer_enforcement = if keyboard_interactive {
+        LiveTuiSessionEnforcement::Interactive
+    } else {
+        LiveTuiSessionEnforcement::Unmanaged
+    };
+    let mut tui_renderer = match render_live_tui
+        .then(|| LiveTuiRenderer::new(renderer_enforcement))
+        .transpose()
+    {
         Ok(renderer) => renderer,
         Err(err) => {
             drop(terminal_mode);
@@ -3524,8 +3429,8 @@ fn restore_live_tui_terminal() {
     let _ = disable_raw_mode();
 }
 
-pub(crate) fn restore_active_tui_after_panic() {
-    intervene_tui_session_once(&LIVE_TUI_SESSION, restore_live_tui_terminal);
+pub(crate) fn handle_terminal_panic(delegate: impl FnOnce()) {
+    TERMINAL_OPERATION_COORDINATOR.handle_panic(restore_live_tui_terminal, delegate);
 }
 
 struct LiveTuiGuard {
@@ -3537,44 +3442,44 @@ impl LiveTuiGuard {
         if !enabled {
             return Ok(Self { enabled: false });
         }
-        let mut reservation = match LiveTuiActivationReservation::reserve(&LIVE_TUI_SESSION) {
-            Ok(reservation) => reservation,
-            Err(phase) => bail!(
-                "cannot activate the live TUI while its terminal lifecycle is {}; retry after restoration completes",
-                phase.label()
-            ),
-        };
+        TERMINAL_OPERATION_COORDINATOR.with_operation(|_| {
+            if let Err(state) = TERMINAL_OPERATION_COORDINATOR.begin_activation() {
+                bail!(
+                    "cannot activate the live TUI while its terminal session is {}; retry after the current session closes",
+                    state.label()
+                );
+            }
 
-        let activation = (|| -> anyhow::Result<()> {
-            enable_raw_mode()?;
-            let mut stderr = io::stderr();
-            execute!(stderr, EnterAlternateScreen)?;
-            execute!(stderr, EnableMouseCapture)?;
-            execute!(stderr, Hide)?;
-            Ok(())
-        })();
-        if let Err(err) = activation {
-            reservation.cancel();
-            return Err(err);
-        }
-        if let Err(phase) = reservation.complete() {
-            bail!(
-                "live TUI activation was interrupted by panic restoration while the lifecycle was {}; terminal state was restored, so retry the command",
-                phase.label()
-            );
-        }
-        Ok(Self { enabled: true })
+            let activation = (|| -> anyhow::Result<()> {
+                enable_raw_mode()?;
+                let mut stderr = io::stderr();
+                execute!(stderr, EnterAlternateScreen)?;
+                execute!(stderr, EnableMouseCapture)?;
+                execute!(stderr, Hide)?;
+                Ok(())
+            })();
+            if let Err(err) = activation {
+                restore_live_tui_terminal();
+                TERMINAL_OPERATION_COORDINATOR.set_state(LiveTuiSessionState::Inactive);
+                return Err(err);
+            }
+            if let Err(state) = TERMINAL_OPERATION_COORDINATOR.publish_active() {
+                restore_live_tui_terminal();
+                TERMINAL_OPERATION_COORDINATOR.set_state(LiveTuiSessionState::Inactive);
+                bail!(
+                    "live TUI activation was interrupted while the terminal session became {}; terminal state was restored, so retry the command",
+                    state.label()
+                );
+            }
+            Ok(Self { enabled: true })
+        })
     }
 }
 
 impl Drop for LiveTuiGuard {
     fn drop(&mut self) {
         if self.enabled {
-            cleanup_tui_guard_once(
-                &LIVE_TUI_SESSION,
-                thread::panicking(),
-                restore_live_tui_terminal,
-            );
+            TERMINAL_OPERATION_COORDINATOR.finish_session(restore_live_tui_terminal);
         }
     }
 }
@@ -3588,16 +3493,25 @@ trait LiveTuiFrameSink {
 }
 
 struct LiveTuiRenderer {
-    terminal: Terminal<CrosstermBackend<io::Stderr>>,
+    terminal: Option<Terminal<CrosstermBackend<io::Stderr>>>,
+    enforcement: LiveTuiSessionEnforcement,
 }
 
 impl LiveTuiRenderer {
-    fn new() -> anyhow::Result<Self> {
-        let stderr = io::stderr();
-        let backend = CrosstermBackend::new(stderr);
-        let mut terminal = Terminal::new(backend)?;
-        terminal.clear()?;
-        Ok(Self { terminal })
+    fn new(enforcement: LiveTuiSessionEnforcement) -> anyhow::Result<Self> {
+        let terminal = TERMINAL_OPERATION_COORDINATOR
+            .with_session_operation(enforcement, || -> anyhow::Result<_> {
+                let stderr = io::stderr();
+                let backend = CrosstermBackend::new(stderr);
+                let mut terminal = Terminal::new(backend)?;
+                terminal.clear()?;
+                Ok(terminal)
+            })
+            .map_err(live_tui_session_operation_error)??;
+        Ok(Self {
+            terminal: Some(terminal),
+            enforcement,
+        })
     }
 }
 
@@ -3607,11 +3521,35 @@ impl LiveTuiFrameSink for LiveTuiRenderer {
         model: &RatatuiFrameModel,
         color_mode: RatatuiColorMode,
     ) -> anyhow::Result<()> {
-        self.terminal.draw(|frame| {
-            hls_tui::ratatui_app::render_ratatui_frame(frame, model, color_mode);
-        })?;
+        let terminal = self
+            .terminal
+            .as_mut()
+            .context("live TUI renderer terminal is unavailable")?;
+        TERMINAL_OPERATION_COORDINATOR
+            .with_session_operation(self.enforcement, || {
+                terminal.draw(|frame| {
+                    hls_tui::ratatui_app::render_ratatui_frame(frame, model, color_mode);
+                })
+            })
+            .map_err(live_tui_session_operation_error)??;
         Ok(())
     }
+}
+
+impl Drop for LiveTuiRenderer {
+    fn drop(&mut self) {
+        let Some(terminal) = self.terminal.take() else {
+            return;
+        };
+        TERMINAL_OPERATION_COORDINATOR.with_operation(|_| drop(terminal));
+    }
+}
+
+fn live_tui_session_operation_error(state: LiveTuiSessionState) -> anyhow::Error {
+    anyhow::anyhow!(
+        "live TUI terminal session is {}; refusing terminal output after panic interruption",
+        state.label()
+    )
 }
 
 fn live_table_title(recording_active: bool) -> &'static str {
@@ -3792,88 +3730,205 @@ mod tests {
     }
 
     #[test]
-    fn live_tui_restore_is_idempotent() {
-        let protocol = LiveTuiSessionProtocol::new();
-        let restore_count = std::cell::Cell::new(0);
+    fn other_thread_hook_blocks_until_activation_operation_finishes() {
+        let coordinator = std::sync::Arc::new(TerminalOperationCoordinator::new());
+        let (events_tx, events_rx) = mpsc::channel();
+        let (release_tx, release_rx) = mpsc::channel();
+        let hook_barrier = std::sync::Arc::new(std::sync::Barrier::new(2));
+        let (hook_done_tx, hook_done_rx) = mpsc::channel();
 
-        protocol
-            .reserve_activation()
-            .expect("activation reservation succeeds");
-        protocol
-            .complete_activation()
-            .expect("activation completes");
-        assert!(cleanup_tui_guard_once(&protocol, false, || {
-            restore_count.set(restore_count.get() + 1);
-        }));
-        assert!(!cleanup_tui_guard_once(&protocol, false, || {
-            restore_count.set(restore_count.get() + 1);
-        }));
-        assert_eq!(restore_count.get(), 1);
-    }
+        let activation_coordinator = std::sync::Arc::clone(&coordinator);
+        let activation_events = events_tx.clone();
+        let activation = thread::spawn(move || {
+            activation_coordinator.with_operation(|reentrant| {
+                assert!(!reentrant);
+                activation_coordinator
+                    .begin_activation()
+                    .expect("activation begins");
+                activation_events
+                    .send("activation start")
+                    .expect("activation start sent");
+                release_rx.recv().expect("activation released");
+                activation_events
+                    .send("activation finish")
+                    .expect("activation finish sent");
+                activation_coordinator
+                    .publish_active()
+                    .expect("activation publishes active");
+            });
+        });
 
-    #[test]
-    fn panic_hook_intervention_during_activation_prevents_active_guard() {
-        let protocol = LiveTuiSessionProtocol::new();
-        let restore_count = std::cell::Cell::new(0);
-
-        protocol
-            .reserve_activation()
-            .expect("activation reservation succeeds");
-        assert!(intervene_tui_session_once(&protocol, || {
-            restore_count.set(restore_count.get() + 1);
-        }));
         assert_eq!(
-            protocol.complete_activation(),
-            Err(LiveTuiSessionPhase::ActivationIntervened)
+            events_rx.recv().expect("activation starts"),
+            "activation start"
         );
+        let hook_coordinator = std::sync::Arc::clone(&coordinator);
+        let hook_events = events_tx.clone();
+        let hook_ready = std::sync::Arc::clone(&hook_barrier);
+        let hook = thread::spawn(move || {
+            hook_ready.wait();
+            hook_coordinator.handle_panic(
+                || hook_events.send("restore").expect("restore sent"),
+                || hook_events.send("panic output").expect("panic output sent"),
+            );
+            hook_done_tx.send(()).expect("hook completion sent");
+        });
+        hook_barrier.wait();
 
-        assert!(cleanup_tui_activation_once(&protocol, false, || {
-            restore_count.set(restore_count.get() + 1);
-        }));
-        assert_eq!(restore_count.get(), 2);
-        assert_eq!(protocol.phase(), LiveTuiSessionPhase::Inactive);
+        assert!(matches!(
+            hook_done_rx.try_recv(),
+            Err(mpsc::TryRecvError::Empty)
+        ));
+        assert!(matches!(
+            events_rx.try_recv(),
+            Err(mpsc::TryRecvError::Empty)
+        ));
+
+        release_tx.send(()).expect("release activation");
+        activation.join().expect("activation thread joins");
+        hook.join().expect("hook thread joins");
+        assert_eq!(
+            events_rx.recv().expect("activation finishes"),
+            "activation finish"
+        );
+        assert_eq!(events_rx.recv().expect("restore follows"), "restore");
+        assert_eq!(
+            events_rx.recv().expect("panic output follows"),
+            "panic output"
+        );
+        assert_eq!(coordinator.state(), LiveTuiSessionState::Interrupted);
     }
 
     #[test]
-    fn activation_thread_panic_cleanup_reuses_hook_restoration() {
-        let protocol = LiveTuiSessionProtocol::new();
-        let restore_count = std::cell::Cell::new(0);
+    fn other_thread_hook_cannot_interleave_active_draw() {
+        let coordinator = std::sync::Arc::new(TerminalOperationCoordinator::new());
+        coordinator.with_operation(|_| {
+            coordinator.begin_activation().expect("activation begins");
+            coordinator.publish_active().expect("activation completes");
+        });
+        let (events_tx, events_rx) = mpsc::channel();
+        let (release_tx, release_rx) = mpsc::channel();
+        let hook_barrier = std::sync::Arc::new(std::sync::Barrier::new(2));
+        let (hook_done_tx, hook_done_rx) = mpsc::channel();
 
-        protocol
-            .reserve_activation()
-            .expect("activation reservation succeeds");
-        assert!(intervene_tui_session_once(&protocol, || {
-            restore_count.set(restore_count.get() + 1);
-        }));
-        assert!(!cleanup_tui_activation_once(&protocol, true, || {
-            restore_count.set(restore_count.get() + 1);
-        }));
+        let draw_coordinator = std::sync::Arc::clone(&coordinator);
+        let draw_events = events_tx.clone();
+        let draw = thread::spawn(move || {
+            draw_coordinator
+                .with_session_operation(LiveTuiSessionEnforcement::Interactive, || {
+                    draw_events.send("draw start").expect("draw start sent");
+                    release_rx.recv().expect("draw released");
+                    draw_events.send("draw finish").expect("draw finish sent");
+                })
+                .expect("draw is serialized");
+        });
 
-        assert_eq!(restore_count.get(), 1);
-        assert_eq!(protocol.phase(), LiveTuiSessionPhase::Inactive);
+        assert_eq!(events_rx.recv().expect("draw starts"), "draw start");
+        let hook_coordinator = std::sync::Arc::clone(&coordinator);
+        let hook_events = events_tx.clone();
+        let hook_ready = std::sync::Arc::clone(&hook_barrier);
+        let hook = thread::spawn(move || {
+            hook_ready.wait();
+            hook_coordinator.handle_panic(
+                || hook_events.send("restore").expect("restore sent"),
+                || hook_events.send("panic output").expect("panic output sent"),
+            );
+            hook_done_tx.send(()).expect("hook completion sent");
+        });
+        hook_barrier.wait();
+
+        assert!(matches!(
+            hook_done_rx.try_recv(),
+            Err(mpsc::TryRecvError::Empty)
+        ));
+        assert!(matches!(
+            events_rx.try_recv(),
+            Err(mpsc::TryRecvError::Empty)
+        ));
+
+        release_tx.send(()).expect("release draw");
+        draw.join().expect("draw thread joins");
+        hook.join().expect("hook thread joins");
+        assert_eq!(events_rx.recv().expect("draw finishes"), "draw finish");
+        assert_eq!(events_rx.recv().expect("restore follows"), "restore");
+        assert_eq!(
+            events_rx.recv().expect("panic output follows"),
+            "panic output"
+        );
+        assert_eq!(coordinator.state(), LiveTuiSessionState::Interrupted);
     }
 
     #[test]
-    fn active_session_intervention_remains_owned_until_guard_cleanup() {
-        let protocol = LiveTuiSessionProtocol::new();
+    fn interrupted_session_rejects_subsequent_draw_operation() {
+        let coordinator = TerminalOperationCoordinator::new();
+        coordinator.with_operation(|_| {
+            coordinator.begin_activation().expect("activation begins");
+            coordinator.publish_active().expect("activation completes");
+        });
+        coordinator.handle_panic(|| {}, || {});
+        let wrote = std::cell::Cell::new(false);
+
+        let result = coordinator
+            .with_session_operation(LiveTuiSessionEnforcement::Interactive, || wrote.set(true));
+
+        assert_eq!(result, Err(LiveTuiSessionState::Interrupted));
+        assert!(!wrote.get());
+        assert!(!coordinator.finish_session(|| panic!("interrupted session restored twice")));
+        assert_eq!(coordinator.state(), LiveTuiSessionState::Inactive);
+    }
+
+    #[test]
+    fn same_thread_panic_path_reenters_coordinator_without_deadlock() {
+        let coordinator = TerminalOperationCoordinator::new();
+        let order = std::cell::RefCell::new(Vec::new());
+
+        coordinator.with_operation(|outer_reentrant| {
+            assert!(!outer_reentrant);
+            coordinator.begin_activation().expect("activation begins");
+            coordinator.handle_panic(
+                || order.borrow_mut().push("restore"),
+                || order.borrow_mut().push("panic output"),
+            );
+            order.borrow_mut().push("returned");
+        });
+
+        assert_eq!(
+            order.into_inner(),
+            vec!["restore", "panic output", "returned"]
+        );
+        assert_eq!(coordinator.state(), LiveTuiSessionState::Inactive);
+    }
+
+    #[test]
+    fn sequential_interactive_sessions_restore_and_reactivate() {
+        let coordinator = TerminalOperationCoordinator::new();
         let restore_count = std::cell::Cell::new(0);
 
-        protocol
-            .reserve_activation()
-            .expect("activation reservation succeeds");
-        protocol
-            .complete_activation()
-            .expect("activation completes");
-        assert!(intervene_tui_session_once(&protocol, || {
-            restore_count.set(restore_count.get() + 1);
-        }));
-        assert_eq!(protocol.phase(), LiveTuiSessionPhase::ActiveIntervened);
+        for _ in 0..2 {
+            coordinator.with_operation(|_| {
+                coordinator.begin_activation().expect("activation begins");
+                coordinator.publish_active().expect("activation completes");
+            });
+            assert!(coordinator.finish_session(|| {
+                restore_count.set(restore_count.get() + 1);
+            }));
+            assert_eq!(coordinator.state(), LiveTuiSessionState::Inactive);
+        }
 
-        assert!(cleanup_tui_guard_once(&protocol, false, || {
-            restore_count.set(restore_count.get() + 1);
-        }));
         assert_eq!(restore_count.get(), 2);
-        assert_eq!(protocol.phase(), LiveTuiSessionPhase::Inactive);
+    }
+
+    #[test]
+    fn unmanaged_renderer_operation_works_without_interactive_session() {
+        let coordinator = TerminalOperationCoordinator::new();
+        let rendered = std::cell::Cell::new(false);
+
+        coordinator
+            .with_session_operation(LiveTuiSessionEnforcement::Unmanaged, || rendered.set(true))
+            .expect("unmanaged render is allowed while inactive");
+
+        assert!(rendered.get());
+        assert_eq!(coordinator.state(), LiveTuiSessionState::Inactive);
     }
 
     #[test]
