@@ -1880,6 +1880,47 @@ fn wide_status_focus_renders_market_regime_board() {
 }
 
 #[test]
+fn expanded_status_renders_ops_command_center() {
+    let mut snapshots = directional_snapshots();
+    snapshots[0].tob_depth_usd = Some(1_200.0);
+    snapshots[1].confidence.score = 55;
+    snapshots[1].confidence.level = ConfidenceLevel::Low;
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Status),
+        snapshots.len(),
+    );
+    state.apply(WorkstationAction::TogglePaneZoom, snapshots.len());
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    )
+    .with_status("LIVE", "REC ready", "ws=235 events=485 reconnects=2 gaps=1");
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 180,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders expanded ops command center");
+
+    assert!(rendered.contains("EXPANDED status"));
+    assert!(rendered.contains("OPS COMMAND CENTER"));
+    assert!(rendered.contains("ingest gate"));
+    assert!(rendered.contains("recorder REC ready"));
+    assert!(rendered.contains("telemetry ws 235 events 485"));
+    assert!(rendered.contains("risk gate"));
+    assert!(rendered.contains("degraded 01"));
+    assert!(rendered.contains("No wallet"));
+    assert!(rendered.contains("no orders"));
+}
+
+#[test]
 fn wide_status_focus_renders_cross_pair_signal_matrix() {
     let mut snapshots = ten_directional_snapshots();
     snapshots[0].tob_depth_usd = Some(1_200.0);
