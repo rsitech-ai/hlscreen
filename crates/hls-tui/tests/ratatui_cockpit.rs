@@ -1292,6 +1292,35 @@ fn wide_detail_panel_renders_selected_pair_snapshot() {
 }
 
 #[test]
+fn detail_overview_renders_quote_card() {
+    let model = RatatuiFrameModel::new(
+        fixture_snapshots(),
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        WorkstationUiState::default(),
+    );
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 240,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders detail quote card");
+
+    assert!(rendered.contains("QUOTE CARD"));
+    assert!(rendered.contains("QUOTE STRIP"));
+    assert!(rendered.contains("HYPE/USDC"));
+    assert!(rendered.contains("mid 35.0000"));
+    assert!(rendered.contains("spread 57.1 bps"));
+    assert!(rendered.contains("PAIR SNAPSHOT"));
+    assert!(rendered.contains("freshness fresh"));
+    assert!(rendered.contains("read-only quote"));
+}
+
+#[test]
 fn detail_panel_renders_interactive_view_tab_rail() {
     let snapshots = fixture_snapshots();
     let mut state = WorkstationUiState::default();
