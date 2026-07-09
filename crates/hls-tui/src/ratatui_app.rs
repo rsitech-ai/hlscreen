@@ -183,7 +183,7 @@ fn render_wide(
             Constraint::Length(3),
         ])
         .split(area);
-    render_header(frame, root[0], model, color_mode);
+    render_header(frame, root[0], area, model, color_mode);
     render_status_bar(frame, root[2], model, color_mode);
 
     let body = Layout::default()
@@ -240,7 +240,7 @@ fn render_medium(
             Constraint::Length(3),
         ])
         .split(area);
-    render_header(frame, root[0], model, color_mode);
+    render_header(frame, root[0], area, model, color_mode);
     render_status_bar(frame, root[2], model, color_mode);
 
     let body = Layout::default()
@@ -314,7 +314,7 @@ fn render_narrow(
             Constraint::Length(2),
         ])
         .split(area);
-    render_header(frame, root[0], model, color_mode);
+    render_header(frame, root[0], area, model, color_mode);
     render_watchlist(frame, root[1], model, color_mode);
     render_narrow_drilldown(frame, root[2], model, color_mode);
     render_status_bar(frame, root[3], model, color_mode);
@@ -342,6 +342,7 @@ fn render_narrow_drilldown(
 fn render_header(
     frame: &mut Frame<'_>,
     area: Rect,
+    viewport: Rect,
     model: &RatatuiFrameModel,
     color_mode: RatatuiColorMode,
 ) {
@@ -401,12 +402,34 @@ fn render_header(
     frame.render_widget(
         Paragraph::new(text).block(
             Block::default()
-                .title(" Hyperliquid Spot Microstructure Workstation ")
+                .title(format!(
+                    " Hyperliquid Spot Microstructure Workstation | {} ",
+                    layout_profile_label(viewport)
+                ))
                 .borders(Borders::ALL)
                 .border_style(Style::default().fg(accent(color_mode))),
         ),
         area,
     );
+}
+
+fn layout_profile_label(area: Rect) -> String {
+    format!(
+        "layout {} {}x{}",
+        layout_breakpoint_label(area.width),
+        area.width,
+        area.height
+    )
+}
+
+fn layout_breakpoint_label(width: u16) -> &'static str {
+    if width < 90 {
+        "narrow"
+    } else if width < 132 {
+        "medium"
+    } else {
+        "wide"
+    }
 }
 
 fn desk_tab_rail_line(

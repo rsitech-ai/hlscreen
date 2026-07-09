@@ -20,7 +20,7 @@ Implemented today:
 - Public WebSocket parsing for trades, BBO, all-mids, active asset context, and candles, with deterministic fixtures kept for tests.
 - Bounded public WebSocket live screen with duration-based shutdown, heartbeat pings, reconnect/resubscribe, optional raw/normalized recording, and all-symbol subscription budgeting.
 - Bounded live recording through a fail-closed writer queue so disk I/O does not silently drop or stall market-data ingestion.
-- Adaptive Ratatui live cockpit for TTY sessions and `--tui` smoke captures, with watchlist, detail, market internals rail, real 1m OHLC/volume chart, book, tape, status bar, color, resize-aware layouts, keyboard controls, and command-palette editing for filters, presets, and sort order.
+- Adaptive Ratatui live cockpit for TTY sessions and `--tui` smoke captures, with watchlist, detail, market internals rail, real 1m OHLC/volume chart, book, tape, status bar, color, visible wide/medium/narrow layout profile, resize-aware layouts, keyboard controls, mouse pane focus, and command-palette editing for filters, presets, and sort order.
 - Deterministic non-TTY terminal rendering for market rows, scan KPIs, selected-pair microstructure detail, read-only safety state, operations health, and keyboard command rail.
 - Confidence-aware feature snapshots and TUI rows for fresh, sparse, duplicate, and explicit gap/parser/backlog quality inputs.
 - Persisted confidence baselines plus `hls replay --verify-parity` drift detection for local replay checks.
@@ -36,7 +36,7 @@ Implemented today:
 Not implemented yet:
 
 - Automatic REST backfill for missed public data after a reconnect. Reconnect gaps are recorded explicitly.
-- Pane-focus mouse support and persisted TUI preferences. Current TUI support covers row focus, view tabs, chart-window cycling, command-palette filter/preset/sort editing, density, help, pause state, and clean quit.
+- Persisted TUI preferences. Current TUI support covers row focus, pane focus, optional mouse wheel/click parity, view tabs, chart-window cycling, command-palette filter/preset/sort editing, density, help, pause state, and clean quit.
 - Long-running localhost HTTP server loop.
 - True Parquet writer.
 - Published release binaries from a reviewed `v*` tag run.
