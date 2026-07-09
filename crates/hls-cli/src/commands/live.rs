@@ -1,8 +1,16 @@
 use std::{
+    cell::Cell,
+    collections::VecDeque,
     fs,
+    future::{Future, pending},
     io::{self, IsTerminal, Write},
     path::{Path, PathBuf},
-    sync::mpsc::{self, Receiver, SyncSender, TrySendError},
+    pin::Pin,
+    sync::{
+        Mutex,
+        atomic::{AtomicU8, Ordering},
+        mpsc::{self, Receiver, SyncSender, TrySendError},
+    },
     thread::{self, JoinHandle},
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
@@ -10,6 +18,7 @@ use std::{
 use anyhow::{Context, bail};
 use clap::{Args, ValueEnum};
 use crossterm::{
+    cursor::{Hide, Show},
     event::{
         self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEvent, KeyEventKind,
         KeyModifiers, MouseEvent, MouseEventKind,
@@ -55,8 +64,10 @@ use hls_tui::{
     },
 };
 use ratatui::{Terminal, backend::CrosstermBackend};
+#[cfg(test)]
+use ratatui::{TerminalOptions, Viewport, layout::Rect};
 use serde::{Deserialize, Serialize};
-use tokio::time::{interval, sleep_until, timeout_at};
+use tokio::time::{interval, sleep, sleep_until};
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 
 use crate::commands::metadata::{attach_metadata, load_metadata_enrichments};
@@ -64,6 +75,7 @@ use crate::commands::record::{default_run_id, enabled_outputs, parse_symbols};
 
 const DEFAULT_WS_URL: &str = "wss://api.hyperliquid.xyz/ws";
 const DEFAULT_LIVE_DURATION_SECS: u64 = 60;
+const DEFAULT_TUI_DURATION_SECS: u64 = 0;
 const DEFAULT_REFRESH_SECS: u64 = 30;
 const DEFAULT_LIVE_TOP: usize = 50;
 const DEFAULT_TUI_TOP: usize = 10;
@@ -74,6 +86,236 @@ const INITIAL_RECONNECT_BACKOFF_MS: u64 = 1_000;
 const MAX_RECONNECT_BACKOFF_MS: u64 = 30_000;
 const TUI_KEY_POLL_MS: u64 = 100;
 const TUI_PREFERENCES_FILE: &str = "tui-preferences.toml";
+const MAX_DEFERRED_LIVE_DIAGNOSTICS: usize = 8;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[repr(u8)]
+enum LiveTuiSessionState {
+    Inactive = 0,
+    Activating = 1,
+    Active = 2,
+    Interrupted = 3,
+}
+
+impl LiveTuiSessionState {
+    fn from_raw(value: u8) -> Self {
+        match value {
+            0 => Self::Inactive,
+            1 => Self::Activating,
+            2 => Self::Active,
+            3 => Self::Interrupted,
+            _ => unreachable!("invalid live TUI session state {value}"),
+        }
+    }
+
+    fn label(self) -> &'static str {
+        match self {
+            Self::Inactive => "inactive",
+            Self::Activating => "activating",
+            Self::Active => "active",
+            Self::Interrupted => "interrupted by panic restoration",
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+enum LiveTuiSessionEnforcement {
+    Interactive,
+    Unmanaged,
+}
+
+std::thread_local! {
+    static TERMINAL_OPERATION_CONTEXT: Cell<(usize, u32)> = const { Cell::new((0, 0)) };
+}
+
+struct TerminalOperationContextGuard {
+    previous: (usize, u32),
+}
+
+impl TerminalOperationContextGuard {
+    fn enter(owner: usize, depth: u32) -> Self {
+        let previous = TERMINAL_OPERATION_CONTEXT.with(|context| {
+            let previous = context.get();
+            context.set((owner, depth));
+            previous
+        });
+        Self { previous }
+    }
+}
+
+impl Drop for TerminalOperationContextGuard {
+    fn drop(&mut self) {
+        TERMINAL_OPERATION_CONTEXT.with(|context| context.set(self.previous));
+    }
+}
+
+struct TerminalOperationCoordinator {
+    operation_lock: Mutex<()>,
+    state: AtomicU8,
+}
+
+impl TerminalOperationCoordinator {
+    const fn new() -> Self {
+        Self {
+            operation_lock: Mutex::new(()),
+            state: AtomicU8::new(LiveTuiSessionState::Inactive as u8),
+        }
+    }
+
+    fn state(&self) -> LiveTuiSessionState {
+        LiveTuiSessionState::from_raw(self.state.load(Ordering::Acquire))
+    }
+
+    fn set_state(&self, state: LiveTuiSessionState) {
+        self.state.store(state as u8, Ordering::Release);
+    }
+
+    fn with_operation<R>(&self, operation: impl FnOnce(bool) -> R) -> R {
+        let owner = self as *const Self as usize;
+        let context = TERMINAL_OPERATION_CONTEXT.with(Cell::get);
+        if context.0 == owner && context.1 > 0 {
+            let _context = TerminalOperationContextGuard::enter(owner, context.1.saturating_add(1));
+            return operation(true);
+        }
+
+        let _operation_lock = self
+            .operation_lock
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let _context = TerminalOperationContextGuard::enter(owner, 1);
+        operation(false)
+    }
+
+    fn begin_activation(&self) -> Result<(), LiveTuiSessionState> {
+        self.state
+            .compare_exchange(
+                LiveTuiSessionState::Inactive as u8,
+                LiveTuiSessionState::Activating as u8,
+                Ordering::AcqRel,
+                Ordering::Acquire,
+            )
+            .map(|_| ())
+            .map_err(LiveTuiSessionState::from_raw)
+    }
+
+    fn publish_active(&self) -> Result<(), LiveTuiSessionState> {
+        self.state
+            .compare_exchange(
+                LiveTuiSessionState::Activating as u8,
+                LiveTuiSessionState::Active as u8,
+                Ordering::AcqRel,
+                Ordering::Acquire,
+            )
+            .map(|_| ())
+            .map_err(LiveTuiSessionState::from_raw)
+    }
+
+    fn with_session_operation<R>(
+        &self,
+        enforcement: LiveTuiSessionEnforcement,
+        operation: impl FnOnce() -> R,
+    ) -> Result<R, LiveTuiSessionState> {
+        self.with_operation(|_| {
+            let state = self.state();
+            let allowed = matches!(
+                (enforcement, state),
+                (
+                    LiveTuiSessionEnforcement::Interactive,
+                    LiveTuiSessionState::Active
+                ) | (
+                    LiveTuiSessionEnforcement::Unmanaged,
+                    LiveTuiSessionState::Inactive
+                )
+            );
+            if !allowed {
+                return Err(state);
+            }
+            Ok(operation())
+        })
+    }
+
+    fn handle_panic(&self, restore: impl FnOnce(), delegate: impl FnOnce()) {
+        self.with_operation(|reentrant| {
+            let state = self.state();
+            let session_owned = matches!(
+                state,
+                LiveTuiSessionState::Activating | LiveTuiSessionState::Active
+            );
+            if session_owned {
+                self.set_state(LiveTuiSessionState::Interrupted);
+                restore();
+            }
+            delegate();
+            if reentrant && session_owned {
+                self.set_state(LiveTuiSessionState::Inactive);
+            }
+        });
+    }
+
+    fn finish_session(&self, restore: impl FnOnce()) -> bool {
+        self.with_operation(|_| match self.state() {
+            LiveTuiSessionState::Activating | LiveTuiSessionState::Active => {
+                restore();
+                self.set_state(LiveTuiSessionState::Inactive);
+                true
+            }
+            LiveTuiSessionState::Interrupted => {
+                self.set_state(LiveTuiSessionState::Inactive);
+                false
+            }
+            LiveTuiSessionState::Inactive => false,
+        })
+    }
+}
+
+static TERMINAL_OPERATION_COORDINATOR: TerminalOperationCoordinator =
+    TerminalOperationCoordinator::new();
+
+#[derive(Default)]
+struct LiveDiagnostics {
+    deferred: VecDeque<String>,
+}
+
+impl LiveDiagnostics {
+    fn route(&mut self, tui_owns_stderr: bool, message: impl Into<String>) -> Option<String> {
+        let message = message.into();
+        if !tui_owns_stderr {
+            return Some(message);
+        }
+        if self.deferred.len() == MAX_DEFERRED_LIVE_DIAGNOSTICS {
+            self.deferred.pop_front();
+        }
+        self.deferred.push_back(message);
+        None
+    }
+
+    fn emit(&mut self, tui_owns_stderr: bool, message: impl Into<String>) {
+        if let Some(message) = self.route(tui_owns_stderr, message) {
+            eprintln!("{message}");
+        }
+    }
+
+    fn take_deferred(&mut self) -> Vec<String> {
+        self.deferred.drain(..).collect()
+    }
+
+    fn flush_deferred(&mut self) {
+        for message in self.take_deferred() {
+            eprintln!("{message}");
+        }
+    }
+}
+
+fn after_live_tui_teardown<Recording, Preferences>(
+    teardown: impl FnOnce(),
+    finish_recording: impl FnOnce() -> Recording,
+    save_preferences: impl FnOnce() -> Preferences,
+) -> (Recording, Preferences) {
+    teardown();
+    let recording = finish_recording();
+    let preferences = save_preferences();
+    (recording, preferences)
+}
 
 #[derive(Debug, Args)]
 pub struct LiveArgs {
@@ -153,7 +395,7 @@ pub struct TuiArgs {
     #[arg(long)]
     pub all_symbols: bool,
 
-    #[arg(long, default_value_t = DEFAULT_LIVE_DURATION_SECS)]
+    #[arg(long, default_value_t = DEFAULT_TUI_DURATION_SECS)]
     pub duration_secs: u64,
 
     #[arg(long, default_value_t = DEFAULT_TUI_REFRESH_SECS)]
@@ -249,6 +491,13 @@ struct PersistedTuiPreferences {
 }
 
 pub async fn run(args: LiveArgs) -> anyhow::Result<()> {
+    validate_live_duration(
+        args.duration_secs,
+        args.tui,
+        args.once,
+        LiveTerminalCapabilities::detect(),
+    )?;
+
     if let Some(fixture_file) = args.fixture_file.clone() {
         return run_fixture_live(args, &fixture_file).await;
     }
@@ -256,13 +505,61 @@ pub async fn run(args: LiveArgs) -> anyhow::Result<()> {
     run_network_live(args).await
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct LiveTerminalCapabilities {
+    stdin_is_terminal: bool,
+    stderr_is_terminal: bool,
+}
+
+impl LiveTerminalCapabilities {
+    fn new(stdin_is_terminal: bool, stderr_is_terminal: bool) -> Self {
+        Self {
+            stdin_is_terminal,
+            stderr_is_terminal,
+        }
+    }
+
+    fn detect() -> Self {
+        Self::new(io::stdin().is_terminal(), io::stderr().is_terminal())
+    }
+
+    fn supports_unbounded_tui(self) -> bool {
+        self.stdin_is_terminal && self.stderr_is_terminal
+    }
+}
+
+fn validate_live_duration(
+    duration_secs: u64,
+    tui: bool,
+    once: bool,
+    terminals: LiveTerminalCapabilities,
+) -> anyhow::Result<()> {
+    if once {
+        return Ok(());
+    }
+
+    if duration_secs == 0 && !tui {
+        bail!(
+            "--duration-secs 0 is only supported with --tui; use a positive duration for `hls live`"
+        );
+    }
+
+    if duration_secs == 0 && !terminals.supports_unbounded_tui() {
+        bail!(
+            "--duration-secs 0 requires an interactive TUI with both stdin and stderr attached to a terminal; pass --duration-secs <positive> for non-interactive runs"
+        );
+    }
+
+    Ok(())
+}
+
 pub async fn run_tui(args: TuiArgs) -> anyhow::Result<()> {
     run(args.into_live_args()).await
 }
 
 async fn run_fixture_live(args: LiveArgs, fixture_file: &PathBuf) -> anyhow::Result<()> {
-    if !args.once {
-        bail!("fixture-backed live mode currently requires --once");
+    if !args.once && !args.tui {
+        bail!("fixture-backed interactive mode requires --tui when --once is absent");
     }
 
     let raw = fs::read_to_string(fixture_file)
@@ -298,45 +595,146 @@ async fn run_fixture_live(args: LiveArgs, fixture_file: &PathBuf) -> anyhow::Res
         state.apply(event)?;
     }
 
-    let mut snapshots = FeatureEngine::default().snapshots(&state, latest_update_ms(&state));
-    attach_metadata(
-        &mut snapshots,
-        load_metadata_enrichments(args.metadata_file.as_ref())?,
-    );
-    let screen_request = ScreenRequest {
-        preset: args.preset,
-        where_expr: args.r#where,
-        sort: args.sort,
-    };
-    let color_mode = live_ratatui_color_mode(args.color);
-    if args.tui {
-        let model = live_tui_model(
-            &snapshots,
-            live_table_title(args.record),
-            &screen_request,
-            None,
-            live_tui_candles(&state),
-            live_tui_trades(&state),
-            LiveTuiStatus::new("fixture", "REC ready", "fixture replay"),
+    if args.once {
+        let mut snapshots = FeatureEngine::default().snapshots(&state, latest_update_ms(&state));
+        attach_metadata(
+            &mut snapshots,
+            load_metadata_enrichments(args.metadata_file.as_ref())?,
         );
-        let table = render_live_tui_snapshot(&model, None, color_mode)?;
-        print!("{table}");
-    } else {
-        println!("{}", render_confidence_summary(&snapshots));
-        let table =
-            render_screened_table(&snapshots, live_table_title(args.record), &screen_request)?;
-        print!("{table}");
+        let screen_request = ScreenRequest {
+            preset: args.preset,
+            where_expr: args.r#where,
+            sort: args.sort,
+        };
+        let color_mode = live_ratatui_color_mode(args.color, io::stdout().is_terminal());
+        if args.tui {
+            let model = live_tui_model(
+                &snapshots,
+                live_table_title(args.record),
+                &screen_request,
+                None,
+                live_tui_candles(&state),
+                live_tui_trades(&state),
+                LiveTuiStatus::new("fixture", "REC ready", "fixture replay"),
+            );
+            let table = render_live_tui_snapshot(&model, None, color_mode)?;
+            print!("{table}");
+        } else {
+            println!("{}", render_confidence_summary(&snapshots));
+            let table =
+                render_screened_table(&snapshots, live_table_title(args.record), &screen_request)?;
+            print!("{table}");
+        }
+        return Ok(());
     }
 
-    Ok(())
+    let metadata = load_metadata_enrichments(args.metadata_file.as_ref())?;
+    let screen_request = ScreenRequest {
+        preset: args.preset.clone(),
+        where_expr: args.r#where.clone(),
+        sort: args.sort.clone(),
+    };
+    run_interactive_fixture_tui(&args, state, screen_request, metadata).await
+}
+
+async fn run_interactive_fixture_tui(
+    args: &LiveArgs,
+    state: LiveMarketState,
+    mut screen_request: ScreenRequest,
+    metadata: Vec<MetadataEnrichment>,
+) -> anyhow::Result<()> {
+    let color_mode = live_ratatui_color_mode(args.color, io::stderr().is_terminal());
+    let keyboard_interactive = io::stdin().is_terminal() && io::stderr().is_terminal();
+    let lifetime =
+        LiveRunLifetime::from_duration_secs(args.duration_secs, tokio::time::Instant::now())?;
+    let mut diagnostics = LiveDiagnostics::default();
+    let preflight = preflight_tui_preferences(&args.data_dir);
+    if let Some(warning) = preflight.warning {
+        diagnostics.emit(true, warning);
+    }
+    let mut ui_state = WorkstationUiState::from_preferences(preflight.preferences);
+    let mut shutdown_signal = match install_shutdown_signal() {
+        Ok(signal) => signal,
+        Err(err) => {
+            diagnostics.flush_deferred();
+            return Err(err);
+        }
+    };
+
+    let terminal_mode = match LiveTuiGuard::enable(keyboard_interactive) {
+        Ok(guard) => guard,
+        Err(err) => {
+            diagnostics.flush_deferred();
+            return Err(err);
+        }
+    };
+    let renderer_enforcement = if keyboard_interactive {
+        LiveTuiSessionEnforcement::Interactive
+    } else {
+        LiveTuiSessionEnforcement::Unmanaged
+    };
+    let mut tui_renderer = match LiveTuiRenderer::new(renderer_enforcement) {
+        Ok(renderer) => renderer,
+        Err(err) => {
+            drop(terminal_mode);
+            diagnostics.flush_deferred();
+            return Err(err);
+        }
+    };
+
+    let started = Instant::now();
+    let summary = LiveDriveSummary::default();
+    let session_result = async {
+        render_live_progress(
+            LiveProgressContext {
+                state: &state,
+                screen_request: &screen_request,
+                metadata: &metadata,
+                color_mode,
+                tui_state: Some(&ui_state),
+                started,
+                summary: &summary,
+                mode: LiveProgressMode::Fixture,
+            },
+            Some(&mut tui_renderer),
+        )?;
+        wait_for_live_stop(
+            lifetime,
+            &mut shutdown_signal,
+            keyboard_interactive,
+            Some(&mut ui_state),
+            &state,
+            &mut screen_request,
+            &metadata,
+            color_mode,
+            LiveProgressMode::Fixture,
+            started,
+            &summary,
+            Some(&mut tui_renderer),
+        )
+        .await
+    }
+    .await;
+
+    let (_, preference_save) = after_live_tui_teardown(
+        || {
+            drop(tui_renderer);
+            drop(terminal_mode);
+            diagnostics.flush_deferred();
+        },
+        || (),
+        || save_tui_preferences(&args.data_dir, ui_state.preferences()),
+    );
+    if let Err(err) = preference_save {
+        diagnostics.emit(false, format!("tui preferences save skipped: {err}"));
+    }
+
+    session_result.map(|_| ())
 }
 
 async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
     if args.once {
         bail!("--once is only supported with --fixture-file");
-    }
-    if args.duration_secs == 0 {
-        bail!("--duration-secs must be greater than zero");
     }
     if args.parquet {
         bail!(
@@ -377,14 +775,23 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
     };
     let mut metadata = selection.metadata;
     metadata.extend(load_metadata_enrichments(args.metadata_file.as_ref())?);
-    let render_live_tui = args.tui || io::stderr().is_terminal();
-    let color_mode = live_ratatui_color_mode(args.color);
-    let keyboard_interactive =
-        render_live_tui && io::stdin().is_terminal() && io::stderr().is_terminal();
-    let terminal_mode = LiveTuiGuard::enable(keyboard_interactive)?;
-    let mut tui_renderer = render_live_tui.then(LiveTuiRenderer::new).transpose()?;
-    let mut tui_state = render_live_tui
-        .then(|| WorkstationUiState::from_preferences(load_tui_preferences(&args.data_dir)));
+    let stderr_tty = io::stderr().is_terminal();
+    let render_live_tui = args.tui || stderr_tty;
+    let tui_color_mode = live_ratatui_color_mode(args.color, stderr_tty);
+    let output_color_mode = live_ratatui_color_mode(args.color, io::stdout().is_terminal());
+    let keyboard_interactive = render_live_tui && io::stdin().is_terminal() && stderr_tty;
+    let lifetime =
+        LiveRunLifetime::from_duration_secs(args.duration_secs, tokio::time::Instant::now())?;
+    let mut diagnostics = LiveDiagnostics::default();
+    let mut tui_state = if render_live_tui {
+        let preflight = preflight_tui_preferences(&args.data_dir);
+        if let Some(warning) = preflight.warning {
+            diagnostics.emit(true, warning);
+        }
+        Some(WorkstationUiState::from_preferences(preflight.preferences))
+    } else {
+        None
+    };
 
     if !render_live_tui {
         eprintln!(
@@ -396,50 +803,98 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
             args.ws_url
         );
     }
+    let mut shutdown_signal = match install_shutdown_signal() {
+        Ok(signal) => signal,
+        Err(err) => {
+            diagnostics.flush_deferred();
+            return Err(err);
+        }
+    };
 
+    let terminal_mode = match LiveTuiGuard::enable(keyboard_interactive) {
+        Ok(guard) => guard,
+        Err(err) => {
+            diagnostics.flush_deferred();
+            return Err(err);
+        }
+    };
+    let renderer_enforcement = if keyboard_interactive {
+        LiveTuiSessionEnforcement::Interactive
+    } else {
+        LiveTuiSessionEnforcement::Unmanaged
+    };
+    let mut tui_renderer = match render_live_tui
+        .then(|| LiveTuiRenderer::new(renderer_enforcement))
+        .transpose()
+    {
+        Ok(renderer) => renderer,
+        Err(err) => {
+            drop(terminal_mode);
+            diagnostics.flush_deferred();
+            return Err(err);
+        }
+    };
     let drive_result = drive_live_ws(
         &args.ws_url,
         &subscription_messages,
         &symbols,
-        Duration::from_secs(args.duration_secs),
+        lifetime,
+        &mut shutdown_signal,
         Duration::from_secs(args.refresh_secs.max(1)),
         &mut state,
         &mut screen_request,
         &metadata,
         tui_renderer.as_mut(),
-        color_mode,
+        tui_color_mode,
         keyboard_interactive,
         tui_state.as_mut(),
         recorder.as_ref(),
+        &mut diagnostics,
     )
     .await;
 
-    let record_summary = if let Some(recorder) = recorder {
-        match recorder.finish(drive_result.is_ok()) {
-            Ok(summary) => Some(summary),
-            Err(err) if drive_result.is_err() => {
-                eprintln!("recording closeout failed after live error: {err}");
-                None
+    let clean_shutdown = drive_result
+        .as_ref()
+        .map(LiveDriveSummary::is_clean_shutdown)
+        .unwrap_or(false);
+    let (record_summary_result, tui_preference_save) = after_live_tui_teardown(
+        || {
+            drop(tui_renderer);
+            drop(terminal_mode);
+            diagnostics.flush_deferred();
+        },
+        || -> anyhow::Result<Option<RecordSummary>> {
+            if let Some(recorder) = recorder {
+                recorder
+                    .finish(clean_shutdown)
+                    .map(Some)
+                    .map_err(anyhow::Error::from)
+            } else {
+                Ok(None)
             }
-            Err(err) => return Err(err.into()),
-        }
-    } else {
-        None
-    };
-
-    let tui_preference_save = if let Some(ui_state) = tui_state.as_ref() {
-        save_tui_preferences(&args.data_dir, ui_state.preferences())
-    } else {
-        Ok(())
-    };
+        },
+        || {
+            if let Some(ui_state) = tui_state.as_ref() {
+                save_tui_preferences(&args.data_dir, ui_state.preferences())
+            } else {
+                Ok(())
+            }
+        },
+    );
+    if drive_result.is_err()
+        && let Err(err) = &record_summary_result
+    {
+        diagnostics.emit(
+            false,
+            format!("recording closeout failed after live error: {err}"),
+        );
+    }
+    if let Err(err) = &tui_preference_save {
+        diagnostics.emit(false, format!("tui preferences save skipped: {err}"));
+    }
 
     let mut summary = drive_result?;
-    drop(tui_renderer);
-    drop(terminal_mode);
-
-    if let Err(err) = tui_preference_save {
-        eprintln!("tui preferences save skipped: {err}");
-    }
+    let record_summary = record_summary_result?;
     let mut snapshots = FeatureEngine::default().snapshots(&state, now_ms_i64()?);
     attach_metadata(&mut snapshots, metadata);
     summary.row_count = snapshots.len();
@@ -453,6 +908,10 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
     println!("reconnects={}", summary.reconnects);
     println!("data_gaps={}", summary.data_gaps);
     println!("elapsed_secs={}", summary.elapsed_secs);
+    println!(
+        "stop_reason={}",
+        summary.stop_reason_label().unwrap_or("unknown")
+    );
     if !render_live_tui {
         println!("{}", render_confidence_summary(&snapshots));
     }
@@ -488,7 +947,7 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
                 ),
             ),
         );
-        render_live_tui_snapshot(&model, None, color_mode)?
+        render_live_tui_snapshot(&model, None, output_color_mode)?
     } else {
         render_screened_table(
             &snapshots,
@@ -571,6 +1030,112 @@ struct LiveDriveSummary {
     data_gaps: u64,
     elapsed_secs: u64,
     row_count: usize,
+    stop_reason: Option<LiveStopReason>,
+}
+
+impl LiveDriveSummary {
+    fn mark_stopped(&mut self, stop_reason: LiveStopReason) {
+        self.stop_reason = Some(stop_reason);
+    }
+
+    fn stop_reason_label(&self) -> Option<&'static str> {
+        self.stop_reason.map(LiveStopReason::label)
+    }
+
+    fn is_clean_shutdown(&self) -> bool {
+        self.stop_reason
+            .is_some_and(LiveStopReason::is_clean_shutdown)
+    }
+
+    fn is_no_messages_failure(&self) -> bool {
+        self.ws_messages == 0
+            && self.reconnects > 0
+            && !matches!(
+                self.stop_reason,
+                Some(LiveStopReason::OperatorQuit | LiveStopReason::Signal)
+            )
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum LiveRunLifetime {
+    Bounded(tokio::time::Instant),
+    Unbounded,
+}
+
+impl LiveRunLifetime {
+    fn from_duration_secs(duration_secs: u64, now: tokio::time::Instant) -> HlsResult<Self> {
+        if duration_secs == 0 {
+            Ok(Self::Unbounded)
+        } else {
+            now.checked_add(Duration::from_secs(duration_secs))
+                .map(Self::Bounded)
+                .ok_or_else(|| {
+                    HlsError::Config(format!(
+                        "--duration-secs value {duration_secs} is too large for this runtime"
+                    ))
+                })
+        }
+    }
+
+    fn has_expired_by(self, now: tokio::time::Instant) -> bool {
+        matches!(self, Self::Bounded(deadline) if now >= deadline)
+    }
+
+    async fn wait_for_expiry(self) {
+        match self {
+            Self::Bounded(deadline) => sleep_until(deadline).await,
+            Self::Unbounded => pending::<()>().await,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum LiveStopReason {
+    DurationElapsed,
+    OperatorQuit,
+    Signal,
+}
+
+impl LiveStopReason {
+    fn label(self) -> &'static str {
+        match self {
+            Self::DurationElapsed => "duration_elapsed",
+            Self::OperatorQuit => "operator_quit",
+            Self::Signal => "signal",
+        }
+    }
+
+    fn is_clean_shutdown(self) -> bool {
+        matches!(
+            self,
+            Self::DurationElapsed | Self::OperatorQuit | Self::Signal
+        )
+    }
+}
+
+type ShutdownSignal = Pin<Box<dyn Future<Output = anyhow::Result<LiveStopReason>> + Send>>;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum LiveProgressMode {
+    Live,
+    Fixture,
+}
+
+impl LiveProgressMode {
+    fn title(self) -> &'static str {
+        match self {
+            Self::Live => "READ-ONLY Hyperliquid spot live screen",
+            Self::Fixture => "READ-ONLY Hyperliquid spot fixture replay",
+        }
+    }
+
+    fn status(self) -> &'static str {
+        match self {
+            Self::Live => "LIVE",
+            Self::Fixture => "fixture",
+        }
+    }
 }
 
 struct LiveProgressContext<'a> {
@@ -581,11 +1146,12 @@ struct LiveProgressContext<'a> {
     tui_state: Option<&'a WorkstationUiState>,
     started: Instant,
     summary: &'a LiveDriveSummary,
+    mode: LiveProgressMode,
 }
 
 #[derive(Debug)]
 enum ConnectionOutcome {
-    DurationElapsed,
+    Stopped(LiveStopReason),
     Reconnect {
         conn_id: u64,
         gap_started_at_ns: u64,
@@ -599,7 +1165,107 @@ enum ConnectionOutcome {
 enum WsReadEvent {
     Text(String),
     Control,
+    Reply(Message),
     Reconnect(String),
+}
+
+#[derive(Debug, Eq, PartialEq)]
+enum CancellableSendOutcome<T> {
+    Sent(T),
+    Stopped(LiveStopReason),
+}
+
+async fn cancellable_send<SendFuture, StopFuture>(
+    send_future: SendFuture,
+    stop_future: StopFuture,
+) -> anyhow::Result<CancellableSendOutcome<SendFuture::Output>>
+where
+    SendFuture: Future,
+    StopFuture: Future<Output = anyhow::Result<LiveStopReason>>,
+{
+    tokio::pin!(send_future);
+    tokio::pin!(stop_future);
+
+    tokio::select! {
+        output = &mut send_future => Ok(CancellableSendOutcome::Sent(output)),
+        stop_reason = &mut stop_future => stop_reason.map(CancellableSendOutcome::Stopped),
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+async fn wait_for_live_stop(
+    lifetime: LiveRunLifetime,
+    shutdown_signal: &mut ShutdownSignal,
+    keyboard_interactive: bool,
+    mut tui_state: Option<&mut WorkstationUiState>,
+    state: &LiveMarketState,
+    screen_request: &mut ScreenRequest,
+    metadata: &[MetadataEnrichment],
+    color_mode: RatatuiColorMode,
+    progress_mode: LiveProgressMode,
+    started: Instant,
+    summary: &LiveDriveSummary,
+    mut tui_frame_sink: Option<&mut LiveTuiRenderer>,
+) -> anyhow::Result<LiveStopReason> {
+    let mut ui_events = interval(Duration::from_millis(TUI_KEY_POLL_MS));
+
+    loop {
+        tokio::select! {
+            _ = lifetime.wait_for_expiry() => return Ok(LiveStopReason::DurationElapsed),
+            result = shutdown_signal.as_mut() => return result,
+            _ = ui_events.tick(), if keyboard_interactive => {
+                if let Some(stop_reason) = poll_live_tui_actions(
+                    tui_state.as_deref_mut(),
+                    state,
+                    screen_request,
+                    metadata,
+                    color_mode,
+                    progress_mode,
+                    started,
+                    summary,
+                    tui_frame_sink.as_deref_mut(),
+                )? {
+                    return Ok(stop_reason);
+                }
+            }
+        }
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+async fn send_live_message<S>(
+    write: &mut S,
+    message: Message,
+    lifetime: LiveRunLifetime,
+    shutdown_signal: &mut ShutdownSignal,
+    keyboard_interactive: bool,
+    tui_state: Option<&mut WorkstationUiState>,
+    state: &LiveMarketState,
+    screen_request: &mut ScreenRequest,
+    metadata: &[MetadataEnrichment],
+    color_mode: RatatuiColorMode,
+    started: Instant,
+    summary: &LiveDriveSummary,
+    tui_frame_sink: Option<&mut LiveTuiRenderer>,
+) -> anyhow::Result<CancellableSendOutcome<Result<(), S::Error>>>
+where
+    S: futures_util::Sink<Message> + Unpin,
+{
+    let stop_future = wait_for_live_stop(
+        lifetime,
+        shutdown_signal,
+        keyboard_interactive,
+        tui_state,
+        state,
+        screen_request,
+        metadata,
+        color_mode,
+        LiveProgressMode::Live,
+        started,
+        summary,
+        tui_frame_sink,
+    );
+    cancellable_send(write.send(message), stop_future).await
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -607,7 +1273,8 @@ async fn drive_live_ws(
     ws_url: &str,
     subscription_messages: &[String],
     symbols: &[String],
-    duration: Duration,
+    lifetime: LiveRunLifetime,
+    shutdown_signal: &mut ShutdownSignal,
     refresh_interval: Duration,
     state: &mut LiveMarketState,
     screen_request: &mut ScreenRequest,
@@ -617,19 +1284,22 @@ async fn drive_live_ws(
     keyboard_interactive: bool,
     mut tui_state: Option<&mut WorkstationUiState>,
     recorder: Option<&LiveRecorder>,
+    diagnostics: &mut LiveDiagnostics,
 ) -> anyhow::Result<LiveDriveSummary> {
     let started = Instant::now();
-    let deadline = tokio::time::Instant::now() + duration;
     let mut summary = LiveDriveSummary::default();
     let mut conn_id = 0;
     let mut reconnect_attempt = 0;
-
-    while tokio::time::Instant::now() < deadline {
+    loop {
+        if lifetime.has_expired_by(tokio::time::Instant::now()) {
+            summary.mark_stopped(LiveStopReason::DurationElapsed);
+            break;
+        }
         let outcome = drive_live_connection(
             ws_url,
             subscription_messages,
             conn_id,
-            deadline,
+            lifetime,
             started,
             refresh_interval,
             state,
@@ -641,11 +1311,15 @@ async fn drive_live_ws(
             tui_state.as_deref_mut(),
             recorder,
             &mut summary,
+            shutdown_signal,
         )
         .await?;
 
         match outcome {
-            ConnectionOutcome::DurationElapsed => break,
+            ConnectionOutcome::Stopped(stop_reason) => {
+                summary.mark_stopped(stop_reason);
+                break;
+            }
             ConnectionOutcome::Reconnect {
                 conn_id: closed_conn_id,
                 gap_started_at_ns,
@@ -666,13 +1340,16 @@ async fn drive_live_ws(
                 }
 
                 let backoff = reconnect_backoff(reconnect_attempt);
-                eprintln!(
-                    "live reconnect: conn_id={} reason={} backoff_ms={} reconnects={} data_gaps={}",
-                    closed_conn_id,
-                    reason,
-                    backoff.as_millis(),
-                    summary.reconnects,
-                    summary.data_gaps
+                diagnostics.emit(
+                    tui_frame_sink.is_some(),
+                    format!(
+                        "live reconnect: conn_id={} reason={} backoff_ms={} reconnects={} data_gaps={}",
+                        closed_conn_id,
+                        reason,
+                        backoff.as_millis(),
+                        summary.reconnects,
+                        summary.data_gaps
+                    ),
                 );
                 conn_id = conn_id.saturating_add(1);
                 reconnect_attempt = if received_any_message {
@@ -680,12 +1357,41 @@ async fn drive_live_ws(
                 } else {
                     reconnect_attempt.saturating_add(1)
                 };
-                sleep_for_backoff_until_deadline(backoff, deadline).await;
+                let backoff_wait = sleep(backoff);
+                tokio::pin!(backoff_wait);
+                let mut ui_events = interval(Duration::from_millis(TUI_KEY_POLL_MS));
+                ui_events.tick().await;
+                let stop_reason = loop {
+                    tokio::select! {
+                        _ = lifetime.wait_for_expiry() => break Some(LiveStopReason::DurationElapsed),
+                        result = shutdown_signal.as_mut() => break Some(result?),
+                        _ = ui_events.tick(), if keyboard_interactive => {
+                            if let Some(stop_reason) = poll_live_tui_actions(
+                                tui_state.as_deref_mut(),
+                                state,
+                                screen_request,
+                                metadata,
+                                color_mode,
+                                LiveProgressMode::Live,
+                                started,
+                                &summary,
+                                tui_frame_sink.as_deref_mut(),
+                            )? {
+                                break Some(stop_reason);
+                            }
+                        }
+                        _ = &mut backoff_wait => break None,
+                    }
+                };
+                if let Some(stop_reason) = stop_reason {
+                    summary.mark_stopped(stop_reason);
+                    break;
+                }
             }
         }
     }
 
-    if summary.ws_messages == 0 && summary.reconnects > 0 {
+    if summary.is_no_messages_failure() {
         return Err(HlsError::External(format!(
             "live run ended without receiving any WebSocket messages after {} reconnect attempt(s)",
             summary.reconnects
@@ -702,7 +1408,7 @@ async fn drive_live_connection(
     ws_url: &str,
     subscription_messages: &[String],
     conn_id: u64,
-    deadline: tokio::time::Instant,
+    lifetime: LiveRunLifetime,
     started: Instant,
     refresh_interval: Duration,
     state: &mut LiveMarketState,
@@ -714,11 +1420,38 @@ async fn drive_live_connection(
     mut tui_state: Option<&mut WorkstationUiState>,
     recorder: Option<&LiveRecorder>,
     summary: &mut LiveDriveSummary,
+    shutdown_signal: &mut ShutdownSignal,
 ) -> anyhow::Result<ConnectionOutcome> {
     let connect_started_ns = now_ns_u64()?;
-    let (ws, _) = match timeout_at(deadline, connect_async(ws_url)).await {
-        Ok(Ok(value)) => value,
-        Ok(Err(err)) => {
+    let mut ui_events = interval(Duration::from_millis(TUI_KEY_POLL_MS));
+    ui_events.tick().await;
+    let connect = connect_async(ws_url);
+    tokio::pin!(connect);
+    let connect_result = loop {
+        tokio::select! {
+            _ = lifetime.wait_for_expiry() => return Ok(ConnectionOutcome::Stopped(LiveStopReason::DurationElapsed)),
+            result = shutdown_signal.as_mut() => return result.map(ConnectionOutcome::Stopped),
+            _ = ui_events.tick(), if keyboard_interactive => {
+                if let Some(stop_reason) = poll_live_tui_actions(
+                    tui_state.as_deref_mut(),
+                    state,
+                    screen_request,
+                    metadata,
+                    color_mode,
+                    LiveProgressMode::Live,
+                    started,
+                    summary,
+                    tui_frame_sink.as_deref_mut(),
+                )? {
+                    return Ok(ConnectionOutcome::Stopped(stop_reason));
+                }
+            }
+            result = &mut connect => break result,
+        }
+    };
+    let (ws, _) = match connect_result {
+        Ok(value) => value,
+        Err(err) => {
             return Ok(ConnectionOutcome::Reconnect {
                 conn_id,
                 gap_started_at_ns: connect_started_ns,
@@ -727,27 +1460,40 @@ async fn drive_live_connection(
                 received_any_message: false,
             });
         }
-        Err(_) => {
-            return Ok(ConnectionOutcome::Reconnect {
-                conn_id,
-                gap_started_at_ns: connect_started_ns,
-                gap_ended_at_ns: now_ns_u64()?,
-                reason: "connect Hyperliquid WebSocket timed out before run deadline".to_owned(),
-                received_any_message: false,
-            });
-        }
     };
     let (mut write, mut read) = ws.split();
 
     for message in subscription_messages {
-        if let Err(err) = write.send(Message::Text(message.clone().into())).await {
-            return Ok(ConnectionOutcome::Reconnect {
-                conn_id,
-                gap_started_at_ns: connect_started_ns,
-                gap_ended_at_ns: now_ns_u64()?,
-                reason: format!("send subscription: {err}"),
-                received_any_message: false,
-            });
+        match send_live_message(
+            &mut write,
+            Message::Text(message.clone().into()),
+            lifetime,
+            shutdown_signal,
+            keyboard_interactive,
+            tui_state.as_deref_mut(),
+            state,
+            screen_request,
+            metadata,
+            color_mode,
+            started,
+            summary,
+            tui_frame_sink.as_deref_mut(),
+        )
+        .await?
+        {
+            CancellableSendOutcome::Sent(Ok(())) => {}
+            CancellableSendOutcome::Sent(Err(err)) => {
+                return Ok(ConnectionOutcome::Reconnect {
+                    conn_id,
+                    gap_started_at_ns: connect_started_ns,
+                    gap_ended_at_ns: now_ns_u64()?,
+                    reason: format!("send subscription: {err}"),
+                    received_any_message: false,
+                });
+            }
+            CancellableSendOutcome::Stopped(stop_reason) => {
+                return Ok(ConnectionOutcome::Stopped(stop_reason));
+            }
         }
     }
 
@@ -762,9 +1508,11 @@ async fn drive_live_connection(
 
     loop {
         tokio::select! {
-            _ = sleep_until(deadline) => {
-                let _ = write.send(Message::Close(None)).await;
-                return Ok(ConnectionOutcome::DurationElapsed);
+            _ = lifetime.wait_for_expiry() => {
+                return Ok(ConnectionOutcome::Stopped(LiveStopReason::DurationElapsed));
+            }
+            result = shutdown_signal.as_mut() => {
+                return result.map(ConnectionOutcome::Stopped);
             }
             _ = progress.tick() => {
                 render_live_progress(LiveProgressContext {
@@ -775,36 +1523,53 @@ async fn drive_live_connection(
                     tui_state: tui_state.as_deref(),
                     started,
                     summary,
+                    mode: LiveProgressMode::Live,
                 }, tui_frame_sink.as_deref_mut())?;
             }
             _ = ui_events.tick(), if keyboard_interactive => {
-                if let Some(ui_state) = tui_state.as_deref_mut()
-                    && apply_pending_tui_actions(ui_state, state, screen_request)?
-                {
-                    render_live_progress(LiveProgressContext {
-                        state,
-                        screen_request,
-                        metadata,
-                        color_mode,
-                        tui_state: Some(ui_state),
-                        started,
-                        summary,
-                    }, tui_frame_sink.as_deref_mut())?;
-                    if ui_state.quit_requested() {
-                        let _ = write.send(Message::Close(None)).await;
-                        return Ok(ConnectionOutcome::DurationElapsed);
-                    }
+                if let Some(stop_reason) = poll_live_tui_actions(
+                    tui_state.as_deref_mut(),
+                    state,
+                    screen_request,
+                    metadata,
+                    color_mode,
+                    LiveProgressMode::Live,
+                    started,
+                    summary,
+                    tui_frame_sink.as_deref_mut(),
+                )? {
+                    return Ok(ConnectionOutcome::Stopped(stop_reason));
                 }
             }
             _ = heartbeat.tick() => {
-                if let Err(err) = write.send(Message::Text(ping_message().to_owned().into())).await {
-                    return Ok(ConnectionOutcome::Reconnect {
-                        conn_id,
-                        gap_started_at_ns: last_message_recv_ns.unwrap_or(connect_started_ns),
-                        gap_ended_at_ns: now_ns_u64()?,
-                        reason: format!("send heartbeat ping: {err}"),
-                        received_any_message,
-                    });
+                match send_live_message(
+                    &mut write,
+                    Message::Text(ping_message().to_owned().into()),
+                    lifetime,
+                    shutdown_signal,
+                    keyboard_interactive,
+                    tui_state.as_deref_mut(),
+                    state,
+                    screen_request,
+                    metadata,
+                    color_mode,
+                    started,
+                    summary,
+                    tui_frame_sink.as_deref_mut(),
+                ).await? {
+                    CancellableSendOutcome::Sent(Ok(())) => {}
+                    CancellableSendOutcome::Sent(Err(err)) => {
+                        return Ok(ConnectionOutcome::Reconnect {
+                            conn_id,
+                            gap_started_at_ns: last_message_recv_ns.unwrap_or(connect_started_ns),
+                            gap_ended_at_ns: now_ns_u64()?,
+                            reason: format!("send heartbeat ping: {err}"),
+                            received_any_message,
+                        });
+                    }
+                    CancellableSendOutcome::Stopped(stop_reason) => {
+                        return Ok(ConnectionOutcome::Stopped(stop_reason));
+                    }
                 }
             }
             next = read.next() => {
@@ -832,7 +1597,7 @@ async fn drive_live_connection(
                 };
                 received_any_message = true;
                 last_message_recv_ns = Some(recv_ts_ns);
-                match ws_message_text(message, &mut write).await? {
+                match ws_message_text(message)? {
                     WsReadEvent::Text(line) => {
                     summary.ws_messages += 1;
                     if let Some(recorder) = recorder {
@@ -851,6 +1616,33 @@ async fn drive_live_connection(
                     }
                     }
                     WsReadEvent::Control => {}
+                    WsReadEvent::Reply(reply) => {
+                        match send_live_message(
+                            &mut write,
+                            reply,
+                            lifetime,
+                            shutdown_signal,
+                            keyboard_interactive,
+                            tui_state.as_deref_mut(),
+                            state,
+                            screen_request,
+                            metadata,
+                            color_mode,
+                            started,
+                            summary,
+                            tui_frame_sink.as_deref_mut(),
+                        ).await? {
+                            CancellableSendOutcome::Sent(Ok(())) => {}
+                            CancellableSendOutcome::Sent(Err(err)) => {
+                                return Err(HlsError::External(format!(
+                                    "send WebSocket pong: {err}"
+                                )).into());
+                            }
+                            CancellableSendOutcome::Stopped(stop_reason) => {
+                                return Ok(ConnectionOutcome::Stopped(stop_reason));
+                            }
+                        }
+                    }
                     WsReadEvent::Reconnect(reason) => {
                         return Ok(ConnectionOutcome::Reconnect {
                             conn_id,
@@ -866,11 +1658,7 @@ async fn drive_live_connection(
     }
 }
 
-async fn ws_message_text<S>(message: Message, write: &mut S) -> HlsResult<WsReadEvent>
-where
-    S: futures_util::Sink<Message> + Unpin,
-    <S as futures_util::Sink<Message>>::Error: std::fmt::Display,
-{
+fn ws_message_text(message: Message) -> HlsResult<WsReadEvent> {
     match message {
         Message::Text(text) => Ok(WsReadEvent::Text(text.to_string())),
         Message::Binary(bytes) => String::from_utf8(bytes.to_vec())
@@ -878,13 +1666,7 @@ where
             .map_err(|err| {
                 HlsError::Parse(format!("binary WebSocket message was not UTF-8: {err}"))
             }),
-        Message::Ping(payload) => {
-            write
-                .send(Message::Pong(payload))
-                .await
-                .map_err(|err| HlsError::External(format!("send WebSocket pong: {err}")))?;
-            Ok(WsReadEvent::Control)
-        }
+        Message::Ping(payload) => Ok(WsReadEvent::Reply(Message::Pong(payload))),
         Message::Pong(_) | Message::Frame(_) => Ok(WsReadEvent::Control),
         Message::Close(frame) => Ok(WsReadEvent::Reconnect(format!(
             "Hyperliquid WebSocket closed: {frame:?}"
@@ -903,12 +1685,17 @@ enum LiveRecordCommand {
     Finish {
         clean_shutdown: bool,
     },
+    #[cfg(test)]
+    WaitForRelease {
+        entered: mpsc::Sender<()>,
+        release: Receiver<()>,
+    },
 }
 
 struct LiveRecorder {
     run_id: String,
-    sender: SyncSender<LiveRecordCommand>,
-    handle: JoinHandle<HlsResult<RecordSummary>>,
+    sender: Option<SyncSender<LiveRecordCommand>>,
+    handle: Option<JoinHandle<HlsResult<RecordSummary>>>,
 }
 
 impl LiveRecorder {
@@ -928,8 +1715,8 @@ impl LiveRecorder {
 
         Ok(Self {
             run_id: run_id.to_owned(),
-            sender,
-            handle,
+            sender: Some(sender),
+            handle: Some(handle),
         })
     }
 
@@ -967,18 +1754,40 @@ impl LiveRecorder {
         )))
     }
 
-    fn finish(self, clean_shutdown: bool) -> HlsResult<RecordSummary> {
-        let _ = self
-            .sender
-            .send(LiveRecordCommand::Finish { clean_shutdown });
-        drop(self.sender);
-        self.handle
+    fn finish(mut self, clean_shutdown: bool) -> HlsResult<RecordSummary> {
+        self.shutdown(clean_shutdown)
+    }
+
+    fn shutdown(&mut self, clean_shutdown: bool) -> HlsResult<RecordSummary> {
+        let send_error = self.sender.take().and_then(|sender| {
+            sender
+                .send(LiveRecordCommand::Finish { clean_shutdown })
+                .err()
+                .map(|err| {
+                    HlsError::External(format!(
+                        "live recorder worker disconnected during shutdown: {err}"
+                    ))
+                })
+        });
+        let Some(handle) = self.handle.take() else {
+            return Err(HlsError::External(
+                "live recorder worker was already shut down".to_owned(),
+            ));
+        };
+        let summary = handle
             .join()
-            .map_err(|_| HlsError::External("live recorder worker panicked".to_owned()))?
+            .map_err(|_| HlsError::External("live recorder worker panicked".to_owned()))??;
+        if let Some(err) = send_error {
+            return Err(err);
+        }
+        Ok(summary)
     }
 
     fn send(&self, command: LiveRecordCommand) -> HlsResult<()> {
-        match self.sender.try_send(command) {
+        let sender = self.sender.as_ref().ok_or_else(|| {
+            HlsError::External("live recorder worker is shutting down".to_owned())
+        })?;
+        match sender.try_send(command) {
             Ok(()) => Ok(()),
             Err(TrySendError::Full(_)) => Err(HlsError::External(format!(
                 "live recorder queue is full at capacity {LIVE_RECORDER_QUEUE_CAPACITY}; failing closed to avoid silent data loss"
@@ -987,6 +1796,12 @@ impl LiveRecorder {
                 "live recorder worker disconnected".to_owned(),
             )),
         }
+    }
+}
+
+impl Drop for LiveRecorder {
+    fn drop(&mut self) {
+        let _ = self.shutdown(false);
     }
 }
 
@@ -1046,6 +1861,21 @@ impl LiveRecorderWorker {
     }
 
     fn run(mut self, receiver: Receiver<LiveRecordCommand>) -> HlsResult<RecordSummary> {
+        let clean_shutdown = match self.process_commands(receiver) {
+            Ok(clean_shutdown) => clean_shutdown,
+            Err(worker_err) => {
+                return match self.finish(false) {
+                    Ok(_) => Err(worker_err),
+                    Err(closeout_err) => Err(HlsError::External(format!(
+                        "live recorder worker failed: {worker_err}; unclean closeout also failed: {closeout_err}"
+                    ))),
+                };
+            }
+        };
+        self.finish(clean_shutdown)
+    }
+
+    fn process_commands(&mut self, receiver: Receiver<LiveRecordCommand>) -> HlsResult<bool> {
         let mut clean_shutdown = false;
         for command in receiver {
             match command {
@@ -1062,10 +1892,14 @@ impl LiveRecorderWorker {
                     clean_shutdown = requested_clean_shutdown;
                     break;
                 }
+                #[cfg(test)]
+                LiveRecordCommand::WaitForRelease { entered, release } => {
+                    let _ = entered.send(());
+                    let _ = release.recv();
+                }
             }
         }
-
-        self.finish(clean_shutdown)
+        Ok(clean_shutdown)
     }
 
     fn record_raw_line(&mut self, recv_ts_ns: u64, conn_id: u64, line: &str) -> HlsResult<()> {
@@ -1132,13 +1966,13 @@ where
         attach_metadata(&mut snapshots, ctx.metadata.to_vec());
         let model = live_tui_model(
             &snapshots,
-            "READ-ONLY Hyperliquid spot live screen",
+            ctx.mode.title(),
             ctx.screen_request,
             ctx.tui_state,
             live_tui_candles(ctx.state),
             live_tui_trades(ctx.state),
             LiveTuiStatus::new(
-                "LIVE",
+                ctx.mode.status(),
                 "REC ready",
                 format!(
                     "{}s ws={} events={} reconnects={} gaps={}",
@@ -1153,7 +1987,8 @@ where
         tui_frame_sink.draw(&model, ctx.color_mode)?;
     } else {
         eprintln!(
-            "live progress: elapsed_secs={} ws_messages={} market_events={} reconnects={} data_gaps={}",
+            "{} progress: elapsed_secs={} ws_messages={} market_events={} reconnects={} data_gaps={}",
+            ctx.mode.status().to_ascii_lowercase(),
             ctx.started.elapsed().as_secs(),
             ctx.summary.ws_messages,
             ctx.summary.market_events,
@@ -1243,8 +2078,29 @@ fn live_ratatui_viewport_from_size(size: Option<(u16, u16)>) -> RatatuiViewport 
     RatatuiViewport { width, height }
 }
 
-fn live_ratatui_color_mode(color: LiveTuiColor) -> RatatuiColorMode {
-    resolve_live_ratatui_color_mode(color, live_terminal_color_enabled())
+fn live_ratatui_color_mode(color: LiveTuiColor, output_is_terminal: bool) -> RatatuiColorMode {
+    resolve_live_ratatui_color_mode(color, live_terminal_color_enabled(output_is_terminal))
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct LiveTerminalColorDiagnostics {
+    pub force_color: bool,
+    pub auto_color: bool,
+    pub effective_auto_color: bool,
+}
+
+pub(crate) fn live_terminal_color_diagnostics() -> LiveTerminalColorDiagnostics {
+    live_terminal_color_diagnostics_for(io::stderr().is_terminal())
+}
+
+fn live_terminal_color_diagnostics_for(output_is_terminal: bool) -> LiveTerminalColorDiagnostics {
+    let force_color = live_terminal_color_forced();
+    let auto_color = live_terminal_color_auto_enabled(output_is_terminal);
+    LiveTerminalColorDiagnostics {
+        force_color,
+        auto_color,
+        effective_auto_color: force_color || auto_color,
+    }
 }
 
 fn resolve_live_ratatui_color_mode(color: LiveTuiColor, auto_enabled: bool) -> RatatuiColorMode {
@@ -1259,13 +2115,21 @@ fn tui_preferences_path(data_dir: &Path) -> PathBuf {
     data_dir.join(TUI_PREFERENCES_FILE)
 }
 
-fn load_tui_preferences(data_dir: &Path) -> WorkstationUiPreferences {
+struct TuiPreferencePreflight {
+    preferences: WorkstationUiPreferences,
+    warning: Option<String>,
+}
+
+fn preflight_tui_preferences(data_dir: &Path) -> TuiPreferencePreflight {
     match try_load_tui_preferences(data_dir) {
-        Ok(preferences) => preferences,
-        Err(err) => {
-            eprintln!("tui preferences load skipped: {err}");
-            WorkstationUiPreferences::default()
-        }
+        Ok(preferences) => TuiPreferencePreflight {
+            preferences,
+            warning: None,
+        },
+        Err(err) => TuiPreferencePreflight {
+            preferences: WorkstationUiPreferences::default(),
+            warning: Some(format!("tui preferences load skipped: {err}")),
+        },
     }
 }
 
@@ -1333,12 +2197,8 @@ fn parse_workstation_chart_window(label: &str) -> Option<WorkstationChartWindow>
         .find(|candidate| candidate.label() == label)
 }
 
-fn live_terminal_color_enabled() -> bool {
-    if live_terminal_color_forced() {
-        true
-    } else {
-        live_terminal_color_auto_enabled()
-    }
+fn live_terminal_color_enabled(output_is_terminal: bool) -> bool {
+    live_terminal_color_diagnostics_for(output_is_terminal).effective_auto_color
 }
 
 fn live_terminal_color_forced() -> bool {
@@ -1351,8 +2211,8 @@ fn live_terminal_color_forced() -> bool {
     false
 }
 
-fn live_terminal_color_auto_enabled() -> bool {
-    if std::env::var_os("NO_COLOR").is_some() {
+fn live_terminal_color_auto_enabled(output_is_terminal: bool) -> bool {
+    if !output_is_terminal || std::env::var_os("NO_COLOR").is_some() {
         return false;
     }
     !matches!(std::env::var("TERM").as_deref(), Ok("dumb"))
@@ -1399,6 +2259,58 @@ fn apply_pending_tui_actions(
     Ok(true)
 }
 
+#[allow(clippy::too_many_arguments)]
+fn poll_live_tui_actions<S>(
+    ui_state: Option<&mut WorkstationUiState>,
+    state: &LiveMarketState,
+    screen_request: &mut ScreenRequest,
+    metadata: &[MetadataEnrichment],
+    color_mode: RatatuiColorMode,
+    progress_mode: LiveProgressMode,
+    started: Instant,
+    summary: &LiveDriveSummary,
+    mut tui_frame_sink: Option<&mut S>,
+) -> anyhow::Result<Option<LiveStopReason>>
+where
+    S: LiveTuiFrameSink + ?Sized,
+{
+    let Some(ui_state) = ui_state else {
+        return Ok(None);
+    };
+    let event_redraw = apply_pending_tui_actions(ui_state, state, screen_request)?;
+    if live_tui_redraw_requested(event_redraw, tui_frame_sink.as_deref_mut()) {
+        render_live_progress(
+            LiveProgressContext {
+                state,
+                screen_request,
+                metadata,
+                color_mode,
+                tui_state: Some(ui_state),
+                started,
+                summary,
+                mode: progress_mode,
+            },
+            tui_frame_sink,
+        )?;
+    }
+
+    Ok(operator_stop_reason(ui_state))
+}
+
+fn live_tui_redraw_requested<S>(event_redraw: bool, tui_frame_sink: Option<&mut S>) -> bool
+where
+    S: LiveTuiFrameSink + ?Sized,
+{
+    let viewport_changed = tui_frame_sink.is_some_and(LiveTuiFrameSink::viewport_changed);
+    event_redraw || viewport_changed
+}
+
+fn operator_stop_reason(ui_state: &WorkstationUiState) -> Option<LiveStopReason> {
+    ui_state
+        .quit_requested()
+        .then_some(LiveStopReason::OperatorQuit)
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum LiveTuiEventEffect {
     Ignore,
@@ -1433,6 +2345,10 @@ fn key_to_workstation_action(
     key: KeyEvent,
     ui_state: &WorkstationUiState,
 ) -> Option<WorkstationAction> {
+    if key.code == KeyCode::Char('c') && key.modifiers.contains(KeyModifiers::CONTROL) {
+        return Some(WorkstationAction::Quit);
+    }
+
     if ui_state.command().is_some() {
         return match key.code {
             KeyCode::Enter => Some(WorkstationAction::SubmitCommand),
@@ -2680,49 +3596,74 @@ fn current_screened_row_count(
         .len())
 }
 
+fn restore_live_tui_terminal() {
+    let mut stderr = io::stderr();
+    let _ = execute!(stderr, DisableMouseCapture);
+    let _ = execute!(stderr, Show);
+    let _ = execute!(stderr, LeaveAlternateScreen);
+    let _ = disable_raw_mode();
+}
+
+pub(crate) fn handle_terminal_panic(delegate: impl FnOnce()) {
+    TERMINAL_OPERATION_COORDINATOR.handle_panic(restore_live_tui_terminal, delegate);
+}
+
 struct LiveTuiGuard {
-    raw_enabled: bool,
-    alternate_screen_enabled: bool,
-    mouse_capture_enabled: bool,
+    enabled: bool,
 }
 
 impl LiveTuiGuard {
     fn enable(enabled: bool) -> anyhow::Result<Self> {
-        if enabled {
-            enable_raw_mode()?;
-            if let Err(err) = execute!(io::stderr(), EnterAlternateScreen) {
-                let _ = disable_raw_mode();
-                return Err(err.into());
-            }
-            if let Err(err) = execute!(io::stderr(), EnableMouseCapture) {
-                let _ = execute!(io::stderr(), LeaveAlternateScreen);
-                let _ = disable_raw_mode();
-                return Err(err.into());
-            }
+        if !enabled {
+            return Ok(Self { enabled: false });
         }
-        Ok(Self {
-            raw_enabled: enabled,
-            alternate_screen_enabled: enabled,
-            mouse_capture_enabled: enabled,
+        TERMINAL_OPERATION_COORDINATOR.with_operation(|_| {
+            if let Err(state) = TERMINAL_OPERATION_COORDINATOR.begin_activation() {
+                bail!(
+                    "cannot activate the live TUI while its terminal session is {}; retry after the current session closes",
+                    state.label()
+                );
+            }
+
+            let activation = (|| -> anyhow::Result<()> {
+                enable_raw_mode()?;
+                let mut stderr = io::stderr();
+                execute!(stderr, EnterAlternateScreen)?;
+                execute!(stderr, EnableMouseCapture)?;
+                execute!(stderr, Hide)?;
+                Ok(())
+            })();
+            if let Err(err) = activation {
+                restore_live_tui_terminal();
+                TERMINAL_OPERATION_COORDINATOR.set_state(LiveTuiSessionState::Inactive);
+                return Err(err);
+            }
+            if let Err(state) = TERMINAL_OPERATION_COORDINATOR.publish_active() {
+                restore_live_tui_terminal();
+                TERMINAL_OPERATION_COORDINATOR.set_state(LiveTuiSessionState::Inactive);
+                bail!(
+                    "live TUI activation was interrupted while the terminal session became {}; terminal state was restored, so retry the command",
+                    state.label()
+                );
+            }
+            Ok(Self { enabled: true })
         })
     }
 }
 
 impl Drop for LiveTuiGuard {
     fn drop(&mut self) {
-        if self.mouse_capture_enabled {
-            let _ = execute!(io::stderr(), DisableMouseCapture);
-        }
-        if self.alternate_screen_enabled {
-            let _ = execute!(io::stderr(), LeaveAlternateScreen);
-        }
-        if self.raw_enabled {
-            let _ = disable_raw_mode();
+        if self.enabled {
+            TERMINAL_OPERATION_COORDINATOR.finish_session(restore_live_tui_terminal);
         }
     }
 }
 
 trait LiveTuiFrameSink {
+    fn viewport_changed(&mut self) -> bool {
+        false
+    }
+
     fn draw(
         &mut self,
         model: &RatatuiFrameModel,
@@ -2730,32 +3671,107 @@ trait LiveTuiFrameSink {
     ) -> anyhow::Result<()>;
 }
 
-struct LiveTuiRenderer {
-    terminal: Terminal<CrosstermBackend<io::Stderr>>,
+struct LiveTuiRenderer<W: Write = io::Stderr> {
+    terminal: Option<Terminal<CrosstermBackend<W>>>,
+    enforcement: LiveTuiSessionEnforcement,
+    last_viewport: Option<RatatuiViewport>,
 }
 
-impl LiveTuiRenderer {
-    fn new() -> anyhow::Result<Self> {
-        let stderr = io::stderr();
-        let backend = CrosstermBackend::new(stderr);
-        let mut terminal = Terminal::new(backend)?;
-        terminal.clear()?;
-        Ok(Self { terminal })
+impl LiveTuiRenderer<io::Stderr> {
+    fn new(enforcement: LiveTuiSessionEnforcement) -> anyhow::Result<Self> {
+        let terminal = TERMINAL_OPERATION_COORDINATOR
+            .with_session_operation(enforcement, || -> anyhow::Result<_> {
+                let stderr = io::stderr();
+                let backend = CrosstermBackend::new(stderr);
+                let mut terminal = Terminal::new(backend)?;
+                ratatui::backend::Backend::clear(terminal.backend_mut())?;
+                Ok(terminal)
+            })
+            .map_err(live_tui_session_operation_error)??;
+        Ok(Self {
+            terminal: Some(terminal),
+            enforcement,
+            last_viewport: None,
+        })
     }
 }
 
-impl LiveTuiFrameSink for LiveTuiRenderer {
+impl<W: Write> LiveTuiRenderer<W> {
+    #[cfg(test)]
+    fn with_fixed_viewport_writer(
+        writer: W,
+        viewport: RatatuiViewport,
+        enforcement: LiveTuiSessionEnforcement,
+    ) -> anyhow::Result<Self> {
+        let terminal = TERMINAL_OPERATION_COORDINATOR
+            .with_session_operation(enforcement, || -> anyhow::Result<_> {
+                let backend = CrosstermBackend::new(writer);
+                let mut terminal = Terminal::with_options(
+                    backend,
+                    TerminalOptions {
+                        viewport: Viewport::Fixed(Rect::new(0, 0, viewport.width, viewport.height)),
+                    },
+                )?;
+                ratatui::backend::Backend::clear(terminal.backend_mut())?;
+                Ok(terminal)
+            })
+            .map_err(live_tui_session_operation_error)??;
+        Ok(Self {
+            terminal: Some(terminal),
+            enforcement,
+            last_viewport: None,
+        })
+    }
+}
+
+impl<W: Write> LiveTuiFrameSink for LiveTuiRenderer<W> {
+    fn viewport_changed(&mut self) -> bool {
+        // A resize signal can be lost during first-frame handoff on some PTYs.
+        let Ok((width, height)) = terminal_size() else {
+            return false;
+        };
+        self.last_viewport
+            .is_some_and(|viewport| viewport != RatatuiViewport { width, height })
+    }
+
     fn draw(
         &mut self,
         model: &RatatuiFrameModel,
         color_mode: RatatuiColorMode,
     ) -> anyhow::Result<()> {
-        self.terminal.draw(|frame| {
-            hls_tui::ratatui_app::render_ratatui_frame(frame, model, color_mode);
-        })?;
-        self.terminal.backend_mut().flush()?;
+        let terminal = self
+            .terminal
+            .as_mut()
+            .context("live TUI renderer terminal is unavailable")?;
+        let completed = TERMINAL_OPERATION_COORDINATOR
+            .with_session_operation(self.enforcement, || {
+                terminal.draw(|frame| {
+                    hls_tui::ratatui_app::render_ratatui_frame(frame, model, color_mode);
+                })
+            })
+            .map_err(live_tui_session_operation_error)??;
+        self.last_viewport = Some(RatatuiViewport {
+            width: completed.area.width,
+            height: completed.area.height,
+        });
         Ok(())
     }
+}
+
+impl<W: Write> Drop for LiveTuiRenderer<W> {
+    fn drop(&mut self) {
+        let Some(terminal) = self.terminal.take() else {
+            return;
+        };
+        TERMINAL_OPERATION_COORDINATOR.with_operation(|_| drop(terminal));
+    }
+}
+
+fn live_tui_session_operation_error(state: LiveTuiSessionState) -> anyhow::Error {
+    anyhow::anyhow!(
+        "live TUI terminal session is {}; refusing terminal output after panic interruption",
+        state.label()
+    )
 }
 
 fn live_table_title(recording_active: bool) -> &'static str {
@@ -2766,14 +3782,67 @@ fn live_table_title(recording_active: bool) -> &'static str {
     }
 }
 
-async fn sleep_for_backoff_until_deadline(backoff: Duration, deadline: tokio::time::Instant) {
-    let now = tokio::time::Instant::now();
-    if now >= deadline {
-        return;
+fn shutdown_listener_setup<T>(result: io::Result<T>) -> anyhow::Result<T> {
+    result.context("install shutdown signal listener")
+}
+
+#[cfg(any(test, not(any(unix, windows))))]
+fn shutdown_signal_stop_reason(result: io::Result<()>) -> anyhow::Result<LiveStopReason> {
+    result
+        .context("wait for OS shutdown signal")
+        .map(|()| LiveStopReason::Signal)
+}
+
+#[cfg(unix)]
+fn unix_signal_stop_reason(signal: &str, delivery: Option<()>) -> anyhow::Result<LiveStopReason> {
+    delivery
+        .with_context(|| format!("{signal} shutdown listener closed before receiving a signal"))
+        .map(|()| LiveStopReason::Signal)
+}
+
+#[cfg(unix)]
+fn sigterm_stop_reason(delivery: Option<()>) -> anyhow::Result<LiveStopReason> {
+    unix_signal_stop_reason("SIGTERM", delivery)
+}
+
+fn install_shutdown_signal() -> anyhow::Result<ShutdownSignal> {
+    #[cfg(unix)]
+    {
+        let mut interrupt = shutdown_listener_setup(tokio::signal::unix::signal(
+            tokio::signal::unix::SignalKind::interrupt(),
+        ))?;
+        let mut terminate = shutdown_listener_setup(tokio::signal::unix::signal(
+            tokio::signal::unix::SignalKind::terminate(),
+        ))?;
+
+        let signal: ShutdownSignal = Box::pin(async move {
+            tokio::select! {
+                delivery = interrupt.recv() => unix_signal_stop_reason("SIGINT", delivery),
+                delivery = terminate.recv() => sigterm_stop_reason(delivery),
+            }
+        });
+        Ok(signal)
     }
 
-    let wake_at = (now + backoff).min(deadline);
-    sleep_until(wake_at).await;
+    #[cfg(windows)]
+    {
+        let mut interrupt = shutdown_listener_setup(tokio::signal::windows::ctrl_c())?;
+        let signal: ShutdownSignal = Box::pin(async move {
+            interrupt
+                .recv()
+                .await
+                .context("CTRL_C shutdown listener closed before receiving a signal")
+                .map(|()| LiveStopReason::Signal)
+        });
+        Ok(signal)
+    }
+
+    #[cfg(not(any(unix, windows)))]
+    {
+        Ok(Box::pin(async {
+            shutdown_signal_stop_reason(tokio::signal::ctrl_c().await)
+        }))
+    }
 }
 
 fn reconnect_backoff(attempt: u64) -> Duration {
@@ -2854,6 +3923,460 @@ mod tests {
     }
 
     #[test]
+    fn live_tui_diagnostics_do_not_bypass_frame_sink() {
+        let mut diagnostics = LiveDiagnostics::default();
+
+        assert_eq!(
+            diagnostics.route(false, "non-TUI warning"),
+            Some("non-TUI warning".to_owned())
+        );
+        assert_eq!(diagnostics.route(true, "TUI reconnect warning"), None);
+        assert_eq!(
+            diagnostics.take_deferred(),
+            vec!["TUI reconnect warning".to_owned()]
+        );
+
+        for index in 0..(MAX_DEFERRED_LIVE_DIAGNOSTICS + 2) {
+            assert_eq!(diagnostics.route(true, format!("warning-{index}")), None);
+        }
+        let deferred = diagnostics.take_deferred();
+        assert_eq!(deferred.len(), MAX_DEFERRED_LIVE_DIAGNOSTICS);
+        assert_eq!(deferred.first().map(String::as_str), Some("warning-2"));
+    }
+
+    #[test]
+    fn live_closeout_orders_terminal_teardown_before_blocking_work() {
+        let order = std::cell::RefCell::new(Vec::new());
+
+        let (recording, preferences) = after_live_tui_teardown(
+            || {
+                order
+                    .borrow_mut()
+                    .extend(["renderer drop", "guard drop", "deferred diagnostics"]);
+            },
+            || {
+                order.borrow_mut().push("recorder finish");
+                "recording complete"
+            },
+            || {
+                order.borrow_mut().push("preferences save");
+                "preferences complete"
+            },
+        );
+
+        assert_eq!(recording, "recording complete");
+        assert_eq!(preferences, "preferences complete");
+        assert_eq!(
+            order.into_inner(),
+            vec![
+                "renderer drop",
+                "guard drop",
+                "deferred diagnostics",
+                "recorder finish",
+                "preferences save",
+            ]
+        );
+    }
+
+    #[test]
+    fn other_thread_hook_blocks_until_activation_operation_finishes() {
+        let coordinator = std::sync::Arc::new(TerminalOperationCoordinator::new());
+        let (events_tx, events_rx) = mpsc::channel();
+        let (release_tx, release_rx) = mpsc::channel();
+        let hook_barrier = std::sync::Arc::new(std::sync::Barrier::new(2));
+        let (hook_done_tx, hook_done_rx) = mpsc::channel();
+
+        let activation_coordinator = std::sync::Arc::clone(&coordinator);
+        let activation_events = events_tx.clone();
+        let activation = thread::spawn(move || {
+            activation_coordinator.with_operation(|reentrant| {
+                assert!(!reentrant);
+                activation_coordinator
+                    .begin_activation()
+                    .expect("activation begins");
+                activation_events
+                    .send("activation start")
+                    .expect("activation start sent");
+                release_rx.recv().expect("activation released");
+                activation_events
+                    .send("activation finish")
+                    .expect("activation finish sent");
+                activation_coordinator
+                    .publish_active()
+                    .expect("activation publishes active");
+            });
+        });
+
+        assert_eq!(
+            events_rx.recv().expect("activation starts"),
+            "activation start"
+        );
+        let hook_coordinator = std::sync::Arc::clone(&coordinator);
+        let hook_events = events_tx.clone();
+        let hook_ready = std::sync::Arc::clone(&hook_barrier);
+        let hook = thread::spawn(move || {
+            hook_ready.wait();
+            hook_coordinator.handle_panic(
+                || hook_events.send("restore").expect("restore sent"),
+                || hook_events.send("panic output").expect("panic output sent"),
+            );
+            hook_done_tx.send(()).expect("hook completion sent");
+        });
+        hook_barrier.wait();
+
+        assert!(matches!(
+            hook_done_rx.try_recv(),
+            Err(mpsc::TryRecvError::Empty)
+        ));
+        assert!(matches!(
+            events_rx.try_recv(),
+            Err(mpsc::TryRecvError::Empty)
+        ));
+
+        release_tx.send(()).expect("release activation");
+        activation.join().expect("activation thread joins");
+        hook.join().expect("hook thread joins");
+        assert_eq!(
+            events_rx.recv().expect("activation finishes"),
+            "activation finish"
+        );
+        assert_eq!(events_rx.recv().expect("restore follows"), "restore");
+        assert_eq!(
+            events_rx.recv().expect("panic output follows"),
+            "panic output"
+        );
+        assert_eq!(coordinator.state(), LiveTuiSessionState::Interrupted);
+    }
+
+    #[test]
+    fn other_thread_hook_cannot_interleave_active_draw() {
+        let coordinator = std::sync::Arc::new(TerminalOperationCoordinator::new());
+        coordinator.with_operation(|_| {
+            coordinator.begin_activation().expect("activation begins");
+            coordinator.publish_active().expect("activation completes");
+        });
+        let (events_tx, events_rx) = mpsc::channel();
+        let (release_tx, release_rx) = mpsc::channel();
+        let hook_barrier = std::sync::Arc::new(std::sync::Barrier::new(2));
+        let (hook_done_tx, hook_done_rx) = mpsc::channel();
+
+        let draw_coordinator = std::sync::Arc::clone(&coordinator);
+        let draw_events = events_tx.clone();
+        let draw = thread::spawn(move || {
+            draw_coordinator
+                .with_session_operation(LiveTuiSessionEnforcement::Interactive, || {
+                    draw_events.send("draw start").expect("draw start sent");
+                    release_rx.recv().expect("draw released");
+                    draw_events.send("draw finish").expect("draw finish sent");
+                })
+                .expect("draw is serialized");
+        });
+
+        assert_eq!(events_rx.recv().expect("draw starts"), "draw start");
+        let hook_coordinator = std::sync::Arc::clone(&coordinator);
+        let hook_events = events_tx.clone();
+        let hook_ready = std::sync::Arc::clone(&hook_barrier);
+        let hook = thread::spawn(move || {
+            hook_ready.wait();
+            hook_coordinator.handle_panic(
+                || hook_events.send("restore").expect("restore sent"),
+                || hook_events.send("panic output").expect("panic output sent"),
+            );
+            hook_done_tx.send(()).expect("hook completion sent");
+        });
+        hook_barrier.wait();
+
+        assert!(matches!(
+            hook_done_rx.try_recv(),
+            Err(mpsc::TryRecvError::Empty)
+        ));
+        assert!(matches!(
+            events_rx.try_recv(),
+            Err(mpsc::TryRecvError::Empty)
+        ));
+
+        release_tx.send(()).expect("release draw");
+        draw.join().expect("draw thread joins");
+        hook.join().expect("hook thread joins");
+        assert_eq!(events_rx.recv().expect("draw finishes"), "draw finish");
+        assert_eq!(events_rx.recv().expect("restore follows"), "restore");
+        assert_eq!(
+            events_rx.recv().expect("panic output follows"),
+            "panic output"
+        );
+        assert_eq!(coordinator.state(), LiveTuiSessionState::Interrupted);
+    }
+
+    #[test]
+    fn interrupted_session_rejects_subsequent_draw_operation() {
+        let coordinator = TerminalOperationCoordinator::new();
+        coordinator.with_operation(|_| {
+            coordinator.begin_activation().expect("activation begins");
+            coordinator.publish_active().expect("activation completes");
+        });
+        coordinator.handle_panic(|| {}, || {});
+        let wrote = std::cell::Cell::new(false);
+
+        let result = coordinator
+            .with_session_operation(LiveTuiSessionEnforcement::Interactive, || wrote.set(true));
+
+        assert_eq!(result, Err(LiveTuiSessionState::Interrupted));
+        assert!(!wrote.get());
+        assert!(!coordinator.finish_session(|| panic!("interrupted session restored twice")));
+        assert_eq!(coordinator.state(), LiveTuiSessionState::Inactive);
+    }
+
+    #[test]
+    fn same_thread_panic_path_reenters_coordinator_without_deadlock() {
+        let coordinator = TerminalOperationCoordinator::new();
+        let order = std::cell::RefCell::new(Vec::new());
+
+        coordinator.with_operation(|outer_reentrant| {
+            assert!(!outer_reentrant);
+            coordinator.begin_activation().expect("activation begins");
+            coordinator.handle_panic(
+                || order.borrow_mut().push("restore"),
+                || order.borrow_mut().push("panic output"),
+            );
+            order.borrow_mut().push("returned");
+        });
+
+        assert_eq!(
+            order.into_inner(),
+            vec!["restore", "panic output", "returned"]
+        );
+        assert_eq!(coordinator.state(), LiveTuiSessionState::Inactive);
+    }
+
+    #[test]
+    fn sequential_interactive_sessions_restore_and_reactivate() {
+        let coordinator = TerminalOperationCoordinator::new();
+        let restore_count = std::cell::Cell::new(0);
+
+        for _ in 0..2 {
+            coordinator.with_operation(|_| {
+                coordinator.begin_activation().expect("activation begins");
+                coordinator.publish_active().expect("activation completes");
+            });
+            assert!(coordinator.finish_session(|| {
+                restore_count.set(restore_count.get() + 1);
+            }));
+            assert_eq!(coordinator.state(), LiveTuiSessionState::Inactive);
+        }
+
+        assert_eq!(restore_count.get(), 2);
+    }
+
+    #[test]
+    fn unmanaged_renderer_operation_works_without_interactive_session() {
+        let coordinator = TerminalOperationCoordinator::new();
+        let rendered = std::cell::Cell::new(false);
+
+        coordinator
+            .with_session_operation(LiveTuiSessionEnforcement::Unmanaged, || rendered.set(true))
+            .expect("unmanaged render is allowed while inactive");
+
+        assert!(rendered.get());
+        assert_eq!(coordinator.state(), LiveTuiSessionState::Inactive);
+    }
+
+    #[test]
+    fn unbounded_tui_duration_requires_interactive_stdio() {
+        let err =
+            validate_live_duration(0, true, false, LiveTerminalCapabilities::new(false, true))
+                .expect_err("unbounded TUI needs interactive stdio");
+
+        assert!(
+            err.to_string()
+                .contains("both stdin and stderr attached to a terminal")
+        );
+        assert!(
+            validate_live_duration(0, true, false, LiveTerminalCapabilities::new(true, true),)
+                .is_ok()
+        );
+    }
+
+    #[test]
+    fn fixture_once_skips_unbounded_tty_validation() {
+        let noninteractive = LiveTerminalCapabilities::new(false, false);
+
+        assert!(validate_live_duration(0, true, true, noninteractive).is_ok());
+        assert!(validate_live_duration(0, false, true, noninteractive).is_ok());
+        assert!(validate_live_duration(0, true, false, noninteractive).is_err());
+    }
+
+    #[test]
+    fn live_run_lifetime_zero_is_unbounded() {
+        let now = tokio::time::Instant::now();
+
+        assert_eq!(
+            LiveRunLifetime::from_duration_secs(0, now).expect("unbounded lifetime"),
+            LiveRunLifetime::Unbounded
+        );
+    }
+
+    #[test]
+    fn live_run_lifetime_positive_duration_is_bounded() {
+        let now = tokio::time::Instant::now();
+
+        assert_eq!(
+            LiveRunLifetime::from_duration_secs(15, now).expect("bounded lifetime"),
+            LiveRunLifetime::Bounded(now + Duration::from_secs(15))
+        );
+    }
+
+    #[test]
+    fn live_run_lifetime_overflow_returns_an_error() {
+        let err = LiveRunLifetime::from_duration_secs(u64::MAX, tokio::time::Instant::now())
+            .expect_err("overflowing duration must fail without panic");
+
+        assert!(err.to_string().contains("too large"));
+    }
+
+    #[test]
+    fn live_run_lifetime_only_bounded_lifetimes_expire() {
+        let now = tokio::time::Instant::now();
+        let bounded = LiveRunLifetime::from_duration_secs(15, now).expect("bounded lifetime");
+        let unbounded = LiveRunLifetime::from_duration_secs(0, now).expect("unbounded lifetime");
+
+        assert!(bounded.has_expired_by(now + Duration::from_secs(15)));
+        assert!(!unbounded.has_expired_by(now + Duration::from_secs(15)));
+    }
+
+    #[test]
+    fn shutdown_listener_errors_are_not_successful_signal_stops() {
+        let setup_err = shutdown_listener_setup::<()>(Err(std::io::Error::other("setup failed")))
+            .expect_err("listener setup failure propagates");
+        assert!(
+            setup_err
+                .to_string()
+                .contains("install shutdown signal listener")
+        );
+
+        let delivery_err =
+            shutdown_signal_stop_reason(Err(std::io::Error::other("delivery failed")))
+                .expect_err("signal delivery failure propagates");
+        assert!(
+            delivery_err
+                .to_string()
+                .contains("wait for OS shutdown signal")
+        );
+    }
+
+    #[test]
+    fn live_drive_summary_preserves_clean_stop_reasons() {
+        let mut summary = LiveDriveSummary {
+            reconnects: 1,
+            ..LiveDriveSummary::default()
+        };
+        summary.mark_stopped(LiveStopReason::Signal);
+
+        assert_eq!(summary.stop_reason, Some(LiveStopReason::Signal));
+        assert_eq!(summary.stop_reason_label(), Some("signal"));
+        assert!(summary.is_clean_shutdown());
+        assert!(!summary.is_no_messages_failure());
+    }
+
+    #[test]
+    fn live_drive_summary_rejects_unstopped_no_message_runs() {
+        let summary = LiveDriveSummary {
+            reconnects: 1,
+            ..LiveDriveSummary::default()
+        };
+
+        assert!(summary.is_no_messages_failure());
+        assert!(!summary.is_clean_shutdown());
+    }
+
+    #[test]
+    fn duration_elapsed_outage_remains_a_run_failure() {
+        let mut summary = LiveDriveSummary {
+            reconnects: 1,
+            ..LiveDriveSummary::default()
+        };
+        summary.mark_stopped(LiveStopReason::DurationElapsed);
+
+        assert!(summary.is_clean_shutdown());
+        assert!(summary.is_no_messages_failure());
+    }
+
+    #[test]
+    fn operator_and_signal_outages_stop_cleanly() {
+        for stop_reason in [LiveStopReason::OperatorQuit, LiveStopReason::Signal] {
+            let mut summary = LiveDriveSummary {
+                reconnects: 1,
+                ..LiveDriveSummary::default()
+            };
+            summary.mark_stopped(stop_reason);
+
+            assert!(summary.is_clean_shutdown());
+            assert!(!summary.is_no_messages_failure());
+        }
+    }
+
+    #[test]
+    fn operator_quit_reason_is_available_during_connection_waits() {
+        let mut state = WorkstationUiState::default();
+        state.apply(WorkstationAction::Quit, 1);
+
+        assert_eq!(
+            operator_stop_reason(&state),
+            Some(LiveStopReason::OperatorQuit)
+        );
+    }
+
+    #[test]
+    fn operator_quit_reason_is_available_during_subscription_startup() {
+        let mut state = WorkstationUiState::default();
+        state.apply(WorkstationAction::Quit, 1);
+
+        assert_eq!(
+            operator_stop_reason(&state),
+            Some(LiveStopReason::OperatorQuit)
+        );
+    }
+
+    #[tokio::test]
+    async fn cancellable_send_stop_wins_over_pending_write() {
+        for key in [
+            KeyEvent::new(KeyCode::Char('q'), KeyModifiers::NONE),
+            KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE),
+            KeyEvent::new(KeyCode::Char('c'), KeyModifiers::CONTROL),
+        ] {
+            let mut state = WorkstationUiState::default();
+            let action = key_to_workstation_action(key, &state).expect("key maps to an action");
+            state.apply(action, 1);
+            let stop_reason = operator_stop_reason(&state).expect("key requests operator stop");
+            let send = pending::<Result<(), &'static str>>();
+            let stop = std::future::ready(Ok(stop_reason));
+
+            let outcome =
+                tokio::time::timeout(Duration::from_millis(100), cancellable_send(send, stop))
+                    .await
+                    .expect("operator stop must not wait for a pending write")
+                    .expect("stop future succeeds");
+
+            assert_eq!(
+                outcome,
+                CancellableSendOutcome::Stopped(LiveStopReason::OperatorQuit)
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn cancellable_send_preserves_completed_write_result() {
+        let send = std::future::ready(Err::<(), _>("write failed"));
+        let stop = pending::<anyhow::Result<LiveStopReason>>();
+
+        assert_eq!(
+            cancellable_send(send, stop)
+                .await
+                .expect("selection succeeds"),
+            CancellableSendOutcome::Sent(Err("write failed"))
+        );
+    }
+
+    #[test]
     fn live_ratatui_viewport_uses_terminal_size_with_workstation_fallback() {
         assert_eq!(
             live_ratatui_viewport_from_size(Some((240, 64))),
@@ -2881,6 +4404,13 @@ mod tests {
     #[test]
     fn live_tui_control_keys_map_to_screen_actions() {
         let state = WorkstationUiState::default();
+        assert_eq!(
+            key_to_workstation_action(
+                KeyEvent::new(KeyCode::Char('c'), KeyModifiers::CONTROL),
+                &state
+            ),
+            Some(WorkstationAction::Quit)
+        );
         assert_eq!(
             key_to_workstation_action(
                 KeyEvent::new(KeyCode::Char('/'), KeyModifiers::NONE),
@@ -4555,9 +6085,14 @@ mod tests {
     struct CountingTuiFrameSink {
         draws: usize,
         color_modes: Vec<RatatuiColorMode>,
+        viewport_change_pending: bool,
     }
 
     impl LiveTuiFrameSink for CountingTuiFrameSink {
+        fn viewport_changed(&mut self) -> bool {
+            std::mem::take(&mut self.viewport_change_pending)
+        }
+
         fn draw(
             &mut self,
             _model: &RatatuiFrameModel,
@@ -4590,6 +6125,7 @@ mod tests {
                     tui_state: None,
                     started: Instant::now(),
                     summary: &summary,
+                    mode: LiveProgressMode::Live,
                 },
                 Some(&mut sink),
             )
@@ -4601,6 +6137,104 @@ mod tests {
             sink.color_modes,
             vec![RatatuiColorMode::Color, RatatuiColorMode::Color]
         );
+    }
+
+    #[test]
+    fn viewport_change_requests_one_redraw_without_a_terminal_event() {
+        let mut sink = CountingTuiFrameSink {
+            viewport_change_pending: true,
+            ..CountingTuiFrameSink::default()
+        };
+
+        assert!(live_tui_redraw_requested(false, Some(&mut sink)));
+        assert!(!live_tui_redraw_requested(false, Some(&mut sink)));
+    }
+
+    fn count_full_screen_clears(output: &[u8]) -> usize {
+        output
+            .windows(b"\x1b[2J".len())
+            .filter(|window| *window == b"\x1b[2J")
+            .count()
+    }
+
+    #[derive(Clone, Default)]
+    struct CapturedWriter(std::sync::Arc<std::sync::Mutex<Vec<u8>>>);
+
+    impl io::Write for CapturedWriter {
+        fn write(&mut self, buffer: &[u8]) -> io::Result<usize> {
+            self.0
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner())
+                .extend_from_slice(buffer);
+            Ok(buffer.len())
+        }
+
+        fn flush(&mut self) -> io::Result<()> {
+            Ok(())
+        }
+    }
+
+    impl CapturedWriter {
+        fn output(&self) -> Vec<u8> {
+            self.0
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner())
+                .clone()
+        }
+    }
+
+    #[test]
+    fn live_tui_renderer_reuses_terminal_and_diffs_identical_frames() {
+        let model = live_tui_model(
+            &[],
+            "fixture renderer regression",
+            &ScreenRequest::default(),
+            None,
+            vec![],
+            vec![],
+            LiveTuiStatus::new("fixture", "REC ready", "static fixture"),
+        );
+        let capture = CapturedWriter::default();
+        let mut renderer = LiveTuiRenderer::with_fixed_viewport_writer(
+            capture.clone(),
+            RatatuiViewport {
+                width: 120,
+                height: 40,
+            },
+            LiveTuiSessionEnforcement::Unmanaged,
+        )
+        .expect("fixed viewport renderer");
+
+        let constructor_output = capture.output();
+        assert_eq!(count_full_screen_clears(&constructor_output), 1);
+        let constructor_end = constructor_output.len();
+
+        renderer
+            .draw(&model, RatatuiColorMode::Color)
+            .expect("first frame draws");
+        let first_output = capture.output();
+        let first_frame_end = first_output.len();
+        assert!(
+            first_output[constructor_end..first_frame_end]
+                .windows(b"WATCHLIST".len())
+                .any(|window| window == b"WATCHLIST")
+        );
+
+        renderer
+            .draw(&model, RatatuiColorMode::Color)
+            .expect("identical frame draws through the same terminal");
+        let output = capture.output();
+        let repeated_frame = &output[first_frame_end..];
+
+        assert_eq!(count_full_screen_clears(&output), 1);
+        assert_eq!(count_full_screen_clears(repeated_frame), 0);
+        assert!(
+            !repeated_frame
+                .windows(b"WATCHLIST".len())
+                .any(|window| window == b"WATCHLIST"),
+            "Ratatui should diff an identical second frame instead of repainting it"
+        );
+        assert!(repeated_frame.len() < first_frame_end - constructor_end);
     }
 
     #[derive(Debug, Parser)]
@@ -4663,7 +6297,10 @@ mod tests {
         assert!(raw.contains("view = \"flow\""));
         assert!(raw.contains("density = \"dense\""));
         assert!(raw.contains("chart_window = \"30m\""));
-        assert_eq!(load_tui_preferences(temp.path()), preferences);
+        assert_eq!(
+            preflight_tui_preferences(temp.path()).preferences,
+            preferences
+        );
     }
 
     #[test]
@@ -4682,14 +6319,31 @@ chart_window = "15m"
         )
         .expect("write unknown preference");
         assert_eq!(
-            load_tui_preferences(temp.path()),
+            preflight_tui_preferences(temp.path()).preferences,
             WorkstationUiPreferences::default()
         );
 
         fs::write(&path, "not valid toml = [").expect("write malformed preference");
         assert_eq!(
-            load_tui_preferences(temp.path()),
+            preflight_tui_preferences(temp.path()).preferences,
             WorkstationUiPreferences::default()
+        );
+    }
+
+    #[test]
+    fn live_tui_preflight_captures_malformed_preferences_before_activation() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        fs::write(tui_preferences_path(temp.path()), "not valid toml = [")
+            .expect("write malformed preference");
+
+        let preflight = preflight_tui_preferences(temp.path());
+
+        assert_eq!(preflight.preferences, WorkstationUiPreferences::default());
+        assert!(
+            preflight
+                .warning
+                .as_deref()
+                .is_some_and(|warning| warning.contains("tui preferences load skipped"))
         );
     }
 
@@ -4797,6 +6451,76 @@ chart_window = "15m"
     }
 
     #[test]
+    fn live_recorder_drop_joins_worker_as_unclean() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        let data_dir = temp.path().to_path_buf();
+        let run_id = "live-worker-drop-test";
+        let recorder = LiveRecorder::new(&data_dir, run_id, vec!["@107".to_owned()], true, true)
+            .expect("live recorder starts");
+
+        let (entered_tx, entered_rx) = mpsc::channel();
+        let (release_tx, release_rx) = mpsc::channel();
+        recorder
+            .send(LiveRecordCommand::WaitForRelease {
+                entered: entered_tx,
+                release: release_rx,
+            })
+            .expect("worker wait command enqueues");
+        entered_rx
+            .recv_timeout(Duration::from_secs(1))
+            .expect("worker reaches wait command");
+
+        let (drop_done_tx, drop_done_rx) = mpsc::channel();
+        let drop_thread = thread::spawn(move || {
+            drop(recorder);
+            let _ = drop_done_tx.send(());
+        });
+        assert!(
+            drop_done_rx
+                .recv_timeout(Duration::from_millis(50))
+                .is_err(),
+            "recorder Drop must wait for its worker"
+        );
+        release_tx.send(()).expect("worker released");
+        drop_done_rx
+            .recv_timeout(Duration::from_secs(1))
+            .expect("recorder drop completes after worker release");
+        drop_thread.join().expect("drop thread joins");
+
+        let registry = MetadataRegistry::open(data_dir.join("hls.sqlite"))
+            .expect("metadata registry reopens after recorder drop");
+        let run = registry
+            .get_run(run_id)
+            .expect("get run")
+            .expect("run exists");
+        assert_eq!(run.clean_shutdown, Some(false));
+        assert!(run.ended_at_ms.is_some());
+    }
+
+    #[test]
+    fn live_recorder_worker_error_still_persists_unclean_shutdown() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        let data_dir = temp.path().to_path_buf();
+        let run_id = "live-worker-error-test";
+        let recorder = LiveRecorder::new(&data_dir, run_id, vec!["@107".to_owned()], true, false)
+            .expect("live recorder starts");
+
+        recorder
+            .record_raw_line(1_710_000_000_123_456_789, 3, "not-json".to_owned())
+            .expect("invalid raw line enqueues before worker parses it");
+        drop(recorder);
+
+        let registry = MetadataRegistry::open(data_dir.join("hls.sqlite"))
+            .expect("metadata registry reopens after worker error");
+        let run = registry
+            .get_run(run_id)
+            .expect("get run")
+            .expect("run exists");
+        assert_eq!(run.clean_shutdown, Some(false));
+        assert!(run.ended_at_ms.is_some());
+    }
+
+    #[test]
     fn live_recorder_worker_preserves_receive_timestamps_and_gaps() {
         let temp = tempfile::tempdir().expect("tempdir");
         let data_dir = temp.path().to_path_buf();
@@ -4851,6 +6575,7 @@ chart_window = "15m"
             .expect("get run")
             .expect("run exists");
         assert_eq!(run.gap_count, 1);
+        assert_eq!(run.clean_shutdown, Some(true));
         let gaps = registry.list_gaps("live-worker-test").expect("gaps list");
         assert_eq!(gaps[0].reason, "test reconnect");
         assert_eq!(gaps[0].affected_symbols, vec!["@107".to_owned()]);
