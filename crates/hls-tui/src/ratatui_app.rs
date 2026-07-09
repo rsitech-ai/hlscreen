@@ -2425,9 +2425,18 @@ fn render_book(
 ) {
     let rows = screened_rows(model);
     let content_height = area.height.saturating_sub(2) as usize;
+    let content_width = area.width.saturating_sub(2);
     let lines = selected_row(&rows, model).map_or_else(
         || vec![Line::from("No book data")],
-        |row| book_lines(row, color_mode, content_height, model.ui_state.view()),
+        |row| {
+            book_lines(
+                row,
+                color_mode,
+                content_height,
+                content_width,
+                model.ui_state.view(),
+            )
+        },
     );
     frame.render_widget(
         Paragraph::new(lines)
@@ -2441,6 +2450,7 @@ fn book_lines(
     row: &FeatureSnapshot,
     color_mode: RatatuiColorMode,
     content_height: usize,
+    content_width: u16,
     view: WorkstationView,
 ) -> Vec<Line<'static>> {
     let bid_notional = notional(row.bid_px, row.bid_sz);
@@ -2507,6 +2517,9 @@ fn book_lines(
         ]),
         book_snap,
     ];
+    if !compact_book && content_width >= 64 {
+        lines.insert(2, book_bbo_ladder_line(row, color_mode));
+    }
     if !compact_book {
         lines.extend(book_snap_lines(
             row,
@@ -2648,6 +2661,30 @@ fn book_snap_compact_line(
         Span::raw(format!("{bid_share} / ")),
         Span::styled("ask share ", Style::default().fg(danger(color_mode))),
         Span::raw(ask_share),
+    ])
+}
+
+fn book_bbo_ladder_line(row: &FeatureSnapshot, color_mode: RatatuiColorMode) -> Line<'static> {
+    Line::from(vec![
+        Span::styled(
+            "BBO LADDER ",
+            Style::default()
+                .fg(accent(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::styled(
+            format!("bid {} ", format_price(row.bid_px)),
+            Style::default().fg(success(color_mode)),
+        ),
+        Span::raw(format!("| mid {} | ", format_price(mid_price(row)))),
+        Span::styled(
+            format!("ask {} ", format_price(row.ask_px)),
+            Style::default().fg(danger(color_mode)),
+        ),
+        Span::raw(format!(
+            "| spr {}bps | read-only BBO",
+            format_optional(row.spread_bps, 1)
+        )),
     ])
 }
 
