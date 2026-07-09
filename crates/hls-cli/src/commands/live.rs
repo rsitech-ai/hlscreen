@@ -1244,6 +1244,7 @@ fn key_to_workstation_action(
         KeyCode::PageDown => Some(WorkstationAction::PageDown),
         KeyCode::Home => Some(WorkstationAction::Home),
         KeyCode::End => Some(WorkstationAction::End),
+        KeyCode::Enter => Some(WorkstationAction::FocusPane(WorkstationPane::Detail)),
         KeyCode::Tab => Some(WorkstationAction::NextView),
         KeyCode::BackTab => Some(WorkstationAction::PreviousView),
         KeyCode::Char(']') => Some(WorkstationAction::NextPane),
@@ -1258,6 +1259,9 @@ fn key_to_workstation_action(
         KeyCode::Char('p') | KeyCode::Char('P') => Some(WorkstationAction::CyclePreset),
         KeyCode::Char('s') | KeyCode::Char('S') => Some(WorkstationAction::CycleSort),
         KeyCode::Char('t') | KeyCode::Char('T') => Some(WorkstationAction::CycleChartWindow),
+        KeyCode::Char('h') | KeyCode::Char('H') => {
+            Some(WorkstationAction::FocusPane(WorkstationPane::Status))
+        }
         KeyCode::Char('d') | KeyCode::Char('D') => Some(WorkstationAction::ToggleDensity),
         KeyCode::Char('?') | KeyCode::F(1) => Some(WorkstationAction::ToggleHelp),
         KeyCode::Char(' ') => Some(WorkstationAction::TogglePause),
@@ -1602,6 +1606,24 @@ mod tests {
         assert_eq!(
             key_to_workstation_action(
                 KeyEvent::new(KeyCode::Char('6'), KeyModifiers::NONE),
+                &state
+            ),
+            Some(WorkstationAction::FocusPane(WorkstationPane::Status))
+        );
+        assert_eq!(
+            key_to_workstation_action(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE), &state),
+            Some(WorkstationAction::FocusPane(WorkstationPane::Detail))
+        );
+        assert_eq!(
+            key_to_workstation_action(
+                KeyEvent::new(KeyCode::Char('h'), KeyModifiers::NONE),
+                &state
+            ),
+            Some(WorkstationAction::FocusPane(WorkstationPane::Status))
+        );
+        assert_eq!(
+            key_to_workstation_action(
+                KeyEvent::new(KeyCode::Char('H'), KeyModifiers::SHIFT),
                 &state
             ),
             Some(WorkstationAction::FocusPane(WorkstationPane::Status))

@@ -174,6 +174,8 @@ TTY keyboard controls for the Ratatui `hls live --tui` cockpit:
 
 - `↑`/`↓` or `k`/`j`: move focused row.
 - `PgUp`/`PgDn`, `Home`, `End`: jump through the visible board.
+- `Enter`: focus the selected symbol detail pane when no command editor is open.
+- `h` / `H`: focus the health/status operations pane.
 - `Tab` / `Shift+Tab`: cycle detail views: overview, flow, quality, metadata, explain.
 - `/`: open the validated filter editor; `Enter` applies, `Esc` cancels, empty input clears the custom filter.
 - `p`: open the preset editor; `Enter` applies, `Esc` cancels, empty input clears the preset.

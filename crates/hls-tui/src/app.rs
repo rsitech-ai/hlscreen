@@ -287,12 +287,12 @@ fn render_workstation(
         && state.help_open()
     {
         output.push_str(&workstation_full_line(
-            "command deck: ↑/↓ row · PgUp/PgDn jump · Home/End edge · Shift+Tab previous view",
+            "command deck: ↑/↓ row · Enter detail · h health · PgUp/PgDn jump · Shift+Tab previous view",
             "",
             layout,
         ));
         output.push_str(&workstation_full_line(
-            "display only: controls change focus, density, help, and view; ingestion stays public/read-only",
+            "display only: controls change focus, detail, health, density, help, and view; ingestion stays public/read-only",
             "",
             layout,
         ));
