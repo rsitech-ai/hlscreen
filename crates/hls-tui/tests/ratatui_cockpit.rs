@@ -1881,6 +1881,45 @@ fn expanded_tape_renders_time_and_sales_board() {
 }
 
 #[test]
+fn expanded_tape_renders_public_print_ladder() {
+    let snapshots = fixture_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Tape),
+        snapshots.len(),
+    );
+    state.apply(WorkstationAction::TogglePaneZoom, snapshots.len());
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    )
+    .with_trades(fixture_trades());
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 190,
+            height: 52,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders expanded public print ladder");
+
+    assert!(rendered.contains("EXPANDED tape"));
+    assert!(rendered.contains("PUBLIC PRINT LADDER"));
+    assert!(rendered.contains("price levels"));
+    assert!(rendered.contains("buy level"));
+    assert!(rendered.contains("sell level"));
+    assert!(rendered.contains("largest print"));
+    assert!(rendered.contains("toxicity proxy"));
+    assert!(rendered.contains("public trades only"));
+    assert!(rendered.contains("no fills"));
+    assert!(rendered.contains("no orders"));
+}
+
+#[test]
 fn tape_pane_flow_view_renders_public_trade_pressure_mode() {
     let snapshots = fixture_snapshots();
     let mut state = WorkstationUiState::default();
