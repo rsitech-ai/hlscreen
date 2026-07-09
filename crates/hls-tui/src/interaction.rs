@@ -250,6 +250,7 @@ pub enum WorkstationAction {
     CyclePreset,
     CycleSort,
     CycleChartWindow,
+    TogglePaneZoom,
     NextPane,
     PreviousPane,
     FocusPane(WorkstationPane),
@@ -284,6 +285,7 @@ pub struct WorkstationUiState {
     focused_pane: WorkstationPane,
     density: WorkstationDensity,
     chart_window: WorkstationChartWindow,
+    pane_expanded: bool,
     command: Option<WorkstationCommand>,
     command_error: Option<String>,
     help_open: bool,
@@ -299,6 +301,7 @@ impl Default for WorkstationUiState {
             focused_pane: WorkstationPane::Watchlist,
             density: WorkstationDensity::Balanced,
             chart_window: WorkstationChartWindow::FifteenMinutes,
+            pane_expanded: false,
             command: None,
             command_error: None,
             help_open: false,
@@ -348,6 +351,10 @@ impl WorkstationUiState {
 
     pub fn chart_window(&self) -> WorkstationChartWindow {
         self.chart_window
+    }
+
+    pub fn pane_expanded(&self) -> bool {
+        self.pane_expanded
     }
 
     pub fn command(&self) -> Option<&WorkstationCommand> {
@@ -413,6 +420,7 @@ impl WorkstationUiState {
             WorkstationAction::ToggleHelp => self.help_open = !self.help_open,
             WorkstationAction::TogglePause => self.paused = !self.paused,
             WorkstationAction::CycleChartWindow => self.chart_window = self.chart_window.next(),
+            WorkstationAction::TogglePaneZoom => self.pane_expanded = !self.pane_expanded,
             WorkstationAction::CycleFilter => {
                 self.command = Some(WorkstationCommand::new(WorkstationCommandTarget::Filter));
                 self.command_error = None;

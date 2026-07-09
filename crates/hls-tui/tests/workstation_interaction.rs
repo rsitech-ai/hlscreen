@@ -48,6 +48,15 @@ fn workstation_state_handles_keyboard_actions() {
     state.apply(WorkstationAction::PreviousPane, 3);
     assert_eq!(state.focused_pane(), WorkstationPane::Detail);
 
+    assert!(!state.pane_expanded());
+    state.apply(WorkstationAction::TogglePaneZoom, 3);
+    assert!(state.pane_expanded());
+    state.apply(WorkstationAction::FocusPane(WorkstationPane::Book), 3);
+    assert_eq!(state.focused_pane(), WorkstationPane::Book);
+    assert!(state.pane_expanded());
+    state.apply(WorkstationAction::TogglePaneZoom, 3);
+    assert!(!state.pane_expanded());
+
     state.apply(WorkstationAction::ToggleDensity, 3);
     assert_eq!(state.density().label(), "dense");
 
