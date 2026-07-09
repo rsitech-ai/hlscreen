@@ -140,6 +140,18 @@ Fetch read-only public spot metadata:
 Run bounded public live screen for the current spot universe:
 
 ```bash
+./target/debug/hls tui
+```
+
+`hls tui` is the default interactive workstation entrypoint. It enables the
+Ratatui cockpit, tracks the top 10 public spot pairs, refreshes once per second,
+uses the ANSI color theme by default, and remains read-only: no wallet, private
+stream, signing, order route, or execution capability is loaded.
+
+Use `hls live --tui` when you want a scripted recording run with explicit
+storage flags:
+
+```bash
 tmpdir="$(mktemp -d /tmp/hlscreen-live.XXXXXX)"
 ./target/debug/hls live \
   --all-symbols \
@@ -158,6 +170,15 @@ tmpdir="$(mktemp -d /tmp/hlscreen-live.XXXXXX)"
 Run a short public live smoke for one symbol:
 
 ```bash
+./target/debug/hls tui \
+  --symbols HYPE/USDC \
+  --duration-secs 30 \
+  --refresh-secs 5
+```
+
+Run the same smoke while recording raw and normalized local evidence:
+
+```bash
 ./target/debug/hls live \
   --symbols HYPE/USDC \
   --duration-secs 30 \
@@ -170,7 +191,7 @@ Run a short public live smoke for one symbol:
   --data-dir "$(mktemp -d /tmp/hlscreen-live.XXXXXX)"
 ```
 
-TTY keyboard controls for the Ratatui `hls live --tui` cockpit:
+TTY keyboard controls for the Ratatui `hls tui` / `hls live --tui` cockpit:
 
 - `↑`/`↓` or `k`/`j`: move focused row.
 - `←`/`→` or `[`/`]`: cycle pane focus across watchlist, detail, chart, book, tape, and ops/status.
@@ -205,9 +226,9 @@ TTY mouse controls for terminals with mouse reporting enabled:
 - Click the bottom `ACTION STRIP` in wide/medium terminals: activates visible controls such as symbol jump, density, pause, filter, preset, sort, chart window, help, and quit.
 - Standard-wide watchlists keep a selected-row context rail under the scanner table when there is enough height, so row actions, leaders, and read-only scan context remain visible even when the left column is narrower.
 - On narrow terminals, the compact `/pstdzsp h? q` rail is clickable: filter, preset, sort, timeframe, density, zoom, pause, health/status, help, and quit.
-- On very short terminals under 20 rows, `hls live --tui` switches to a clickable `MICRO LAYOUT` command/pane rail that keeps the focused pane, resize-safe controls, color diagnostics, and read-only status visible.
+- On very short terminals under 20 rows, the TUI switches to a clickable `MICRO LAYOUT` command/pane rail that keeps the focused pane, resize-safe controls, color diagnostics, and read-only status visible.
 
-Color defaults to `always` for `hls live --tui`, so the Ratatui workstation uses
+Color defaults to `always` for `hls tui` and `hls live --tui`, so the Ratatui workstation uses
 the ANSI theme out of the box. Use `--color auto` to follow terminal and
 environment detection, or `--color never` for deterministic monochrome output.
 Medium and wide layouts show the active visual path in the top header and bottom

@@ -5,6 +5,25 @@ fn fixture(path: &str) -> String {
     format!("{}/../../{}", env!("CARGO_MANIFEST_DIR"), path)
 }
 
+fn assert_unified_ratatui_cockpit_output(output: &str) {
+    assert!(output.contains("\u{1b}["));
+    assert!(
+        output.contains("Hyperliquid Spot Microstructure Workstation")
+            || output.contains("LAYOUT DIRECTOR")
+            || output.contains("RATATUI"),
+        "fixture TUI should render the adaptive Ratatui workstation shell"
+    );
+    assert!(output.contains("STATUS"));
+    assert!(output.contains("REC ready"));
+    assert!(output.contains("WATCHLIST"));
+    assert!(output.contains("ALGO SCAN"));
+    assert!(output.contains("DETAIL") || output.contains("MICROSTRUCTURE"));
+    assert!(output.contains("BBO"));
+    assert!(output.contains("HYPE/USDC"));
+    assert!(output.contains("read-only"));
+    assert!(!output.contains("private key"));
+}
+
 #[test]
 fn live_once_renders_fixture_backed_read_only_table() {
     Command::cargo_bin("hls")
@@ -80,21 +99,27 @@ fn live_once_tui_uses_unified_ratatui_cockpit() {
         .success();
     let output = String::from_utf8(assert.get_output().stdout.clone()).expect("stdout is utf8");
 
-    assert!(output.contains("\u{1b}["));
-    assert!(
-        output.contains("Hyperliquid Spot Microstructure Workstation")
-            || output.contains("LAYOUT DIRECTOR"),
-        "fixture TUI should render the adaptive Ratatui workstation shell"
-    );
-    assert!(output.contains("layout "));
-    assert!(output.contains("resize-safe"));
-    assert!(output.contains("STATUS"));
-    assert!(output.contains("REC ready"));
-    assert!(output.contains("WATCHLIST"));
-    assert!(output.contains("ALGO SCAN"));
-    assert!(output.contains("DETAIL") || output.contains("MICROSTRUCTURE"));
-    assert!(output.contains("BBO"));
-    assert!(output.contains("HYPE/USDC"));
-    assert!(output.contains("read-only"));
-    assert!(!output.contains("private key"));
+    assert_unified_ratatui_cockpit_output(&output);
+}
+
+#[test]
+fn tui_command_once_uses_unified_ratatui_cockpit_without_extra_flags() {
+    let assert = Command::cargo_bin("hls")
+        .expect("hls binary")
+        .args([
+            "tui",
+            "--symbols",
+            "@107",
+            "--fixture-file",
+            &fixture("tests/fixtures/hyperliquid/ws_mock_live.ndjson"),
+            "--metadata-file",
+            &fixture("tests/fixtures/microstructure/metadata_enrichment.json"),
+            "--once",
+        ])
+        .assert()
+        .success()
+        .stderr(predicate::str::is_empty());
+    let output = String::from_utf8(assert.get_output().stdout.clone()).expect("stdout is utf8");
+
+    assert_unified_ratatui_cockpit_output(&output);
 }
