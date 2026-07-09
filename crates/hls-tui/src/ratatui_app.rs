@@ -1884,13 +1884,23 @@ fn render_status_bar(
     model: &RatatuiFrameModel,
     color_mode: RatatuiColorMode,
 ) {
-    let status = format!(
-        " {} | {} | focus {} | {} | No wallet, no private streams, no order routes. Screen heuristic, not advice. ",
-        model.health_status,
-        pause_label(model),
-        model.ui_state.focused_pane().label(),
-        mode_label(&model.request, model.rows.len())
-    );
+    let status = if area.width < 90 {
+        format!(
+            "{} | {} | {} | {} | RO no-wallet",
+            compact_health_label(&model.health_status),
+            display_state_label(model),
+            model.ui_state.focused_pane().label(),
+            compact_mode_label(&model.request, model.rows.len())
+        )
+    } else {
+        format!(
+            " {} | {} | focus {} | {} | No wallet, no private streams, no order routes. Screen heuristic, not advice. ",
+            model.health_status,
+            pause_label(model),
+            model.ui_state.focused_pane().label(),
+            mode_label(&model.request, model.rows.len())
+        )
+    };
     frame.render_widget(
         Paragraph::new(status)
             .style(Style::default().fg(warn(color_mode)))
@@ -1904,6 +1914,21 @@ fn render_status_bar(
             ),
         area,
     );
+}
+
+fn compact_health_label(health_status: &str) -> String {
+    health_status
+        .replace("events=", "ev=")
+        .replace("reconnects=", "rc=")
+        .replace("gaps=", "gp=")
+}
+
+fn display_state_label(model: &RatatuiFrameModel) -> &'static str {
+    if model.ui_state.paused() {
+        "paused"
+    } else {
+        "live"
+    }
 }
 
 fn render_status_panel(
@@ -2058,6 +2083,20 @@ fn mode_label(request: &ScreenRequest, row_count: usize) -> String {
     sort.map_or_else(
         || format!("top-{row_count} by screen rank"),
         |sort| format!("top-{row_count} by {}", sort.replace(':', " ")),
+    )
+}
+
+fn compact_mode_label(request: &ScreenRequest, row_count: usize) -> String {
+    let sort = request.sort.clone().or_else(|| {
+        request
+            .preset
+            .as_deref()
+            .and_then(find_preset)
+            .map(|preset| preset.sort.to_owned())
+    });
+    sort.map_or_else(
+        || format!("top{row_count}"),
+        |sort| format!("top{row_count} {}", sort.replace(':', " ")),
     )
 }
 

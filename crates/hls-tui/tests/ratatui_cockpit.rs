@@ -295,7 +295,8 @@ fn narrow_cockpit_collapses_to_watchlist_and_detail_without_tape() {
         "READ-ONLY Hyperliquid spot live screen",
         ScreenRequest::default(),
         WorkstationUiState::default(),
-    );
+    )
+    .with_status("LIVE", "REC ready", "ws=235 events=485 reconnects=0 gaps=0");
 
     let rendered = render_ratatui_snapshot_for_test(
         &model,
@@ -315,6 +316,10 @@ fn narrow_cockpit_collapses_to_watchlist_and_detail_without_tape() {
     assert!(rendered.contains(" dn "));
     assert!(rendered.contains(" tr "));
     assert!(rendered.contains(" dp "));
+    assert!(rendered.contains("ws=235 ev=485 rc=0 gp=0"));
+    assert!(rendered.contains("live | watchlist | top1"));
+    assert!(rendered.contains("RO no-wallet"));
+    assert!(!rendered.contains("top-10 by screen rank"));
     assert!(rendered.contains("HYPE/USDC"));
     assert!(!rendered.contains("TAPE"));
 }
