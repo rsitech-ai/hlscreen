@@ -1408,6 +1408,44 @@ fn expanded_book_renders_depth_map_drilldown() {
 }
 
 #[test]
+fn expanded_book_renders_liquidity_wall_monitor() {
+    let snapshots = fixture_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Book),
+        snapshots.len(),
+    );
+    state.apply(WorkstationAction::TogglePaneZoom, snapshots.len());
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    );
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 190,
+            height: 52,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders expanded book liquidity wall monitor");
+
+    assert!(rendered.contains("EXPANDED book"));
+    assert!(rendered.contains("LIQUIDITY WALL"));
+    assert!(rendered.contains("bid share"));
+    assert!(rendered.contains("ask share"));
+    assert!(rendered.contains("spread 57.1bps"));
+    assert!(rendered.contains("OFI"));
+    assert!(rendered.contains("micro edge"));
+    assert!(rendered.contains("public BBO only"));
+    assert!(rendered.contains("no L2 reconstruction"));
+    assert!(rendered.contains("no orders"));
+}
+
+#[test]
 fn medium_cockpit_keeps_book_and_tape_visible() {
     let model = RatatuiFrameModel::new(
         fixture_snapshots(),
