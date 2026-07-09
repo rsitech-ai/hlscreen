@@ -188,10 +188,11 @@ fn render_wide(
     model: &RatatuiFrameModel,
     color_mode: RatatuiColorMode,
 ) {
+    let header_height = if area.width >= 220 { 9 } else { 8 };
     let root = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(8),
+            Constraint::Length(header_height),
             Constraint::Min(12),
             Constraint::Length(3),
         ])
@@ -526,6 +527,9 @@ fn render_header(
             color_mode,
         ));
     }
+    if !narrow && viewport.width >= 220 && area.height >= 8 {
+        text.push(selected_quote_rail_line(model, color_mode));
+    }
     text.extend([
         layout_controls_line(viewport, &model.ui_state, narrow, color_mode),
         market_internals_line(model, color_mode, narrow),
@@ -845,6 +849,49 @@ fn market_internals_line(
             stale.min(99),
             format_usd_signed(Some(signed_flow)),
             format_usd(Some(depth))
+        )),
+    ])
+}
+
+fn selected_quote_rail_line(
+    model: &RatatuiFrameModel,
+    color_mode: RatatuiColorMode,
+) -> Line<'static> {
+    let rows = screened_rows(model);
+    let Some(row) = selected_row(&rows, model) else {
+        return Line::from("SELECTED QUOTE no selected public row");
+    };
+    let bid_notional = notional(row.bid_px, row.bid_sz);
+    let ask_notional = notional(row.ask_px, row.ask_sz);
+    let (bid_share, ask_share) = quote_share(bid_notional, ask_notional).unwrap_or((0.0, 0.0));
+
+    Line::from(vec![
+        Span::styled(
+            "SELECTED QUOTE ",
+            Style::default()
+                .fg(accent(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::styled(
+            format!("{} ", display_symbol(row)),
+            Style::default()
+                .fg(pane_accent(WorkstationPane::Detail, color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::styled("bid share ", Style::default().fg(success(color_mode))),
+        Span::raw(format!(
+            "{} {}  ",
+            depth_bar(bid_share, 6),
+            percent_label(bid_share)
+        )),
+        Span::styled("ask share ", Style::default().fg(danger(color_mode))),
+        Span::raw(format!(
+            "{} {}  spread {}bps  top book {}  flow {}  public BBO read-only",
+            depth_bar(ask_share, 6),
+            percent_label(ask_share),
+            format_optional(row.spread_bps, 1),
+            format_usd(row.tob_depth_usd),
+            format_usd_signed(row.signed_notional_flow_30s),
         )),
     ])
 }
