@@ -132,6 +132,8 @@ fn wide_cockpit_renders_all_primary_trading_workstation_regions() {
     assert!(rendered.contains("DOWN/USDC DN-1.23% -$4.2K"));
     assert!(rendered.contains("STATUS LIVE"));
     assert!(rendered.contains("CONTROLS"));
+    assert!(rendered.contains("QUALITY"));
+    assert!(rendered.contains("stale00"));
     assert!(rendered.contains("1-6 panes"));
     assert!(rendered.contains("RANK"));
     assert!(rendered.contains("FLOW30"));
@@ -416,8 +418,9 @@ fn narrow_cockpit_collapses_to_watchlist_and_detail_without_tape() {
     assert!(rendered.contains(" tr "));
     assert!(rendered.contains(" heat "));
     assert!(rendered.contains(" dp "));
-    assert!(rendered.contains("ws=235 ev=485 rc=0 gp=0"));
+    assert!(rendered.contains("ws235 ev485 r0 g0"));
     assert!(rendered.contains("live | watchlist:j/k | top1"));
+    assert!(rendered.contains("q:T"));
     assert!(rendered.contains("RO no-wallet"));
     assert!(!rendered.contains("top-10 by screen rank"));
     assert!(rendered.contains("BBO bid"));

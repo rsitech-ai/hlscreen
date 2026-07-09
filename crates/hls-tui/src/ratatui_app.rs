@@ -2211,11 +2211,12 @@ fn render_status_bar(
 ) {
     let status = if area.width < 90 {
         Line::from(format!(
-            "{} | {} | {} | {} | RO no-wallet",
+            "{} | {} | {} | {} | {} | RO no-wallet",
             compact_health_label(&model.health_status),
             display_state_label(model),
             focused_pane_key_label(model.ui_state.focused_pane(), true),
-            compact_mode_label(&model.request, model.rows.len())
+            compact_mode_label(&model.request, model.rows.len()),
+            operational_quality_label(model, true)
         ))
     } else {
         market_status_bar_line(model, color_mode)
@@ -2247,6 +2248,12 @@ fn market_status_bar_line(
             focused_pane_key_label(model.ui_state.focused_pane(), false),
             mode_label(&model.request, model.rows.len())
         )),
+        Span::styled(
+            format!("{} | ", operational_quality_label(model, false)),
+            Style::default()
+                .fg(warn(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
         Span::styled(
             "MARKET ",
             Style::default()
@@ -2334,11 +2341,33 @@ fn market_ticker_spans(
     spans
 }
 
+fn operational_quality_label(model: &RatatuiFrameModel, compact: bool) -> String {
+    let rows = screened_rows(model);
+    let tradeable = rows
+        .iter()
+        .filter(|row| matches!(row.tradeability_state, TradeabilityState::Tradeable))
+        .count();
+    let degraded = rows
+        .iter()
+        .filter(|row| row.confidence.score < 70 || row.staleness_state != StalenessState::Fresh)
+        .count();
+    let stale = rows
+        .iter()
+        .filter(|row| row.staleness_state != StalenessState::Fresh)
+        .count();
+    if compact {
+        format!("q:T{tradeable}")
+    } else {
+        format!("QUALITY T{tradeable:02} !{degraded:02} stale{stale:02}")
+    }
+}
+
 fn compact_health_label(health_status: &str) -> String {
     health_status
-        .replace("events=", "ev=")
-        .replace("reconnects=", "rc=")
-        .replace("gaps=", "gp=")
+        .replace("ws=", "ws")
+        .replace("events=", "ev")
+        .replace("reconnects=", "r")
+        .replace("gaps=", "g")
 }
 
 fn display_state_label(model: &RatatuiFrameModel) -> &'static str {
