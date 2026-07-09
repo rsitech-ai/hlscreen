@@ -258,6 +258,7 @@ pub enum WorkstationAction {
     NextPane,
     PreviousPane,
     FocusPane(WorkstationPane),
+    ScrollPane(WorkstationPane, WorkstationScrollDirection),
     SelectRow(usize),
     SetView(WorkstationView),
     SetChartWindow(WorkstationChartWindow),
@@ -266,6 +267,12 @@ pub enum WorkstationAction {
     SubmitCommand,
     CancelCommand,
     Quit,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum WorkstationScrollDirection {
+    Up,
+    Down,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -452,6 +459,13 @@ impl WorkstationUiState {
             WorkstationAction::NextPane => self.focused_pane = self.focused_pane.next(),
             WorkstationAction::PreviousPane => self.focused_pane = self.focused_pane.previous(),
             WorkstationAction::FocusPane(pane) => self.focused_pane = pane,
+            WorkstationAction::ScrollPane(pane, direction) => {
+                self.focused_pane = pane;
+                match direction {
+                    WorkstationScrollDirection::Up => self.apply_directional_up(row_count),
+                    WorkstationScrollDirection::Down => self.apply_directional_down(row_count),
+                }
+            }
             WorkstationAction::SelectRow(index) => {
                 self.selected_symbol = None;
                 self.focused_pane = WorkstationPane::Watchlist;

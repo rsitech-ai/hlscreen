@@ -47,7 +47,8 @@ use hls_tui::{
     app::{render_confidence_summary, render_screened_table},
     interaction::{
         WorkstationAction, WorkstationChartWindow, WorkstationCommandTarget, WorkstationDensity,
-        WorkstationPane, WorkstationUiPreferences, WorkstationUiState, WorkstationView,
+        WorkstationPane, WorkstationScrollDirection, WorkstationUiPreferences, WorkstationUiState,
+        WorkstationView,
     },
     ratatui_app::{
         RatatuiColorMode, RatatuiFrameModel, RatatuiViewport, render_ratatui_snapshot_for_test,
@@ -1417,8 +1418,18 @@ fn mouse_to_workstation_action(
     }
 
     match mouse.kind {
-        MouseEventKind::ScrollUp => Some(WorkstationAction::Up),
-        MouseEventKind::ScrollDown => Some(WorkstationAction::Down),
+        MouseEventKind::ScrollUp => Some(mouse_scroll_action(
+            mouse.column,
+            mouse.row,
+            terminal_size,
+            WorkstationScrollDirection::Up,
+        )),
+        MouseEventKind::ScrollDown => Some(mouse_scroll_action(
+            mouse.column,
+            mouse.row,
+            terminal_size,
+            WorkstationScrollDirection::Down,
+        )),
         MouseEventKind::Down(_) => terminal_size.map(|(width, height)| {
             if let Some(action) =
                 mouse_header_command_action(mouse.column, mouse.row, width, ui_state)
@@ -1456,6 +1467,26 @@ fn mouse_to_workstation_action(
         }),
         _ => None,
     }
+}
+
+fn mouse_scroll_action(
+    column: u16,
+    row: u16,
+    terminal_size: Option<(u16, u16)>,
+    direction: WorkstationScrollDirection,
+) -> WorkstationAction {
+    terminal_size.map_or_else(
+        || match direction {
+            WorkstationScrollDirection::Up => WorkstationAction::Up,
+            WorkstationScrollDirection::Down => WorkstationAction::Down,
+        },
+        |(width, height)| {
+            WorkstationAction::ScrollPane(
+                mouse_pane_for_position(column, row, width, height),
+                direction,
+            )
+        },
+    )
 }
 
 fn mouse_header_command_action(
@@ -2561,35 +2592,58 @@ mod tests {
     }
 
     #[test]
-    fn live_tui_mouse_events_map_to_keyboard_parity_actions() {
+    fn live_tui_mouse_events_map_to_pointer_aware_actions() {
         let state = WorkstationUiState::default();
         assert_eq!(
             mouse_to_workstation_action(
                 MouseEvent {
                     kind: MouseEventKind::ScrollUp,
-                    column: 0,
-                    row: 0,
+                    column: 10,
+                    row: 11,
                     modifiers: KeyModifiers::NONE,
                 },
                 &state,
                 Some((160, 48)),
                 20,
             ),
-            Some(WorkstationAction::Up)
+            Some(WorkstationAction::ScrollPane(
+                WorkstationPane::Watchlist,
+                WorkstationScrollDirection::Up
+            ))
         );
         assert_eq!(
             mouse_to_workstation_action(
                 MouseEvent {
                     kind: MouseEventKind::ScrollDown,
-                    column: 0,
-                    row: 0,
+                    column: 70,
+                    row: 12,
                     modifiers: KeyModifiers::NONE,
                 },
                 &state,
                 Some((160, 48)),
                 20,
             ),
-            Some(WorkstationAction::Down)
+            Some(WorkstationAction::ScrollPane(
+                WorkstationPane::Detail,
+                WorkstationScrollDirection::Down
+            ))
+        );
+        assert_eq!(
+            mouse_to_workstation_action(
+                MouseEvent {
+                    kind: MouseEventKind::ScrollDown,
+                    column: 70,
+                    row: 30,
+                    modifiers: KeyModifiers::NONE,
+                },
+                &state,
+                Some((160, 48)),
+                20,
+            ),
+            Some(WorkstationAction::ScrollPane(
+                WorkstationPane::Chart,
+                WorkstationScrollDirection::Down
+            ))
         );
         assert_eq!(
             mouse_to_workstation_action(
@@ -2999,15 +3053,18 @@ mod tests {
             live_tui_event_effect(
                 Event::Mouse(MouseEvent {
                     kind: MouseEventKind::ScrollDown,
-                    column: 0,
-                    row: 0,
+                    column: 70,
+                    row: 30,
                     modifiers: KeyModifiers::NONE,
                 }),
                 &state,
                 Some((160, 48)),
                 20,
             ),
-            LiveTuiEventEffect::Action(WorkstationAction::Down)
+            LiveTuiEventEffect::Action(WorkstationAction::ScrollPane(
+                WorkstationPane::Chart,
+                WorkstationScrollDirection::Down
+            ))
         );
 
         let mut command_state = WorkstationUiState::default();
