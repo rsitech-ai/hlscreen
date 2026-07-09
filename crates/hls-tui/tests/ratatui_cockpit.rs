@@ -62,6 +62,16 @@ fn cockpit_renders_command_palette_with_validation_error() {
     assert!(rendered.contains("COMMAND"));
     assert!(rendered.contains("COMMAND CENTER"));
     assert!(rendered.contains("TARGET filter"));
+    assert!(rendered.contains("COMMAND ROUTER"));
+    assert!(rendered.contains("live ingestion continues"));
+    assert!(rendered.contains("RESULT PREVIEW"));
+    assert!(rendered.contains("top HYPE/USDC"));
+    assert!(rendered.contains("selected HYPE/USDC"));
+    assert!(rendered.contains("last valid screen retained"));
+    assert!(rendered.contains("KEYFLOW"));
+    assert!(rendered.contains("t timeframe"));
+    assert!(rendered.contains("GUARDRAILS"));
+    assert!(rendered.contains("display mutation only"));
     assert!(rendered.contains("SCOPE read-only screened rows"));
     assert!(rendered.contains("EXAMPLES"));
     assert!(rendered.contains("filter: spread_bps < 5"));

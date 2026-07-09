@@ -1649,7 +1649,7 @@ fn render_command_palette(
     let Some(command) = model.ui_state.command() else {
         return;
     };
-    let popup = centered_rect(74, 34, area);
+    let popup = centered_rect(74, 54, area);
     frame.render_widget(Clear, popup);
     frame.render_widget(
         Paragraph::new(command_palette_lines(command, model))
@@ -1673,7 +1673,11 @@ fn command_palette_lines(
     let mut lines = vec![
         Line::from("COMMAND CENTER"),
         Line::from(format!("TARGET {target} | INPUT {input}")),
+        command_router_line(command),
         Line::from(active_command_context_line(&model.request)),
+        command_result_preview_line(model),
+        Line::from("KEYFLOW / filter | p preset | s sort | t timeframe | d density | ? help"),
+        Line::from("GUARDRAILS read-only display mutation only | last valid screen retained"),
         Line::from(format!(
             "SCOPE read-only screened rows {} | view {} | pane {}",
             screened_rows(model).len(),
@@ -1700,6 +1704,28 @@ fn command_palette_lines(
         lines.push(Line::from(format!("error: {error}")));
     }
     lines
+}
+
+fn command_router_line(command: &WorkstationCommand) -> Line<'static> {
+    Line::from(format!(
+        "COMMAND ROUTER target {} | Enter apply | Esc rollback | live ingestion continues",
+        command.target().label()
+    ))
+}
+
+fn command_result_preview_line(model: &RatatuiFrameModel) -> Line<'static> {
+    let rows = screened_rows(model);
+    let top = rows
+        .first()
+        .map_or_else(|| "-".to_owned(), |row| display_symbol(row).to_owned());
+    let selected = selected_row(&rows, model)
+        .map_or_else(|| "-".to_owned(), |row| display_symbol(row).to_owned());
+    Line::from(format!(
+        "RESULT PREVIEW rows {:02} | top {} | selected {} | last valid screen retained",
+        rows.len().min(99),
+        top,
+        selected
+    ))
 }
 
 fn active_command_context_line(request: &ScreenRequest) -> String {
