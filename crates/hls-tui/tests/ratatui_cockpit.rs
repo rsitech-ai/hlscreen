@@ -1338,6 +1338,49 @@ fn expanded_chart_renders_public_intelligence_deck() {
 }
 
 #[test]
+fn expanded_chart_renders_tactical_matrix() {
+    let snapshots = directional_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Chart),
+        snapshots.len(),
+    );
+    state.apply(WorkstationAction::TogglePaneZoom, snapshots.len());
+    state.apply(WorkstationAction::CycleChartWindow, snapshots.len());
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    )
+    .with_candles(directional_chart_candles("@107"))
+    .with_trades(fixture_trades());
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 190,
+            height: 54,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders expanded chart tactical matrix");
+
+    assert!(rendered.contains("EXPANDED chart"));
+    assert!(rendered.contains("TACTICAL MATRIX"));
+    assert!(rendered.contains("window 30m"));
+    assert!(rendered.contains("regime"));
+    assert!(rendered.contains("trend"));
+    assert!(rendered.contains("volatility"));
+    assert!(rendered.contains("liquidity gate"));
+    assert!(rendered.contains("flow gate"));
+    assert!(rendered.contains("confidence 100"));
+    assert!(rendered.contains("public candles/BBO/trades only"));
+    assert!(rendered.contains("no orders"));
+    assert!(rendered.contains("not advice"));
+}
+
+#[test]
 fn narrow_cockpit_expands_focused_book_pane() {
     let snapshots = fixture_snapshots();
     let mut state = WorkstationUiState::default();
