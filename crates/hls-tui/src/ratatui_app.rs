@@ -935,10 +935,10 @@ fn render_watchlist(
         table_area.height,
     );
     let title = if rows.is_empty() {
-        "WATCHLIST 0/0".to_owned()
+        "WATCHLIST 0/0 ALGO SCAN".to_owned()
     } else {
         format!(
-            "WATCHLIST {}/{} VIEW {:02}-{:02}{}",
+            "WATCHLIST {}/{} ALGO SCAN VIEW {:02}-{:02}{}",
             selected + 1,
             rows.len(),
             visible_range.start + 1,
