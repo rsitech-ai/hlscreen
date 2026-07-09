@@ -940,6 +940,39 @@ fn medium_status_bar_compacts_action_and_theme_rails() {
 }
 
 #[test]
+fn medium_header_and_status_use_fit_to_width_rails() {
+    let model = RatatuiFrameModel::new(
+        directional_snapshots(),
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        WorkstationUiState::default(),
+    )
+    .with_status("LIVE", "REC ready", "ws=120 events=300 gaps=0");
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 120,
+            height: 40,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders medium fit-to-width rails");
+
+    assert!(rendered.contains("filter RO-live"));
+    assert!(rendered.contains(
+        "CONTROLS LAYOUT DIRECTOR resize-safe | 1-6 focus | z expand | keys /pstdzsp h? q"
+    ));
+    assert!(rendered.contains("TICKER BR 01/01"));
+    assert!(rendered.contains("Q T00 !00 stale00"));
+    assert!(rendered.contains("RISK c100 d00 f-$4.2K"));
+    assert!(!rendered.contains("filter:READ-ON"));
+    assert!(!rendered.contains("LAYOUT DIRECTOR resize-safe | 1-6 focus | z expand | [1 WATCH]"));
+    assert!(!rendered.contains("QUALITY T00"));
+    assert!(!rendered.contains("RISK STRIP"));
+}
+
+#[test]
 fn medium_status_bar_surfaces_compact_quality_alert() {
     let mut snapshots = ten_directional_snapshots();
     snapshots[1].confidence.score = 44;
