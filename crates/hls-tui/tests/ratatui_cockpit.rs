@@ -634,6 +634,39 @@ fn book_pane_renders_bid_ask_share_and_notional_bars() {
 }
 
 #[test]
+fn wide_book_pane_renders_queue_share_snap() {
+    let snapshots = fixture_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Book),
+        snapshots.len(),
+    );
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    );
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 240,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders wide book snap");
+
+    assert!(rendered.contains("[FOCUS] BOOK"));
+    assert!(rendered.contains("BOOK SNAP"));
+    assert!(rendered.contains("share bid"));
+    assert!(rendered.contains("ask share"));
+    assert!(rendered.contains("queue map"));
+    assert!(rendered.contains("read-only top-book"));
+}
+
+#[test]
 fn book_pane_flow_view_renders_depth_flow_mode() {
     let snapshots = fixture_snapshots();
     let mut state = WorkstationUiState::default();
