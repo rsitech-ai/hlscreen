@@ -12,7 +12,8 @@ use ratatui::{
 };
 
 use crate::interaction::{
-    WorkstationCommand, WorkstationPane, WorkstationUiState, WorkstationView,
+    WorkstationChartWindow, WorkstationCommand, WorkstationPane, WorkstationUiState,
+    WorkstationView,
 };
 
 const MAX_CHART_CANDLES: usize = 48;
@@ -1268,6 +1269,7 @@ fn render_chart(
     let Some(latest) = candles.last() else {
         frame.render_widget(
             Paragraph::new(vec![
+                chart_window_tabs_line(model.ui_state.chart_window(), color_mode, area.width < 72),
                 Line::from("Waiting for public 1m candle frames."),
                 Line::from("No synthetic candles are rendered."),
             ])
@@ -1292,11 +1294,16 @@ fn render_chart(
         format_plain_number(latest.close),
         format_volume(latest.volume_base)
     );
-    let chart_lines = candle_chart_lines(
+    let mut chart_lines = vec![chart_window_tabs_line(
+        model.ui_state.chart_window(),
+        color_mode,
+        area.width < 72,
+    )];
+    chart_lines.extend(candle_chart_lines(
         &candles,
-        area.height.saturating_sub(2) as usize,
+        area.height.saturating_sub(3) as usize,
         model.ui_state.chart_window().label(),
-    );
+    ));
     frame.render_widget(
         Paragraph::new(chart_lines)
             .wrap(Wrap { trim: false })
@@ -1304,6 +1311,41 @@ fn render_chart(
             .style(Style::default().fg(success(color_mode))),
         area,
     );
+}
+
+fn chart_window_tabs_line(
+    active: WorkstationChartWindow,
+    color_mode: RatatuiColorMode,
+    compact: bool,
+) -> Line<'static> {
+    let mut spans = vec![Span::styled(
+        if compact { "WIN " } else { "WINDOWS " },
+        Style::default()
+            .fg(accent(color_mode))
+            .add_modifier(Modifier::BOLD),
+    )];
+    for (index, window) in WorkstationChartWindow::ALL.iter().enumerate() {
+        if index > 0 {
+            spans.push(Span::raw(" "));
+        }
+        let label = window.label();
+        let label = if compact {
+            label.trim_end_matches('m')
+        } else {
+            label
+        };
+        if *window == active {
+            spans.push(Span::styled(
+                format!("[{label}]"),
+                Style::default()
+                    .fg(warn(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ));
+        } else {
+            spans.push(Span::raw(label.to_owned()));
+        }
+    }
+    Line::from(spans)
 }
 
 fn selected_candles<'a>(
