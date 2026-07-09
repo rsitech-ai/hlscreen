@@ -192,6 +192,7 @@ fn medium_cockpit_compacts_market_board_without_truncated_signals() {
     .expect("renders");
 
     assert!(rendered.contains("RK"));
+    assert!(rendered.contains("HT"));
     assert!(rendered.contains("FLOW"));
     assert!(rendered.contains("UP+0.57%"));
     assert!(rendered.contains("DN-1.23%"));
@@ -247,6 +248,7 @@ fn market_board_renders_score_and_bias_columns() {
 
     assert!(rendered.contains("SIG"));
     assert!(rendered.contains("EDGE"));
+    assert!(rendered.contains("HEAT"));
     assert!(rendered.contains("BIAS"));
     assert!(rendered.contains("SPR"));
     assert!(rendered.contains("57.1"));
