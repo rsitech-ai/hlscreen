@@ -730,7 +730,13 @@ fn render_detail(
         return;
     };
 
-    let lines = detail_lines(row, model.ui_state.view(), color_mode, area.width);
+    let lines = detail_lines(
+        row,
+        model.ui_state.view(),
+        color_mode,
+        area.width,
+        title == "DETAIL",
+    );
     frame.render_widget(
         Paragraph::new(lines)
             .wrap(Wrap { trim: true })
@@ -744,8 +750,9 @@ fn detail_lines(
     view: WorkstationView,
     color_mode: RatatuiColorMode,
     width: u16,
+    force_compact: bool,
 ) -> Vec<Line<'static>> {
-    let compact = width <= 72;
+    let compact = force_compact || width <= 72;
     let tabs = detail_view_tabs_line(view, color_mode, compact);
     let heading = Line::from(vec![
         Span::styled(
@@ -774,6 +781,9 @@ fn detail_lines(
                     row.resilience_state.as_str()
                 )),
             ];
+            if compact {
+                lines.insert(2, selected_bbo_line(row, color_mode));
+            }
             lines.extend(factor_stack_lines(row, color_mode, compact));
             lines.extend(liquidity_radar_lines(row, color_mode));
             lines.extend([
@@ -859,6 +869,37 @@ fn detail_lines(
             lines
         }
     }
+}
+
+fn selected_bbo_line(row: &FeatureSnapshot, color_mode: RatatuiColorMode) -> Line<'static> {
+    let bid_notional = notional(row.bid_px, row.bid_sz);
+    let ask_notional = notional(row.ask_px, row.ask_sz);
+    Line::from(vec![
+        Span::styled(
+            "BBO ",
+            Style::default()
+                .fg(accent(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::styled("bid ", Style::default().fg(success(color_mode))),
+        Span::raw(format!(
+            "{} {}",
+            format_price(row.bid_px),
+            format_usd(bid_notional)
+        )),
+        Span::raw(" / "),
+        Span::styled("ask ", Style::default().fg(danger(color_mode))),
+        Span::raw(format!(
+            "{} {}",
+            format_price(row.ask_px),
+            format_usd(ask_notional)
+        )),
+        Span::raw(format!(
+            " | depth {} | imb {}",
+            format_usd(row.tob_depth_usd),
+            format_signed(row.tob_imbalance, "")
+        )),
+    ])
 }
 
 fn detail_view_tabs_line(
