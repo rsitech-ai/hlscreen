@@ -1512,6 +1512,11 @@ fn tape_pane_renders_public_recent_trades_when_available() {
     assert!(rendered.contains("buy 1"));
     assert!(rendered.contains("sell 1"));
     assert!(rendered.contains("public tape"));
+    assert!(rendered.contains("TAPE VELOCITY"));
+    assert!(rendered.contains("prints/s 0.03"));
+    assert!(rendered.contains("notional/s $2"));
+    assert!(rendered.contains("max $70"));
+    assert!(rendered.contains("public"));
     assert!(rendered.contains("LAST TRADE HUD"));
     assert!(rendered.contains("latest SELL"));
     assert!(rendered.contains("px 35.2000"));
@@ -1558,7 +1563,8 @@ fn tape_pane_flow_view_renders_public_trade_pressure_mode() {
     assert!(rendered.contains("TRADE FLOW MODE"));
     assert!(rendered.contains("buy pressure"));
     assert!(rendered.contains("sell pressure"));
-    assert!(rendered.contains("Public trades only | no fills"));
+    assert!(rendered.contains("TRADE FLOW MODE Public trades"));
+    assert!(rendered.contains("only | no fills"));
 }
 
 #[test]
