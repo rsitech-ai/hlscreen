@@ -2644,6 +2644,50 @@ fn cockpit_color_mode_is_explicit_and_does_not_pollute_no_color_snapshots() {
 }
 
 #[test]
+fn cockpit_color_mode_uses_pane_accented_borders() {
+    let model = RatatuiFrameModel::new(
+        fixture_snapshots(),
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        WorkstationUiState::default(),
+    )
+    .with_candles(fixture_candles())
+    .with_trades(fixture_trades());
+
+    let plain = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 220,
+            height: 52,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("plain wide cockpit renders");
+    let colored = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 220,
+            height: 52,
+        },
+        RatatuiColorMode::Color,
+    )
+    .expect("colored wide cockpit renders");
+
+    assert!(!plain.contains("\u{1b}["));
+    assert!(colored.contains("\u{1b}[38;2;0;229;255m"));
+    assert!(colored.contains("\u{1b}[38;2;0;255;154m"));
+    assert!(colored.contains("\u{1b}[38;2;255;209;102m"));
+    assert!(colored.contains("\u{1b}[38;2;255;77;109m"));
+    assert!(colored.contains("\u{1b}[38;2;168;85;247m"));
+    assert!(colored.contains("\u{1b}[38;2;96;165;250m"));
+    assert!(colored.contains("WATCHLIST"));
+    assert!(colored.contains("MICROSTRUCTURE"));
+    assert!(colored.contains("CANDLES"));
+    assert!(colored.contains("BOOK"));
+    assert!(colored.contains("TAPE"));
+}
+
+#[test]
 fn wide_status_bar_renders_theme_calibration_rail() {
     let model = RatatuiFrameModel::new(
         fixture_snapshots(),
