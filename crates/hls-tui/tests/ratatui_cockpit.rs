@@ -686,6 +686,8 @@ fn wide_status_bar_renders_action_key_rail() {
     assert!(rendered.contains("tab view"));
     assert!(rendered.contains("g symbol"));
     assert!(rendered.contains("z zoom"));
+    assert!(rendered.contains("d density"));
+    assert!(rendered.contains("space pause"));
     assert!(rendered.contains("/ filter"));
     assert!(rendered.contains("p preset"));
     assert!(rendered.contains("s sort"));
@@ -721,6 +723,7 @@ fn medium_status_bar_compacts_action_and_theme_rails() {
     assert!(rendered.contains("ACTION STRIP"));
     assert!(rendered.contains("j/k ent tab g"));
     assert!(rendered.contains("z zoom"));
+    assert!(rendered.contains("d sp"));
     assert!(rendered.contains("/ p s t ? q"));
     assert!(rendered.contains("THEME plain"));
     assert!(rendered.contains("COLOR plain fallback"));

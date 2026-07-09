@@ -195,7 +195,7 @@ TTY mouse controls for terminals with mouse reporting enabled:
 - Click an inactive pane rail/tab: focuses that pane.
 - Click the already-active pane rail/tab: expands or collapses that pane, matching `z`.
 - Click detail view tabs, chart window tabs, or header command controls: activates the visible read-only display control.
-- Click the bottom `ACTION STRIP` in wide/medium terminals: activates visible controls such as symbol jump, filter, preset, sort, chart window, help, and quit.
+- Click the bottom `ACTION STRIP` in wide/medium terminals: activates visible controls such as symbol jump, density, pause, filter, preset, sort, chart window, help, and quit.
 
 Color defaults to `always` for `hls live --tui`, so the Ratatui workstation uses
 the ANSI theme out of the box. Use `--color auto` to follow terminal and

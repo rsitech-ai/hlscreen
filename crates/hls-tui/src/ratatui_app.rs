@@ -7078,12 +7078,12 @@ fn action_status_bar_line(
     let state = &model.ui_state;
     let action_copy = if width < 132 {
         format!(
-            "j/k ent tab g z {} / p s t ? q | ",
+            "j/k ent tab g z {} d sp / p s t ? q | ",
             pane_zoom_action_label(state)
         )
     } else {
         format!(
-            "j/k row ent detail tab view g symbol z {} / filter p preset s sort t win ? help q quit | ",
+            "j/k row ent detail tab view g symbol z {} d density space pause / filter p preset s sort t win ? help q quit | ",
             pane_zoom_action_label(state)
         )
     };
@@ -7140,7 +7140,7 @@ fn neon_state_spans(model: &RatatuiFrameModel, color_mode: RatatuiColorMode) -> 
                 .add_modifier(Modifier::BOLD),
         ),
         Span::raw(format!(
-            "heat {} breadth {:02}/{:02} | read-only signal cockpit",
+            "read-only signal cockpit | heat {} breadth {:02}/{:02}",
             market_heat_bar(up, down),
             up.min(99),
             down.min(99)
