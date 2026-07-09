@@ -1432,7 +1432,7 @@ fn mouse_to_workstation_action(
         )),
         MouseEventKind::Down(_) => terminal_size.map(|(width, height)| {
             if let Some(action) =
-                mouse_header_command_action(mouse.column, mouse.row, width, ui_state)
+                mouse_header_command_action(mouse.column, mouse.row, width, height, ui_state)
             {
                 action
             } else if let Some(pane) =
@@ -1508,11 +1508,22 @@ fn mouse_header_command_action(
     column: u16,
     row: u16,
     width: u16,
+    height: u16,
     ui_state: &WorkstationUiState,
 ) -> Option<WorkstationAction> {
-    mouse_top_command_strip_action(column, row, width, ui_state)
+    mouse_micro_command_action(column, row, height)
+        .or_else(|| mouse_top_command_strip_action(column, row, width, ui_state))
         .or_else(|| mouse_adaptive_desk_command_action(column, row, width, ui_state))
         .or_else(|| mouse_compact_command_cluster_action(column, row, width))
+}
+
+fn mouse_micro_command_action(column: u16, row: u16, height: u16) -> Option<WorkstationAction> {
+    if height >= 20 || row != 2 {
+        return None;
+    }
+
+    let start_column = 1 + "CMD ".len() as u16;
+    mouse_compact_command_rail_hit(column, start_column)
 }
 
 fn mouse_top_command_strip_action(
@@ -3305,6 +3316,90 @@ mod tests {
             mouse_to_workstation_action(
                 MouseEvent {
                     kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
+                    column: 5,
+                    row: 2,
+                    modifiers: KeyModifiers::NONE,
+                },
+                &state,
+                Some((80, 16)),
+                20,
+            ),
+            Some(WorkstationAction::OpenSymbolSearch)
+        );
+        assert_eq!(
+            mouse_to_workstation_action(
+                MouseEvent {
+                    kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
+                    column: 7,
+                    row: 2,
+                    modifiers: KeyModifiers::NONE,
+                },
+                &state,
+                Some((80, 16)),
+                20,
+            ),
+            Some(WorkstationAction::CycleFilter)
+        );
+        assert_eq!(
+            mouse_to_workstation_action(
+                MouseEvent {
+                    kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
+                    column: 13,
+                    row: 2,
+                    modifiers: KeyModifiers::NONE,
+                },
+                &state,
+                Some((80, 16)),
+                20,
+            ),
+            Some(WorkstationAction::CycleChartWindow)
+        );
+        assert_eq!(
+            mouse_to_workstation_action(
+                MouseEvent {
+                    kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
+                    column: 17,
+                    row: 2,
+                    modifiers: KeyModifiers::NONE,
+                },
+                &state,
+                Some((80, 16)),
+                20,
+            ),
+            Some(WorkstationAction::TogglePaneZoom)
+        );
+        assert_eq!(
+            mouse_to_workstation_action(
+                MouseEvent {
+                    kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
+                    column: 19,
+                    row: 2,
+                    modifiers: KeyModifiers::NONE,
+                },
+                &state,
+                Some((80, 16)),
+                20,
+            ),
+            Some(WorkstationAction::TogglePause)
+        );
+        assert_eq!(
+            mouse_to_workstation_action(
+                MouseEvent {
+                    kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
+                    column: 24,
+                    row: 2,
+                    modifiers: KeyModifiers::NONE,
+                },
+                &state,
+                Some((80, 16)),
+                20,
+            ),
+            Some(WorkstationAction::Quit)
+        );
+        assert_eq!(
+            mouse_to_workstation_action(
+                MouseEvent {
+                    kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
                     column: 10,
                     row: 2,
                     modifiers: KeyModifiers::NONE,
@@ -3762,6 +3857,20 @@ mod tests {
                 },
                 &command_state,
                 Some((160, 48)),
+                20,
+            ),
+            None
+        );
+        assert_eq!(
+            mouse_to_workstation_action(
+                MouseEvent {
+                    kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
+                    column: 5,
+                    row: 2,
+                    modifiers: KeyModifiers::NONE,
+                },
+                &command_state,
+                Some((80, 16)),
                 20,
             ),
             None
