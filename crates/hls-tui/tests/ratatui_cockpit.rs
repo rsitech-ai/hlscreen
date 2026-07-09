@@ -1049,6 +1049,34 @@ fn compact_medium_panel_titles_and_router_fit_without_half_words() {
 }
 
 #[test]
+fn exact_180_column_rails_use_standard_compact_copy() {
+    let model = RatatuiFrameModel::new(
+        directional_snapshots(),
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        WorkstationUiState::default(),
+    )
+    .with_status("LIVE", "REC ready", "ws=120 events=300 gaps=0");
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 180,
+            height: 50,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders exact 180-column standard layout");
+
+    assert!(rendered.contains("DESK [W1] D2 C3 B4 T5 O6 | CMD g/p/s/t/d/z/sp/?/q"));
+    assert!(rendered.contains("visible watch/detail/chart/book/tape/status | hidden none"));
+    assert!(rendered.contains("TICKER BR 01/01"));
+    assert!(rendered.contains("RISK c100 d00 f-$4.2K"));
+    assert!(!rendered.contains("visible watch/detail/chart│"));
+    assert!(!rendered.contains("RISK STRIP conf100 degraded00 net flow -$3"));
+}
+
+#[test]
 fn medium_status_bar_surfaces_compact_quality_alert() {
     let mut snapshots = ten_directional_snapshots();
     snapshots[1].confidence.score = 44;
@@ -1731,17 +1759,16 @@ fn cockpit_header_renders_interactive_desk_tab_rail() {
     .expect("renders interactive desk tab rail");
 
     assert!(rendered.contains("DESK"));
-    assert!(rendered.contains("WATCHLIST 1"));
-    assert!(rendered.contains("DETAIL 2"));
-    assert!(rendered.contains("[CHART 3]"));
-    assert!(rendered.contains("BOOK 4"));
-    assert!(rendered.contains("TAPE 5"));
-    assert!(rendered.contains("OPS 6"));
-    assert!(rendered.contains("CMD g / p s t d z sp ? q"));
+    assert!(rendered.contains("W1"));
+    assert!(rendered.contains("D2"));
+    assert!(rendered.contains("[C3]"));
+    assert!(rendered.contains("B4"));
+    assert!(rendered.contains("T5"));
+    assert!(rendered.contains("O6"));
+    assert!(rendered.contains("CMD g/p/s/t/d/z/sp/?/q"));
     assert!(rendered.contains("view flow"));
-    assert!(rendered.contains("density dense"));
-    assert!(rendered.contains("EXEC GUARD"));
-    assert!(rendered.contains("read-only"));
+    assert!(rendered.contains("den dense"));
+    assert!(rendered.contains("RO"));
 }
 
 #[test]
