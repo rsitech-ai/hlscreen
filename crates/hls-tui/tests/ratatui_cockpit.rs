@@ -879,3 +879,34 @@ fn cockpit_chart_renders_price_axis_and_public_candle_footer() {
     assert!(rendered.contains("window"));
     assert!(rendered.contains("Public 1m candles only"));
 }
+
+#[test]
+fn cockpit_chart_renders_interactive_window_tab_rail() {
+    let snapshots = fixture_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Chart),
+        snapshots.len(),
+    );
+    state.apply(WorkstationAction::CycleChartWindow, snapshots.len());
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    )
+    .with_candles(fixture_candles());
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 160,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders chart with window tabs");
+
+    assert!(rendered.contains("WINDOWS 1m 5m 15m [30m] 60m"));
+    assert!(rendered.contains("chart:30m"));
+}
