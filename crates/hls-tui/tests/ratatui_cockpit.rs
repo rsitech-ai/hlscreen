@@ -2489,6 +2489,48 @@ fn expanded_chart_renders_tactical_matrix() {
 }
 
 #[test]
+fn expanded_chart_renders_price_action_terminal() {
+    let snapshots = fixture_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Chart),
+        snapshots.len(),
+    );
+    state.apply(WorkstationAction::TogglePaneZoom, snapshots.len());
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    )
+    .with_candles(fixture_candles())
+    .with_trades(fixture_trades());
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 190,
+            height: 54,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders expanded price-action terminal");
+
+    assert!(rendered.contains("EXPANDED chart"));
+    assert!(rendered.contains("PRICE ACTION TERMINAL"));
+    assert!(rendered.contains("HYPE/USDC public OHLCV tape"));
+    assert!(rendered.contains("open 34.5000"));
+    assert!(rendered.contains("high"));
+    assert!(rendered.contains("low"));
+    assert!(rendered.contains("close 35.0000"));
+    assert!(rendered.contains("range"));
+    assert!(rendered.contains("VWAP"));
+    assert!(rendered.contains("volume"));
+    assert!(rendered.contains("public OHLCV only"));
+    assert!(rendered.contains("no orders"));
+}
+
+#[test]
 fn narrow_cockpit_expands_focused_book_pane() {
     let snapshots = fixture_snapshots();
     let mut state = WorkstationUiState::default();
