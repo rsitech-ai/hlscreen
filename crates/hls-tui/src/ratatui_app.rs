@@ -388,9 +388,9 @@ fn render_header(
             ),
             Span::raw(pane_hotkey_rail(&model.ui_state, narrow)),
             Span::raw(if narrow {
-                " | j/k 1-6 tab / p s t ? q"
+                " | j/k ent h 1-6 /pst? q"
             } else {
-                " | j/k row 1-6 panes tab views / p s t ? q"
+                " | j/k row enter detail h status 1-6 panes tab views / p s t ? q"
             }),
         ]),
         market_internals_line(model, color_mode, narrow),
@@ -1908,7 +1908,9 @@ fn render_help_overlay(
             ),
             Span::raw("arrows/j/k navigate | tab views | [ ] panes | space pause"),
         ]),
-        Line::from("PANES 1W 2D 3C 4B 5T 6S | watchlist detail chart book tape status"),
+        Line::from(
+            "PANES 1W 2D 3C 4B 5T 6S | enter detail | h health/status | watchlist detail chart book tape status",
+        ),
         Line::from("MARKET OPS / filter p preset s sort | t chart window | d density"),
         Line::from("MOUSE wheel rows | click focus | terminal support required"),
         Line::from("j/k or arrows  act on focused pane: rows, detail view, or chart window"),
@@ -1921,7 +1923,9 @@ fn render_help_overlay(
             color_mode.palette_label()
         )),
         Line::from("mouse wheel moves rows; click focuses panes when terminal mouse is available"),
-        Line::from("/ filter  |  p preset  |  s sort  |  t chart window"),
+        Line::from(
+            "/ filter  |  p preset  |  s sort  |  t chart window  |  enter detail  |  h health",
+        ),
         Line::from("d  density  |  space  pause display  |  ?  help  |  q  quit"),
         Line::from(vec![
             Span::styled(
@@ -1979,7 +1983,9 @@ fn command_palette_lines(
         command_router_line(command),
         Line::from(active_command_context_line(&model.request)),
         command_result_preview_line(model),
-        Line::from("KEYFLOW / filter | p preset | s sort | t timeframe | d density | ? help"),
+        Line::from(
+            "KEYFLOW / filter | p preset | s sort | t timeframe | enter detail | h health | d density | ? help",
+        ),
         Line::from("GUARDRAILS read-only display mutation only | last valid screen retained"),
         Line::from(format!(
             "SCOPE read-only screened rows {} | view {} | pane {}",
@@ -4157,10 +4163,14 @@ fn render_status_panel(
             Span::raw(if compact {
                 "no orders 1-6 focus p preset s sort space pause"
             } else {
-                "no orders 1-6 focus status ? help p preset s sort space pause"
+                "no orders enter detail h health 1-6 focus status ? help p preset s sort space pause"
             }),
         ]),
-        Line::from("read-only safety | No wallet | public market data only"),
+        Line::from(if compact {
+            "read-only safety | No wallet | ent detail h health | public market data only"
+        } else {
+            "read-only safety | No wallet | public market data only"
+        }),
     ]);
     frame.render_widget(
         Paragraph::new(lines)
