@@ -6834,6 +6834,7 @@ fn tape_lines(
         if model.ui_state.pane_expanded() && model.ui_state.focused_pane() == WorkstationPane::Tape
         {
             lines.extend(time_and_sales_board_lines(&recent_trades, color_mode));
+            lines.extend(print_terminal_lines(selected, &recent_trades, color_mode));
             lines.extend(public_print_ladder_lines(&recent_trades, color_mode));
         }
         if model.ui_state.view() == WorkstationView::Flow {
@@ -7267,6 +7268,72 @@ fn time_and_sales_board_lines(
             ),
         ]),
         Line::from("public prints only | no fills | no private streams"),
+    ]
+}
+
+fn print_terminal_lines(
+    selected: &FeatureSnapshot,
+    trades: &[&TradeEvent],
+    color_mode: RatatuiColorMode,
+) -> Vec<Line<'static>> {
+    let buy_notional = trades
+        .iter()
+        .filter(|trade| trade.side == TradeSide::Buy)
+        .map(|trade| trade.notional.max(0.0))
+        .sum::<f64>();
+    let sell_notional = trades
+        .iter()
+        .filter(|trade| trade.side == TradeSide::Sell)
+        .map(|trade| trade.notional.max(0.0))
+        .sum::<f64>();
+    let total_notional = buy_notional + sell_notional;
+    let side_pressure = if total_notional > 0.0 {
+        ((buy_notional - sell_notional) / total_notional).clamp(-1.0, 1.0)
+    } else {
+        0.0
+    };
+    let largest = trades
+        .iter()
+        .map(|trade| trade.notional.max(0.0))
+        .fold(0.0_f64, f64::max);
+    let window_secs = match (
+        trades.iter().map(|trade| trade.exchange_ts_ms).min(),
+        trades.iter().map(|trade| trade.exchange_ts_ms).max(),
+    ) {
+        (Some(min_ts), Some(max_ts)) => ((max_ts - min_ts).max(1) as f64 / 1_000.0).max(1.0),
+        _ => 1.0,
+    };
+    let burst = trades.len() as f64 / window_secs;
+
+    vec![
+        Line::from(vec![
+            Span::styled(
+                "PRINT TERMINAL ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(format!("{} public trade tape", display_symbol(selected))),
+        ]),
+        Line::from(vec![
+            Span::styled("burst ", Style::default().fg(accent(color_mode))),
+            Span::raw(format!(
+                "{burst:.2}/s | largest print {} | ",
+                format_usd(Some(largest))
+            )),
+            Span::styled(
+                "side pressure ",
+                Style::default().fg(flow_color(side_pressure, color_mode)),
+            ),
+            Span::raw(signed_meter(side_pressure)),
+        ]),
+        Line::from(vec![
+            Span::styled("buy notional ", Style::default().fg(success(color_mode))),
+            Span::raw(format!("{}  ", format_usd(Some(buy_notional)))),
+            Span::styled("sell notional ", Style::default().fg(danger(color_mode))),
+            Span::raw(format_usd(Some(sell_notional))),
+        ]),
+        Line::from("boundary public trades only | no fills | no orders | no private streams"),
     ]
 }
 
