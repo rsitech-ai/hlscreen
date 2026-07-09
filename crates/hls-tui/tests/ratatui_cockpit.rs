@@ -1249,6 +1249,42 @@ fn narrow_cockpit_expands_focused_book_pane() {
 }
 
 #[test]
+fn expanded_book_renders_depth_map_drilldown() {
+    let snapshots = fixture_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Book),
+        snapshots.len(),
+    );
+    state.apply(WorkstationAction::TogglePaneZoom, snapshots.len());
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    );
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 180,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders expanded book depth map");
+
+    assert!(rendered.contains("EXPANDED book"));
+    assert!(rendered.contains("DEPTH MAP"));
+    assert!(rendered.contains("bid wall"));
+    assert!(rendered.contains("ask wall"));
+    assert!(rendered.contains("queue skew"));
+    assert!(rendered.contains("spread gate"));
+    assert!(rendered.contains("public top-book only"));
+    assert!(rendered.contains("no orders"));
+}
+
+#[test]
 fn medium_cockpit_keeps_book_and_tape_visible() {
     let model = RatatuiFrameModel::new(
         fixture_snapshots(),

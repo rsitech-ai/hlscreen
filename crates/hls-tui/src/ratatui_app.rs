@@ -3774,6 +3774,17 @@ fn book_lines(
         return lines;
     }
 
+    if content_height >= 18 {
+        lines.extend(book_depth_map_lines(
+            row,
+            quote_share,
+            bid_notional,
+            ask_notional,
+            content_width,
+            color_mode,
+        ));
+    }
+
     lines.extend([
         Line::from("DEPTH CONSOLE | BBO depth proxy | BOOK proxy only | public top-book"),
         Line::from(vec![
@@ -3812,6 +3823,47 @@ fn book_lines(
         Line::from(format!("adverse {}", row.adverse_selection_proxy.as_str())),
     ]);
     lines
+}
+
+fn book_depth_map_lines(
+    row: &FeatureSnapshot,
+    quote_share: Option<(f64, f64)>,
+    bid_notional: Option<f64>,
+    ask_notional: Option<f64>,
+    content_width: u16,
+    color_mode: RatatuiColorMode,
+) -> Vec<Line<'static>> {
+    let width = if content_width >= 96 { 18 } else { 12 };
+    let (bid_bar, ask_bar) = quote_share
+        .map(|(bid, ask)| (depth_bar(bid, width), depth_bar(ask, width)))
+        .unwrap_or_else(|| (depth_bar_empty(width), depth_bar_empty(width)));
+    let skew = quote_share.map_or(0.0, |(bid, ask)| bid - ask);
+
+    vec![
+        Line::from(vec![
+            Span::styled(
+                "DEPTH MAP ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw("public top-book only | no orders"),
+        ]),
+        Line::from(vec![
+            Span::styled("bid wall ", Style::default().fg(success(color_mode))),
+            Span::raw(format!("{bid_bar} {}", format_usd(bid_notional))),
+        ]),
+        Line::from(vec![
+            Span::styled("ask wall ", Style::default().fg(danger(color_mode))),
+            Span::raw(format!("{ask_bar} {}", format_usd(ask_notional))),
+        ]),
+        Line::from(format!(
+            "queue skew {} | spread gate {} bps | OFI {}",
+            signed_meter(skew),
+            format_optional(row.spread_bps, 1),
+            format_usd_signed(row.bbo_ofi_proxy_30s)
+        )),
+    ]
 }
 
 fn book_exec_quality_band_line(
