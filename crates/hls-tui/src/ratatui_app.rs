@@ -2564,6 +2564,10 @@ fn render_chart(
     }
     chart_lines.push(chart_move_summary_line(&candles, color_mode));
     chart_lines.push(chart_candle_hud_line(latest, color_mode));
+    let show_profile_rail = show_chart_profile_rail(area);
+    if show_profile_rail {
+        chart_lines.push(chart_profile_rail_line(&candles, color_mode));
+    }
     if show_crosshair_context {
         chart_lines.extend(chart_crosshair_context_lines(row, &candles, color_mode));
     }
@@ -2571,7 +2575,8 @@ fn render_chart(
     let chart_overhead = 11
         + u16::from(show_order_pressure) * 3
         + u16::from(show_prints_strip) * 3
-        + u16::from(show_crosshair_context) * 2;
+        + u16::from(show_crosshair_context) * 2
+        + u16::from(show_profile_rail);
     chart_lines.extend(candle_chart_lines(
         &candles,
         area.height.saturating_sub(chart_overhead) as usize,
@@ -2599,6 +2604,10 @@ fn show_chart_prints_strip(area: Rect, model: &RatatuiFrameModel, symbol: &str) 
 
 fn show_chart_crosshair_context(area: Rect) -> bool {
     area.width >= 96 && area.height >= 30
+}
+
+fn show_chart_profile_rail(area: Rect) -> bool {
+    area.width >= 72 && area.height >= 24
 }
 
 fn chart_window_tabs_line(
@@ -2979,6 +2988,103 @@ fn chart_candle_hud_line(candle: &CandleEvent, color_mode: RatatuiColorMode) -> 
             candle.trade_count
         )),
     ])
+}
+
+fn chart_profile_rail_line(
+    candles: &[&CandleEvent],
+    color_mode: RatatuiColorMode,
+) -> Line<'static> {
+    let total_volume = candles
+        .iter()
+        .map(|candle| candle.volume_base.max(0.0))
+        .sum::<f64>();
+    if candles.is_empty() || total_volume <= 0.0 {
+        return Line::from(vec![
+            Span::styled(
+                "PROFILE RAIL ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw("public volume profile unavailable"),
+        ]);
+    }
+
+    let high = candles
+        .iter()
+        .map(|candle| candle.high)
+        .fold(f64::NEG_INFINITY, f64::max);
+    let low = candles
+        .iter()
+        .map(|candle| candle.low)
+        .fold(f64::INFINITY, f64::min);
+    let vwap = candles
+        .iter()
+        .map(|candle| candle.close * candle.volume_base.max(0.0))
+        .sum::<f64>()
+        / total_volume;
+    let (profile, poc_price) = candle_volume_profile(candles, low, high, 6);
+    let max_bucket = profile.iter().copied().fold(0.0_f64, f64::max);
+    let rail = if max_bucket <= 0.0 {
+        "-".to_owned()
+    } else {
+        profile
+            .iter()
+            .map(|volume| volume_glyph(*volume / max_bucket))
+            .collect::<String>()
+    };
+
+    Line::from(vec![
+        Span::styled(
+            "PROFILE RAIL ",
+            Style::default()
+                .fg(accent(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw(format!(
+            "public POC {}  VWAP {}  profile {}  volume {}",
+            format_plain_number(poc_price),
+            format_plain_number(vwap),
+            rail,
+            format_volume(total_volume)
+        )),
+    ])
+}
+
+fn candle_volume_profile(
+    candles: &[&CandleEvent],
+    low: f64,
+    high: f64,
+    bucket_count: usize,
+) -> (Vec<f64>, f64) {
+    let bucket_count = bucket_count.max(1);
+    let mut profile = vec![0.0; bucket_count];
+    if candles.is_empty() || (high - low).abs() < f64::EPSILON {
+        let total = candles
+            .iter()
+            .map(|candle| candle.volume_base.max(0.0))
+            .sum::<f64>();
+        profile[0] = total;
+        return (profile, low);
+    }
+
+    for candle in candles {
+        let price = candle.close.clamp(low, high);
+        let ratio = ((price - low) / (high - low)).clamp(0.0, 1.0);
+        let index = ((ratio * bucket_count as f64).floor() as usize).min(bucket_count - 1);
+        profile[index] += candle.volume_base.max(0.0);
+    }
+
+    let (poc_index, _) = profile
+        .iter()
+        .enumerate()
+        .max_by(|(_, left), (_, right)| {
+            left.partial_cmp(right).unwrap_or(std::cmp::Ordering::Equal)
+        })
+        .unwrap_or((0, &0.0));
+    let bucket_width = (high - low) / bucket_count as f64;
+    let poc_price = low + bucket_width * (poc_index as f64 + 0.5);
+    (profile, poc_price)
 }
 
 fn chart_crosshair_context_lines(
