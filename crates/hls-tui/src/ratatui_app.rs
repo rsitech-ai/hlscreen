@@ -274,12 +274,22 @@ fn render_narrow(
     model: &RatatuiFrameModel,
     color_mode: RatatuiColorMode,
 ) {
+    let watchlist_height = if model.ui_state.focused_pane() == WorkstationPane::Status {
+        Constraint::Percentage(36)
+    } else {
+        Constraint::Percentage(48)
+    };
+    let drilldown_height = if model.ui_state.focused_pane() == WorkstationPane::Status {
+        Constraint::Min(10)
+    } else {
+        Constraint::Min(8)
+    };
     let root = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Length(5),
-            Constraint::Percentage(48),
-            Constraint::Min(8),
+            watchlist_height,
+            drilldown_height,
             Constraint::Length(2),
         ])
         .split(area);
@@ -2727,6 +2737,7 @@ fn render_status_panel(
     let reconnects = health_metric(&model.health_status, "reconnects").unwrap_or(0);
     let gaps = health_metric(&model.health_status, "gaps").unwrap_or(0);
     let ingest_ratio = (market_events as f64 / 500.0).clamp(0.0, 1.0);
+    let ws_ratio = (ws_messages as f64 / 500.0).clamp(0.0, 1.0);
     let lines = vec![
         Line::from(vec![
             Span::styled(
@@ -2745,11 +2756,23 @@ fn render_status_panel(
             ),
             Span::raw(model.recorder_status.clone()),
             Span::raw(format!(
-                " | terminal color {} | No wallet",
+                " terminal color {} --color always",
                 color_mode.label()
             )),
         ]),
-        Line::from(format!("health {}", model.health_status)),
+        Line::from(vec![
+            Span::styled(
+                "OPS RADAR ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(format!(
+                "health {} WS load {}",
+                model.health_status,
+                depth_bar(ws_ratio, 4)
+            )),
+        ]),
         Line::from(vec![
             Span::styled(
                 "LIVE OPS ",
@@ -2760,28 +2783,26 @@ fn render_status_panel(
             Span::raw(format!(
                 "ws {ws_messages} events {market_events} reconnects {reconnects} gaps {gaps} "
             )),
-            Span::styled("ingest ", Style::default().fg(success(color_mode))),
-            Span::raw(depth_bar(ingest_ratio, 6)),
+            Span::styled("EVENT flow ", Style::default().fg(success(color_mode))),
+            Span::raw(depth_bar(ingest_ratio, 4)),
+            Span::raw(" ingest"),
         ]),
         Line::from(format!(
-            "view {} | pane {} | palette {} | --color always",
-            model.ui_state.view().label(),
+            "active {} pane {} palette {} / filter t chart",
+            mode_label(&model.request, rows.len()),
             model.ui_state.focused_pane().label(),
             color_mode.palette_label(),
         )),
         Line::from(vec![
             Span::styled(
-                "OPS DECK ",
+                "OPS DECK SAFETY GATES ",
                 Style::default()
                     .fg(accent(color_mode))
                     .add_modifier(Modifier::BOLD),
             ),
-            Span::raw("1-6 focus | / filter | p preset | s sort | t chart"),
+            Span::raw("no orders 1-6 focus p preset s sort space pause"),
         ]),
-        Line::from(format!(
-            "active {} | space pause | read-only safety",
-            mode_label(&model.request, rows.len()),
-        )),
+        Line::from("read-only safety | No wallet | public market data only"),
     ];
     frame.render_widget(
         Paragraph::new(lines)

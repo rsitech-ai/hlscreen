@@ -856,6 +856,11 @@ fn narrow_cockpit_renders_status_focus_as_operational_drilldown() {
     assert!(rendered.contains("reconnects 0"));
     assert!(rendered.contains("gaps 0"));
     assert!(rendered.contains("ingest"));
+    assert!(rendered.contains("OPS RADAR"));
+    assert!(rendered.contains("WS load"));
+    assert!(rendered.contains("EVENT flow"));
+    assert!(rendered.contains("SAFETY GATES"));
+    assert!(rendered.contains("no orders"));
     assert!(rendered.contains("pane status"));
     assert!(rendered.contains("terminal color no-color"));
     assert!(rendered.contains("palette plain"));
