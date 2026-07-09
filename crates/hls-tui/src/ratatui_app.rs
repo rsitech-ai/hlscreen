@@ -2372,6 +2372,8 @@ fn detail_lines(
             ];
             if compact {
                 lines.insert(2, selected_bbo_line(row, color_mode));
+            } else if show_pair_snapshot {
+                lines.push(quote_balance_line(row, color_mode));
             }
             if expanded_detail {
                 lines.extend(quote_terminal_deck_lines(row, color_mode));
@@ -2541,6 +2543,36 @@ fn quote_strip_line(
         Span::raw("read-only quote"),
     ]);
     Line::from(spans)
+}
+
+fn quote_balance_line(row: &FeatureSnapshot, color_mode: RatatuiColorMode) -> Line<'static> {
+    let bid_notional = notional(row.bid_px, row.bid_sz);
+    let ask_notional = notional(row.ask_px, row.ask_sz);
+    let (bid_share, ask_share) = quote_share(bid_notional, ask_notional).unwrap_or((0.0, 0.0));
+
+    Line::from(vec![
+        Span::styled(
+            "BID/ASK BALANCE ",
+            Style::default()
+                .fg(accent(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::styled("bid share ", Style::default().fg(success(color_mode))),
+        Span::raw(format!(
+            "{} {} {}  ",
+            depth_bar(bid_share, 8),
+            percent_label(bid_share),
+            format_usd(bid_notional)
+        )),
+        Span::styled("ask share ", Style::default().fg(danger(color_mode))),
+        Span::raw(format!(
+            "{} {} {} | top book {} | public BBO only",
+            depth_bar(ask_share, 8),
+            percent_label(ask_share),
+            format_usd(ask_notional),
+            format_usd(row.tob_depth_usd)
+        )),
+    ])
 }
 
 fn quote_terminal_deck_lines(
