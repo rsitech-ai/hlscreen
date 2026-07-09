@@ -800,7 +800,9 @@ fn render_watchlist(
     let selected = selected_row_index(&rows, model).unwrap_or_default();
     let compact = area.width <= 64;
     let quality_view = model.ui_state.view() == WorkstationView::Quality;
-    let enhanced = !compact && !quality_view && area.width >= 72 && !model.candles.is_empty();
+    let explain_view = model.ui_state.view() == WorkstationView::Explain;
+    let enhanced =
+        !compact && !quality_view && !explain_view && area.width >= 72 && !model.candles.is_empty();
     let show_row_router = !compact && area.width >= 72 && area.height >= 18 && !rows.is_empty();
     let row_router_height = if area.height >= 20 { 5 } else { 4 };
     let chunks = if show_row_router {
@@ -832,6 +834,8 @@ fn render_watchlist(
             visible_range.end,
             if quality_view {
                 " QUALITY SCAN"
+            } else if explain_view {
+                " EXPLAIN SCAN"
             } else if enhanced {
                 " 1m spark"
             } else {
@@ -877,6 +881,33 @@ fn render_watchlist(
                     Cell::from(resilience_compact_label(row.resilience_state)),
                     Cell::from(format_optional(row.spread_bps, 1)),
                     Cell::from(format_usd(row.tob_depth_usd)),
+                    Cell::from(format_usd_signed(row.signed_notional_flow_30s)),
+                    Cell::from(quality_badge(row)),
+                ])
+                .style(style)
+            } else if explain_view {
+                Row::new(vec![
+                    Cell::from(watchlist_rank_label(index, selected)),
+                    Cell::from(display_symbol(row).to_owned()),
+                    Cell::from(format_board_price(row.price)),
+                    Cell::from(score_signal_label(row)),
+                    Cell::from(score_component_compact_label(
+                        row,
+                        "liquidity_resilience",
+                        row.liquidity_score,
+                    )),
+                    Cell::from(score_component_compact_label(
+                        row,
+                        "momentum",
+                        row.momentum_score,
+                    )),
+                    Cell::from(score_component_compact_label(
+                        row,
+                        "mean_reversion_context",
+                        row.mean_reversion_score,
+                    )),
+                    Cell::from(why_ranked_compact_label(row)),
+                    Cell::from(format_optional(row.spread_bps, 1)),
                     Cell::from(format_usd_signed(row.signed_notional_flow_30s)),
                     Cell::from(quality_badge(row)),
                 ])
@@ -958,6 +989,33 @@ fn render_watchlist(
             Row::new([
                 "RANK", "CODE", "PX", "CONF", "FRESH", "TRADE", "RISK", "SPR", "DEPTH", "FLOW30",
                 "Q",
+            ])
+            .style(
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+        )
+    } else if explain_view {
+        Table::new(
+            table_rows,
+            [
+                Constraint::Length(4),
+                Constraint::Min(8),
+                Constraint::Length(7),
+                Constraint::Length(3),
+                Constraint::Length(5),
+                Constraint::Length(5),
+                Constraint::Length(5),
+                Constraint::Length(6),
+                Constraint::Length(4),
+                Constraint::Length(6),
+                Constraint::Length(1),
+            ],
+        )
+        .header(
+            Row::new([
+                "RANK", "CODE", "PX", "SIG", "LIQ", "MOM", "MEAN", "WHY", "SPR", "FLOW30", "Q",
             ])
             .style(
                 Style::default()
@@ -1446,6 +1504,68 @@ fn score_bias_label(row: &FeatureSnapshot) -> String {
             format!("{prefix}{sign}")
         })
         .unwrap_or_else(|| "-".to_owned())
+}
+
+fn score_component_compact_label(row: &FeatureSnapshot, name: &str, fallback_score: f64) -> String {
+    row.score_breakdown.as_ref().map_or_else(
+        || format_compact_score_value(fallback_score),
+        |breakdown| {
+            breakdown
+                .components
+                .iter()
+                .find(|component| component.name == name)
+                .map(|component| format_compact_score_value(component.signed_contribution))
+                .unwrap_or_else(|| "-".to_owned())
+        },
+    )
+}
+
+fn format_compact_score_value(value: f64) -> String {
+    if !value.is_finite() {
+        return "-".to_owned();
+    }
+    let rounded = value.round();
+    if rounded > 99.0 {
+        "99".to_owned()
+    } else if rounded < -99.0 {
+        "-99".to_owned()
+    } else if rounded > 0.0 {
+        format!("+{rounded:.0}")
+    } else {
+        format!("{rounded:.0}")
+    }
+}
+
+fn why_ranked_compact_label(row: &FeatureSnapshot) -> String {
+    if row.confidence.score < 50 || row.staleness_state != StalenessState::Fresh {
+        return "data".to_owned();
+    }
+
+    row.score_breakdown.as_ref().map_or_else(
+        || score_bias_label(row).to_ascii_lowercase(),
+        |breakdown| {
+            breakdown
+                .components
+                .iter()
+                .filter(|component| component.signed_contribution.is_finite())
+                .max_by(|left, right| {
+                    left.signed_contribution
+                        .abs()
+                        .partial_cmp(&right.signed_contribution.abs())
+                        .unwrap_or(std::cmp::Ordering::Equal)
+                        .then_with(|| right.name.cmp(&left.name))
+                })
+                .map(|component| {
+                    let sign = if component.signed_contribution < 0.0 {
+                        '-'
+                    } else {
+                        '+'
+                    };
+                    format!("{}{sign}", compact_factor_name(&component.name))
+                })
+                .unwrap_or_else(|| "-".to_owned())
+        },
+    )
 }
 
 fn render_detail(
