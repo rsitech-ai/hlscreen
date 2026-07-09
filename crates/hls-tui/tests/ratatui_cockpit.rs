@@ -2005,6 +2005,8 @@ fn tape_pane_renders_flow_pulse_and_net_pressure_bars() {
     .expect("renders flow tape");
 
     assert!(rendered.contains("[FOCUS] TAPE"));
+    assert!(rendered.contains("TAPE RAIL"));
+    assert!(rendered.contains("Selected flow"));
     assert!(rendered.contains("FLOW pulse"));
     assert!(rendered.contains("net pressure"));
     assert!(rendered.contains("FLOW SPECTRUM"));
