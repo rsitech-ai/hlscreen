@@ -1178,7 +1178,7 @@ fn render_watchlist(
         && model.ui_state.focused_pane() == WorkstationPane::Watchlist;
     let enhanced =
         !compact && !quality_view && !explain_view && area.width >= 72 && !model.candles.is_empty();
-    let show_row_router = !compact && area.width >= 72 && area.height >= 18 && !rows.is_empty();
+    let show_row_router = !compact && area.width >= 65 && area.height >= 18 && !rows.is_empty();
     let row_router_height = if expanded_watchlist {
         12
     } else if area.height >= 20 {

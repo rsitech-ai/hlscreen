@@ -203,6 +203,7 @@ TTY mouse controls for terminals with mouse reporting enabled:
 - On ultra-wide terminals, click the top `CMD DOCK` for pane focus, symbol jump, filter, preset, sort, chart window, density, zoom, pause, help, and quit.
 - On medium and standard-wide terminals, click the header `CMD g / p s t d z sp ? q` rail for symbol jump, filter, preset, sort, timeframe, density, zoom, pause, help, and quit.
 - Click the bottom `ACTION STRIP` in wide/medium terminals: activates visible controls such as symbol jump, density, pause, filter, preset, sort, chart window, help, and quit.
+- Standard-wide watchlists keep a selected-row context rail under the scanner table when there is enough height, so row actions, leaders, and read-only scan context remain visible even when the left column is narrower.
 - On narrow terminals, the compact `/pstdzsp h? q` rail is clickable: filter, preset, sort, timeframe, density, zoom, pause, health/status, help, and quit.
 - On very short terminals under 20 rows, `hls live --tui` switches to a clickable `MICRO LAYOUT` command/pane rail that keeps the focused pane, resize-safe controls, color diagnostics, and read-only status visible.
 
