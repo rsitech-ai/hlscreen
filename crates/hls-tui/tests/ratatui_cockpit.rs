@@ -936,6 +936,9 @@ fn cockpit_chart_uses_real_candle_ohlc_and_volume_when_available() {
     assert!(rendered.contains("L 34.4000"));
     assert!(rendered.contains("C 35.0000"));
     assert!(rendered.contains("VOL 1200"));
+    assert!(rendered.contains("VOL LANE"));
+    assert!(rendered.contains("max 1200"));
+    assert!(rendered.contains("last 1200"));
     assert!(rendered.contains("MOVE +0.5000"));
     assert!(rendered.contains("RANGE 2.32%"));
 }
@@ -969,6 +972,7 @@ fn cockpit_chart_renders_price_axis_and_public_candle_footer() {
     assert!(rendered.contains("[FOCUS] CANDLES"));
     assert!(rendered.contains("px axis"));
     assert!(rendered.contains("candles"));
+    assert!(rendered.contains("VOL LANE"));
     assert!(rendered.contains("window"));
     assert!(rendered.contains("Public 1m candles only"));
 }
