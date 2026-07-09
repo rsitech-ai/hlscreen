@@ -83,6 +83,19 @@ fn workstation_state_handles_keyboard_actions() {
 }
 
 #[test]
+fn workstation_state_selects_clicked_watchlist_row() {
+    let mut state = WorkstationUiState::default();
+    state.apply(WorkstationAction::FocusPane(WorkstationPane::Chart), 10);
+
+    state.apply(WorkstationAction::SelectRow(4), 10);
+    assert_eq!(state.focused_pane(), WorkstationPane::Watchlist);
+    assert_eq!(state.selected_index(10), Some(4));
+
+    state.apply(WorkstationAction::SelectRow(99), 10);
+    assert_eq!(state.selected_index(10), Some(9));
+}
+
+#[test]
 fn workstation_state_handles_command_entry_without_changing_market_focus() {
     let mut state = WorkstationUiState::default();
     state.apply(WorkstationAction::Down, 3);

@@ -258,6 +258,7 @@ pub enum WorkstationAction {
     NextPane,
     PreviousPane,
     FocusPane(WorkstationPane),
+    SelectRow(usize),
     CommandChar(char),
     CommandBackspace,
     SubmitCommand,
@@ -449,6 +450,15 @@ impl WorkstationUiState {
             WorkstationAction::NextPane => self.focused_pane = self.focused_pane.next(),
             WorkstationAction::PreviousPane => self.focused_pane = self.focused_pane.previous(),
             WorkstationAction::FocusPane(pane) => self.focused_pane = pane,
+            WorkstationAction::SelectRow(index) => {
+                self.selected_symbol = None;
+                self.focused_pane = WorkstationPane::Watchlist;
+                self.selected = if row_count == 0 {
+                    0
+                } else {
+                    index.min(row_count - 1)
+                };
+            }
             WorkstationAction::ToggleDensity => self.density = self.density.next(),
             WorkstationAction::ToggleHelp => self.help_open = !self.help_open,
             WorkstationAction::TogglePause => self.paused = !self.paused,
