@@ -1149,12 +1149,9 @@ fn detail_lines(
             )),
         ],
         WorkstationView::Explain => {
-            let mut lines = vec![heading, tabs, Line::from("Explain")];
+            let mut lines = vec![heading, tabs];
+            lines.extend(why_ranked_deck_lines(row, color_mode));
             lines.extend(factor_stack_lines(row, color_mode, compact));
-            lines.extend([
-                Line::from(format!("why-ranked {}", why_tokens(row))),
-                Line::from("Screen output is heuristic context only, not orders or advice."),
-            ]);
             lines
         }
     }
@@ -1425,6 +1422,70 @@ fn factor_stack_lines(
             )),
         ]),
         Line::from(component_text),
+    ]
+}
+
+fn why_ranked_deck_lines(
+    row: &FeatureSnapshot,
+    color_mode: RatatuiColorMode,
+) -> Vec<Line<'static>> {
+    let Some(breakdown) = row.score_breakdown.as_ref() else {
+        return vec![
+            Line::from(vec![
+                Span::styled(
+                    "WHY RANKED ",
+                    Style::default()
+                        .fg(accent(color_mode))
+                        .add_modifier(Modifier::BOLD),
+                ),
+                Span::raw("score explanation unavailable"),
+            ]),
+            Line::from("unavailable evidence | row has no generated score breakdown"),
+            Line::from("BBO/top-of-book proxy only | screen heuristic, not advice."),
+        ];
+    };
+
+    let confidence_penalty = (breakdown.raw_total - breakdown.adjusted_total).max(0.0);
+    let unavailable = if breakdown.unavailable_evidence.is_empty() {
+        "none".to_owned()
+    } else {
+        breakdown.unavailable_evidence.join(", ")
+    };
+    let components = breakdown
+        .components
+        .iter()
+        .take(4)
+        .map(|component| {
+            format!(
+                "{} {} {}",
+                component.name,
+                component.direction.as_str(),
+                format_signed(Some(component.signed_contribution), "")
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(" | ");
+
+    vec![
+        Line::from(vec![
+            Span::styled(
+                "WHY RANKED ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(format!("{} score explanation", display_symbol(row))),
+        ]),
+        Line::from(format!(
+            "SCORE adjusted {:.1} | raw {:.1} | confidence penalty {:.1} | confidence {}",
+            breakdown.adjusted_total,
+            breakdown.raw_total,
+            confidence_penalty,
+            breakdown.confidence_score
+        )),
+        Line::from(format!("COMPONENTS {components}")),
+        Line::from(format!("unavailable evidence | {unavailable}")),
+        Line::from("BBO/top-of-book proxy only | screen heuristic, not advice."),
     ]
 }
 
@@ -3286,33 +3347,6 @@ fn format_age_ms(value: i64) -> String {
     } else {
         format!("{:.1}d", value as f64 / (24.0 * 60.0 * 60.0 * 1_000.0))
     }
-}
-
-fn why_tokens(row: &FeatureSnapshot) -> String {
-    row.score_breakdown.as_ref().map_or_else(
-        || {
-            format!(
-                "liq {:.1} momentum {:.1}",
-                row.liquidity_score, row.momentum_score
-            )
-        },
-        |breakdown| {
-            breakdown
-                .components
-                .iter()
-                .filter(|component| component.signed_contribution.abs() >= 0.5)
-                .take(4)
-                .map(|component| {
-                    if component.signed_contribution >= 0.0 {
-                        format!("+{}", component.name)
-                    } else {
-                        format!("-{}", component.name)
-                    }
-                })
-                .collect::<Vec<_>>()
-                .join(" ")
-        },
-    )
 }
 
 fn notional(px: Option<f64>, qty: Option<f64>) -> Option<f64> {
