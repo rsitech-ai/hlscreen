@@ -3080,12 +3080,15 @@ fn render_help_overlay(
     frame.render_widget(Clear, popup);
     let state = &model.ui_state;
     let lines = vec![
-        Line::from(vec![Span::styled(
-            "Command Deck",
-            Style::default()
-                .fg(accent(color_mode))
-                .add_modifier(Modifier::BOLD),
-        )]),
+        Line::from(vec![
+            Span::styled(
+                "OPERATOR KEYBOARD MAP",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(" | Command Deck"),
+        ]),
         Line::from(vec![
             Span::styled(
                 "STATE ",
@@ -3113,22 +3116,58 @@ fn render_help_overlay(
             ),
             Span::raw("arrows/j/k navigate | tab views | [ ] panes | z zoom/grid | space pause"),
         ]),
+        Line::from(vec![
+            Span::styled(
+                "NAVIGATION ",
+                Style::default()
+                    .fg(warn(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(format!(
+                "active pane {} | j/k or arrows act on focused pane: rows, detail view, or chart window",
+                state.focused_pane().label()
+            )),
+        ]),
         Line::from(
             "PANES 1W 2D 3C 4B 5T 6S | enter detail | h health/status | watchlist detail chart book tape status",
         ),
-        Line::from(
-            "MARKET OPS g symbol / filter p preset s sort | t chart window | z pane zoom | d density",
-        ),
+        Line::from(vec![
+            Span::styled(
+                "MARKET COMMANDS ",
+                Style::default()
+                    .fg(success(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(
+                "MARKET OPS g symbol / filter p preset s sort | t chart window | z pane zoom | d density",
+            ),
+        ]),
+        Line::from(vec![
+            Span::styled(
+                "LAYOUT ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(
+                "[ / ] move pane focus | 1-6 panes | tab / shift-tab cycle overview, flow, quality, metadata, explain",
+            ),
+        ]),
         Line::from("MOUSE wheel rows | click focus | terminal support required"),
-        Line::from("j/k or arrows  act on focused pane: rows, detail view, or chart window"),
-        Line::from("tab / shift-tab  cycle overview, flow, quality, metadata, explain"),
-        Line::from("[ / ]  move pane focus: watchlist, detail, chart, book, tape, status"),
         Line::from("1-6 panes  watchlist, detail, chart, book, tape, status"),
-        Line::from(format!(
-            "PALETTE DIAGNOSTIC mode {} palette {}",
-            color_mode.label(),
-            color_mode.palette_label()
-        )),
+        Line::from(vec![
+            Span::styled(
+                "COLOR SUPPORT ",
+                Style::default()
+                    .fg(warn(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(format!(
+                "PALETTE DIAGNOSTIC mode {} palette {}",
+                color_mode.label(),
+                color_mode.palette_label()
+            )),
+        ]),
         Line::from(format!(
             "COLOR PATH {} | truecolor ANSI | force --color always",
             color_mode.color_path_label()
@@ -3136,11 +3175,19 @@ fn render_help_overlay(
         Line::from(
             "If the cockpit is black/white: avoid --color never, use --color always, and check terminal truecolor support",
         ),
-        Line::from("mouse wheel moves rows; click focuses panes when terminal mouse is available"),
         Line::from(
             "g symbol  |  / filter  |  p preset  |  s sort  |  t chart window  |  z zoom  |  enter detail  |  h health",
         ),
         Line::from("d  density  |  space  pause display  |  ?  help  |  q  quit"),
+        Line::from(vec![
+            Span::styled(
+                "CAPITAL BOUNDARY ",
+                Style::default()
+                    .fg(danger(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw("no wallet | no private streams | no order routes"),
+        ]),
         Line::from(vec![
             Span::styled(
                 "READ-ONLY ",

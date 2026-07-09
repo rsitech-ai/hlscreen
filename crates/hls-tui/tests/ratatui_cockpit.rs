@@ -3074,6 +3074,69 @@ fn cockpit_reflects_keyboard_view_pause_density_and_help_state() {
 }
 
 #[test]
+fn help_overlay_color_mode_renders_operator_keyboard_map() {
+    let snapshots = fixture_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Chart),
+        snapshots.len(),
+    );
+    state.apply(WorkstationAction::ToggleHelp, snapshots.len());
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    );
+
+    let plain = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 150,
+            height: 44,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("plain help overlay renders");
+    let colored = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 150,
+            height: 44,
+        },
+        RatatuiColorMode::Color,
+    )
+    .expect("colored help overlay renders");
+
+    assert!(!plain.contains("\u{1b}["));
+    assert!(plain.contains("OPERATOR KEYBOARD MAP"));
+    assert!(plain.contains("NAVIGATION"));
+    assert!(plain.contains("MARKET COMMANDS"));
+    assert!(plain.contains("LAYOUT"));
+    assert!(plain.contains("COLOR SUPPORT"));
+    assert!(plain.contains("CAPITAL BOUNDARY"));
+
+    assert_eq!(
+        active_fg_before(&colored, "OPERATOR KEYBOARD MAP"),
+        Some("\u{1b}[38;2;0;229;255m")
+    );
+    assert_eq!(
+        active_fg_before(&colored, "NAVIGATION"),
+        Some("\u{1b}[38;2;255;214;102m")
+    );
+    assert_eq!(
+        active_fg_before(&colored, "MARKET COMMANDS"),
+        Some("\u{1b}[38;2;0;255;154m")
+    );
+    assert_eq!(
+        active_fg_before(&colored, "CAPITAL BOUNDARY"),
+        Some("\u{1b}[38;2;255;77;109m")
+    );
+    assert!(colored.contains("active pane chart"));
+    assert!(colored.contains("public market data only"));
+}
+
+#[test]
 fn cockpit_chart_uses_real_candle_ohlc_and_volume_when_available() {
     let model = RatatuiFrameModel::new(
         fixture_snapshots(),
