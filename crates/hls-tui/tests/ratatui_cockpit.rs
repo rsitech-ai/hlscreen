@@ -1217,6 +1217,37 @@ fn cockpit_chart_colorizes_directional_candles_in_color_mode() {
 }
 
 #[test]
+fn cockpit_chart_renders_latest_candle_hud() {
+    let snapshots = fixture_snapshots();
+    let candles = directional_chart_candles(&snapshots[0].symbol);
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        WorkstationUiState::default(),
+    )
+    .with_candles(candles);
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 160,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders latest candle hud");
+
+    assert!(rendered.contains("CANDLE HUD"));
+    assert!(rendered.contains("latest DOWN"));
+    assert!(rendered.contains("body -2.0000"));
+    assert!(rendered.contains("range 18.33%"));
+    assert!(rendered.contains("vol 160"));
+    assert!(rendered.contains("trades 12"));
+    assert!(rendered.contains("public OHLCV"));
+}
+
+#[test]
 fn cockpit_reflects_keyboard_view_pause_density_and_help_state() {
     let snapshots = fixture_snapshots();
     let mut state = WorkstationUiState::default();

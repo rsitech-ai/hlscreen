@@ -2001,10 +2001,11 @@ fn render_chart(
     )];
     chart_lines.extend(selected_pair_edge_hud_lines(row, color_mode));
     chart_lines.push(chart_move_summary_line(&candles, color_mode));
+    chart_lines.push(chart_candle_hud_line(latest, color_mode));
     chart_lines.extend(chart_session_strip_lines(row, color_mode));
     chart_lines.extend(candle_chart_lines(
         &candles,
-        area.height.saturating_sub(10) as usize,
+        area.height.saturating_sub(11) as usize,
         model.ui_state.chart_window().label(),
         color_mode,
     ));
@@ -2225,6 +2226,39 @@ fn chart_move_summary_line(
             "  LAST {}  VOL {}",
             format_plain_number(latest.close),
             format_volume(latest.volume_base)
+        )),
+    ])
+}
+
+fn chart_candle_hud_line(candle: &CandleEvent, color_mode: RatatuiColorMode) -> Line<'static> {
+    let body = candle.close - candle.open;
+    let range = candle.high - candle.low;
+    let range_pct = if candle.open.abs() < f64::EPSILON {
+        0.0
+    } else {
+        (range.abs() / candle.open.abs()) * 100.0
+    };
+    let direction = if body >= 0.0 { "UP" } else { "DOWN" };
+    let direction_style = if body >= 0.0 {
+        Style::default().fg(success(color_mode))
+    } else {
+        Style::default().fg(danger(color_mode))
+    };
+    Line::from(vec![
+        Span::styled(
+            "CANDLE HUD ",
+            Style::default()
+                .fg(accent(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw("latest "),
+        Span::styled(direction, direction_style),
+        Span::raw(" | body "),
+        Span::styled(format!("{body:+.4}"), direction_style),
+        Span::raw(format!(
+            " | range {range_pct:.2}% | vol {} | trades {} | public OHLCV",
+            format_volume(candle.volume_base),
+            candle.trade_count
         )),
     ])
 }
