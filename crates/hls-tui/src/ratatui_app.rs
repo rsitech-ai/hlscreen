@@ -3281,6 +3281,17 @@ fn chart_window_tabs_line(
             .fg(accent(color_mode))
             .add_modifier(Modifier::BOLD),
     )];
+    if !compact {
+        spans.insert(
+            0,
+            Span::styled(
+                "TIMEFRAME RAIL ",
+                Style::default()
+                    .fg(warn(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+        );
+    }
     for (index, window) in WorkstationChartWindow::ALL.iter().enumerate() {
         if index > 0 {
             spans.push(Span::raw(" "));
