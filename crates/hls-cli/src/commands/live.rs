@@ -24,7 +24,7 @@ use futures_util::{SinkExt, StreamExt};
 use hls_core::{
     HlsError, HlsResult,
     data_gap::DataGap,
-    market_state::{CandleEvent, LiveMarketState, MarketEvent, TradeEvent},
+    market_state::{CandleEvent, FeatureSnapshot, LiveMarketState, MarketEvent, TradeEvent},
     metadata::MetadataEnrichment,
     time::now_millis,
 };
@@ -1369,6 +1369,7 @@ fn key_to_workstation_action(
         KeyCode::Char('5') => Some(WorkstationAction::FocusPane(WorkstationPane::Tape)),
         KeyCode::Char('6') => Some(WorkstationAction::FocusPane(WorkstationPane::Status)),
         KeyCode::Char('/') => Some(WorkstationAction::CycleFilter),
+        KeyCode::Char('g') | KeyCode::Char('G') => Some(WorkstationAction::OpenSymbolSearch),
         KeyCode::Char('p') | KeyCode::Char('P') => Some(WorkstationAction::CyclePreset),
         KeyCode::Char('s') | KeyCode::Char('S') => Some(WorkstationAction::CycleSort),
         KeyCode::Char('t') | KeyCode::Char('T') => Some(WorkstationAction::CycleChartWindow),
@@ -1467,6 +1468,7 @@ fn submit_live_command(
     };
     let input = command.input().trim();
     let mut candidate = screen_request.clone();
+    let snapshots = FeatureEngine::default().snapshots(state, now_ms_i64()?);
 
     match command.target() {
         WorkstationCommandTarget::Filter => {
@@ -1484,9 +1486,24 @@ fn submit_live_command(
         WorkstationCommandTarget::Sort => {
             candidate.sort = non_empty_command_value(input);
         }
+        WorkstationCommandTarget::Symbol => {
+            let rows = hls_screen::ScreenEngine.apply(&snapshots, screen_request)?;
+            match find_symbol_row_index(&rows, input) {
+                Some(index) => {
+                    ui_state.select_index(index, rows.len());
+                    ui_state.close_command();
+                }
+                None => {
+                    ui_state.set_command_error(format!(
+                        "no visible symbol matches '{}'",
+                        if input.is_empty() { "<empty>" } else { input }
+                    ));
+                }
+            }
+            return Ok(true);
+        }
     }
 
-    let snapshots = FeatureEngine::default().snapshots(state, now_ms_i64()?);
     match hls_screen::ScreenEngine.apply(&snapshots, &candidate) {
         Ok(_) => {
             *screen_request = candidate;
@@ -1501,6 +1518,27 @@ fn submit_live_command(
 
 fn non_empty_command_value(input: &str) -> Option<String> {
     (!input.trim().is_empty()).then(|| input.trim().to_owned())
+}
+
+fn find_symbol_row_index(rows: &[FeatureSnapshot], input: &str) -> Option<usize> {
+    let needle = input.trim().to_ascii_lowercase();
+    if needle.is_empty() {
+        return None;
+    }
+    rows.iter()
+        .position(|row| row_matches_symbol_query(row, &needle))
+}
+
+fn row_matches_symbol_query(row: &FeatureSnapshot, needle: &str) -> bool {
+    row.symbol.to_ascii_lowercase().contains(needle)
+        || row.metadata.as_ref().is_some_and(|metadata| {
+            metadata.display_name.to_ascii_lowercase().contains(needle)
+                || metadata
+                    .feed_identifier
+                    .to_ascii_lowercase()
+                    .contains(needle)
+                || metadata.symbol.to_ascii_lowercase().contains(needle)
+        })
 }
 
 fn live_command_error_message(err: &HlsError) -> String {
@@ -1692,6 +1730,13 @@ mod tests {
         );
         assert_eq!(
             key_to_workstation_action(
+                KeyEvent::new(KeyCode::Char('g'), KeyModifiers::NONE),
+                &state
+            ),
+            Some(WorkstationAction::OpenSymbolSearch)
+        );
+        assert_eq!(
+            key_to_workstation_action(
                 KeyEvent::new(KeyCode::Char('z'), KeyModifiers::NONE),
                 &state
             ),
@@ -1787,6 +1832,13 @@ mod tests {
                 &command_state
             ),
             Some(WorkstationAction::CommandChar('z'))
+        );
+        assert_eq!(
+            key_to_workstation_action(
+                KeyEvent::new(KeyCode::Char('g'), KeyModifiers::NONE),
+                &command_state
+            ),
+            Some(WorkstationAction::CommandChar('g'))
         );
     }
 
@@ -2098,6 +2150,41 @@ chart_window = "15m"
         assert_eq!(request.preset.as_deref(), Some("thin_books"));
         assert_eq!(request.sort.as_deref(), Some("spread_bps:asc"));
         assert!(ui_state.command().is_none());
+    }
+
+    #[test]
+    fn live_tui_command_submission_jumps_to_visible_symbol() {
+        let mut state = LiveMarketState::new(["@107".to_owned()]);
+        for event in parse_ws_ndjson(include_str!(
+            "../../../../tests/fixtures/hyperliquid/ws_mock_live.ndjson"
+        ))
+        .expect("fixture parses")
+        {
+            state.apply(event).expect("event applies");
+        }
+        let mut request = ScreenRequest::default();
+        let mut ui_state = WorkstationUiState::default();
+
+        ui_state.apply(WorkstationAction::OpenSymbolSearch, 1);
+        for ch in "@107".chars() {
+            ui_state.apply(WorkstationAction::CommandChar(ch), 1);
+        }
+        assert!(submit_live_command(&mut ui_state, &state, &mut request).expect("symbol applies"));
+        assert_eq!(ui_state.selected_index(1), Some(0));
+        assert!(ui_state.command().is_none());
+        assert_eq!(request, ScreenRequest::default());
+
+        ui_state.apply(WorkstationAction::OpenSymbolSearch, 1);
+        for ch in "NOPE".chars() {
+            ui_state.apply(WorkstationAction::CommandChar(ch), 1);
+        }
+        assert!(submit_live_command(&mut ui_state, &state, &mut request).expect("miss handled"));
+        assert_eq!(
+            ui_state.command_error(),
+            Some("no visible symbol matches 'NOPE'")
+        );
+        assert!(ui_state.command().is_some());
+        assert_eq!(request, ScreenRequest::default());
     }
 
     #[test]
