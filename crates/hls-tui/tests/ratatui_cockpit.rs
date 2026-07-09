@@ -333,6 +333,32 @@ fn detail_panel_renders_liquidity_radar() {
 }
 
 #[test]
+fn detail_panel_renders_interactive_view_tab_rail() {
+    let snapshots = fixture_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(WorkstationAction::NextView, snapshots.len());
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    );
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 160,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders detail view tabs");
+
+    assert!(rendered.contains("VIEWS overview [flow] quality metadata explain"));
+    assert!(rendered.contains("Flow tape"));
+}
+
+#[test]
 fn narrow_cockpit_collapses_to_watchlist_and_detail_without_tape() {
     let model = RatatuiFrameModel::new(
         fixture_snapshots(),
