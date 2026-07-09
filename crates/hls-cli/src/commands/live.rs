@@ -255,6 +255,7 @@ pub async fn run(args: LiveArgs) -> anyhow::Result<()> {
     validate_live_duration(
         args.duration_secs,
         args.tui,
+        args.once,
         LiveTerminalCapabilities::detect(),
     )?;
 
@@ -291,8 +292,13 @@ impl LiveTerminalCapabilities {
 fn validate_live_duration(
     duration_secs: u64,
     tui: bool,
+    once: bool,
     terminals: LiveTerminalCapabilities,
 ) -> anyhow::Result<()> {
+    if once {
+        return Ok(());
+    }
+
     if duration_secs == 0 && !tui {
         bail!(
             "--duration-secs 0 is only supported with --tui; use a positive duration for `hls live`"
@@ -648,7 +654,12 @@ impl LiveDriveSummary {
     }
 
     fn is_no_messages_failure(&self) -> bool {
-        self.stop_reason.is_none() && self.ws_messages == 0 && self.reconnects > 0
+        self.ws_messages == 0
+            && self.reconnects > 0
+            && !matches!(
+                self.stop_reason,
+                Some(LiveStopReason::OperatorQuit | LiveStopReason::Signal)
+            )
     }
 }
 
@@ -929,16 +940,32 @@ async fn drive_live_connection(
     let (mut write, mut read) = ws.split();
 
     for message in subscription_messages {
-        let send_result = tokio::select! {
-            _ = lifetime.wait_for_expiry() => {
-                let _ = write.send(Message::Close(None)).await;
-                return Ok(ConnectionOutcome::Stopped(LiveStopReason::DurationElapsed));
+        let send = write.send(Message::Text(message.clone().into()));
+        tokio::pin!(send);
+        let send_result = loop {
+            tokio::select! {
+                _ = lifetime.wait_for_expiry() => {
+                    return Ok(ConnectionOutcome::Stopped(LiveStopReason::DurationElapsed));
+                }
+                result = shutdown_signal.as_mut() => {
+                    return result.map(ConnectionOutcome::Stopped);
+                }
+                _ = ui_events.tick(), if keyboard_interactive => {
+                    if let Some(stop_reason) = poll_live_tui_actions(
+                        tui_state.as_deref_mut(),
+                        state,
+                        screen_request,
+                        metadata,
+                        color_mode,
+                        started,
+                        summary,
+                        tui_frame_sink.as_deref_mut(),
+                    )? {
+                        return Ok(ConnectionOutcome::Stopped(stop_reason));
+                    }
+                }
+                result = &mut send => break result,
             }
-            result = shutdown_signal.as_mut() => {
-                let _ = write.send(Message::Close(None)).await;
-                return result.map(ConnectionOutcome::Stopped);
-            }
-            result = write.send(Message::Text(message.clone().into())) => result,
         };
         if let Err(err) = send_result {
             return Ok(ConnectionOutcome::Reconnect {
@@ -963,11 +990,9 @@ async fn drive_live_connection(
     loop {
         tokio::select! {
             _ = lifetime.wait_for_expiry() => {
-                let _ = write.send(Message::Close(None)).await;
                 return Ok(ConnectionOutcome::Stopped(LiveStopReason::DurationElapsed));
             }
             result = shutdown_signal.as_mut() => {
-                let _ = write.send(Message::Close(None)).await;
                 return result.map(ConnectionOutcome::Stopped);
             }
             _ = progress.tick() => {
@@ -992,7 +1017,6 @@ async fn drive_live_connection(
                     summary,
                     tui_frame_sink.as_deref_mut(),
                 )? {
-                    let _ = write.send(Message::Close(None)).await;
                     return Ok(ConnectionOutcome::Stopped(stop_reason));
                 }
             }
@@ -3126,16 +3150,27 @@ mod tests {
 
     #[test]
     fn unbounded_tui_duration_requires_interactive_stdio() {
-        let err = validate_live_duration(0, true, LiveTerminalCapabilities::new(false, true))
-            .expect_err("unbounded TUI needs interactive stdio");
+        let err =
+            validate_live_duration(0, true, false, LiveTerminalCapabilities::new(false, true))
+                .expect_err("unbounded TUI needs interactive stdio");
 
         assert!(
             err.to_string()
                 .contains("both stdin and stderr attached to a terminal")
         );
         assert!(
-            validate_live_duration(0, true, LiveTerminalCapabilities::new(true, true),).is_ok()
+            validate_live_duration(0, true, false, LiveTerminalCapabilities::new(true, true),)
+                .is_ok()
         );
+    }
+
+    #[test]
+    fn fixture_once_skips_unbounded_tty_validation() {
+        let noninteractive = LiveTerminalCapabilities::new(false, false);
+
+        assert!(validate_live_duration(0, true, true, noninteractive).is_ok());
+        assert!(validate_live_duration(0, false, true, noninteractive).is_ok());
+        assert!(validate_live_duration(0, true, false, noninteractive).is_err());
     }
 
     #[test]
@@ -3222,7 +3257,44 @@ mod tests {
     }
 
     #[test]
+    fn duration_elapsed_outage_remains_a_run_failure() {
+        let mut summary = LiveDriveSummary {
+            reconnects: 1,
+            ..LiveDriveSummary::default()
+        };
+        summary.mark_stopped(LiveStopReason::DurationElapsed);
+
+        assert!(summary.is_clean_shutdown());
+        assert!(summary.is_no_messages_failure());
+    }
+
+    #[test]
+    fn operator_and_signal_outages_stop_cleanly() {
+        for stop_reason in [LiveStopReason::OperatorQuit, LiveStopReason::Signal] {
+            let mut summary = LiveDriveSummary {
+                reconnects: 1,
+                ..LiveDriveSummary::default()
+            };
+            summary.mark_stopped(stop_reason);
+
+            assert!(summary.is_clean_shutdown());
+            assert!(!summary.is_no_messages_failure());
+        }
+    }
+
+    #[test]
     fn operator_quit_reason_is_available_during_connection_waits() {
+        let mut state = WorkstationUiState::default();
+        state.apply(WorkstationAction::Quit, 1);
+
+        assert_eq!(
+            operator_stop_reason(&state),
+            Some(LiveStopReason::OperatorQuit)
+        );
+    }
+
+    #[test]
+    fn operator_quit_reason_is_available_during_subscription_startup() {
         let mut state = WorkstationUiState::default();
         state.apply(WorkstationAction::Quit, 1);
 

@@ -103,7 +103,7 @@ fn live_once_tui_uses_unified_ratatui_cockpit() {
 }
 
 #[test]
-fn tui_command_once_uses_unified_ratatui_cockpit_with_bounded_noninteractive_duration() {
+fn tui_command_once_uses_unified_ratatui_cockpit_without_extra_flags() {
     let assert = Command::cargo_bin("hls")
         .expect("hls binary")
         .args([
@@ -115,8 +115,6 @@ fn tui_command_once_uses_unified_ratatui_cockpit_with_bounded_noninteractive_dur
             "--metadata-file",
             &fixture("tests/fixtures/microstructure/metadata_enrichment.json"),
             "--once",
-            "--duration-secs",
-            "1",
         ])
         .assert()
         .success()
@@ -124,4 +122,23 @@ fn tui_command_once_uses_unified_ratatui_cockpit_with_bounded_noninteractive_dur
     let output = String::from_utf8(assert.get_output().stdout.clone()).expect("stdout is utf8");
 
     assert_unified_ratatui_cockpit_output(&output);
+}
+
+#[test]
+fn live_once_allows_zero_duration_fixture_without_tty() {
+    Command::cargo_bin("hls")
+        .expect("hls binary")
+        .args([
+            "live",
+            "--symbols",
+            "@107",
+            "--fixture-file",
+            &fixture("tests/fixtures/hyperliquid/ws_mock_live.ndjson"),
+            "--once",
+            "--duration-secs",
+            "0",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("@107"));
 }
