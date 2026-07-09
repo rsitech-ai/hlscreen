@@ -1584,6 +1584,11 @@ fn expanded_watchlist_renders_command_center_deck() {
     assert!(rendered.contains("EXPANDED watchlist"));
     assert!(rendered.contains("WATCHLIST COMMAND CENTER"));
     assert!(rendered.contains("selected HYPE/USDC"));
+    assert!(rendered.contains("SELECTOR LADDER"));
+    assert!(rendered.contains("prev -"));
+    assert!(rendered.contains("current HYPE/USDC"));
+    assert!(rendered.contains("next DOWN/USDC"));
+    assert!(rendered.contains("j/k changes selection"));
     assert!(rendered.contains("visible 02"));
     assert!(rendered.contains("tradeable"));
     assert!(rendered.contains("degraded"));
