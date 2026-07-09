@@ -4032,6 +4032,7 @@ fn tape_lines(
 
     if !recent_trades.is_empty() {
         lines.push(tape_radar_line(&recent_trades, color_mode));
+        lines.push(tape_velocity_line(&recent_trades, compact, color_mode));
         if let Some(latest_trade) = recent_trades.first() {
             lines.push(last_trade_hud_line(latest_trade, color_mode));
         }
@@ -4325,6 +4326,76 @@ fn tape_radar_line(trades: &[&TradeEvent], color_mode: RatatuiColorMode) -> Line
     ])
 }
 
+fn tape_velocity_line(
+    trades: &[&TradeEvent],
+    compact: bool,
+    color_mode: RatatuiColorMode,
+) -> Line<'static> {
+    let Some(min_ts) = trades.iter().map(|trade| trade.exchange_ts_ms).min() else {
+        return Line::from("TAPE VELOCITY no public prints");
+    };
+    let max_ts = trades
+        .iter()
+        .map(|trade| trade.exchange_ts_ms)
+        .max()
+        .unwrap_or(min_ts);
+    let window_secs = ((max_ts - min_ts).max(1) as f64 / 1_000.0).max(1.0);
+    let total_notional = trades
+        .iter()
+        .map(|trade| trade.notional.max(0.0))
+        .sum::<f64>();
+    let largest = trades
+        .iter()
+        .map(|trade| trade.notional.max(0.0))
+        .fold(0.0_f64, f64::max);
+    let net_notional = trades
+        .iter()
+        .map(|trade| match trade.side {
+            TradeSide::Buy => trade.notional,
+            TradeSide::Sell => -trade.notional,
+        })
+        .sum::<f64>();
+    let prints_per_sec = trades.len() as f64 / window_secs;
+    let notional_per_sec = total_notional / window_secs;
+    let skew = if total_notional > 0.0 {
+        net_notional / total_notional
+    } else {
+        0.0
+    };
+
+    let mut spans = vec![
+        Span::styled(
+            "TAPE VELOCITY ",
+            Style::default()
+                .fg(accent(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw(format!(
+            "prints/s {prints_per_sec:.2} notional/s {} ",
+            format_usd(Some(notional_per_sec))
+        )),
+        Span::styled(
+            format!("skew {} ", signed_meter(skew)),
+            Style::default().fg(flow_color(skew, color_mode)),
+        ),
+    ];
+
+    if compact {
+        spans.push(Span::raw(format!(
+            "max {} | Public trades only | no fills",
+            format_usd(Some(largest))
+        )));
+    } else {
+        spans.push(Span::raw(format!(
+            "largest {} window {:.0}s | public tape only",
+            format_usd(Some(largest)),
+            window_secs
+        )));
+    }
+
+    Line::from(spans)
+}
+
 fn selected_trades<'a>(
     model: &'a RatatuiFrameModel,
     symbol: &str,
@@ -4397,7 +4468,7 @@ fn trade_pressure_lines(
                     .fg(accent(color_mode))
                     .add_modifier(Modifier::BOLD),
             ),
-            Span::raw("Public trades only"),
+            Span::raw("Public trades only | no fills"),
         ]),
         Line::from(vec![
             Span::styled("buy pressure ", Style::default().fg(success(color_mode))),
