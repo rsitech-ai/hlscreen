@@ -259,6 +259,10 @@ fn wide_status_bar_renders_dynamic_market_ticker_rail() {
     assert!(rendered.contains("DOWN DOWN/USDC -1.23%"));
     assert!(rendered.contains("FLOW DOWN/USDC -$4.2K"));
     assert!(rendered.contains("BREADTH 01/01"));
+    assert!(rendered.contains("RISK STRIP"));
+    assert!(rendered.contains("conf"));
+    assert!(rendered.contains("degraded00"));
+    assert!(rendered.contains("net flow -$4.2K"));
     assert!(rendered.contains("ACTION STRIP"));
     assert!(rendered.contains("No wallet"));
 }
