@@ -528,6 +528,57 @@ fn wide_status_bar_renders_dynamic_market_ticker_rail() {
 }
 
 #[test]
+fn wide_status_bar_renders_quality_alert_for_worst_row() {
+    let mut snapshots = ten_directional_snapshots();
+    snapshots[1].confidence.score = 44;
+    snapshots[1].confidence.level = ConfidenceLevel::Low;
+    snapshots[1].staleness_state = StalenessState::Stale;
+    snapshots[1].updated_ms_ago = Some(3_400);
+    snapshots[2].confidence.score = 68;
+    snapshots[2].updated_ms_ago = Some(900);
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        WorkstationUiState::default(),
+    )
+    .with_status("LIVE", "REC ready", "ws=120 events=300 gaps=0");
+
+    let plain = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 240,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("plain status quality alert renders");
+    let colored = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 240,
+            height: 48,
+        },
+        RatatuiColorMode::Color,
+    )
+    .expect("colored status quality alert renders");
+
+    assert!(!plain.contains("\u{1b}["));
+    assert!(plain.contains("QUALITY ALERT"));
+    assert!(plain.contains("conf44"));
+    assert!(plain.contains("age 3.4s"));
+    assert!(plain.contains("stale"));
+    assert_eq!(
+        active_fg_before(&colored, "QUALITY ALERT"),
+        Some("\u{1b}[38;2;255;77;109m")
+    );
+    assert_eq!(
+        active_fg_before(&colored, "conf44"),
+        Some("\u{1b}[38;2;255;77;109m")
+    );
+}
+
+#[test]
 fn wide_status_bar_renders_action_key_rail() {
     let model = RatatuiFrameModel::new(
         directional_snapshots(),
