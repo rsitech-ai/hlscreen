@@ -788,10 +788,7 @@ fn render_watchlist(
     color_mode: RatatuiColorMode,
 ) {
     let rows = screened_rows(model);
-    let selected = model
-        .ui_state
-        .selected_index(rows.len())
-        .unwrap_or_default();
+    let selected = selected_row_index(&rows, model).unwrap_or_default();
     let compact = area.width <= 64;
     let enhanced = !compact && area.width >= 72 && !model.candles.is_empty();
     let show_row_router = !compact && area.width >= 72 && area.height >= 18 && !rows.is_empty();
@@ -4661,11 +4658,35 @@ fn selected_row<'a>(
     rows: &'a [FeatureSnapshot],
     model: &RatatuiFrameModel,
 ) -> Option<&'a FeatureSnapshot> {
-    model
-        .ui_state
-        .selected_index(rows.len())
+    selected_row_index(rows, model)
         .and_then(|index| rows.get(index))
         .or_else(|| rows.first())
+}
+
+fn selected_row_index(rows: &[FeatureSnapshot], model: &RatatuiFrameModel) -> Option<usize> {
+    if rows.is_empty() {
+        return None;
+    }
+
+    if let Some(selected_symbol) = model.ui_state.selected_symbol() {
+        if let Some(index) = rows
+            .iter()
+            .position(|row| row_matches_selected_symbol(row, selected_symbol))
+        {
+            return Some(index);
+        }
+    }
+
+    model.ui_state.selected_index(rows.len())
+}
+
+fn row_matches_selected_symbol(row: &FeatureSnapshot, selected_symbol: &str) -> bool {
+    row.symbol == selected_symbol
+        || row.metadata.as_ref().is_some_and(|metadata| {
+            metadata.display_name == selected_symbol
+                || metadata.feed_identifier == selected_symbol
+                || metadata.symbol == selected_symbol
+        })
 }
 
 fn display_symbol(row: &FeatureSnapshot) -> &str {
