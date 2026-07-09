@@ -594,6 +594,40 @@ fn market_board_quality_view_renders_pair_quality_columns() {
 }
 
 #[test]
+fn market_board_explain_view_renders_ranking_reason_columns() {
+    let snapshots = directional_snapshots();
+    let mut state = WorkstationUiState::default();
+    for _ in 0..4 {
+        state.apply(WorkstationAction::NextView, snapshots.len());
+    }
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    );
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 240,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders explain market board");
+
+    assert!(rendered.contains("view:explain"));
+    assert!(rendered.contains("EXPLAIN SCAN"));
+    assert!(rendered.contains("LIQ"));
+    assert!(rendered.contains("MOM"));
+    assert!(rendered.contains("MEAN"));
+    assert!(rendered.contains("WHY"));
+    assert!(rendered.contains("HYPE/USDC"));
+    assert!(rendered.contains("mom+"));
+}
+
+#[test]
 fn wide_market_board_renders_public_candle_sparkline_lane() {
     let model = RatatuiFrameModel::new(
         fixture_snapshots(),
