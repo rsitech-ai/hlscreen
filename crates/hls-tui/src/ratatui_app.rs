@@ -1823,6 +1823,7 @@ fn render_chart(
                     area.width <= 72,
                 )];
                 lines.extend(selected_pair_edge_hud_lines(row, color_mode));
+                lines.extend(chart_session_strip_lines(row, color_mode));
                 lines.extend([
                     Line::from("Waiting for public 1m candle frames."),
                     Line::from("No synthetic candles are rendered."),
@@ -1857,9 +1858,10 @@ fn render_chart(
     )];
     chart_lines.extend(selected_pair_edge_hud_lines(row, color_mode));
     chart_lines.push(chart_move_summary_line(&candles, color_mode));
+    chart_lines.extend(chart_session_strip_lines(row, color_mode));
     chart_lines.extend(candle_chart_lines(
         &candles,
-        area.height.saturating_sub(6) as usize,
+        area.height.saturating_sub(10) as usize,
         model.ui_state.chart_window().label(),
     ));
     frame.render_widget(
@@ -1929,9 +1931,9 @@ fn selected_pair_edge_hud_lines(
                     .fg(accent(color_mode))
                     .add_modifier(Modifier::BOLD),
             ),
-            Span::raw(format!("trade {}  ", row.tradeability_state.as_str())),
+            Span::raw(format!("trade {} ", row.tradeability_state.as_str())),
             Span::styled(
-                format!("conf {}  ", row.confidence.score),
+                format!("conf {} ", row.confidence.score),
                 Style::default().fg(if row.confidence.score >= 85 {
                     success(color_mode)
                 } else if row.confidence.score >= 70 {
@@ -1940,8 +1942,8 @@ fn selected_pair_edge_hud_lines(
                     danger(color_mode)
                 }),
             ),
-            Span::raw(format!("spr {}bps  ", format_optional(row.spread_bps, 1))),
-            Span::raw(format!("risk {}  ", row.resilience_state.as_str())),
+            Span::raw(format!("spr {}bps ", format_optional(row.spread_bps, 1))),
+            Span::raw(format!("risk {} ", row.resilience_state.as_str())),
             Span::styled("REGIME ", Style::default().fg(warn(color_mode))),
             Span::raw(regime),
         ]),
@@ -1973,6 +1975,48 @@ fn selected_pair_edge_hud_lines(
             Span::raw(format!(
                 "spread gate {spread_gate} | no execution | public bbo proxy"
             )),
+        ]),
+    ]
+}
+
+fn chart_session_strip_lines(
+    row: &FeatureSnapshot,
+    color_mode: RatatuiColorMode,
+) -> Vec<Line<'static>> {
+    vec![
+        Line::from(vec![
+            Span::styled(
+                "SESSION STRIP ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(format!("RET 1m {} | ", trend_label(row.ret_1m))),
+            Span::raw(format!(
+                "RV 1m/5m/1h {}/{}/{} | ",
+                format_optional(row.rv_1m, 2),
+                format_optional(row.rv_5m, 2),
+                format_optional(row.rv_1h, 2)
+            )),
+            Span::styled(
+                format!("OFI {}", format_usd_signed(row.bbo_ofi_proxy_30s)),
+                Style::default().fg(flow_color(
+                    row.bbo_ofi_proxy_30s.unwrap_or_default(),
+                    color_mode,
+                )),
+            ),
+        ]),
+        Line::from(vec![
+            Span::raw(format!(
+                "context adverse {} | spread {}bps | age {} | ",
+                row.adverse_selection_proxy.as_str(),
+                format_optional(row.spread_bps, 1),
+                format_duration_ms(row.updated_ms_ago)
+            )),
+            Span::styled(
+                "public signal context",
+                Style::default().fg(warn(color_mode)),
+            ),
         ]),
     ]
 }
