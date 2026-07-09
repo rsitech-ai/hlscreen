@@ -1,10 +1,14 @@
 use std::{
+    collections::VecDeque,
     fs,
     future::{Future, pending},
-    io::{self, IsTerminal, Write},
+    io::{self, IsTerminal},
     path::{Path, PathBuf},
     pin::Pin,
-    sync::mpsc::{self, Receiver, SyncSender, TrySendError},
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        mpsc::{self, Receiver, SyncSender, TrySendError},
+    },
     thread::{self, JoinHandle},
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
@@ -12,6 +16,7 @@ use std::{
 use anyhow::{Context, bail};
 use clap::{Args, ValueEnum};
 use crossterm::{
+    cursor::{Hide, Show},
     event::{
         self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEvent, KeyEventKind,
         KeyModifiers, MouseEvent, MouseEventKind,
@@ -77,6 +82,44 @@ const INITIAL_RECONNECT_BACKOFF_MS: u64 = 1_000;
 const MAX_RECONNECT_BACKOFF_MS: u64 = 30_000;
 const TUI_KEY_POLL_MS: u64 = 100;
 const TUI_PREFERENCES_FILE: &str = "tui-preferences.toml";
+const MAX_DEFERRED_LIVE_DIAGNOSTICS: usize = 8;
+
+static LIVE_TUI_ACTIVE: AtomicBool = AtomicBool::new(false);
+
+#[derive(Default)]
+struct LiveDiagnostics {
+    deferred: VecDeque<String>,
+}
+
+impl LiveDiagnostics {
+    fn route(&mut self, tui_owns_stderr: bool, message: impl Into<String>) -> Option<String> {
+        let message = message.into();
+        if !tui_owns_stderr {
+            return Some(message);
+        }
+        if self.deferred.len() == MAX_DEFERRED_LIVE_DIAGNOSTICS {
+            self.deferred.pop_front();
+        }
+        self.deferred.push_back(message);
+        None
+    }
+
+    fn emit(&mut self, tui_owns_stderr: bool, message: impl Into<String>) {
+        if let Some(message) = self.route(tui_owns_stderr, message) {
+            eprintln!("{message}");
+        }
+    }
+
+    fn take_deferred(&mut self) -> Vec<String> {
+        self.deferred.drain(..).collect()
+    }
+
+    fn flush_deferred(&mut self) {
+        for message in self.take_deferred() {
+            eprintln!("{message}");
+        }
+    }
+}
 
 #[derive(Debug, Args)]
 pub struct LiveArgs {
@@ -436,10 +479,18 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
     let color_mode = live_ratatui_color_mode(args.color);
     let keyboard_interactive =
         render_live_tui && io::stdin().is_terminal() && io::stderr().is_terminal();
-    let terminal_mode = LiveTuiGuard::enable(keyboard_interactive)?;
-    let mut tui_renderer = render_live_tui.then(LiveTuiRenderer::new).transpose()?;
-    let mut tui_state = render_live_tui
-        .then(|| WorkstationUiState::from_preferences(load_tui_preferences(&args.data_dir)));
+    let lifetime =
+        LiveRunLifetime::from_duration_secs(args.duration_secs, tokio::time::Instant::now())?;
+    let mut diagnostics = LiveDiagnostics::default();
+    let mut tui_state = if render_live_tui {
+        let preflight = preflight_tui_preferences(&args.data_dir);
+        if let Some(warning) = preflight.warning {
+            diagnostics.emit(true, warning);
+        }
+        Some(WorkstationUiState::from_preferences(preflight.preferences))
+    } else {
+        None
+    };
 
     if !render_live_tui {
         eprintln!(
@@ -452,8 +503,21 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
         );
     }
 
-    let lifetime =
-        LiveRunLifetime::from_duration_secs(args.duration_secs, tokio::time::Instant::now())?;
+    let terminal_mode = match LiveTuiGuard::enable(keyboard_interactive) {
+        Ok(guard) => guard,
+        Err(err) => {
+            diagnostics.flush_deferred();
+            return Err(err);
+        }
+    };
+    let mut tui_renderer = match render_live_tui.then(LiveTuiRenderer::new).transpose() {
+        Ok(renderer) => renderer,
+        Err(err) => {
+            drop(terminal_mode);
+            diagnostics.flush_deferred();
+            return Err(err);
+        }
+    };
     let drive_result = drive_live_ws(
         &args.ws_url,
         &subscription_messages,
@@ -468,6 +532,7 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
         keyboard_interactive,
         tui_state.as_mut(),
         recorder.as_ref(),
+        &mut diagnostics,
     )
     .await;
 
@@ -475,32 +540,42 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
         .as_ref()
         .map(LiveDriveSummary::is_clean_shutdown)
         .unwrap_or(false);
-    let record_summary = if let Some(recorder) = recorder {
-        match recorder.finish(clean_shutdown) {
-            Ok(summary) => Some(summary),
-            Err(err) if drive_result.is_err() => {
-                eprintln!("recording closeout failed after live error: {err}");
-                None
-            }
-            Err(err) => return Err(err.into()),
-        }
-    } else {
-        None
-    };
+    let record_summary_result: anyhow::Result<Option<RecordSummary>> =
+        if let Some(recorder) = recorder {
+            recorder
+                .finish(clean_shutdown)
+                .map(Some)
+                .map_err(anyhow::Error::from)
+        } else {
+            Ok(None)
+        };
+    if drive_result.is_err()
+        && let Err(err) = &record_summary_result
+    {
+        diagnostics.emit(
+            render_live_tui,
+            format!("recording closeout failed after live error: {err}"),
+        );
+    }
 
     let tui_preference_save = if let Some(ui_state) = tui_state.as_ref() {
         save_tui_preferences(&args.data_dir, ui_state.preferences())
     } else {
         Ok(())
     };
+    if let Err(err) = &tui_preference_save {
+        diagnostics.emit(
+            render_live_tui,
+            format!("tui preferences save skipped: {err}"),
+        );
+    }
 
-    let mut summary = drive_result?;
     drop(tui_renderer);
     drop(terminal_mode);
+    diagnostics.flush_deferred();
 
-    if let Err(err) = tui_preference_save {
-        eprintln!("tui preferences save skipped: {err}");
-    }
+    let mut summary = drive_result?;
+    let record_summary = record_summary_result?;
     let mut snapshots = FeatureEngine::default().snapshots(&state, now_ms_i64()?);
     attach_metadata(&mut snapshots, metadata);
     summary.row_count = snapshots.len();
@@ -861,6 +936,7 @@ async fn drive_live_ws(
     keyboard_interactive: bool,
     mut tui_state: Option<&mut WorkstationUiState>,
     recorder: Option<&LiveRecorder>,
+    diagnostics: &mut LiveDiagnostics,
 ) -> anyhow::Result<LiveDriveSummary> {
     let started = Instant::now();
     let mut summary = LiveDriveSummary::default();
@@ -918,13 +994,16 @@ async fn drive_live_ws(
                 }
 
                 let backoff = reconnect_backoff(reconnect_attempt);
-                eprintln!(
-                    "live reconnect: conn_id={} reason={} backoff_ms={} reconnects={} data_gaps={}",
-                    closed_conn_id,
-                    reason,
-                    backoff.as_millis(),
-                    summary.reconnects,
-                    summary.data_gaps
+                diagnostics.emit(
+                    tui_frame_sink.is_some(),
+                    format!(
+                        "live reconnect: conn_id={} reason={} backoff_ms={} reconnects={} data_gaps={}",
+                        closed_conn_id,
+                        reason,
+                        backoff.as_millis(),
+                        summary.reconnects,
+                        summary.data_gaps
+                    ),
                 );
                 conn_id = conn_id.saturating_add(1);
                 reconnect_attempt = if received_any_message {
@@ -1256,12 +1335,17 @@ enum LiveRecordCommand {
     Finish {
         clean_shutdown: bool,
     },
+    #[cfg(test)]
+    WaitForRelease {
+        entered: mpsc::Sender<()>,
+        release: Receiver<()>,
+    },
 }
 
 struct LiveRecorder {
     run_id: String,
-    sender: SyncSender<LiveRecordCommand>,
-    handle: JoinHandle<HlsResult<RecordSummary>>,
+    sender: Option<SyncSender<LiveRecordCommand>>,
+    handle: Option<JoinHandle<HlsResult<RecordSummary>>>,
 }
 
 impl LiveRecorder {
@@ -1281,8 +1365,8 @@ impl LiveRecorder {
 
         Ok(Self {
             run_id: run_id.to_owned(),
-            sender,
-            handle,
+            sender: Some(sender),
+            handle: Some(handle),
         })
     }
 
@@ -1320,18 +1404,40 @@ impl LiveRecorder {
         )))
     }
 
-    fn finish(self, clean_shutdown: bool) -> HlsResult<RecordSummary> {
-        let _ = self
-            .sender
-            .send(LiveRecordCommand::Finish { clean_shutdown });
-        drop(self.sender);
-        self.handle
+    fn finish(mut self, clean_shutdown: bool) -> HlsResult<RecordSummary> {
+        self.shutdown(clean_shutdown)
+    }
+
+    fn shutdown(&mut self, clean_shutdown: bool) -> HlsResult<RecordSummary> {
+        let send_error = self.sender.take().and_then(|sender| {
+            sender
+                .send(LiveRecordCommand::Finish { clean_shutdown })
+                .err()
+                .map(|err| {
+                    HlsError::External(format!(
+                        "live recorder worker disconnected during shutdown: {err}"
+                    ))
+                })
+        });
+        let Some(handle) = self.handle.take() else {
+            return Err(HlsError::External(
+                "live recorder worker was already shut down".to_owned(),
+            ));
+        };
+        let summary = handle
             .join()
-            .map_err(|_| HlsError::External("live recorder worker panicked".to_owned()))?
+            .map_err(|_| HlsError::External("live recorder worker panicked".to_owned()))??;
+        if let Some(err) = send_error {
+            return Err(err);
+        }
+        Ok(summary)
     }
 
     fn send(&self, command: LiveRecordCommand) -> HlsResult<()> {
-        match self.sender.try_send(command) {
+        let sender = self.sender.as_ref().ok_or_else(|| {
+            HlsError::External("live recorder worker is shutting down".to_owned())
+        })?;
+        match sender.try_send(command) {
             Ok(()) => Ok(()),
             Err(TrySendError::Full(_)) => Err(HlsError::External(format!(
                 "live recorder queue is full at capacity {LIVE_RECORDER_QUEUE_CAPACITY}; failing closed to avoid silent data loss"
@@ -1340,6 +1446,12 @@ impl LiveRecorder {
                 "live recorder worker disconnected".to_owned(),
             )),
         }
+    }
+}
+
+impl Drop for LiveRecorder {
+    fn drop(&mut self) {
+        let _ = self.shutdown(false);
     }
 }
 
@@ -1399,6 +1511,21 @@ impl LiveRecorderWorker {
     }
 
     fn run(mut self, receiver: Receiver<LiveRecordCommand>) -> HlsResult<RecordSummary> {
+        let clean_shutdown = match self.process_commands(receiver) {
+            Ok(clean_shutdown) => clean_shutdown,
+            Err(worker_err) => {
+                return match self.finish(false) {
+                    Ok(_) => Err(worker_err),
+                    Err(closeout_err) => Err(HlsError::External(format!(
+                        "live recorder worker failed: {worker_err}; unclean closeout also failed: {closeout_err}"
+                    ))),
+                };
+            }
+        };
+        self.finish(clean_shutdown)
+    }
+
+    fn process_commands(&mut self, receiver: Receiver<LiveRecordCommand>) -> HlsResult<bool> {
         let mut clean_shutdown = false;
         for command in receiver {
             match command {
@@ -1415,10 +1542,14 @@ impl LiveRecorderWorker {
                     clean_shutdown = requested_clean_shutdown;
                     break;
                 }
+                #[cfg(test)]
+                LiveRecordCommand::WaitForRelease { entered, release } => {
+                    let _ = entered.send(());
+                    let _ = release.recv();
+                }
             }
         }
-
-        self.finish(clean_shutdown)
+        Ok(clean_shutdown)
     }
 
     fn record_raw_line(&mut self, recv_ts_ns: u64, conn_id: u64, line: &str) -> HlsResult<()> {
@@ -1612,13 +1743,21 @@ fn tui_preferences_path(data_dir: &Path) -> PathBuf {
     data_dir.join(TUI_PREFERENCES_FILE)
 }
 
-fn load_tui_preferences(data_dir: &Path) -> WorkstationUiPreferences {
+struct TuiPreferencePreflight {
+    preferences: WorkstationUiPreferences,
+    warning: Option<String>,
+}
+
+fn preflight_tui_preferences(data_dir: &Path) -> TuiPreferencePreflight {
     match try_load_tui_preferences(data_dir) {
-        Ok(preferences) => preferences,
-        Err(err) => {
-            eprintln!("tui preferences load skipped: {err}");
-            WorkstationUiPreferences::default()
-        }
+        Ok(preferences) => TuiPreferencePreflight {
+            preferences,
+            warning: None,
+        },
+        Err(err) => TuiPreferencePreflight {
+            preferences: WorkstationUiPreferences::default(),
+            warning: Some(format!("tui preferences load skipped: {err}")),
+        },
     }
 }
 
@@ -3078,44 +3217,62 @@ fn current_screened_row_count(
         .len())
 }
 
+fn restore_tui_once(active: &AtomicBool, restore: impl FnOnce()) -> bool {
+    if !active.swap(false, Ordering::AcqRel) {
+        return false;
+    }
+    restore();
+    true
+}
+
+fn restore_live_tui_terminal() {
+    let mut stderr = io::stderr();
+    let _ = execute!(stderr, DisableMouseCapture);
+    let _ = execute!(stderr, Show);
+    let _ = execute!(stderr, LeaveAlternateScreen);
+    let _ = disable_raw_mode();
+}
+
+pub(crate) fn restore_active_tui_after_panic() {
+    restore_tui_once(&LIVE_TUI_ACTIVE, restore_live_tui_terminal);
+}
+
 struct LiveTuiGuard {
-    raw_enabled: bool,
-    alternate_screen_enabled: bool,
-    mouse_capture_enabled: bool,
+    enabled: bool,
 }
 
 impl LiveTuiGuard {
     fn enable(enabled: bool) -> anyhow::Result<Self> {
-        if enabled {
-            enable_raw_mode()?;
-            if let Err(err) = execute!(io::stderr(), EnterAlternateScreen) {
-                let _ = disable_raw_mode();
-                return Err(err.into());
-            }
-            if let Err(err) = execute!(io::stderr(), EnableMouseCapture) {
-                let _ = execute!(io::stderr(), LeaveAlternateScreen);
-                let _ = disable_raw_mode();
-                return Err(err.into());
-            }
+        if !enabled {
+            return Ok(Self { enabled: false });
         }
-        Ok(Self {
-            raw_enabled: enabled,
-            alternate_screen_enabled: enabled,
-            mouse_capture_enabled: enabled,
-        })
+        if LIVE_TUI_ACTIVE
+            .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+            .is_err()
+        {
+            bail!("a live TUI terminal session is already active");
+        }
+
+        let activation = (|| -> anyhow::Result<()> {
+            enable_raw_mode()?;
+            let mut stderr = io::stderr();
+            execute!(stderr, EnterAlternateScreen)?;
+            execute!(stderr, EnableMouseCapture)?;
+            execute!(stderr, Hide)?;
+            Ok(())
+        })();
+        if let Err(err) = activation {
+            restore_active_tui_after_panic();
+            return Err(err);
+        }
+        Ok(Self { enabled: true })
     }
 }
 
 impl Drop for LiveTuiGuard {
     fn drop(&mut self) {
-        if self.mouse_capture_enabled {
-            let _ = execute!(io::stderr(), DisableMouseCapture);
-        }
-        if self.alternate_screen_enabled {
-            let _ = execute!(io::stderr(), LeaveAlternateScreen);
-        }
-        if self.raw_enabled {
-            let _ = disable_raw_mode();
+        if self.enabled {
+            restore_active_tui_after_panic();
         }
     }
 }
@@ -3151,7 +3308,6 @@ impl LiveTuiFrameSink for LiveTuiRenderer {
         self.terminal.draw(|frame| {
             hls_tui::ratatui_app::render_ratatui_frame(frame, model, color_mode);
         })?;
-        self.terminal.backend_mut().flush()?;
         Ok(())
     }
 }
@@ -3275,6 +3431,42 @@ mod tests {
         assert_eq!(reconnect_backoff(1), Duration::from_millis(2_000));
         assert_eq!(reconnect_backoff(5), Duration::from_millis(30_000));
         assert_eq!(reconnect_backoff(100), Duration::from_millis(30_000));
+    }
+
+    #[test]
+    fn live_tui_diagnostics_do_not_bypass_frame_sink() {
+        let mut diagnostics = LiveDiagnostics::default();
+
+        assert_eq!(
+            diagnostics.route(false, "non-TUI warning"),
+            Some("non-TUI warning".to_owned())
+        );
+        assert_eq!(diagnostics.route(true, "TUI reconnect warning"), None);
+        assert_eq!(
+            diagnostics.take_deferred(),
+            vec!["TUI reconnect warning".to_owned()]
+        );
+
+        for index in 0..(MAX_DEFERRED_LIVE_DIAGNOSTICS + 2) {
+            assert_eq!(diagnostics.route(true, format!("warning-{index}")), None);
+        }
+        let deferred = diagnostics.take_deferred();
+        assert_eq!(deferred.len(), MAX_DEFERRED_LIVE_DIAGNOSTICS);
+        assert_eq!(deferred.first().map(String::as_str), Some("warning-2"));
+    }
+
+    #[test]
+    fn live_tui_restore_is_idempotent() {
+        let active = std::sync::atomic::AtomicBool::new(true);
+        let restore_count = std::cell::Cell::new(0);
+
+        assert!(restore_tui_once(&active, || {
+            restore_count.set(restore_count.get() + 1);
+        }));
+        assert!(!restore_tui_once(&active, || {
+            restore_count.set(restore_count.get() + 1);
+        }));
+        assert_eq!(restore_count.get(), 1);
     }
 
     #[test]
@@ -5290,7 +5482,10 @@ mod tests {
         assert!(raw.contains("view = \"flow\""));
         assert!(raw.contains("density = \"dense\""));
         assert!(raw.contains("chart_window = \"30m\""));
-        assert_eq!(load_tui_preferences(temp.path()), preferences);
+        assert_eq!(
+            preflight_tui_preferences(temp.path()).preferences,
+            preferences
+        );
     }
 
     #[test]
@@ -5309,14 +5504,31 @@ chart_window = "15m"
         )
         .expect("write unknown preference");
         assert_eq!(
-            load_tui_preferences(temp.path()),
+            preflight_tui_preferences(temp.path()).preferences,
             WorkstationUiPreferences::default()
         );
 
         fs::write(&path, "not valid toml = [").expect("write malformed preference");
         assert_eq!(
-            load_tui_preferences(temp.path()),
+            preflight_tui_preferences(temp.path()).preferences,
             WorkstationUiPreferences::default()
+        );
+    }
+
+    #[test]
+    fn live_tui_preflight_captures_malformed_preferences_before_activation() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        fs::write(tui_preferences_path(temp.path()), "not valid toml = [")
+            .expect("write malformed preference");
+
+        let preflight = preflight_tui_preferences(temp.path());
+
+        assert_eq!(preflight.preferences, WorkstationUiPreferences::default());
+        assert!(
+            preflight
+                .warning
+                .as_deref()
+                .is_some_and(|warning| warning.contains("tui preferences load skipped"))
         );
     }
 
@@ -5424,6 +5636,76 @@ chart_window = "15m"
     }
 
     #[test]
+    fn live_recorder_drop_joins_worker_as_unclean() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        let data_dir = temp.path().to_path_buf();
+        let run_id = "live-worker-drop-test";
+        let recorder = LiveRecorder::new(&data_dir, run_id, vec!["@107".to_owned()], true, true)
+            .expect("live recorder starts");
+
+        let (entered_tx, entered_rx) = mpsc::channel();
+        let (release_tx, release_rx) = mpsc::channel();
+        recorder
+            .send(LiveRecordCommand::WaitForRelease {
+                entered: entered_tx,
+                release: release_rx,
+            })
+            .expect("worker wait command enqueues");
+        entered_rx
+            .recv_timeout(Duration::from_secs(1))
+            .expect("worker reaches wait command");
+
+        let (drop_done_tx, drop_done_rx) = mpsc::channel();
+        let drop_thread = thread::spawn(move || {
+            drop(recorder);
+            let _ = drop_done_tx.send(());
+        });
+        assert!(
+            drop_done_rx
+                .recv_timeout(Duration::from_millis(50))
+                .is_err(),
+            "recorder Drop must wait for its worker"
+        );
+        release_tx.send(()).expect("worker released");
+        drop_done_rx
+            .recv_timeout(Duration::from_secs(1))
+            .expect("recorder drop completes after worker release");
+        drop_thread.join().expect("drop thread joins");
+
+        let registry = MetadataRegistry::open(data_dir.join("hls.sqlite"))
+            .expect("metadata registry reopens after recorder drop");
+        let run = registry
+            .get_run(run_id)
+            .expect("get run")
+            .expect("run exists");
+        assert_eq!(run.clean_shutdown, Some(false));
+        assert!(run.ended_at_ms.is_some());
+    }
+
+    #[test]
+    fn live_recorder_worker_error_still_persists_unclean_shutdown() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        let data_dir = temp.path().to_path_buf();
+        let run_id = "live-worker-error-test";
+        let recorder = LiveRecorder::new(&data_dir, run_id, vec!["@107".to_owned()], true, false)
+            .expect("live recorder starts");
+
+        recorder
+            .record_raw_line(1_710_000_000_123_456_789, 3, "not-json".to_owned())
+            .expect("invalid raw line enqueues before worker parses it");
+        drop(recorder);
+
+        let registry = MetadataRegistry::open(data_dir.join("hls.sqlite"))
+            .expect("metadata registry reopens after worker error");
+        let run = registry
+            .get_run(run_id)
+            .expect("get run")
+            .expect("run exists");
+        assert_eq!(run.clean_shutdown, Some(false));
+        assert!(run.ended_at_ms.is_some());
+    }
+
+    #[test]
     fn live_recorder_worker_preserves_receive_timestamps_and_gaps() {
         let temp = tempfile::tempdir().expect("tempdir");
         let data_dir = temp.path().to_path_buf();
@@ -5478,6 +5760,7 @@ chart_window = "15m"
             .expect("get run")
             .expect("run exists");
         assert_eq!(run.gap_count, 1);
+        assert_eq!(run.clean_shutdown, Some(true));
         let gaps = registry.list_gaps("live-worker-test").expect("gaps list");
         assert_eq!(gaps[0].reason, "test reconnect");
         assert_eq!(gaps[0].affected_symbols, vec!["@107".to_owned()]);
