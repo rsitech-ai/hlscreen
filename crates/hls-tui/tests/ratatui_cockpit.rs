@@ -260,6 +260,54 @@ fn command_palette_renders_live_symbol_suggestions() {
 }
 
 #[test]
+fn narrow_command_palette_renders_compact_operator_deck() {
+    let snapshots = directional_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(WorkstationAction::OpenSymbolSearch, snapshots.len());
+    for ch in "down".chars() {
+        state.apply(WorkstationAction::CommandChar(ch), snapshots.len());
+    }
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    );
+
+    let plain = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 72,
+            height: 24,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("plain compact command palette renders");
+    let colored = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 72,
+            height: 24,
+        },
+        RatatuiColorMode::Color,
+    )
+    .expect("colored compact command palette renders");
+
+    assert!(!plain.contains("\u{1b}["));
+    assert!(plain.contains("COMMAND COMPACT"));
+    assert!(plain.contains("symbol > down"));
+    assert!(plain.contains("DOWN/USDC"));
+    assert!(plain.contains("Enter apply"));
+    assert!(plain.contains("Esc cancel"));
+    assert!(plain.contains("RO no-wallet"));
+    assert!(!plain.contains("COMMAND CENTER"));
+    assert_eq!(
+        active_fg_before(&colored, "COMMAND COMPACT"),
+        Some("\u{1b}[38;2;0;229;255m")
+    );
+}
+
+#[test]
 fn cockpit_header_renders_adaptive_layout_profile() {
     let model = RatatuiFrameModel::new(
         directional_snapshots(),
