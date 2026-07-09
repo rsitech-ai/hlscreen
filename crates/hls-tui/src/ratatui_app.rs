@@ -2562,6 +2562,10 @@ fn render_chart(
     if show_prints_strip {
         chart_lines.extend(chart_prints_strip_lines(&chart_trades, color_mode));
     }
+    let show_trade_markers = show_prints_strip && !chart_trades.is_empty();
+    if show_trade_markers {
+        chart_lines.push(chart_trade_marker_line(&candles, &chart_trades, color_mode));
+    }
     chart_lines.push(chart_move_summary_line(&candles, color_mode));
     chart_lines.push(chart_candle_hud_line(latest, color_mode));
     let show_profile_rail = show_chart_profile_rail(area);
@@ -2576,7 +2580,8 @@ fn render_chart(
         + u16::from(show_order_pressure) * 3
         + u16::from(show_prints_strip) * 3
         + u16::from(show_crosshair_context) * 2
-        + u16::from(show_profile_rail);
+        + u16::from(show_profile_rail)
+        + u16::from(show_trade_markers);
     chart_lines.extend(candle_chart_lines(
         &candles,
         area.height.saturating_sub(chart_overhead) as usize,
@@ -2849,6 +2854,59 @@ fn chart_prints_strip_lines(
         ]),
         Line::from(format!("recent {recent} | public trades only")),
     ]
+}
+
+fn chart_trade_marker_line(
+    candles: &[&CandleEvent],
+    trades: &[&TradeEvent],
+    color_mode: RatatuiColorMode,
+) -> Line<'static> {
+    let mut spans = vec![Span::styled(
+        "PRINT MARKERS ",
+        Style::default()
+            .fg(accent(color_mode))
+            .add_modifier(Modifier::BOLD),
+    )];
+    let mut buy_count = 0usize;
+    let mut sell_count = 0usize;
+    let mut net_notional = 0.0;
+
+    for candle in candles {
+        let mut buy_notional = 0.0;
+        let mut sell_notional = 0.0;
+        for trade in trades.iter().filter(|trade| {
+            trade.exchange_ts_ms >= candle.open_ts_ms && trade.exchange_ts_ms <= candle.close_ts_ms
+        }) {
+            match trade.side {
+                TradeSide::Buy => {
+                    buy_count += 1;
+                    buy_notional += trade.notional;
+                    net_notional += trade.notional;
+                }
+                TradeSide::Sell => {
+                    sell_count += 1;
+                    sell_notional += trade.notional;
+                    net_notional -= trade.notional;
+                }
+            }
+        }
+        let (marker, marker_style) = if buy_notional > 0.0 && sell_notional > 0.0 {
+            ('X', Style::default().fg(warn(color_mode)))
+        } else if buy_notional > 0.0 {
+            ('B', Style::default().fg(success(color_mode)))
+        } else if sell_notional > 0.0 {
+            ('S', Style::default().fg(danger(color_mode)))
+        } else {
+            ('·', Style::default().fg(text(color_mode)))
+        };
+        spans.push(Span::styled(marker.to_string(), marker_style));
+    }
+
+    spans.push(Span::raw(format!(
+        " buy {buy_count} sell {sell_count} net {} | public prints no fills",
+        format_usd_signed(Some(net_notional))
+    )));
+    Line::from(spans)
 }
 
 fn chart_session_strip_lines(
