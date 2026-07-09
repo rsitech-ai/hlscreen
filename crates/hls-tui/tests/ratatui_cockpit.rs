@@ -3966,6 +3966,14 @@ fn help_overlay_color_mode_renders_operator_keyboard_map() {
 
     assert!(!plain.contains("\u{1b}["));
     assert!(plain.contains("OPERATOR KEYBOARD MAP"));
+    assert!(plain.contains("HOTKEY HUD"));
+    assert!(plain.contains("[g] symbol"));
+    assert!(plain.contains("[/] filter"));
+    assert!(plain.contains("[p] preset"));
+    assert!(plain.contains("[s] sort"));
+    assert!(plain.contains("[t] window"));
+    assert!(plain.contains("[z] chart zoom"));
+    assert!(plain.contains("RO public data"));
     assert!(plain.contains("NAVIGATION"));
     assert!(plain.contains("MARKET COMMANDS"));
     assert!(plain.contains("LAYOUT"));
@@ -3975,6 +3983,10 @@ fn help_overlay_color_mode_renders_operator_keyboard_map() {
     assert_eq!(
         active_fg_before(&colored, "OPERATOR KEYBOARD MAP"),
         Some("\u{1b}[38;2;0;229;255m")
+    );
+    assert_eq!(
+        active_fg_before(&colored, "HOTKEY HUD"),
+        Some("\u{1b}[38;2;255;214;102m")
     );
     assert_eq!(
         active_fg_before(&colored, "NAVIGATION"),

@@ -3483,7 +3483,7 @@ fn render_help_overlay(
     if !model.ui_state.help_open() {
         return;
     }
-    let popup = centered_rect(76, 54, area);
+    let popup = centered_rect(76, 60, area);
     frame.render_widget(Clear, popup);
     let state = &model.ui_state;
     let lines = if popup.width < 64 {
@@ -3499,6 +3499,7 @@ fn render_help_overlay(
                 ),
                 Span::raw(" | Command Deck"),
             ]),
+            help_hotkey_hud_line(state, color_mode),
             Line::from(vec![
                 Span::styled(
                     "STATE ",
@@ -3621,6 +3622,30 @@ fn render_help_overlay(
             .style(Style::default().fg(text(color_mode))),
         popup,
     );
+}
+
+fn help_hotkey_hud_line(state: &WorkstationUiState, color_mode: RatatuiColorMode) -> Line<'static> {
+    Line::from(vec![
+        Span::styled(
+            "HOTKEY HUD ",
+            Style::default()
+                .fg(warn(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw("[g] symbol  [/] filter  [p] preset  [s] sort  [t] window  "),
+        Span::styled(
+            format!("[z] {} zoom  ", state.focused_pane().label()),
+            Style::default()
+                .fg(pane_accent(state.focused_pane(), color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::styled(
+            "RO public data",
+            Style::default()
+                .fg(success(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+    ])
 }
 
 fn compact_help_overlay_lines(
