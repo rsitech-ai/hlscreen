@@ -1800,6 +1800,11 @@ fn book_lines(
     let (bid_bar, ask_bar) = quote_share
         .map(|(bid, ask)| (depth_bar(bid, 16), depth_bar(ask, 16)))
         .unwrap_or_else(|| (depth_bar_empty(16), depth_bar_empty(16)));
+    let share_prefix = if view == WorkstationView::Flow {
+        "share bid "
+    } else {
+        "DEPTH CONSOLE share bid "
+    };
     let mut lines = vec![
         Line::from(vec![
             Span::styled(
@@ -1809,10 +1814,9 @@ fn book_lines(
                     .add_modifier(Modifier::BOLD),
             ),
             Span::raw(format!(
-                "{} x {}  notional {}",
+                "{} x {} BBO depth proxy",
                 format_price(row.bid_px),
-                format_size(row.bid_sz),
-                format_usd(bid_notional)
+                format_size(row.bid_sz)
             )),
         ]),
         Line::from(vec![
@@ -1823,16 +1827,15 @@ fn book_lines(
                     .add_modifier(Modifier::BOLD),
             ),
             Span::raw(format!(
-                "{} x {}  notional {}",
+                "{} x {} BOOK proxy only",
                 format_price(row.ask_px),
-                format_size(row.ask_sz),
-                format_usd(ask_notional)
+                format_size(row.ask_sz)
             )),
         ]),
         Line::from(vec![
-            Span::raw("share "),
+            Span::raw(share_prefix),
             Span::styled(
-                format!("bid {bid_share}"),
+                bid_share,
                 Style::default()
                     .fg(success(color_mode))
                     .add_modifier(Modifier::BOLD),
@@ -1891,34 +1894,49 @@ fn book_lines(
     }
 
     if content_height <= 7 {
+        let (bid_bar, ask_bar) = quote_share
+            .map(|(bid, ask)| (depth_bar(bid, 8), depth_bar(ask, 8)))
+            .unwrap_or_else(|| (depth_bar_empty(8), depth_bar_empty(8)));
         lines.extend([
             Line::from(vec![
                 Span::styled("BID notional ", Style::default().fg(success(color_mode))),
-                Span::raw(format!("{bid_bar} {}", format_usd(bid_notional))),
+                Span::raw(format!(
+                    "bid pressure {bid_bar} {}",
+                    format_usd(bid_notional)
+                )),
             ]),
             Line::from(vec![
                 Span::styled("ASK notional ", Style::default().fg(danger(color_mode))),
-                Span::raw(format!("{ask_bar} {}", format_usd(ask_notional))),
+                Span::raw(format!(
+                    "ask pressure {ask_bar} {}",
+                    format_usd(ask_notional)
+                )),
             ]),
             Line::from(format!(
                 "imbalance {}  OFI {}",
                 format_signed(row.tob_imbalance, ""),
                 format_usd_signed(row.bbo_ofi_proxy_30s)
             )),
-            Line::from("BOOK proxy only | public top-book"),
+            Line::from("BBO depth proxy | BOOK proxy only | public top-book"),
         ]);
         return lines;
     }
 
     lines.extend([
-        Line::from("BOOK proxy only | public top-book"),
+        Line::from("DEPTH CONSOLE | BBO depth proxy | BOOK proxy only | public top-book"),
         Line::from(vec![
             Span::styled("BID notional ", Style::default().fg(success(color_mode))),
-            Span::raw(format!("{bid_bar} {}", format_usd(bid_notional))),
+            Span::raw(format!(
+                "bid pressure {bid_bar} {}",
+                format_usd(bid_notional)
+            )),
         ]),
         Line::from(vec![
             Span::styled("ASK notional ", Style::default().fg(danger(color_mode))),
-            Span::raw(format!("{ask_bar} {}", format_usd(ask_notional))),
+            Span::raw(format!(
+                "ask pressure {ask_bar} {}",
+                format_usd(ask_notional)
+            )),
         ]),
         Line::from(format!(
             "spread {} bps  depth {}",
