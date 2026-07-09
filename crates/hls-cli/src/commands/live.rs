@@ -1372,6 +1372,7 @@ fn key_to_workstation_action(
         KeyCode::Char('p') | KeyCode::Char('P') => Some(WorkstationAction::CyclePreset),
         KeyCode::Char('s') | KeyCode::Char('S') => Some(WorkstationAction::CycleSort),
         KeyCode::Char('t') | KeyCode::Char('T') => Some(WorkstationAction::CycleChartWindow),
+        KeyCode::Char('z') | KeyCode::Char('Z') => Some(WorkstationAction::TogglePaneZoom),
         KeyCode::Char('h') | KeyCode::Char('H') => {
             Some(WorkstationAction::FocusPane(WorkstationPane::Status))
         }
@@ -1691,6 +1692,13 @@ mod tests {
         );
         assert_eq!(
             key_to_workstation_action(
+                KeyEvent::new(KeyCode::Char('z'), KeyModifiers::NONE),
+                &state
+            ),
+            Some(WorkstationAction::TogglePaneZoom)
+        );
+        assert_eq!(
+            key_to_workstation_action(
                 KeyEvent::new(KeyCode::Char(']'), KeyModifiers::NONE),
                 &state
             ),
@@ -1772,6 +1780,13 @@ mod tests {
                 &command_state
             ),
             Some(WorkstationAction::CommandChar('4'))
+        );
+        assert_eq!(
+            key_to_workstation_action(
+                KeyEvent::new(KeyCode::Char('z'), KeyModifiers::NONE),
+                &command_state
+            ),
+            Some(WorkstationAction::CommandChar('z'))
         );
     }
 
