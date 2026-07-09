@@ -583,7 +583,7 @@ fn render_header(
     } else {
         format!("  {mode_label}  filter:{filter}")
     };
-    let status_spans = vec![
+    let mut status_spans = vec![
         Span::styled(
             "STATUS ",
             Style::default()
@@ -595,8 +595,9 @@ fn render_header(
             model.recorder_status.clone(),
             Style::default().fg(success(color_mode)),
         ),
-        Span::raw(status_tail),
     ];
+    status_spans.extend(header_visual_path_spans(color_mode, narrow));
+    status_spans.push(Span::raw(status_tail));
     let mut text = vec![Line::from(status_spans)];
     if viewport.width >= 220 {
         text.push(top_command_strip_line(model, color_mode));
@@ -629,6 +630,35 @@ fn render_header(
         ),
         area,
     );
+}
+
+fn header_visual_path_spans(color_mode: RatatuiColorMode, compact: bool) -> Vec<Span<'static>> {
+    if compact {
+        return Vec::new();
+    }
+
+    vec![
+        Span::raw("  "),
+        Span::styled(
+            "VISUAL ",
+            Style::default()
+                .fg(accent(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::styled(
+            color_mode.color_path_label(),
+            Style::default()
+                .fg(visual_path_color(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+    ]
+}
+
+fn visual_path_color(color_mode: RatatuiColorMode) -> Color {
+    match color_mode {
+        RatatuiColorMode::NoColor => text(color_mode),
+        RatatuiColorMode::Auto | RatatuiColorMode::Color => success(color_mode),
+    }
 }
 
 fn top_command_strip_line(

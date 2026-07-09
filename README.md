@@ -204,6 +204,9 @@ TTY mouse controls for terminals with mouse reporting enabled:
 Color defaults to `always` for `hls live --tui`, so the Ratatui workstation uses
 the ANSI theme out of the box. Use `--color auto` to follow terminal and
 environment detection, or `--color never` for deterministic monochrome output.
+Medium and wide layouts show the active visual path in the top header and bottom
+action strip, such as `VISUAL ansi-neon active` or `VISUAL plain fallback`, so
+screenshots make color mode drift obvious without crowding narrow terminals.
 The legacy `HLS_FORCE_COLOR=1`, `CLICOLOR_FORCE=1`, and `FORCE_COLOR=1`
 environment overrides still force color in `auto`; `NO_COLOR=1` or `TERM=dumb`
 still disables color in `auto`.
