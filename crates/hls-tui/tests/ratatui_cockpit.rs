@@ -1957,6 +1957,42 @@ fn cockpit_chart_renders_latest_candle_hud() {
 }
 
 #[test]
+fn wide_chart_renders_public_volume_profile_rail() {
+    let snapshots = fixture_snapshots();
+    let candles = directional_chart_candles(&snapshots[0].symbol);
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Chart),
+        snapshots.len(),
+    );
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    )
+    .with_candles(candles);
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 180,
+            height: 52,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders chart volume profile rail");
+
+    assert!(rendered.contains("[FOCUS] CANDLES"));
+    assert!(rendered.contains("PROFILE RAIL"));
+    assert!(rendered.contains("POC 10.0000"));
+    assert!(rendered.contains("VWAP 10.7692"));
+    assert!(rendered.contains("profile"));
+    assert!(rendered.contains("volume 260"));
+    assert!(rendered.contains("public POC"));
+}
+
+#[test]
 fn cockpit_reflects_keyboard_view_pause_density_and_help_state() {
     let snapshots = fixture_snapshots();
     let mut state = WorkstationUiState::default();
