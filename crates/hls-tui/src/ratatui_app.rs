@@ -451,15 +451,33 @@ fn render_expanded_pane(
 }
 
 fn expanded_pane_line(model: &RatatuiFrameModel, color_mode: RatatuiColorMode) -> Line<'static> {
-    let pane = model.ui_state.focused_pane().label();
+    let pane = model.ui_state.focused_pane();
+    let pane_label = pane.label();
     Line::from(vec![
         Span::styled(
-            format!("EXPANDED {pane} "),
+            "ZOOM DECK ",
             Style::default()
-                .fg(warn(color_mode))
+                .fg(accent(color_mode))
                 .add_modifier(Modifier::BOLD),
         ),
-        Span::raw("z grid | 1-6 switch pane | tab view | t window | / command | read-only"),
+        Span::styled(
+            format!("EXPANDED {pane_label} "),
+            Style::default()
+                .fg(pane_accent(pane, color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::styled("z grid", Style::default().fg(warn(color_mode))),
+        Span::raw(" | "),
+        Span::styled("1-6 focus", Style::default().fg(accent(color_mode))),
+        Span::raw(" | tab view | t window | "),
+        Span::styled("/ command", Style::default().fg(warn(color_mode))),
+        Span::raw(" | "),
+        Span::styled(
+            "READ-ONLY public data",
+            Style::default()
+                .fg(danger(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
     ])
 }
 

@@ -1840,6 +1840,59 @@ fn expanded_chart_renders_public_intelligence_deck() {
 }
 
 #[test]
+fn expanded_chart_renders_semantic_zoom_deck() {
+    let snapshots = fixture_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Chart),
+        snapshots.len(),
+    );
+    state.apply(WorkstationAction::TogglePaneZoom, snapshots.len());
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    )
+    .with_candles(fixture_candles());
+
+    let plain = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 120,
+            height: 36,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("plain expanded zoom deck renders");
+    let colored = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 120,
+            height: 36,
+        },
+        RatatuiColorMode::Color,
+    )
+    .expect("colored expanded zoom deck renders");
+
+    assert!(!plain.contains("\u{1b}["));
+    assert!(plain.contains("ZOOM DECK"));
+    assert!(plain.contains("EXPANDED chart"));
+    assert!(plain.contains("z grid"));
+    assert!(plain.contains("1-6 focus"));
+    assert!(plain.contains("/ command"));
+    assert!(plain.contains("READ-ONLY"));
+    assert_eq!(
+        active_fg_before(&colored, "ZOOM DECK"),
+        Some("\u{1b}[38;2;0;229;255m")
+    );
+    assert_eq!(
+        active_fg_before(&colored, "EXPANDED chart"),
+        Some("\u{1b}[38;2;255;209;102m")
+    );
+}
+
+#[test]
 fn expanded_chart_renders_tactical_matrix() {
     let snapshots = directional_snapshots();
     let mut state = WorkstationUiState::default();
