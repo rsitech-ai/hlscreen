@@ -2837,6 +2837,9 @@ fn tape_lines(
     let recent_trades = selected_trades(model, &selected.symbol, content_height);
     if !recent_trades.is_empty() {
         lines.push(tape_radar_line(&recent_trades, color_mode));
+        if let Some(latest_trade) = recent_trades.first() {
+            lines.push(last_trade_hud_line(latest_trade, color_mode));
+        }
         if model.ui_state.view() == WorkstationView::Flow {
             lines.extend(trade_pressure_lines(&recent_trades, compact, color_mode));
         }
@@ -2904,6 +2907,34 @@ fn tape_lines(
     );
     lines.push(Line::from("Tape proxy only | public BBO/flow; no fills."));
     lines
+}
+
+fn last_trade_hud_line(trade: &TradeEvent, color_mode: RatatuiColorMode) -> Line<'static> {
+    let side = trade_side_label(trade.side);
+    let mut spans = vec![
+        Span::styled(
+            "LAST TRADE HUD ",
+            Style::default()
+                .fg(accent(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw("latest "),
+        Span::styled(
+            side,
+            Style::default()
+                .fg(trade_side_color(trade.side, color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw(format!(
+            " tid {} px {} size {} notional {}",
+            trade.tid,
+            format_plain_number(trade.price),
+            format_size(Some(trade.size)),
+            format_usd(Some(trade.notional))
+        )),
+    ];
+    spans.push(Span::raw(" | public trades only"));
+    Line::from(spans)
 }
 
 fn tape_radar_line(trades: &[&TradeEvent], color_mode: RatatuiColorMode) -> Line<'static> {
@@ -3059,10 +3090,7 @@ fn trade_tape_line(
     compact: bool,
     color_mode: RatatuiColorMode,
 ) -> Line<'static> {
-    let side = match trade.side {
-        TradeSide::Buy => "BUY",
-        TradeSide::Sell => "SELL",
-    };
+    let side = trade_side_label(trade.side);
     let time = trade_time_label(trade.exchange_ts_ms);
     if compact {
         return Line::from(vec![
@@ -3096,6 +3124,13 @@ fn trade_tape_line(
             format_usd(Some(trade.notional))
         )),
     ])
+}
+
+fn trade_side_label(side: TradeSide) -> &'static str {
+    match side {
+        TradeSide::Buy => "BUY",
+        TradeSide::Sell => "SELL",
+    }
 }
 
 fn trade_time_label(exchange_ts_ms: i64) -> String {

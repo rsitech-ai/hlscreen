@@ -1020,6 +1020,13 @@ fn tape_pane_renders_public_recent_trades_when_available() {
     assert!(rendered.contains("buy 1"));
     assert!(rendered.contains("sell 1"));
     assert!(rendered.contains("public tape"));
+    assert!(rendered.contains("LAST TRADE HUD"));
+    assert!(rendered.contains("latest SELL"));
+    assert!(rendered.contains("px 35.2000"));
+    assert!(rendered.contains("size 1"));
+    assert!(rendered.contains("notional $35"));
+    assert!(rendered.contains("tid 12"));
+    assert!(rendered.contains("public trades only"));
     assert!(rendered.contains("PUBLIC TRADES"));
     assert!(rendered.contains("BUY"));
     assert!(rendered.contains("SELL"));
