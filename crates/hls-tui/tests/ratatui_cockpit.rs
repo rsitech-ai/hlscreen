@@ -381,6 +381,7 @@ fn wide_status_bar_renders_action_key_rail() {
     assert!(rendered.contains("? help"));
     assert!(rendered.contains("q quit"));
     assert!(rendered.contains("THEME plain"));
+    assert!(rendered.contains("COLOR plain fallback"));
     assert!(rendered.contains("No wallet"));
     assert!(rendered.contains("RISK STRIP"));
 }
@@ -410,6 +411,7 @@ fn medium_status_bar_compacts_action_and_theme_rails() {
     assert!(rendered.contains("z zoom"));
     assert!(rendered.contains("/ p s t ? q"));
     assert!(rendered.contains("THEME plain"));
+    assert!(rendered.contains("COLOR plain fallback"));
     assert!(rendered.contains("--color always"));
     assert!(rendered.contains("No wallet"));
     assert!(rendered.contains("TICKER"));
@@ -1686,9 +1688,11 @@ fn wide_status_bar_renders_theme_calibration_rail() {
 
     assert!(!plain.contains("\u{1b}["));
     assert!(plain.contains("THEME plain"));
+    assert!(plain.contains("COLOR plain fallback"));
     assert!(plain.contains("--color always"));
     assert!(colored.contains("THEME"));
     assert!(colored.contains("ansi"));
+    assert!(colored.contains("COLOR ansi-neon active"));
     assert!(colored.contains("--color always"));
     assert!(colored.contains("\u{1b}[38;2;0;255;154m▲"));
     assert!(colored.contains("\u{1b}[38;2;255;77;109m▼"));
@@ -1809,8 +1813,11 @@ fn cockpit_reflects_keyboard_view_pause_density_and_help_state() {
     assert!(rendered.contains("STATE view flow | pane chart | density dense"));
     assert!(rendered.contains("PALETTE DIAGNOSTIC"));
     assert!(rendered.contains("mode no-color"));
+    assert!(rendered.contains("COLOR PATH plain fallback"));
     assert!(rendered.contains("truecolor ANSI"));
     assert!(rendered.contains("force --color always"));
+    assert!(rendered.contains("If the cockpit is black/white"));
+    assert!(rendered.contains("avoid --color never"));
     assert!(rendered.contains("READ-ONLY public market data only"));
     assert!(rendered.contains("[ / ]"));
     assert!(rendered.contains("1-6 panes"));

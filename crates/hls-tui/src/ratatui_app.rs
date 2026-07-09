@@ -43,6 +43,14 @@ impl RatatuiColorMode {
             Self::Auto | Self::Color => "ansi",
         }
     }
+
+    fn color_path_label(self) -> &'static str {
+        match self {
+            Self::Auto => "ansi-auto active",
+            Self::Color => "ansi-neon active",
+            Self::NoColor => "plain fallback",
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -2034,10 +2042,17 @@ fn render_help_overlay(
         Line::from("[ / ]  move pane focus: watchlist, detail, chart, book, tape, status"),
         Line::from("1-6 panes  watchlist, detail, chart, book, tape, status"),
         Line::from(format!(
-            "PALETTE DIAGNOSTIC mode {} palette {} | truecolor ANSI | force --color always",
+            "PALETTE DIAGNOSTIC mode {} palette {}",
             color_mode.label(),
             color_mode.palette_label()
         )),
+        Line::from(format!(
+            "COLOR PATH {} | truecolor ANSI | force --color always",
+            color_mode.color_path_label()
+        )),
+        Line::from(
+            "If the cockpit is black/white: avoid --color never, use --color always, and check terminal truecolor support",
+        ),
         Line::from("mouse wheel moves rows; click focuses panes when terminal mouse is available"),
         Line::from(
             "g symbol  |  / filter  |  p preset  |  s sort  |  t chart window  |  z zoom  |  enter detail  |  h health",
@@ -3991,6 +4006,7 @@ fn action_status_bar_line(
         Span::styled("▲", Style::default().fg(success(color_mode))),
         Span::styled("▼", Style::default().fg(danger(color_mode))),
         Span::styled("● ", Style::default().fg(warn(color_mode))),
+        Span::raw(format!("COLOR {} | ", color_mode.color_path_label())),
         Span::raw("--color always | "),
     ])
 }
