@@ -610,7 +610,7 @@ fn render_header(
             color_mode,
         ));
     }
-    if !narrow && viewport.width >= 220 && area.height >= 8 {
+    if viewport.width >= 132 && area.height >= 8 {
         text.push(selected_quote_rail_line(model, color_mode));
     }
     text.extend([
