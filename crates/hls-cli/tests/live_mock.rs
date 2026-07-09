@@ -63,7 +63,7 @@ fn live_once_applies_screen_preset_before_rendering() {
 
 #[test]
 fn live_once_tui_uses_unified_ratatui_cockpit() {
-    Command::cargo_bin("hls")
+    let assert = Command::cargo_bin("hls")
         .expect("hls binary")
         .args([
             "live",
@@ -77,15 +77,24 @@ fn live_once_tui_uses_unified_ratatui_cockpit() {
             "--tui",
         ])
         .assert()
-        .success()
-        .stdout(predicate::str::contains("\u{1b}["))
-        .stdout(predicate::str::contains("WATCHLIST"))
-        .stdout(predicate::str::contains("MICROSTRUCTURE"))
-        .stdout(predicate::str::contains("CANDLES 1m"))
-        .stdout(predicate::str::contains("O 34.5000"))
-        .stdout(predicate::str::contains("TAPE"))
-        .stdout(predicate::str::contains("BOOK"))
-        .stdout(predicate::str::contains("HYPE/USDC"))
-        .stdout(predicate::str::contains("No wallet"))
-        .stdout(predicate::str::contains("private key").not());
+        .success();
+    let output = String::from_utf8(assert.get_output().stdout.clone()).expect("stdout is utf8");
+
+    assert_eq!(
+        output
+            .matches("Hyperliquid Spot Microstructure Workstation")
+            .count(),
+        1,
+        "fixture TUI should render exactly one workstation frame"
+    );
+    assert!(output.contains("\u{1b}["));
+    assert!(output.contains("WATCHLIST"));
+    assert!(output.contains("MICROSTRUCTURE"));
+    assert!(output.contains("CANDLES 1m"));
+    assert!(output.contains("O 34.5000"));
+    assert!(output.contains("TAPE"));
+    assert!(output.contains("BOOK"));
+    assert!(output.contains("HYPE/USDC"));
+    assert!(output.contains("No wallet"));
+    assert!(!output.contains("private key"));
 }
