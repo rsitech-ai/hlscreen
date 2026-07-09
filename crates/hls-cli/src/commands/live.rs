@@ -1420,28 +1420,130 @@ fn mouse_to_workstation_action(
         MouseEventKind::ScrollUp => Some(WorkstationAction::Up),
         MouseEventKind::ScrollDown => Some(WorkstationAction::Down),
         MouseEventKind::Down(_) => terminal_size.map(|(width, height)| {
-            mouse_watchlist_row_for_position(
-                mouse.column,
-                mouse.row,
-                width,
-                height,
-                ui_state,
-                row_count,
-            )
-            .map_or_else(
-                || {
-                    WorkstationAction::FocusPane(mouse_pane_for_position(
-                        mouse.column,
-                        mouse.row,
-                        width,
-                        height,
-                    ))
-                },
-                WorkstationAction::SelectRow,
-            )
+            if let Some(pane) =
+                mouse_header_pane_for_position(mouse.column, mouse.row, width, ui_state)
+            {
+                WorkstationAction::FocusPane(pane)
+            } else {
+                mouse_watchlist_row_for_position(
+                    mouse.column,
+                    mouse.row,
+                    width,
+                    height,
+                    ui_state,
+                    row_count,
+                )
+                .map_or_else(
+                    || {
+                        WorkstationAction::FocusPane(mouse_pane_for_position(
+                            mouse.column,
+                            mouse.row,
+                            width,
+                            height,
+                        ))
+                    },
+                    WorkstationAction::SelectRow,
+                )
+            }
         }),
         _ => None,
     }
+}
+
+fn mouse_header_pane_for_position(
+    column: u16,
+    row: u16,
+    width: u16,
+    ui_state: &WorkstationUiState,
+) -> Option<WorkstationPane> {
+    if width >= 132 {
+        let desk_row = if width >= 220 { 3 } else { 2 };
+        if row == desk_row {
+            return mouse_desk_pane_hit(column, ui_state);
+        }
+    }
+
+    let controls_row = if width < 90 {
+        2
+    } else if width >= 220 {
+        4
+    } else {
+        3
+    };
+    if row != controls_row {
+        return None;
+    }
+
+    let prefix_len = if (90..132).contains(&width) {
+        "CONTROLS LAYOUT DIRECTOR resize-safe | 1-6 focus | z expand | ".len()
+    } else {
+        "CONTROLS ".len()
+    };
+    mouse_controls_pane_hit(column, 1 + prefix_len as u16, width < 90, ui_state)
+}
+
+fn mouse_desk_pane_hit(column: u16, ui_state: &WorkstationUiState) -> Option<WorkstationPane> {
+    let labels = [
+        (WorkstationPane::Watchlist, "WATCHLIST 1"),
+        (WorkstationPane::Detail, "DETAIL 2"),
+        (WorkstationPane::Chart, "CHART 3"),
+        (WorkstationPane::Book, "BOOK 4"),
+        (WorkstationPane::Tape, "TAPE 5"),
+        (WorkstationPane::Status, "OPS 6"),
+    ];
+    mouse_pane_label_hit(column, 1 + "DESK ".len() as u16, ui_state, &labels)
+}
+
+fn mouse_controls_pane_hit(
+    column: u16,
+    start_column: u16,
+    narrow: bool,
+    ui_state: &WorkstationUiState,
+) -> Option<WorkstationPane> {
+    let labels = if narrow {
+        [
+            (WorkstationPane::Watchlist, "1W"),
+            (WorkstationPane::Detail, "2D"),
+            (WorkstationPane::Chart, "3C"),
+            (WorkstationPane::Book, "4B"),
+            (WorkstationPane::Tape, "5T"),
+            (WorkstationPane::Status, "6S"),
+        ]
+    } else {
+        [
+            (WorkstationPane::Watchlist, "1 WATCH"),
+            (WorkstationPane::Detail, "2 DETAIL"),
+            (WorkstationPane::Chart, "3 CHART"),
+            (WorkstationPane::Book, "4 BOOK"),
+            (WorkstationPane::Tape, "5 TAPE"),
+            (WorkstationPane::Status, "6 STATUS"),
+        ]
+    };
+    mouse_pane_label_hit(column, start_column, ui_state, &labels)
+}
+
+fn mouse_pane_label_hit(
+    column: u16,
+    start_column: u16,
+    ui_state: &WorkstationUiState,
+    labels: &[(WorkstationPane, &'static str)],
+) -> Option<WorkstationPane> {
+    let mut cursor = start_column;
+    for (index, (pane, label)) in labels.iter().enumerate() {
+        if index > 0 {
+            cursor = cursor.saturating_add(1);
+        }
+        let label_width = if ui_state.focused_pane() == *pane {
+            label.len().saturating_add(2)
+        } else {
+            label.len()
+        } as u16;
+        if column >= cursor && column < cursor.saturating_add(label_width) {
+            return Some(*pane);
+        }
+        cursor = cursor.saturating_add(label_width);
+    }
+    None
 }
 
 fn mouse_watchlist_row_for_position(
@@ -2165,6 +2267,71 @@ mod tests {
                     kind: MouseEventKind::ScrollDown,
                     column: 0,
                     row: 0,
+                    modifiers: KeyModifiers::NONE,
+                },
+                &command_state,
+                Some((160, 48)),
+                20,
+            ),
+            None
+        );
+    }
+
+    #[test]
+    fn live_tui_mouse_clicks_visible_pane_rails() {
+        let state = WorkstationUiState::default();
+
+        assert_eq!(
+            mouse_to_workstation_action(
+                MouseEvent {
+                    kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
+                    column: 22,
+                    row: 2,
+                    modifiers: KeyModifiers::NONE,
+                },
+                &state,
+                Some((160, 48)),
+                20,
+            ),
+            Some(WorkstationAction::FocusPane(WorkstationPane::Detail))
+        );
+        assert_eq!(
+            mouse_to_workstation_action(
+                MouseEvent {
+                    kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
+                    column: 75,
+                    row: 3,
+                    modifiers: KeyModifiers::NONE,
+                },
+                &state,
+                Some((100, 32)),
+                20,
+            ),
+            Some(WorkstationAction::FocusPane(WorkstationPane::Detail))
+        );
+        assert_eq!(
+            mouse_to_workstation_action(
+                MouseEvent {
+                    kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
+                    column: 15,
+                    row: 2,
+                    modifiers: KeyModifiers::NONE,
+                },
+                &state,
+                Some((72, 24)),
+                20,
+            ),
+            Some(WorkstationAction::FocusPane(WorkstationPane::Detail))
+        );
+
+        let mut command_state = WorkstationUiState::default();
+        command_state.apply(WorkstationAction::CycleFilter, 1);
+        assert_eq!(
+            mouse_to_workstation_action(
+                MouseEvent {
+                    kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
+                    column: 22,
+                    row: 2,
                     modifiers: KeyModifiers::NONE,
                 },
                 &command_state,
