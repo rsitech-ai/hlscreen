@@ -907,6 +907,8 @@ fn cockpit_chart_uses_real_candle_ohlc_and_volume_when_available() {
     assert!(rendered.contains("L 34.4000"));
     assert!(rendered.contains("C 35.0000"));
     assert!(rendered.contains("VOL 1200"));
+    assert!(rendered.contains("MOVE +0.5000"));
+    assert!(rendered.contains("RANGE 2.32%"));
 }
 
 #[test]
