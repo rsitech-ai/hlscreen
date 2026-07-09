@@ -422,13 +422,13 @@ fn cockpit_header_renders_adaptive_layout_profile() {
     assert!(medium.contains("layout medium 120x40"));
     assert!(narrow.contains("layout narrow 72x24"));
     assert!(wide.contains("VISUAL plain fallback"));
-    assert!(medium.contains("VISUAL plain fallback"));
+    assert!(!medium.contains("VISUAL plain fallback"));
     assert!(!wide.contains("\u{1b}["));
 
     let colored = render_ratatui_snapshot_for_test(
         &model,
         RatatuiViewport {
-            width: 120,
+            width: 160,
             height: 40,
         },
         RatatuiColorMode::Color,
@@ -931,10 +931,10 @@ fn medium_status_bar_compacts_action_and_theme_rails() {
     assert!(rendered.contains("j/k ent tab g"));
     assert!(rendered.contains("z zoom"));
     assert!(rendered.contains("d sp"));
-    assert!(rendered.contains("/ p s t ? q"));
+    assert!(rendered.contains("/p/s/t/?/q"));
     assert!(rendered.contains("THEME plain"));
-    assert!(rendered.contains("COLOR plain fallback"));
-    assert!(rendered.contains("--color always"));
+    assert!(rendered.contains("color plain fallback"));
+    assert!(!rendered.contains("--color always"));
     assert!(rendered.contains("No wallet"));
     assert!(rendered.contains("TICKER"));
 }
@@ -970,6 +970,52 @@ fn medium_header_and_status_use_fit_to_width_rails() {
     assert!(!rendered.contains("LAYOUT DIRECTOR resize-safe | 1-6 focus | z expand | [1 WATCH]"));
     assert!(!rendered.contains("QUALITY T00"));
     assert!(!rendered.contains("RISK STRIP"));
+}
+
+#[test]
+fn compact_medium_and_standard_wide_rails_fit_without_half_words() {
+    let model = RatatuiFrameModel::new(
+        directional_snapshots(),
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        WorkstationUiState::default(),
+    )
+    .with_status("LIVE", "REC ready", "ws=120 events=300 gaps=0");
+
+    let compact = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 100,
+            height: 30,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders compact medium rails");
+    let standard = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 160,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders standard-wide compact rails");
+
+    assert!(compact.contains(
+        "STATUS LIVE  REC ready  view overview pane watchlist chart 15m  filter RO-live"
+    ));
+    assert!(compact.contains(
+        "DESK CMD g/p/s/t/d/z/sp/?/q | visible watch/detail/chart/book/tape | hidden status"
+    ));
+    assert!(compact.contains("ACTION j/k ent tab g z zoom d sp /p/s/t/?/q | RO no-wallet"));
+    assert!(compact.contains("RISK c100 d00 f-$4.2K"));
+    assert!(!compact.contains("chart│"));
+    assert!(!compact.contains("stat│"));
+    assert!(!compact.contains("--color│"));
+
+    assert!(standard.contains("RISK c100 d00 f-$4.2K"));
+    assert!(standard.contains("THEME plain color plain fallback"));
+    assert!(!standard.contains("RISK STRIP conf100 deg"));
 }
 
 #[test]

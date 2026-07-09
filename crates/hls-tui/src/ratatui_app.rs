@@ -580,6 +580,12 @@ fn render_header(
     };
     let status_tail = if narrow {
         format!("  {mode_label}")
+    } else if viewport.width < 110 {
+        format!(
+            "  {}  filter {}",
+            dense_ui_mode_label(&model.ui_state),
+            compact_filter_label(&model.title, &model.request)
+        )
     } else if viewport.width < 132 {
         format!(
             "  {mode_label}  filter {}",
@@ -601,7 +607,10 @@ fn render_header(
             Style::default().fg(success(color_mode)),
         ),
     ];
-    status_spans.extend(header_visual_path_spans(color_mode, narrow));
+    status_spans.extend(header_visual_path_spans(
+        color_mode,
+        narrow || viewport.width < 132,
+    ));
     status_spans.push(Span::raw(status_tail));
     let mut text = vec![Line::from(status_spans)];
     if viewport.width >= 220 {
@@ -751,6 +760,11 @@ fn desk_tab_rail_line(
 ) -> Line<'static> {
     let (visible_panes, hidden_panes) = layout_visibility_labels(width);
     if compact {
+        let (visible_panes, hidden_panes) = if width < 110 {
+            compact_layout_visibility_labels(width)
+        } else {
+            (visible_panes, hidden_panes)
+        };
         return Line::from(vec![
             Span::styled(
                 "DESK ",
@@ -764,9 +778,13 @@ fn desk_tab_rail_line(
                     .fg(warn(color_mode))
                     .add_modifier(Modifier::BOLD),
             ),
-            Span::raw(format!(
-                "g / p s t d z sp ? q | visible panes {visible_panes} | hidden panes {hidden_panes}"
-            )),
+            Span::raw(if width < 110 {
+                format!("g/p/s/t/d/z/sp/?/q | visible {visible_panes} | hidden {hidden_panes}")
+            } else {
+                format!(
+                    "g / p s t d z sp ? q | visible panes {visible_panes} | hidden panes {hidden_panes}"
+                )
+            }),
         ]);
     }
 
@@ -4079,6 +4097,15 @@ fn compact_ui_mode_label(state: &WorkstationUiState) -> String {
     )
 }
 
+fn dense_ui_mode_label(state: &WorkstationUiState) -> String {
+    format!(
+        "view {} pane {} chart {}",
+        state.view().label(),
+        state.focused_pane().label(),
+        state.chart_window().label()
+    )
+}
+
 fn narrow_ui_mode_label(state: &WorkstationUiState) -> String {
     let command = state
         .command()
@@ -7261,7 +7288,9 @@ fn market_status_bar_line(
     color_mode: RatatuiColorMode,
     width: u16,
 ) -> Line<'static> {
-    let mut spans = vec![Span::raw(if width < 132 {
+    let mut spans = vec![Span::raw(if width < 110 {
+        format!(" {} | ", pause_label(model))
+    } else if width < 132 {
         format!(
             " {} | {} | No wallet | ",
             compact_status_health_label(&model.health_status),
@@ -7277,7 +7306,7 @@ fn market_status_bar_line(
     if width < 180 {
         spans.extend(status_bar_compact_quality_alert_spans(model, color_mode));
     }
-    if width < 132 {
+    if width < 180 {
         spans.push(Span::styled(
             "TICKER ",
             Style::default()
@@ -7296,7 +7325,7 @@ fn market_status_bar_line(
     }
     spans.push(Span::raw(" | "));
     spans.push(Span::styled(
-        if width < 132 {
+        if width < 180 {
             medium_quality_label(model)
         } else {
             format!("{} | ", operational_quality_label(model, false))
@@ -7308,7 +7337,7 @@ fn market_status_bar_line(
     if width >= 180 {
         spans.extend(status_bar_quality_alert_spans(model, color_mode));
     }
-    spans.extend(risk_strip_spans(model, color_mode, width < 132));
+    spans.extend(risk_strip_spans(model, color_mode, width < 180));
     Line::from(spans)
 }
 
@@ -7395,7 +7424,7 @@ fn action_status_bar_line(
     let state = &model.ui_state;
     let action_copy = if width < 132 {
         format!(
-            "j/k ent tab g z {} d sp / p s t ? q | ",
+            "j/k ent tab g z {} d sp /p/s/t/?/q | ",
             pane_zoom_action_label(state)
         )
     } else if width < 240 {
@@ -7410,27 +7439,52 @@ fn action_status_bar_line(
         )
     };
 
-    let mut spans = vec![
-        Span::styled(
-            "ACTION STRIP ",
+    let mut spans = vec![Span::styled(
+        if width < 110 {
+            "ACTION "
+        } else {
+            "ACTION STRIP "
+        },
+        Style::default()
+            .fg(accent(color_mode))
+            .add_modifier(Modifier::BOLD),
+    )];
+    spans.push(Span::raw(action_copy));
+    if width < 110 {
+        spans.push(Span::styled(
+            "RO no-wallet",
             Style::default()
-                .fg(accent(color_mode))
+                .fg(danger(color_mode))
                 .add_modifier(Modifier::BOLD),
-        ),
-        Span::raw(action_copy),
-        Span::styled(
+        ));
+    } else if width < 180 {
+        spans.push(Span::styled(
             "THEME ",
             Style::default()
                 .fg(accent(color_mode))
                 .add_modifier(Modifier::BOLD),
-        ),
-        Span::raw(format!("{} ", color_mode.palette_label())),
-        Span::styled("▲", Style::default().fg(success(color_mode))),
-        Span::styled("▼", Style::default().fg(danger(color_mode))),
-        Span::styled("● ", Style::default().fg(warn(color_mode))),
-        Span::raw(format!("COLOR {} | ", color_mode.color_path_label())),
-        Span::raw("--color always | "),
-    ];
+        ));
+        spans.push(Span::raw(format!(
+            "{} color {}",
+            color_mode.palette_label(),
+            color_mode.color_path_label()
+        )));
+    } else {
+        spans.extend([
+            Span::styled(
+                "THEME ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(format!("{} ", color_mode.palette_label())),
+            Span::styled("▲", Style::default().fg(success(color_mode))),
+            Span::styled("▼", Style::default().fg(danger(color_mode))),
+            Span::styled("● ", Style::default().fg(warn(color_mode))),
+            Span::raw(format!("COLOR {} | ", color_mode.color_path_label())),
+            Span::raw("--color always | "),
+        ]);
+    }
     if width >= 220 {
         spans.extend(neon_state_spans(model, color_mode, width));
     }
