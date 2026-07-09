@@ -2609,6 +2609,44 @@ fn wide_status_bar_renders_theme_calibration_rail() {
 }
 
 #[test]
+fn wide_status_bar_renders_neon_market_state_strip() {
+    let model = RatatuiFrameModel::new(
+        directional_snapshots(),
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        WorkstationUiState::default(),
+    );
+
+    let plain = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 240,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("plain wide cockpit renders neon state");
+    let colored = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 240,
+            height: 48,
+        },
+        RatatuiColorMode::Color,
+    )
+    .expect("colored wide cockpit renders neon state");
+
+    assert!(!plain.contains("\u{1b}["));
+    assert!(plain.contains("NEON STATE"));
+    assert!(plain.contains("regime mixed"));
+    assert!(plain.contains("heat ██░░"));
+    assert!(plain.contains("breadth 01/01"));
+    assert!(plain.contains("read-only signal cockpit"));
+    assert!(colored.contains("NEON STATE"));
+    assert!(colored.contains("\u{1b}[38;2;0;229;255mNEON STATE"));
+}
+
+#[test]
 fn cockpit_chart_colorizes_directional_candles_in_color_mode() {
     let snapshots = fixture_snapshots();
     let candles = directional_chart_candles(&snapshots[0].symbol);
