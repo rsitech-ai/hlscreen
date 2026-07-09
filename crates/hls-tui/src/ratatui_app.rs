@@ -1320,7 +1320,7 @@ fn render_watchlist(
         !compact && !quality_view && !explain_view && area.width >= 72 && !model.candles.is_empty();
     let show_row_router = !compact && area.width >= 65 && area.height >= 18 && !rows.is_empty();
     let row_router_height = if expanded_watchlist {
-        15
+        17
     } else if area.height >= 20 {
         11
     } else {
@@ -2074,10 +2074,48 @@ fn watchlist_row_router_lines(
     lines.extend(row_action_map_lines(color_mode));
     lines.extend(watchlist_scanner_rail_lines(rows, color_mode));
     if expanded {
+        lines.extend(watchlist_selector_ladder_lines(row, rows, color_mode));
         lines.extend(watchlist_heatmap_deck_lines(rows, color_mode));
         lines.extend(watchlist_command_center_lines(row, rows, color_mode));
     }
     lines
+}
+
+fn watchlist_selector_ladder_lines(
+    selected: &FeatureSnapshot,
+    rows: &[FeatureSnapshot],
+    color_mode: RatatuiColorMode,
+) -> Vec<Line<'static>> {
+    let selected_index = rows
+        .iter()
+        .position(|row| row.symbol == selected.symbol)
+        .unwrap_or_default();
+    let previous = selected_index
+        .checked_sub(1)
+        .and_then(|index| rows.get(index))
+        .map(display_symbol)
+        .unwrap_or("-");
+    let current = rows.get(selected_index).map(display_symbol).unwrap_or("-");
+    let next = rows
+        .get(selected_index + 1)
+        .map(display_symbol)
+        .unwrap_or("-");
+
+    vec![
+        Line::from(vec![
+            Span::raw("╞ "),
+            Span::styled(
+                "SELECTOR LADDER ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(format!(
+                "prev {previous} | current {current} | next {next} ╡"
+            )),
+        ]),
+        Line::from("╞ j/k changes selection | enter inspects | screen only no orders ╡"),
+    ]
 }
 
 fn row_intent_deck_lines(color_mode: RatatuiColorMode) -> Vec<Line<'static>> {
