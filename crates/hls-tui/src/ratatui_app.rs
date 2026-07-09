@@ -3251,19 +3251,13 @@ fn render_status_bar(
     color_mode: RatatuiColorMode,
 ) {
     let status = if area.width < 90 {
-        Line::from(format!(
-            "{} | {} | {} | {} | {} | RO no-wallet",
-            compact_health_label(&model.health_status),
-            display_state_label(model),
-            focused_pane_key_label(model.ui_state.focused_pane(), true),
-            compact_mode_label(&model.request, model.rows.len()),
-            operational_quality_label(model, true)
-        ))
+        compact_status_bar_line(model)
     } else {
         market_status_bar_line(model, color_mode)
     };
     frame.render_widget(
         Paragraph::new(status)
+            .wrap(Wrap { trim: true })
             .style(Style::default().fg(warn(color_mode)))
             .block(
                 Block::default()
@@ -3277,16 +3271,38 @@ fn render_status_bar(
     );
 }
 
+fn compact_status_bar_line(model: &RatatuiFrameModel) -> Line<'static> {
+    if model.ui_state.focused_pane() == WorkstationPane::Watchlist {
+        return Line::from(format!(
+            "{} | {} | {} | {} | {} | RO no-wallet",
+            compact_health_label(&model.health_status),
+            display_state_label(model),
+            focused_pane_key_label(model.ui_state.focused_pane(), true),
+            compact_mode_label(&model.request, model.rows.len()),
+            operational_quality_label(model, true)
+        ));
+    }
+
+    Line::from(format!(
+        "{} | {} | {} | ACTION {} | RO no-wallet",
+        display_state_label(model),
+        focused_pane_key_label(model.ui_state.focused_pane(), true),
+        compact_mode_label(&model.request, model.rows.len()),
+        focused_pane_action_label(model.ui_state.focused_pane(), true),
+    ))
+}
+
 fn market_status_bar_line(
     model: &RatatuiFrameModel,
     color_mode: RatatuiColorMode,
 ) -> Line<'static> {
     let mut spans = vec![
         Span::raw(format!(
-            " {} | {} | focus {} | {} | ",
+            " {} | {} | focus {} | ACTION STRIP {} | No wallet | {} | ",
             model.health_status,
             pause_label(model),
             focused_pane_key_label(model.ui_state.focused_pane(), false),
+            focused_pane_action_label(model.ui_state.focused_pane(), false),
             mode_label(&model.request, model.rows.len())
         )),
         Span::styled(
@@ -3304,7 +3320,7 @@ fn market_status_bar_line(
     ];
     spans.extend(market_ticker_spans(model, color_mode));
     spans.push(Span::raw(
-        " | No wallet, no private streams, no order routes. Screen heuristic, not advice. ",
+        " | no private streams, no order routes; not advice. ",
     ));
     Line::from(spans)
 }
@@ -3351,6 +3367,53 @@ fn focused_pane_key_label(pane: WorkstationPane, compact: bool) -> &'static str 
                 "status:?"
             } else {
                 "status ? help"
+            }
+        }
+    }
+}
+
+fn focused_pane_action_label(pane: WorkstationPane, compact: bool) -> &'static str {
+    match pane {
+        WorkstationPane::Watchlist => {
+            if compact {
+                "watch:j/k rows / command"
+            } else {
+                "watchlist j/k rows | / command"
+            }
+        }
+        WorkstationPane::Detail => {
+            if compact {
+                "detail:tab views / command"
+            } else {
+                "detail tab views | / command"
+            }
+        }
+        WorkstationPane::Chart => {
+            if compact {
+                "chart:t window / command"
+            } else {
+                "chart t window | / command"
+            }
+        }
+        WorkstationPane::Book => {
+            if compact {
+                "book:tab flow / command"
+            } else {
+                "book tab flow | / command"
+            }
+        }
+        WorkstationPane::Tape => {
+            if compact {
+                "tape:tab flow / command"
+            } else {
+                "tape tab flow | / command"
+            }
+        }
+        WorkstationPane::Status => {
+            if compact {
+                "status:? help / command"
+            } else {
+                "status ? help | / command"
             }
         }
     }
