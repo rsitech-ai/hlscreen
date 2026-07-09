@@ -1424,6 +1424,10 @@ fn mouse_to_workstation_action(
                 mouse_header_pane_for_position(mouse.column, mouse.row, width, ui_state)
             {
                 WorkstationAction::FocusPane(pane)
+            } else if let Some(action) =
+                mouse_panel_tab_action(mouse.column, mouse.row, width, height, ui_state)
+            {
+                action
             } else {
                 mouse_watchlist_row_for_position(
                     mouse.column,
@@ -1448,6 +1452,264 @@ fn mouse_to_workstation_action(
         }),
         _ => None,
     }
+}
+
+fn mouse_panel_tab_action(
+    column: u16,
+    row: u16,
+    width: u16,
+    height: u16,
+    ui_state: &WorkstationUiState,
+) -> Option<WorkstationAction> {
+    if ui_state.pane_expanded() {
+        return mouse_expanded_panel_tab_action(column, row, width, ui_state);
+    }
+
+    if width >= 132 {
+        let header_height = if width >= 220 { 9 } else { 8 };
+        let body_height = height.saturating_sub(header_height).saturating_sub(3);
+        let detail_x = width.saturating_mul(30) / 100;
+        let detail_width = width.saturating_mul(48) / 100;
+        let detail_height = mouse_adaptive_detail_height(ui_state.view(), body_height, 12);
+        return mouse_detail_or_chart_tab_action(
+            column,
+            row,
+            MousePanelGeometry {
+                x: detail_x,
+                y: header_height,
+                width: detail_width,
+                height: detail_height,
+            },
+            MousePanelGeometry {
+                x: detail_x,
+                y: header_height.saturating_add(detail_height),
+                width: detail_width,
+                height: body_height.saturating_sub(detail_height),
+            },
+            ui_state,
+            false,
+        );
+    }
+
+    if width >= 90 {
+        let body_height = height.saturating_sub(6).saturating_sub(3);
+        let detail_x = width.saturating_mul(38) / 100;
+        let detail_width = width.saturating_sub(detail_x);
+        let detail_height = mouse_adaptive_detail_height(ui_state.view(), body_height, 19);
+        return mouse_detail_or_chart_tab_action(
+            column,
+            row,
+            MousePanelGeometry {
+                x: detail_x,
+                y: 6,
+                width: detail_width,
+                height: detail_height,
+            },
+            MousePanelGeometry {
+                x: detail_x,
+                y: 6_u16.saturating_add(detail_height),
+                width: detail_width,
+                height: body_height.saturating_sub(detail_height),
+            },
+            ui_state,
+            false,
+        );
+    }
+
+    let body_height = height.saturating_sub(5).saturating_sub(2);
+    let watchlist_height = if ui_state.focused_pane() == WorkstationPane::Status {
+        body_height.saturating_mul(36) / 100
+    } else {
+        body_height.saturating_mul(48) / 100
+    };
+    let drilldown = MousePanelGeometry {
+        x: 0,
+        y: 5_u16.saturating_add(watchlist_height),
+        width,
+        height: body_height.saturating_sub(watchlist_height),
+    };
+    match ui_state.focused_pane() {
+        WorkstationPane::Chart => mouse_chart_tab_action(column, row, drilldown, ui_state, true),
+        WorkstationPane::Watchlist | WorkstationPane::Detail => {
+            mouse_view_tab_action(column, row, drilldown, ui_state, true)
+        }
+        WorkstationPane::Book | WorkstationPane::Tape | WorkstationPane::Status => None,
+    }
+}
+
+fn mouse_expanded_panel_tab_action(
+    column: u16,
+    row: u16,
+    width: u16,
+    ui_state: &WorkstationUiState,
+) -> Option<WorkstationAction> {
+    let expanded_y: u16 = if width < 90 {
+        5
+    } else if width >= 220 {
+        9
+    } else if width >= 132 {
+        8
+    } else {
+        6
+    };
+    let pane = MousePanelGeometry {
+        x: 0,
+        y: expanded_y.saturating_add(1),
+        width,
+        height: 1,
+    };
+    match ui_state.focused_pane() {
+        WorkstationPane::Detail => mouse_view_tab_action(column, row, pane, ui_state, width < 90),
+        WorkstationPane::Chart => mouse_chart_tab_action(column, row, pane, ui_state, width <= 72),
+        _ => None,
+    }
+}
+
+fn mouse_detail_or_chart_tab_action(
+    column: u16,
+    row: u16,
+    detail: MousePanelGeometry,
+    chart: MousePanelGeometry,
+    ui_state: &WorkstationUiState,
+    force_compact_detail: bool,
+) -> Option<WorkstationAction> {
+    mouse_view_tab_action(column, row, detail, ui_state, force_compact_detail)
+        .or_else(|| mouse_chart_tab_action(column, row, chart, ui_state, chart.width <= 72))
+}
+
+fn mouse_view_tab_action(
+    column: u16,
+    row: u16,
+    detail: MousePanelGeometry,
+    ui_state: &WorkstationUiState,
+    force_compact: bool,
+) -> Option<WorkstationAction> {
+    if detail.height == 0
+        || row != detail.y.saturating_add(2)
+        || column <= detail.x
+        || column >= detail.x.saturating_add(detail.width).saturating_sub(1)
+    {
+        return None;
+    }
+    let compact = force_compact || detail.width <= 72;
+    mouse_view_tab_hit(
+        column,
+        detail.x.saturating_add(1 + "VIEWS ".len() as u16),
+        compact,
+        ui_state.view(),
+    )
+    .map(WorkstationAction::SetView)
+}
+
+fn mouse_chart_tab_action(
+    column: u16,
+    row: u16,
+    chart: MousePanelGeometry,
+    ui_state: &WorkstationUiState,
+    compact: bool,
+) -> Option<WorkstationAction> {
+    if chart.height == 0
+        || row != chart.y.saturating_add(1)
+        || column <= chart.x
+        || column >= chart.x.saturating_add(chart.width).saturating_sub(1)
+    {
+        return None;
+    }
+    let prefix_len = if compact {
+        "WIN ".len()
+    } else {
+        "TIMEFRAME RAIL ".len() + "WINDOWS ".len()
+    };
+    mouse_chart_tab_hit(
+        column,
+        chart.x.saturating_add(1 + prefix_len as u16),
+        compact,
+        ui_state.chart_window(),
+    )
+    .map(WorkstationAction::SetChartWindow)
+}
+
+fn mouse_view_tab_hit(
+    column: u16,
+    start_column: u16,
+    compact: bool,
+    active: WorkstationView,
+) -> Option<WorkstationView> {
+    let labels = [
+        (WorkstationView::Overview, "overview", "ov"),
+        (WorkstationView::Flow, "flow", "fl"),
+        (WorkstationView::Quality, "quality", "ql"),
+        (WorkstationView::Metadata, "metadata", "mt"),
+        (WorkstationView::Explain, "explain", "ex"),
+    ];
+    let mut cursor = start_column;
+    for (index, (view, full, short)) in labels.iter().enumerate() {
+        if index > 0 {
+            cursor = cursor.saturating_add(1);
+        }
+        let label = if compact { *short } else { *full };
+        let label_width = if *view == active {
+            label.len().saturating_add(2)
+        } else {
+            label.len()
+        } as u16;
+        if column >= cursor && column < cursor.saturating_add(label_width) {
+            return Some(*view);
+        }
+        cursor = cursor.saturating_add(label_width);
+    }
+    None
+}
+
+fn mouse_chart_tab_hit(
+    column: u16,
+    start_column: u16,
+    compact: bool,
+    active: WorkstationChartWindow,
+) -> Option<WorkstationChartWindow> {
+    let mut cursor = start_column;
+    for (index, window) in WorkstationChartWindow::ALL.iter().enumerate() {
+        if index > 0 {
+            cursor = cursor.saturating_add(1);
+        }
+        let full_label = window.label();
+        let label = if compact {
+            full_label.trim_end_matches('m')
+        } else {
+            full_label
+        };
+        let label_width = if *window == active {
+            label.len().saturating_add(2)
+        } else {
+            label.len()
+        } as u16;
+        if column >= cursor && column < cursor.saturating_add(label_width) {
+            return Some(*window);
+        }
+        cursor = cursor.saturating_add(label_width);
+    }
+    None
+}
+
+fn mouse_adaptive_detail_height(
+    view: WorkstationView,
+    available_height: u16,
+    reserved_height: u16,
+) -> u16 {
+    let desired = match view {
+        WorkstationView::Overview | WorkstationView::Flow | WorkstationView::Explain => 10,
+        WorkstationView::Quality | WorkstationView::Metadata => 8,
+    };
+    let max_without_starving_neighbors = available_height.saturating_sub(reserved_height).max(6);
+    desired.min(max_without_starving_neighbors).max(6)
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct MousePanelGeometry {
+    x: u16,
+    y: u16,
+    width: u16,
+    height: u16,
 }
 
 fn mouse_header_pane_for_position(
@@ -2332,6 +2594,92 @@ mod tests {
                     kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
                     column: 22,
                     row: 2,
+                    modifiers: KeyModifiers::NONE,
+                },
+                &command_state,
+                Some((160, 48)),
+                20,
+            ),
+            None
+        );
+    }
+
+    #[test]
+    fn live_tui_mouse_clicks_visible_view_and_chart_tabs() {
+        let state = WorkstationUiState::default();
+
+        assert_eq!(
+            mouse_to_workstation_action(
+                MouseEvent {
+                    kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
+                    column: 73,
+                    row: 10,
+                    modifiers: KeyModifiers::NONE,
+                },
+                &state,
+                Some((160, 48)),
+                20,
+            ),
+            Some(WorkstationAction::SetView(WorkstationView::Quality))
+        );
+        assert_eq!(
+            mouse_to_workstation_action(
+                MouseEvent {
+                    kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
+                    column: 85,
+                    row: 19,
+                    modifiers: KeyModifiers::NONE,
+                },
+                &state,
+                Some((160, 48)),
+                20,
+            ),
+            Some(WorkstationAction::SetChartWindow(
+                WorkstationChartWindow::ThirtyMinutes
+            ))
+        );
+        assert_eq!(
+            mouse_to_workstation_action(
+                MouseEvent {
+                    kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
+                    column: 15,
+                    row: 15,
+                    modifiers: KeyModifiers::NONE,
+                },
+                &state,
+                Some((72, 24)),
+                20,
+            ),
+            Some(WorkstationAction::SetView(WorkstationView::Quality))
+        );
+
+        let mut chart_state = WorkstationUiState::default();
+        chart_state.apply(WorkstationAction::FocusPane(WorkstationPane::Chart), 20);
+        assert_eq!(
+            mouse_to_workstation_action(
+                MouseEvent {
+                    kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
+                    column: 14,
+                    row: 14,
+                    modifiers: KeyModifiers::NONE,
+                },
+                &chart_state,
+                Some((72, 24)),
+                20,
+            ),
+            Some(WorkstationAction::SetChartWindow(
+                WorkstationChartWindow::ThirtyMinutes
+            ))
+        );
+
+        let mut command_state = WorkstationUiState::default();
+        command_state.apply(WorkstationAction::CycleFilter, 1);
+        assert_eq!(
+            mouse_to_workstation_action(
+                MouseEvent {
+                    kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
+                    column: 73,
+                    row: 10,
                     modifiers: KeyModifiers::NONE,
                 },
                 &command_state,
