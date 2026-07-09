@@ -1641,6 +1641,42 @@ fn tape_pane_renders_public_recent_trades_when_available() {
 }
 
 #[test]
+fn expanded_tape_renders_time_and_sales_board() {
+    let snapshots = fixture_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Tape),
+        snapshots.len(),
+    );
+    state.apply(WorkstationAction::TogglePaneZoom, snapshots.len());
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    )
+    .with_trades(fixture_trades());
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 180,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders expanded time and sales board");
+
+    assert!(rendered.contains("EXPANDED tape"));
+    assert!(rendered.contains("TIME & SALES"));
+    assert!(rendered.contains("burst"));
+    assert!(rendered.contains("side mix"));
+    assert!(rendered.contains("largest $70"));
+    assert!(rendered.contains("public prints only"));
+    assert!(rendered.contains("no fills"));
+}
+
+#[test]
 fn tape_pane_flow_view_renders_public_trade_pressure_mode() {
     let snapshots = fixture_snapshots();
     let mut state = WorkstationUiState::default();

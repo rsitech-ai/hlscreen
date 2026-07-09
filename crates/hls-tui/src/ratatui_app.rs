@@ -4294,6 +4294,10 @@ fn tape_lines(
         if let Some(latest_trade) = recent_trades.first() {
             lines.push(last_trade_hud_line(latest_trade, color_mode));
         }
+        if model.ui_state.pane_expanded() && model.ui_state.focused_pane() == WorkstationPane::Tape
+        {
+            lines.extend(time_and_sales_board_lines(&recent_trades, color_mode));
+        }
         if model.ui_state.view() == WorkstationView::Flow {
             lines.extend(trade_pressure_lines(&recent_trades, compact, color_mode));
         }
@@ -4652,6 +4656,80 @@ fn tape_velocity_line(
     }
 
     Line::from(spans)
+}
+
+fn time_and_sales_board_lines(
+    trades: &[&TradeEvent],
+    color_mode: RatatuiColorMode,
+) -> Vec<Line<'static>> {
+    let buy_notional = trades
+        .iter()
+        .filter(|trade| trade.side == TradeSide::Buy)
+        .map(|trade| trade.notional.max(0.0))
+        .sum::<f64>();
+    let sell_notional = trades
+        .iter()
+        .filter(|trade| trade.side == TradeSide::Sell)
+        .map(|trade| trade.notional.max(0.0))
+        .sum::<f64>();
+    let total_notional = buy_notional + sell_notional;
+    let buy_share = if total_notional > 0.0 {
+        buy_notional / total_notional
+    } else {
+        0.0
+    };
+    let sell_share = if total_notional > 0.0 {
+        sell_notional / total_notional
+    } else {
+        0.0
+    };
+    let largest = trades
+        .iter()
+        .map(|trade| trade.notional.max(0.0))
+        .fold(0.0_f64, f64::max);
+    let window_secs = match (
+        trades.iter().map(|trade| trade.exchange_ts_ms).min(),
+        trades.iter().map(|trade| trade.exchange_ts_ms).max(),
+    ) {
+        (Some(min_ts), Some(max_ts)) => ((max_ts - min_ts).max(1) as f64 / 1_000.0).max(1.0),
+        _ => 1.0,
+    };
+    let burst = trades.len() as f64 / window_secs;
+
+    vec![
+        Line::from(vec![
+            Span::styled(
+                "TIME & SALES ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(format!(
+                "burst {burst:.2}/s largest {} | public prints only",
+                format_usd(Some(largest))
+            )),
+        ]),
+        Line::from(vec![
+            Span::styled("side mix ", Style::default().fg(accent(color_mode))),
+            Span::styled(
+                format!(
+                    "buy {} {} ",
+                    depth_bar(buy_share, 8),
+                    format_usd(Some(buy_notional))
+                ),
+                Style::default().fg(success(color_mode)),
+            ),
+            Span::styled(
+                format!(
+                    "sell {} {}",
+                    depth_bar(sell_share, 8),
+                    format_usd(Some(sell_notional))
+                ),
+                Style::default().fg(danger(color_mode)),
+            ),
+        ]),
+        Line::from("public prints only | no fills | no private streams"),
+    ]
 }
 
 fn selected_trades<'a>(
