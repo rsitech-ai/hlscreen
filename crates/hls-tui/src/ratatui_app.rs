@@ -615,6 +615,11 @@ fn render_header(
     } else {
         format!("  {mode_label}  filter:{filter}")
     };
+    let status_tail = if narrow && viewport.width >= 80 {
+        format!("  RATATUI {mode_label}")
+    } else {
+        status_tail
+    };
     let mut status_spans = vec![
         Span::styled(
             "STATUS ",
@@ -709,6 +714,19 @@ fn header_visual_path_spans(color_mode: RatatuiColorMode, compact: bool) -> Vec<
                 .fg(visual_path_color(color_mode))
                 .add_modifier(Modifier::BOLD),
         ),
+        Span::raw("  "),
+        Span::styled(
+            "TERMINAL PREFLIGHT ",
+            Style::default()
+                .fg(warn(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::styled(
+            "TUI ratatui",
+            Style::default()
+                .fg(accent(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
     ]
 }
 
@@ -772,7 +790,7 @@ fn header_title(area: Rect) -> String {
     }
 
     format!(
-        "Hyperliquid Spot Microstructure Workstation | {}",
+        "Hyperliquid Spot Microstructure Workstation | UNIFIED RATATUI | {}",
         layout_profile_label(area)
     )
 }

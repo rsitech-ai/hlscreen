@@ -3877,6 +3877,58 @@ fn cockpit_color_mode_is_explicit_and_does_not_pollute_no_color_snapshots() {
 }
 
 #[test]
+fn cockpit_header_self_identifies_unified_ratatui_color_path() {
+    let model = RatatuiFrameModel::new(
+        fixture_snapshots(),
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        WorkstationUiState::default(),
+    );
+
+    let plain = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 120,
+            height: 36,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("plain medium cockpit renders");
+    let colored = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 220,
+            height: 52,
+        },
+        RatatuiColorMode::Color,
+    )
+    .expect("colored wide cockpit renders");
+    let narrow = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 80,
+            height: 24,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("plain narrow cockpit renders");
+
+    assert!(!plain.contains("\u{1b}["));
+    assert!(plain.contains("UNIFIED RATATUI"));
+    assert!(plain.contains("VIS plain"));
+    assert!(!narrow.contains("\u{1b}["));
+    assert!(narrow.contains("LAYOUT DIRECTOR"));
+    assert!(narrow.contains("RATATUI"));
+    assert!(narrow.contains("layout narrow 80x24"));
+    assert!(colored.contains("UNIFIED RATATUI"));
+    assert!(colored.contains("TERMINAL PREFLIGHT"));
+    assert!(colored.contains("TUI ratatui"));
+    assert!(colored.contains("ansi-neon active"));
+    assert!(colored.contains("\u{1b}[38;2;0;255;154m▲"));
+    assert!(colored.contains("\u{1b}[38;2;255;77;109m▼"));
+}
+
+#[test]
 fn cockpit_color_mode_uses_pane_accented_borders() {
     let model = RatatuiFrameModel::new(
         fixture_snapshots(),
