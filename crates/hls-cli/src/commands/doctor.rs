@@ -1,5 +1,6 @@
 use std::{
     fs,
+    io::{self, IsTerminal},
     path::{Path, PathBuf},
 };
 
@@ -13,6 +14,7 @@ use hls_tui::health::render_health_pane;
 use serde_json::json;
 
 use crate::commands::health::require_live_health;
+use crate::{HLS_RENDERER_ID, HLS_VERSION, commands::live::live_terminal_color_diagnostics};
 
 #[derive(Debug, Args)]
 pub struct DoctorArgs {
@@ -25,11 +27,19 @@ pub struct DoctorArgs {
     #[arg(long)]
     pub json: bool,
 
+    /// Report terminal, renderer, and color-detection state without touching the data directory.
+    #[arg(long, conflicts_with_all = ["live", "simulate_health"])]
+    pub terminal: bool,
+
     #[arg(long, hide = true)]
     pub simulate_health: Option<String>,
 }
 
 pub async fn run(args: DoctorArgs) -> anyhow::Result<()> {
+    if args.terminal {
+        return run_terminal_diagnostics(args.json);
+    }
+
     fs::create_dir_all(&args.data_dir)
         .with_context(|| format!("create data directory {}", args.data_dir.display()))?;
 
@@ -117,6 +127,71 @@ pub async fn run(args: DoctorArgs) -> anyhow::Result<()> {
     }
 
     Ok(())
+}
+
+fn run_terminal_diagnostics(json_output: bool) -> anyhow::Result<()> {
+    let binary = std::env::current_exe().context("resolve current hls executable")?;
+    let working_directory = std::env::current_dir().context("resolve current working directory")?;
+    let stdin_tty = io::stdin().is_terminal();
+    let stderr_tty = io::stderr().is_terminal();
+    let color = live_terminal_color_diagnostics();
+    let environment = [
+        ("TERM", env_display("TERM")),
+        ("COLORTERM", env_display("COLORTERM")),
+        ("TMUX", env_display("TMUX")),
+        ("NO_COLOR", env_display("NO_COLOR")),
+        ("HLS_FORCE_COLOR", env_display("HLS_FORCE_COLOR")),
+        ("CLICOLOR_FORCE", env_display("CLICOLOR_FORCE")),
+        ("FORCE_COLOR", env_display("FORCE_COLOR")),
+    ];
+
+    if json_output {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&json!({
+                "binary": binary,
+                "version": HLS_VERSION,
+                "renderer": HLS_RENDERER_ID,
+                "working_directory": working_directory,
+                "stdin_tty": stdin_tty,
+                "stderr_tty": stderr_tty,
+                "environment": environment.into_iter().collect::<std::collections::BTreeMap<_, _>>(),
+                "force_color": color.force_color,
+                "auto_color": color.auto_color,
+                "effective_auto_color": color.effective_auto_color,
+                "tui_default_color": "always",
+            }))?
+        );
+        return Ok(());
+    }
+
+    println!("binary: {}", binary.display());
+    println!("version: {HLS_VERSION}");
+    println!("renderer: {HLS_RENDERER_ID}");
+    println!("working directory: {}", working_directory.display());
+    println!("stdin tty: {stdin_tty}");
+    println!("stderr tty: {stderr_tty}");
+    for (name, value) in environment {
+        println!("{name}: {value}");
+    }
+    println!("force-color override: {}", enabled_label(color.force_color));
+    println!("auto-color detection: {}", enabled_label(color.auto_color));
+    println!(
+        "effective auto color: {}",
+        enabled_label(color.effective_auto_color)
+    );
+    println!("tui default color: always");
+    Ok(())
+}
+
+fn env_display(name: &str) -> String {
+    std::env::var_os(name)
+        .map(|value| value.to_string_lossy().into_owned())
+        .unwrap_or_else(|| "<unset>".to_owned())
+}
+
+fn enabled_label(enabled: bool) -> &'static str {
+    if enabled { "enabled" } else { "disabled" }
 }
 
 fn check_writable(data_dir: &Path) -> anyhow::Result<bool> {

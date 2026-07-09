@@ -19,9 +19,13 @@ use crate::commands::{
 
 mod commands;
 
+pub(crate) const HLS_RENDERER_ID: &str = "ratatui-workstation";
+pub(crate) const HLS_VERSION: &str = concat!(env!("CARGO_PKG_VERSION"), " (ratatui-workstation)");
+
 #[derive(Debug, Parser)]
 #[command(name = "hls")]
 #[command(about = "Read-only Hyperliquid spot screener")]
+#[command(version = HLS_VERSION)]
 struct Cli {
     #[command(subcommand)]
     command: Command,
