@@ -1,7 +1,10 @@
 use hls_core::market_state::{
     CandleEvent, FeatureSnapshot, StalenessState, TradeEvent, TradeSide, TradeabilityState,
 };
-use hls_screen::{ScreenEngine, ScreenRequest, presets::find_preset};
+use hls_screen::{
+    ScreenEngine, ScreenRequest,
+    presets::{builtin_presets, find_preset},
+};
 use ratatui::{
     Frame, Terminal,
     backend::TestBackend,
@@ -1609,11 +1612,16 @@ fn command_palette_lines(
     let mut lines = vec![
         Line::from("COMMAND CENTER"),
         Line::from(format!("TARGET {target} | INPUT {input}")),
+        Line::from(active_command_context_line(&model.request)),
         Line::from(format!(
             "SCOPE read-only screened rows {} | view {} | pane {}",
             screened_rows(model).len(),
             model.ui_state.view().label(),
             model.ui_state.focused_pane().label()
+        )),
+        Line::from(format!(
+            "visible rows {:02} | read-only command preview",
+            screened_rows(model).len().min(99)
         )),
         Line::from(format!("{} > {input}", command.prompt())),
         Line::from(match command.target().label() {
@@ -1624,6 +1632,7 @@ fn command_palette_lines(
         }),
         Line::from("EXAMPLES"),
         Line::from(command_examples_line(target)),
+        command_deck_line(command.target()),
         Line::from("SAFETY no orders | no wallet | public market data only"),
     ];
     if let Some(error) = model.ui_state.command_error() {
@@ -1632,12 +1641,40 @@ fn command_palette_lines(
     lines
 }
 
+fn active_command_context_line(request: &ScreenRequest) -> String {
+    let preset = request.preset.as_deref().unwrap_or("-");
+    let filter = request.where_expr.as_deref().unwrap_or("-");
+    let sort = request.sort.as_deref().unwrap_or("-");
+    format!("ACTIVE preset {preset} | filter {filter} | sort {sort}")
+}
+
 fn command_examples_line(target: &str) -> &'static str {
     match target {
         "filter" => "filter: spread_bps < 5 | abs(ret_1m) > 0.001 | confidence >= 70",
         "preset" => "preset: tight | resilient | metadata_partial | clear empty",
         "sort" => "sort: score desc | spread_bps asc | signed_flow desc",
         _ => "filter: spread_bps < 5 | preset: tight | sort: score desc",
+    }
+}
+
+fn command_deck_line(target: crate::interaction::WorkstationCommandTarget) -> Line<'static> {
+    match target {
+        crate::interaction::WorkstationCommandTarget::Preset => {
+            let names = builtin_presets()
+                .into_iter()
+                .map(|preset| preset.name)
+                .collect::<Vec<_>>();
+            Line::from(format!(
+                "PRESET DECK {} | read-only presets",
+                names.join(" ")
+            ))
+        }
+        crate::interaction::WorkstationCommandTarget::Filter => Line::from(
+            "FILTER DECK confidence_score spread_bps tradeability_state cohort_tag signed_notional_flow_30s",
+        ),
+        crate::interaction::WorkstationCommandTarget::Sort => Line::from(
+            "SORT DECK score:desc spread_bps:asc signed_notional_flow_30s:desc listing_age_ms:asc",
+        ),
     }
 }
 
