@@ -294,6 +294,12 @@ fn command_palette_renders_live_symbol_suggestions() {
     assert!(rendered.contains("symbols DOWN/USDC"));
     assert!(rendered.contains("visible live rows"));
     assert!(rendered.contains("Enter accepts highlighted visible row"));
+    assert!(rendered.contains("CANDIDATE RADAR"));
+    assert!(rendered.contains("#02 DOWN/USDC"));
+    assert!(rendered.contains("px 12.3400"));
+    assert!(rendered.contains("spr 57.1bps"));
+    assert!(rendered.contains("flow -$4.2K"));
+    assert!(rendered.contains("RO public market data"));
     assert!(rendered.contains("SAFETY no orders"));
 }
 

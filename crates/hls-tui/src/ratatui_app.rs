@@ -3610,6 +3610,9 @@ fn command_palette_lines(
         Line::from(active_command_context_line(&model.request)),
         command_result_preview_line(model, color_mode),
         command_suggestions_line(command, model, color_mode),
+    ];
+    lines.extend(command_candidate_radar_lines(command, model, color_mode));
+    lines.extend([
         command_keyflow_line(color_mode),
         command_guardrails_line(color_mode),
         Line::from(format!(
@@ -3634,7 +3637,7 @@ fn command_palette_lines(
         Line::from(command_examples_line(target)),
         command_deck_line(command.target()),
         Line::from("SAFETY no orders | no wallet | public market data only"),
-    ];
+    ]);
     if let Some(error) = model.ui_state.command_error() {
         lines.push(command_error_line(error, color_mode));
     }
@@ -3849,6 +3852,70 @@ fn command_suggestions_line(
     }
 }
 
+fn command_candidate_radar_lines(
+    command: &WorkstationCommand,
+    model: &RatatuiFrameModel,
+    color_mode: RatatuiColorMode,
+) -> Vec<Line<'static>> {
+    if command.target() != crate::interaction::WorkstationCommandTarget::Symbol {
+        return Vec::new();
+    }
+
+    let candidates = visible_symbol_candidates(command.input(), model, 3);
+    let mut lines = vec![Line::from(vec![
+        Span::styled(
+            "CANDIDATE RADAR ",
+            Style::default()
+                .fg(accent(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw("rank px spread flow confidence | Enter jumps first visible match"),
+    ])];
+
+    if candidates.is_empty() {
+        lines.push(Line::from(vec![
+            Span::styled("no visible match ", Style::default().fg(danger(color_mode))),
+            Span::raw("RO public market data"),
+        ]));
+        return lines;
+    }
+
+    lines.extend(candidates.into_iter().map(|(index, row)| {
+        Line::from(vec![
+            Span::styled(
+                format!("#{:02} ", index + 1),
+                Style::default()
+                    .fg(warn(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(
+                format!("{} ", display_symbol(&row)),
+                Style::default()
+                    .fg(success(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(format!(
+                "px {} spr {}bps ",
+                format_price(row.price),
+                format_optional(row.spread_bps, 1)
+            )),
+            Span::styled(
+                format!("flow {} ", format_usd_signed(row.signed_notional_flow_30s)),
+                Style::default().fg(flow_color(
+                    row.signed_notional_flow_30s.unwrap_or_default(),
+                    color_mode,
+                )),
+            ),
+            Span::raw(format!(
+                "conf {} RO public market data",
+                row.confidence.score
+            )),
+        ])
+    }));
+
+    lines
+}
+
 fn command_keyflow_line(color_mode: RatatuiColorMode) -> Line<'static> {
     Line::from(vec![
         Span::styled(
@@ -3888,23 +3955,35 @@ fn command_error_line(error: &str, color_mode: RatatuiColorMode) -> Line<'static
 }
 
 fn visible_symbol_suggestions(input: &str, model: &RatatuiFrameModel) -> Vec<String> {
+    let mut suggestions = visible_symbol_candidates(input, model, 5)
+        .into_iter()
+        .take(5)
+        .map(|(_, row)| display_symbol(&row).to_owned())
+        .collect::<Vec<_>>();
+    if suggestions.is_empty() {
+        suggestions.push("no-visible-match".to_owned());
+    }
+    suggestions
+}
+
+fn visible_symbol_candidates(
+    input: &str,
+    model: &RatatuiFrameModel,
+    limit: usize,
+) -> Vec<(usize, FeatureSnapshot)> {
     let needle = input.trim().to_ascii_lowercase();
-    let mut suggestions = screened_rows(model)
-        .iter()
-        .filter(|row| {
+    screened_rows(model)
+        .into_iter()
+        .enumerate()
+        .filter(|(_, row)| {
             if needle.is_empty() {
                 return true;
             }
             display_symbol(row).to_ascii_lowercase().contains(&needle)
                 || row.symbol.to_ascii_lowercase().contains(&needle)
         })
-        .take(5)
-        .map(|row| display_symbol(row).to_owned())
-        .collect::<Vec<_>>();
-    if suggestions.is_empty() {
-        suggestions.push("no-visible-match".to_owned());
-    }
-    suggestions
+        .take(limit)
+        .collect()
 }
 
 fn preset_suggestions(input: &str) -> Vec<String> {
