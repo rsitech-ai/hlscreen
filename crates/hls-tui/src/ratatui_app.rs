@@ -3891,9 +3891,13 @@ fn render_chart(
     )];
     let show_order_pressure = show_chart_order_pressure(area);
     let show_crosshair_context = show_chart_crosshair_context(area);
+    let show_strategy_hud = show_chart_strategy_hud(area, model);
     let show_chart_intel =
         model.ui_state.pane_expanded() && model.ui_state.focused_pane() == WorkstationPane::Chart;
     chart_lines.extend(selected_pair_edge_hud_lines(row, color_mode));
+    if show_strategy_hud {
+        chart_lines.extend(chart_strategy_hud_lines(row, &candles, color_mode));
+    }
     if show_order_pressure {
         chart_lines.extend(selected_pair_order_pressure_lines(row, color_mode));
     }
@@ -3934,6 +3938,7 @@ fn render_chart(
         + u16::from(show_crosshair_context) * 2
         + u16::from(show_profile_rail)
         + u16::from(show_trade_markers)
+        + u16::from(show_strategy_hud) * 3
         + u16::from(show_chart_intel) * 7;
     chart_lines.extend(candle_chart_lines(
         &candles,
@@ -3952,6 +3957,13 @@ fn render_chart(
 
 fn show_chart_order_pressure(area: Rect) -> bool {
     area.width >= 96 && area.height >= 26
+}
+
+fn show_chart_strategy_hud(area: Rect, model: &RatatuiFrameModel) -> bool {
+    area.width >= 72
+        && area.height >= 24
+        && model.ui_state.focused_pane() == WorkstationPane::Chart
+        && !model.ui_state.pane_expanded()
 }
 
 fn show_chart_prints_strip(area: Rect, model: &RatatuiFrameModel, symbol: &str) -> bool {
@@ -4118,6 +4130,82 @@ fn selected_pair_edge_hud_lines(
                 "spread gate {spread_gate} | no execution | public bbo proxy"
             )),
         ]),
+    ]
+}
+
+fn chart_strategy_hud_lines(
+    row: &FeatureSnapshot,
+    candles: &[&CandleEvent],
+    color_mode: RatatuiColorMode,
+) -> Vec<Line<'static>> {
+    let trend_pct = candles
+        .first()
+        .zip(candles.last())
+        .and_then(|(first, latest)| {
+            if first.open.abs() < f64::EPSILON {
+                None
+            } else {
+                Some(((latest.close - first.open) / first.open) * 100.0)
+            }
+        })
+        .unwrap_or_default();
+    let flow = row.signed_notional_flow_30s.unwrap_or_default();
+    let depth = row.tob_depth_usd.unwrap_or_default().abs().max(1.0);
+    let flow_pressure = (flow / depth).clamp(-1.0, 1.0);
+    let score_pressure = ((score_signal_value(row) / 100.0) * 2.0 - 1.0).clamp(-1.0, 1.0);
+    let signal =
+        ((trend_pct / 5.0).clamp(-1.0, 1.0) * 0.35 + flow_pressure * 0.45 + score_pressure * 0.20)
+            .clamp(-1.0, 1.0);
+    let liquidity_gate = spread_gate_label(row.spread_bps);
+    let bias = if row.confidence.score < 70 {
+        "confidence-watch"
+    } else if liquidity_gate != "tight" {
+        "liquidity-watch"
+    } else if signal > 0.25 {
+        "momentum-watch"
+    } else if signal < -0.25 {
+        "pressure-watch"
+    } else {
+        "balanced-watch"
+    };
+
+    vec![
+        Line::from(vec![
+            Span::styled(
+                "STRATEGY HUD ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(format!("bias {bias} ")),
+            Span::styled(
+                "signal ",
+                Style::default().fg(flow_color(signal, color_mode)),
+            ),
+            Span::raw(format!(
+                "{} {} | confidence {}",
+                signed_flow_bar(signal, 1.0, 10),
+                format_signed(Some(signal), ""),
+                row.confidence.score
+            )),
+        ]),
+        Line::from(vec![
+            Span::styled(
+                "liquidity ",
+                Style::default().fg(gate_color(liquidity_gate, color_mode)),
+            ),
+            Span::raw(format!("{liquidity_gate} | ")),
+            Span::styled(
+                "flow gate ",
+                Style::default().fg(flow_color(flow_pressure, color_mode)),
+            ),
+            Span::raw(format!(
+                "{} {}",
+                signed_meter(flow_pressure),
+                format_usd_signed(row.signed_notional_flow_30s)
+            )),
+        ]),
+        Line::from("watch only | no orders | not advice"),
     ]
 }
 

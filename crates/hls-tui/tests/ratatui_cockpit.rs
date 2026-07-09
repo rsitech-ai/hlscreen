@@ -3747,6 +3747,59 @@ fn cockpit_chart_renders_selected_pair_edge_hud() {
 }
 
 #[test]
+fn focused_chart_renders_strategy_hud_without_execution_language() {
+    let snapshots = directional_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Chart),
+        snapshots.len(),
+    );
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    )
+    .with_candles(directional_chart_candles("@107"));
+
+    let plain = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 160,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("plain strategy HUD renders");
+    let colored = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 160,
+            height: 48,
+        },
+        RatatuiColorMode::Color,
+    )
+    .expect("colored strategy HUD renders");
+
+    assert!(!plain.contains("\u{1b}["));
+    assert!(plain.contains("STRATEGY HUD"));
+    assert!(plain.contains("bias"));
+    assert!(plain.contains("signal"));
+    assert!(plain.contains("liquidity"));
+    assert!(plain.contains("flow gate"));
+    assert!(plain.contains("confidence 100"));
+    assert!(plain.contains("watch only"));
+    assert!(plain.contains("no orders"));
+    assert!(plain.contains("not advice"));
+    assert!(!plain.contains("buy now"));
+    assert!(!plain.contains("sell now"));
+    assert_eq!(
+        active_fg_before(&colored, "STRATEGY HUD"),
+        Some("\u{1b}[38;2;0;229;255m")
+    );
+}
+
+#[test]
 fn wide_chart_renders_selected_pair_public_prints_strip() {
     let snapshots = fixture_snapshots();
     let mut state = WorkstationUiState::default();
