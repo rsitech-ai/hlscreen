@@ -5812,6 +5812,7 @@ fn render_status_panel(
             gaps,
             color_mode,
         ));
+        lines.extend(status_portfolio_risk_terminal_lines(&rows, color_mode));
         lines.extend(status_color_lab_lines(color_mode));
     }
     lines.extend([
@@ -5914,6 +5915,131 @@ fn status_ops_command_center_lines(
             Span::raw(format!(
                 "degraded {degraded:02} stale {stale:02} recorder {}",
                 model.recorder_status
+            )),
+        ]),
+    ]
+}
+
+fn status_portfolio_risk_terminal_lines(
+    rows: &[FeatureSnapshot],
+    color_mode: RatatuiColorMode,
+) -> Vec<Line<'static>> {
+    let up = rows
+        .iter()
+        .filter(|row| row.ret_1m.is_some_and(|value| value > 0.0))
+        .count();
+    let down = rows
+        .iter()
+        .filter(|row| row.ret_1m.is_some_and(|value| value < 0.0))
+        .count();
+    let net_flow = rows
+        .iter()
+        .filter_map(|row| row.signed_notional_flow_30s)
+        .filter(|value| value.is_finite())
+        .sum::<f64>();
+    let gross_flow = rows
+        .iter()
+        .filter_map(|row| row.signed_notional_flow_30s)
+        .filter(|value| value.is_finite())
+        .map(f64::abs)
+        .sum::<f64>();
+    let flow_skew = if gross_flow > 0.0 {
+        (net_flow / gross_flow).clamp(-1.0, 1.0)
+    } else {
+        0.0
+    };
+    let total_depth = rows
+        .iter()
+        .filter_map(|row| row.tob_depth_usd)
+        .filter(|value| value.is_finite() && *value > 0.0)
+        .sum::<f64>();
+    let top_depth = rows
+        .iter()
+        .filter_map(|row| {
+            row.tob_depth_usd
+                .filter(|value| value.is_finite() && *value > 0.0)
+                .map(|depth| (row, depth))
+        })
+        .max_by(|left, right| {
+            left.1
+                .partial_cmp(&right.1)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
+    let (top_symbol, top_share, top_depth_notional) =
+        top_depth.map_or(("-", 0.0, 0.0), |(row, depth)| {
+            let share = if total_depth > 0.0 {
+                depth / total_depth
+            } else {
+                0.0
+            };
+            (display_symbol(row), share, depth)
+        });
+    let degraded = rows
+        .iter()
+        .filter(|row| row.confidence.score < 70 || row.staleness_state != StalenessState::Fresh)
+        .count();
+    let stale = rows
+        .iter()
+        .filter(|row| row.staleness_state != StalenessState::Fresh)
+        .count();
+    let wide_spread = rows
+        .iter()
+        .filter(|row| {
+            row.spread_bps
+                .is_some_and(|value| value.is_finite() && value > 25.0)
+        })
+        .count();
+    let risk_gate = if degraded == 0 && stale == 0 && wide_spread == 0 {
+        "clean"
+    } else if degraded <= 2 && stale <= 1 {
+        "review"
+    } else {
+        "degraded"
+    };
+
+    vec![
+        Line::from(vec![
+            Span::styled(
+                "PORTFOLIO RISK TERMINAL ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw("screen exposure only | no positions | no orders"),
+        ]),
+        Line::from(vec![
+            Span::styled("up screens ", Style::default().fg(success(color_mode))),
+            Span::raw(format!("{:02}  ", up.min(99))),
+            Span::styled("down screens ", Style::default().fg(danger(color_mode))),
+            Span::raw(format!("{:02}  ", down.min(99))),
+            Span::styled(
+                "flow skew ",
+                Style::default().fg(flow_color(flow_skew, color_mode)),
+            ),
+            Span::raw(format!(
+                "{} net {} / gross {}",
+                signed_meter(flow_skew),
+                format_usd_signed(Some(net_flow)),
+                format_usd(Some(gross_flow))
+            )),
+        ]),
+        Line::from(vec![
+            Span::styled("concentration top ", Style::default().fg(warn(color_mode))),
+            Span::raw(format!(
+                "{} {} {} depth {} | public top-book depth proxy",
+                top_symbol,
+                percent_label(top_share),
+                depth_bar(top_share, 10),
+                format_usd(Some(top_depth_notional))
+            )),
+        ]),
+        Line::from(vec![
+            Span::styled(
+                "risk stack ",
+                Style::default().fg(gate_color(risk_gate, color_mode)),
+            ),
+            Span::raw(format!(
+                "degraded {degraded:02} wide {wide_spread:02} stale {stale:02} gate {risk_gate} | not advice"
             )),
         ]),
     ]
