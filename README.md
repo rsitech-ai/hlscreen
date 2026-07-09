@@ -176,6 +176,7 @@ TTY keyboard controls for the Ratatui `hls live --tui` cockpit:
 - `Enter`: focus the selected symbol detail pane when no command editor is open.
 - `h` / `H`: focus the health/status operations pane.
 - `Tab` / `Shift+Tab`: cycle detail views: overview, flow, quality, metadata, explain.
+- `g`: open the symbol jump editor; `Enter` selects the first visible row matching a display pair or feed ID, `Esc` cancels.
 - `/`: open the validated filter editor; `Enter` applies, `Esc` cancels, empty input clears the custom filter.
 - `p`: open the preset editor; `Enter` applies, `Esc` cancels, empty input clears the preset.
 - `s`: open the sort editor; `Enter` applies, `Esc` cancels, empty input clears the custom sort.
