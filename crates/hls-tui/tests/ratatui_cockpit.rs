@@ -877,6 +877,41 @@ fn detail_panel_renders_score_factor_stack() {
 }
 
 #[test]
+fn detail_panel_renders_selected_pair_alpha_risk_stack() {
+    let snapshots = fixture_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Detail),
+        snapshots.len(),
+    );
+    state.apply(WorkstationAction::TogglePaneZoom, snapshots.len());
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    );
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 180,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders selected-pair alpha risk stack");
+
+    assert!(rendered.contains("EXPANDED detail"));
+    assert!(rendered.contains("ALPHA STACK"));
+    assert!(rendered.contains("signal"));
+    assert!(rendered.contains("cost"));
+    assert!(rendered.contains("risk"));
+    assert!(rendered.contains("SCREEN ONLY"));
+    assert!(rendered.contains("no orders"));
+}
+
+#[test]
 fn detail_explain_view_renders_why_ranked_deck() {
     let snapshots = fixture_snapshots();
     let mut state = WorkstationUiState::default();
