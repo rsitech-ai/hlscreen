@@ -3857,12 +3857,33 @@ fn compact_command_suggestions_line(
 }
 
 fn command_center_title_line(color_mode: RatatuiColorMode) -> Line<'static> {
-    Line::from(vec![Span::styled(
-        "COMMAND CENTER",
-        Style::default()
-            .fg(accent(color_mode))
-            .add_modifier(Modifier::BOLD),
-    )])
+    Line::from(vec![
+        Span::styled(
+            "COMMAND HUD ",
+            Style::default()
+                .fg(warn(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::styled("[enter] apply ", Style::default().fg(success(color_mode))),
+        Span::raw("| "),
+        Span::styled("[esc] close ", Style::default().fg(danger(color_mode))),
+        Span::raw("| "),
+        Span::styled("[tab] target ", Style::default().fg(accent(color_mode))),
+        Span::raw("| "),
+        Span::styled(
+            "RO no orders ",
+            Style::default()
+                .fg(danger(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw("| "),
+        Span::styled(
+            "COMMAND CENTER",
+            Style::default()
+                .fg(accent(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+    ])
 }
 
 fn command_target_input_line(
