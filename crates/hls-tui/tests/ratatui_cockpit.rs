@@ -804,6 +804,14 @@ fn narrow_cockpit_renders_status_focus_as_operational_drilldown() {
     assert!(rendered.contains("terminal color no-color"));
     assert!(rendered.contains("palette plain"));
     assert!(rendered.contains("--color always"));
+    assert!(rendered.contains("OPS DECK"));
+    assert!(rendered.contains("1-6 focus"));
+    assert!(rendered.contains("/ filter"));
+    assert!(rendered.contains("p preset"));
+    assert!(rendered.contains("s sort"));
+    assert!(rendered.contains("t chart"));
+    assert!(rendered.contains("space pause"));
+    assert!(rendered.contains("active top-1 by screen rank"));
     assert!(rendered.contains("read-only safety"));
     assert!(rendered.contains("No wallet"));
     assert!(!rendered.contains("[FOCUS] DETAIL"));
