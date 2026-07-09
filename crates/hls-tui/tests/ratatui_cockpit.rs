@@ -633,6 +633,33 @@ fn detail_panel_renders_liquidity_radar() {
 }
 
 #[test]
+fn wide_detail_panel_renders_selected_pair_snapshot() {
+    let model = RatatuiFrameModel::new(
+        fixture_snapshots(),
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        WorkstationUiState::default(),
+    );
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 240,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders selected pair snapshot");
+
+    assert!(rendered.contains("PAIR SNAPSHOT"));
+    assert!(rendered.contains("trade unknown"));
+    assert!(rendered.contains("resilience unknown"));
+    assert!(rendered.contains("freshness fresh"));
+    assert!(rendered.contains("conf 100"));
+    assert!(rendered.contains("read-only selected pair"));
+}
+
+#[test]
 fn detail_panel_renders_interactive_view_tab_rail() {
     let snapshots = fixture_snapshots();
     let mut state = WorkstationUiState::default();
