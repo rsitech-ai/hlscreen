@@ -3514,7 +3514,7 @@ fn cockpit_reflects_keyboard_view_pause_density_and_help_state() {
     assert!(rendered.contains("force --color always"));
     assert!(rendered.contains("If the cockpit is black/white"));
     assert!(rendered.contains("avoid --color never"));
-    assert!(rendered.contains("click rows/panes/views/windows"));
+    assert!(rendered.contains("click rows/panes/views/windows/cmds"));
     assert!(rendered.contains("READ-ONLY public market data only"));
     assert!(rendered.contains("[ / ]"));
     assert!(rendered.contains("1-6 panes"));
@@ -3583,7 +3583,7 @@ fn help_overlay_color_mode_renders_operator_keyboard_map() {
         Some("\u{1b}[38;2;255;77;109m")
     );
     assert!(colored.contains("active pane chart"));
-    assert!(colored.contains("click rows/panes/views/windows"));
+    assert!(colored.contains("click rows/panes/views/windows/cmds"));
     assert!(colored.contains("public market data only"));
 }
 
@@ -3626,7 +3626,7 @@ fn narrow_help_overlay_renders_compact_operator_map() {
     assert!(plain.contains("HELP COMPACT"));
     assert!(plain.contains("pane book"));
     assert!(plain.contains("j/k rows"));
-    assert!(plain.contains("click rows/rails/tabs"));
+    assert!(plain.contains("click rows/rails/tabs/cmds"));
     assert!(plain.contains("1-6 panes"));
     assert!(plain.contains("w/i/c/b/r/o focus"));
     assert!(plain.contains("g symbol"));
