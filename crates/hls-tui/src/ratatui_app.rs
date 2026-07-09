@@ -2395,6 +2395,7 @@ fn tape_lines(
 
     let recent_trades = selected_trades(model, &selected.symbol, content_height);
     if !recent_trades.is_empty() {
+        lines.push(tape_radar_line(&recent_trades, color_mode));
         if model.ui_state.view() == WorkstationView::Flow {
             lines.extend(trade_pressure_lines(&recent_trades, compact, color_mode));
         }
@@ -2462,6 +2463,40 @@ fn tape_lines(
     );
     lines.push(Line::from("Tape proxy only | public BBO/flow; no fills."));
     lines
+}
+
+fn tape_radar_line(trades: &[&TradeEvent], color_mode: RatatuiColorMode) -> Line<'static> {
+    let buy_count = trades
+        .iter()
+        .filter(|trade| trade.side == TradeSide::Buy)
+        .count();
+    let sell_count = trades
+        .iter()
+        .filter(|trade| trade.side == TradeSide::Sell)
+        .count();
+    let net_notional = trades
+        .iter()
+        .map(|trade| match trade.side {
+            TradeSide::Buy => trade.notional,
+            TradeSide::Sell => -trade.notional,
+        })
+        .sum::<f64>();
+    Line::from(vec![
+        Span::styled(
+            "TAPE RADAR ",
+            Style::default()
+                .fg(accent(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw(format!("prints {} ", trades.len())),
+        Span::styled("buy ", Style::default().fg(success(color_mode))),
+        Span::raw(format!("{buy_count}  ")),
+        Span::styled("sell ", Style::default().fg(danger(color_mode))),
+        Span::raw(format!(
+            "{sell_count} net {} public tape",
+            format_usd_signed(Some(net_notional))
+        )),
+    ])
 }
 
 fn selected_trades<'a>(
