@@ -3457,6 +3457,7 @@ fn render_chart(
                     color_mode,
                     area.width <= 72,
                 )];
+                lines.extend(chart_bootstrap_lens_lines(row, color_mode));
                 lines.extend(selected_pair_edge_hud_lines(row, color_mode));
                 if show_chart_order_pressure(area) {
                     lines.extend(selected_pair_order_pressure_lines(row, color_mode));
@@ -3628,6 +3629,42 @@ fn chart_window_tabs_line(
         Style::default().fg(text(color_mode)),
     ));
     Line::from(spans)
+}
+
+fn chart_bootstrap_lens_lines(
+    row: &FeatureSnapshot,
+    color_mode: RatatuiColorMode,
+) -> Vec<Line<'static>> {
+    vec![
+        Line::from(vec![
+            Span::styled(
+                "CHART BOOTSTRAP ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw("public 1m feed pending | read-only"),
+        ]),
+        Line::from(vec![
+            Span::styled(
+                "px ",
+                Style::default().fg(watchlist_direction_color(row, color_mode)),
+            ),
+            Span::raw(format!("{}  ", format_price(row.price))),
+            Span::styled("bid ", Style::default().fg(success(color_mode))),
+            Span::raw(format!("{}  ", format_price(row.bid_px))),
+            Span::styled("ask ", Style::default().fg(danger(color_mode))),
+            Span::raw(format!("{}  ", format_price(row.ask_px))),
+            Span::styled(
+                "flow ",
+                Style::default().fg(flow_color(
+                    row.signed_notional_flow_30s.unwrap_or_default(),
+                    color_mode,
+                )),
+            ),
+            Span::raw(format_usd_signed(row.signed_notional_flow_30s)),
+        ]),
+    ]
 }
 
 fn selected_pair_edge_hud_lines(
