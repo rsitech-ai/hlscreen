@@ -815,7 +815,12 @@ fn desk_tab_rail_line(
         if index > 0 {
             spans.push(Span::raw(" "));
         }
-        let tab_label = if compact { *short_label } else { *label };
+        let standard_compact = (132..200).contains(&width);
+        let tab_label = if compact || standard_compact {
+            *short_label
+        } else {
+            *label
+        };
         if state.focused_pane() == *pane {
             spans.push(Span::styled(
                 format!("[{tab_label}]"),
@@ -827,12 +832,21 @@ fn desk_tab_rail_line(
             spans.push(Span::raw(tab_label.to_owned()));
         }
     }
-    spans.push(Span::raw(format!(
-        " | CMD g / p s t d z sp ? q | view {} | density {} | z {} | EXEC GUARD read-only",
-        state.view().label(),
-        state.density().label(),
-        pane_zoom_action_label(state)
-    )));
+    if (132..200).contains(&width) {
+        spans.push(Span::raw(format!(
+            " | CMD g/p/s/t/d/z/sp/?/q | view {} | den {} | z {} | RO",
+            state.view().label(),
+            state.density().label(),
+            pane_zoom_action_label(state)
+        )));
+    } else {
+        spans.push(Span::raw(format!(
+            " | CMD g / p s t d z sp ? q | view {} | density {} | z {} | EXEC GUARD read-only",
+            state.view().label(),
+            state.density().label(),
+            pane_zoom_action_label(state)
+        )));
+    }
     if width >= 240 {
         spans.push(Span::raw(format!(
             " | visible panes {visible_panes} | hidden panes {hidden_panes}"
@@ -7332,10 +7346,10 @@ fn market_status_bar_line(
             pause_label(model),
         )
     })];
-    if width < 180 {
+    if width <= 180 {
         spans.extend(status_bar_compact_quality_alert_spans(model, color_mode));
     }
-    if width < 180 {
+    if width <= 180 {
         spans.push(Span::styled(
             "TICKER ",
             Style::default()
@@ -7354,7 +7368,7 @@ fn market_status_bar_line(
     }
     spans.push(Span::raw(" | "));
     spans.push(Span::styled(
-        if width < 180 {
+        if width <= 180 {
             medium_quality_label(model)
         } else {
             format!("{} | ", operational_quality_label(model, false))
@@ -7363,10 +7377,10 @@ fn market_status_bar_line(
             .fg(warn(color_mode))
             .add_modifier(Modifier::BOLD),
     ));
-    if width >= 180 {
+    if width > 180 {
         spans.extend(status_bar_quality_alert_spans(model, color_mode));
     }
-    spans.extend(risk_strip_spans(model, color_mode, width < 180));
+    spans.extend(risk_strip_spans(model, color_mode, width <= 180));
     Line::from(spans)
 }
 
