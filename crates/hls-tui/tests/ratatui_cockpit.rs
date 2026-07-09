@@ -3042,6 +3042,45 @@ fn cockpit_chart_uses_real_candle_ohlc_and_volume_when_available() {
 }
 
 #[test]
+fn cockpit_chart_renders_bootstrap_lens_before_public_candles_arrive() {
+    let model = RatatuiFrameModel::new(
+        fixture_snapshots(),
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        WorkstationUiState::default(),
+    );
+
+    let plain = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 160,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("plain chart bootstrap renders");
+    let colored = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 160,
+            height: 48,
+        },
+        RatatuiColorMode::Color,
+    )
+    .expect("colored chart bootstrap renders");
+
+    assert!(!plain.contains("\u{1b}["));
+    assert!(plain.contains("CHART BOOTSTRAP"));
+    assert!(plain.contains("public 1m feed pending"));
+    assert!(plain.contains("No synthetic candles are rendered"));
+    assert!(colored.contains("CHART BOOTSTRAP"));
+    assert!(colored.contains("\u{1b}[38;2;255;77;109mpx "));
+    assert!(colored.contains("\u{1b}[38;2;0;255;154mbid "));
+    assert!(colored.contains("\u{1b}[38;2;255;77;109mask "));
+    assert!(colored.contains("\u{1b}[38;2;255;77;109mflow "));
+}
+
+#[test]
 fn cockpit_chart_renders_price_axis_and_public_candle_footer() {
     let snapshots = fixture_snapshots();
     let mut state = WorkstationUiState::default();
