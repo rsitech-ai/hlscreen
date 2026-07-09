@@ -3545,6 +3545,59 @@ fn help_overlay_color_mode_renders_operator_keyboard_map() {
 }
 
 #[test]
+fn narrow_help_overlay_renders_compact_operator_map() {
+    let snapshots = fixture_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Book),
+        snapshots.len(),
+    );
+    state.apply(WorkstationAction::ToggleHelp, snapshots.len());
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    );
+
+    let plain = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 72,
+            height: 24,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("plain compact help overlay renders");
+    let colored = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 72,
+            height: 24,
+        },
+        RatatuiColorMode::Color,
+    )
+    .expect("colored compact help overlay renders");
+
+    assert!(!plain.contains("\u{1b}["));
+    assert!(plain.contains("HELP COMPACT"));
+    assert!(plain.contains("pane book"));
+    assert!(plain.contains("j/k rows"));
+    assert!(plain.contains("1-6 panes"));
+    assert!(plain.contains("g symbol"));
+    assert!(plain.contains("/ filter"));
+    assert!(plain.contains("z zoom"));
+    assert!(plain.contains("color no-color"));
+    assert!(plain.contains("--color always"));
+    assert!(plain.contains("READ-ONLY public market data only"));
+    assert!(!plain.contains("OPERATOR KEYBOARD MAP"));
+    assert_eq!(
+        active_fg_before(&colored, "HELP COMPACT"),
+        Some("\u{1b}[38;2;0;229;255m")
+    );
+}
+
+#[test]
 fn cockpit_chart_uses_real_candle_ohlc_and_volume_when_available() {
     let model = RatatuiFrameModel::new(
         fixture_snapshots(),
