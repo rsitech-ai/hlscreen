@@ -472,7 +472,7 @@ fn render_watchlist(
         .ui_state
         .selected_index(rows.len())
         .unwrap_or_default();
-    let compact = area.width < 60;
+    let compact = area.width <= 64;
     let visible_range = watchlist_visible_range(
         selected,
         rows.len(),
@@ -524,6 +524,7 @@ fn render_watchlist(
                     Cell::from(score_signal_label(row)),
                     Cell::from(score_edge_bar(row)),
                     Cell::from(score_bias_label(row)),
+                    Cell::from(format_optional(row.spread_bps, 1)),
                     Cell::from(trend_label(row.ret_1m)),
                     Cell::from(format_usd_signed(row.signed_notional_flow_30s)),
                     Cell::from(format_usd(row.tob_depth_usd)),
@@ -562,6 +563,7 @@ fn render_watchlist(
                 Constraint::Length(3),
                 Constraint::Length(5),
                 Constraint::Length(4),
+                Constraint::Length(4),
                 Constraint::Length(7),
                 Constraint::Length(6),
                 Constraint::Length(5),
@@ -570,7 +572,7 @@ fn render_watchlist(
         )
         .header(
             Row::new([
-                "RANK", "CODE", "PX", "SIG", "EDGE", "BIAS", "1M", "FLOW30", "DEPTH", "Q",
+                "RANK", "CODE", "PX", "SIG", "EDGE", "BIAS", "SPR", "1M", "FLOW30", "DEPTH", "Q",
             ])
             .style(
                 Style::default()
