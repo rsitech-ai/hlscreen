@@ -6,7 +6,7 @@ use hls_tui::{
     app::{RenderOptions, render_screened_table_with_options, render_screened_table_with_state},
     interaction::{
         WorkstationAction, WorkstationChartWindow, WorkstationCommandTarget, WorkstationPane,
-        WorkstationUiState, WorkstationView,
+        WorkstationScrollDirection, WorkstationUiState, WorkstationView,
     },
 };
 
@@ -109,6 +109,36 @@ fn workstation_state_jumps_to_clicked_view_and_chart_tabs() {
     );
     assert_eq!(state.chart_window(), WorkstationChartWindow::ThirtyMinutes);
     assert_eq!(state.focused_pane(), WorkstationPane::Chart);
+}
+
+#[test]
+fn workstation_state_scrolls_the_pane_under_the_pointer() {
+    let mut state = WorkstationUiState::default();
+    state.apply(WorkstationAction::Down, 4);
+    assert_eq!(state.selected_index(4), Some(1));
+
+    state.apply(
+        WorkstationAction::ScrollPane(WorkstationPane::Chart, WorkstationScrollDirection::Down),
+        4,
+    );
+    assert_eq!(state.focused_pane(), WorkstationPane::Chart);
+    assert_eq!(state.chart_window(), WorkstationChartWindow::ThirtyMinutes);
+    assert_eq!(state.selected_index(4), Some(1));
+
+    state.apply(
+        WorkstationAction::ScrollPane(WorkstationPane::Detail, WorkstationScrollDirection::Down),
+        4,
+    );
+    assert_eq!(state.focused_pane(), WorkstationPane::Detail);
+    assert_eq!(state.view(), WorkstationView::Flow);
+    assert_eq!(state.selected_index(4), Some(1));
+
+    state.apply(
+        WorkstationAction::ScrollPane(WorkstationPane::Watchlist, WorkstationScrollDirection::Up),
+        4,
+    );
+    assert_eq!(state.focused_pane(), WorkstationPane::Watchlist);
+    assert_eq!(state.selected_index(4), Some(0));
 }
 
 #[test]
