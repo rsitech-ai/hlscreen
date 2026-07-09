@@ -3152,6 +3152,21 @@ fn book_lines(
         return lines;
     }
 
+    if matches!(
+        view,
+        WorkstationView::Quality | WorkstationView::Metadata | WorkstationView::Explain
+    ) {
+        return book_quality_mode_lines(
+            row,
+            quote_share,
+            bid_notional,
+            ask_notional,
+            color_mode,
+            view,
+            content_height,
+        );
+    }
+
     if compact_book {
         let (bid_bar, ask_bar) = quote_share
             .map(|(bid, ask)| (depth_bar(bid, 8), depth_bar(ask, 8)))
@@ -3218,6 +3233,114 @@ fn book_lines(
         )),
         Line::from(format!("adverse {}", row.adverse_selection_proxy.as_str())),
     ]);
+    lines
+}
+
+fn book_quality_mode_lines(
+    row: &FeatureSnapshot,
+    quote_share: Option<(f64, f64)>,
+    bid_notional: Option<f64>,
+    ask_notional: Option<f64>,
+    color_mode: RatatuiColorMode,
+    view: WorkstationView,
+    content_height: usize,
+) -> Vec<Line<'static>> {
+    let title = match view {
+        WorkstationView::Quality => "BOOK QUALITY MODE ",
+        WorkstationView::Metadata => "BOOK METADATA MODE ",
+        WorkstationView::Explain => "BOOK EXPLAIN MODE ",
+        WorkstationView::Overview | WorkstationView::Flow => "BOOK QUALITY MODE ",
+    };
+    let (bid_share, ask_share) = quote_share
+        .map(|(bid, ask)| (percent_label(bid), percent_label(ask)))
+        .unwrap_or_else(|| ("-".to_owned(), "-".to_owned()));
+    let (bid_bar, ask_bar) = quote_share
+        .map(|(bid, ask)| (depth_bar(bid, 8), depth_bar(ask, 8)))
+        .unwrap_or_else(|| (depth_bar_empty(8), depth_bar_empty(8)));
+    let compact = content_height <= 8;
+
+    let mut lines = vec![
+        Line::from(vec![
+            Span::styled(
+                title,
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw("spread gate depth gate"),
+        ]),
+        Line::from("queue evidence | read-only BBO evidence"),
+        Line::from(vec![
+            Span::styled(
+                "confidence ",
+                Style::default().fg(confidence_color(row.confidence.score, color_mode)),
+            ),
+            Span::raw(format!(
+                "{} {} | ",
+                row.confidence.level.as_str(),
+                row.confidence.score
+            )),
+            Span::styled(
+                "freshness ",
+                Style::default().fg(if row.staleness_state == StalenessState::Fresh {
+                    success(color_mode)
+                } else {
+                    warn(color_mode)
+                }),
+            ),
+            Span::raw(format!(
+                "{} | tradeability {} | resilience {}",
+                staleness_label(&row.staleness_state),
+                row.tradeability_state.as_str(),
+                row.resilience_state.as_str()
+            )),
+        ]),
+        Line::from(format!(
+            "tradeability {} | resilience {} | adverse {}",
+            row.tradeability_state.as_str(),
+            row.resilience_state.as_str(),
+            row.adverse_selection_proxy.as_str()
+        )),
+        Line::from(format!(
+            "spread gate {} bps | top book {} / {}",
+            format_optional(row.spread_bps, 1),
+            format_usd(bid_notional),
+            format_usd(ask_notional)
+        )),
+        Line::from(format!(
+            "depth gate {} | imbalance {} | OFI {}",
+            format_usd(row.tob_depth_usd),
+            format_signed(row.tob_imbalance, ""),
+            format_usd_signed(row.bbo_ofi_proxy_30s)
+        )),
+        Line::from(vec![
+            Span::styled("queue evidence ", Style::default().fg(accent(color_mode))),
+            Span::styled("bid ", Style::default().fg(success(color_mode))),
+            Span::raw(format!("{bid_share} {bid_bar}  ")),
+            Span::styled("ask ", Style::default().fg(danger(color_mode))),
+            Span::raw(format!("{ask_share} {ask_bar}")),
+        ]),
+    ];
+
+    if !compact {
+        lines.extend([
+            Line::from(format!(
+                "microprice {} | mid {} | imbalance {} | OFI {}",
+                format_price(microprice(row)),
+                format_price(mid_price(row)),
+                format_signed(row.tob_imbalance, ""),
+                format_usd_signed(row.bbo_ofi_proxy_30s)
+            )),
+            Line::from(format!(
+                "score liq {:.2} mom {:.2} meanrev {:.2} | quality {}",
+                row.liquidity_score,
+                row.momentum_score,
+                row.mean_reversion_score,
+                quality_badge(row)
+            )),
+        ]);
+    }
+
     lines
 }
 
