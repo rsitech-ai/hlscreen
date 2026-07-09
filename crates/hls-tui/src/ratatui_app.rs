@@ -4768,6 +4768,7 @@ fn tape_lines(
         if model.ui_state.pane_expanded() && model.ui_state.focused_pane() == WorkstationPane::Tape
         {
             lines.extend(time_and_sales_board_lines(&recent_trades, color_mode));
+            lines.extend(public_print_ladder_lines(&recent_trades, color_mode));
         }
         if model.ui_state.view() == WorkstationView::Flow {
             lines.extend(trade_pressure_lines(&recent_trades, compact, color_mode));
@@ -5201,6 +5202,121 @@ fn time_and_sales_board_lines(
         ]),
         Line::from("public prints only | no fills | no private streams"),
     ]
+}
+
+fn public_print_ladder_lines(
+    trades: &[&TradeEvent],
+    color_mode: RatatuiColorMode,
+) -> Vec<Line<'static>> {
+    let mut levels = trades
+        .iter()
+        .map(|trade| trade.price)
+        .filter(|price| price.is_finite())
+        .collect::<Vec<_>>();
+    levels.sort_by(|left, right| right.partial_cmp(left).unwrap_or(std::cmp::Ordering::Equal));
+    levels.dedup_by(|left, right| (*left - *right).abs() < 0.000_000_1);
+
+    let buy_notional = trades
+        .iter()
+        .filter(|trade| trade.side == TradeSide::Buy)
+        .map(|trade| trade.notional.max(0.0))
+        .sum::<f64>();
+    let sell_notional = trades
+        .iter()
+        .filter(|trade| trade.side == TradeSide::Sell)
+        .map(|trade| trade.notional.max(0.0))
+        .sum::<f64>();
+    let total_notional = buy_notional + sell_notional;
+    let toxicity = if total_notional > 0.0 {
+        ((buy_notional - sell_notional) / total_notional).clamp(-1.0, 1.0)
+    } else {
+        0.0
+    };
+    let largest = trades
+        .iter()
+        .map(|trade| trade.notional.max(0.0))
+        .fold(0.0_f64, f64::max);
+
+    let mut lines = vec![
+        Line::from(vec![
+            Span::styled(
+                "PUBLIC PRINT LADDER ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(format!(
+                "price levels {} | largest print {} | public trades only",
+                levels.len().min(99),
+                format_usd(Some(largest))
+            )),
+        ]),
+        Line::from(vec![
+            Span::styled(
+                "toxicity proxy ",
+                Style::default().fg(flow_color(toxicity, color_mode)),
+            ),
+            Span::raw(format!(
+                "{} buy {} / sell {} | no fills | no orders",
+                signed_meter(toxicity),
+                format_usd(Some(buy_notional)),
+                format_usd(Some(sell_notional))
+            )),
+        ]),
+    ];
+
+    let max_level_notional = levels
+        .iter()
+        .map(|price| {
+            trades
+                .iter()
+                .filter(|trade| (trade.price - *price).abs() < 0.000_000_1)
+                .map(|trade| trade.notional.max(0.0))
+                .sum::<f64>()
+        })
+        .fold(0.0_f64, f64::max);
+
+    for price in levels.into_iter().take(4) {
+        let buy_level = trades
+            .iter()
+            .filter(|trade| (trade.price - price).abs() < 0.000_000_1)
+            .filter(|trade| trade.side == TradeSide::Buy)
+            .map(|trade| trade.notional.max(0.0))
+            .sum::<f64>();
+        let sell_level = trades
+            .iter()
+            .filter(|trade| (trade.price - price).abs() < 0.000_000_1)
+            .filter(|trade| trade.side == TradeSide::Sell)
+            .map(|trade| trade.notional.max(0.0))
+            .sum::<f64>();
+        let level_total = buy_level + sell_level;
+        let ratio = if max_level_notional > 0.0 {
+            (level_total / max_level_notional).clamp(0.0, 1.0)
+        } else {
+            0.0
+        };
+        let dominant_style = if buy_level >= sell_level {
+            Style::default().fg(success(color_mode))
+        } else {
+            Style::default().fg(danger(color_mode))
+        };
+        lines.push(Line::from(vec![
+            Span::styled(
+                format!("level {} ", format_plain_number(price)),
+                dominant_style,
+            ),
+            Span::styled("buy level ", Style::default().fg(success(color_mode))),
+            Span::raw(format!("{} ", format_usd(Some(buy_level)))),
+            Span::styled("sell level ", Style::default().fg(danger(color_mode))),
+            Span::raw(format!(
+                "{} {}",
+                format_usd(Some(sell_level)),
+                depth_bar(ratio, 8)
+            )),
+        ]));
+    }
+
+    lines
 }
 
 fn selected_trades<'a>(
