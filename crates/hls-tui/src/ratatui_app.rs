@@ -479,7 +479,7 @@ fn render_watchlist(
             };
             if compact {
                 Row::new(vec![
-                    Cell::from(format!("{:02}", index + 1)),
+                    Cell::from(watchlist_rank_label(index, selected)),
                     Cell::from(display_symbol(row).to_owned()),
                     Cell::from(format_board_price(row.price)),
                     Cell::from(trend_label(row.ret_1m)),
@@ -489,7 +489,7 @@ fn render_watchlist(
                 .style(style)
             } else {
                 Row::new(vec![
-                    Cell::from(format!("{:02}", index + 1)),
+                    Cell::from(watchlist_rank_label(index, selected)),
                     Cell::from(display_symbol(row).to_owned()),
                     Cell::from(format_board_price(row.price)),
                     Cell::from(score_signal_label(row)),
@@ -558,6 +558,14 @@ fn render_watchlist(
         color_mode,
     ));
     frame.render_widget(table, area);
+}
+
+fn watchlist_rank_label(index: usize, selected: usize) -> String {
+    if index == selected {
+        format!(">{:02}", index + 1)
+    } else {
+        format!(" {:02}", index + 1)
+    }
 }
 
 fn watchlist_visible_range(
