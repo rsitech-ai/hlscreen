@@ -1170,6 +1170,57 @@ fn market_pulse_uses_display_symbols_for_metadata_backed_rows() {
 }
 
 #[test]
+fn market_pulse_renders_pipeline_freshness_hud() {
+    let mut snapshots = directional_snapshots();
+    snapshots[0].updated_ms_ago = Some(120);
+    snapshots[1].updated_ms_ago = Some(2_400);
+    snapshots[1].staleness_state = StalenessState::Stale;
+    snapshots[1].confidence.score = 55;
+    snapshots[1].confidence.level = ConfidenceLevel::Low;
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        WorkstationUiState::default(),
+    )
+    .with_status("LIVE", "REC ready", "ws=235 events=485 reconnects=2 gaps=1");
+
+    let plain = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 240,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("plain market pulse pipeline HUD renders");
+    let colored = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 240,
+            height: 48,
+        },
+        RatatuiColorMode::Color,
+    )
+    .expect("colored market pulse pipeline HUD renders");
+
+    assert!(!plain.contains("\u{1b}["));
+    assert!(plain.contains("MARKET PULSE"));
+    assert!(plain.contains("PIPELINE"));
+    assert!(plain.contains("p95 2.4s"));
+    assert!(plain.contains("re 2"));
+    assert!(plain.contains("gaps 1"));
+    assert_eq!(
+        active_fg_before(&colored, "PIPELINE"),
+        Some("\u{1b}[38;2;0;229;255m")
+    );
+    assert_eq!(
+        active_fg_before(&colored, "p95 2.4s"),
+        Some("\u{1b}[38;2;255;77;109m")
+    );
+}
+
+#[test]
 fn cockpit_header_renders_interactive_desk_tab_rail() {
     let snapshots = directional_snapshots();
     let mut state = WorkstationUiState::default();
