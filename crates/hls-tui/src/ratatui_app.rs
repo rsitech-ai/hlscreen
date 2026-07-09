@@ -2076,21 +2076,15 @@ fn render_status_bar(
     color_mode: RatatuiColorMode,
 ) {
     let status = if area.width < 90 {
-        format!(
+        Line::from(format!(
             "{} | {} | {} | {} | RO no-wallet",
             compact_health_label(&model.health_status),
             display_state_label(model),
             model.ui_state.focused_pane().label(),
             compact_mode_label(&model.request, model.rows.len())
-        )
+        ))
     } else {
-        format!(
-            " {} | {} | focus {} | {} | No wallet, no private streams, no order routes. Screen heuristic, not advice. ",
-            model.health_status,
-            pause_label(model),
-            model.ui_state.focused_pane().label(),
-            mode_label(&model.request, model.rows.len())
-        )
+        market_status_bar_line(model, color_mode)
     };
     frame.render_widget(
         Paragraph::new(status)
@@ -2105,6 +2099,58 @@ fn render_status_bar(
             ),
         area,
     );
+}
+
+fn market_status_bar_line(
+    model: &RatatuiFrameModel,
+    color_mode: RatatuiColorMode,
+) -> Line<'static> {
+    let mut spans = vec![
+        Span::raw(format!(
+            " {} | {} | focus {} | {} | ",
+            model.health_status,
+            pause_label(model),
+            model.ui_state.focused_pane().label(),
+            mode_label(&model.request, model.rows.len())
+        )),
+        Span::styled(
+            "MARKET ",
+            Style::default()
+                .fg(accent(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+    ];
+    spans.extend(market_ticker_spans(model, color_mode));
+    spans.push(Span::raw(
+        " | No wallet, no private streams, no order routes. Screen heuristic, not advice. ",
+    ));
+    Line::from(spans)
+}
+
+fn market_ticker_spans(
+    model: &RatatuiFrameModel,
+    color_mode: RatatuiColorMode,
+) -> Vec<Span<'static>> {
+    let rows = screened_rows(model);
+    if rows.is_empty() {
+        return vec![Span::raw("no rows")];
+    }
+    let mut spans = Vec::new();
+    for (index, row) in rows.iter().take(4).enumerate() {
+        if index > 0 {
+            spans.push(Span::raw(" | "));
+        }
+        spans.push(Span::styled(
+            format!(
+                "{} {} {}",
+                display_symbol(row),
+                trend_label(row.ret_1m),
+                format_usd_signed(row.signed_notional_flow_30s)
+            ),
+            market_row_style(row, color_mode).add_modifier(Modifier::BOLD),
+        ));
+    }
+    spans
 }
 
 fn compact_health_label(health_status: &str) -> String {

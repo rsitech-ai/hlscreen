@@ -127,6 +127,9 @@ fn wide_cockpit_renders_all_primary_trading_workstation_regions() {
     assert!(rendered.contains("HYPE/USDC"));
     assert!(rendered.contains("confidence"));
     assert!(rendered.contains("No wallet"));
+    assert!(rendered.contains("MARKET"));
+    assert!(rendered.contains("HYPE/USDC UP+0.57%"));
+    assert!(rendered.contains("DOWN/USDC DN-1.23% -$4.2K"));
     assert!(rendered.contains("STATUS LIVE"));
     assert!(rendered.contains("CONTROLS"));
     assert!(rendered.contains("1-6 panes"));
