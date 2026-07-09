@@ -1722,6 +1722,8 @@ fn selected_pair_edge_hud_lines(
     color_mode: RatatuiColorMode,
 ) -> Vec<Line<'static>> {
     let flow = row.signed_notional_flow_30s.unwrap_or(0.0);
+    let regime = chart_regime_label(row);
+    let spread_gate = spread_gate_label(row.spread_bps);
     vec![
         Line::from(vec![
             Span::styled(
@@ -1742,11 +1744,13 @@ fn selected_pair_edge_hud_lines(
                 }),
             ),
             Span::raw(format!("spr {}bps  ", format_optional(row.spread_bps, 1))),
-            Span::raw(format!("risk {}", row.resilience_state.as_str())),
+            Span::raw(format!("risk {}  ", row.resilience_state.as_str())),
+            Span::styled("REGIME ", Style::default().fg(warn(color_mode))),
+            Span::raw(regime),
         ]),
         Line::from(vec![
             Span::styled(
-                "LIQ ",
+                "LIQ MICRO ",
                 Style::default()
                     .fg(success(color_mode))
                     .add_modifier(Modifier::BOLD),
@@ -1762,7 +1766,41 @@ fn selected_pair_edge_hud_lines(
             ),
             Span::raw(format!("score {:.0}", row.liquidity_score)),
         ]),
+        Line::from(vec![
+            Span::styled(
+                "GATE ",
+                Style::default()
+                    .fg(warn(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(format!(
+                "spread gate {spread_gate} | no execution | public bbo proxy"
+            )),
+        ]),
     ]
+}
+
+fn chart_regime_label(row: &FeatureSnapshot) -> String {
+    let ret_pct = row.ret_1m.map(|value| value * 100.0);
+    let trend = ret_pct.unwrap_or_default();
+    if trend >= 0.10 {
+        format!("MOMENTUM {}", format_signed(ret_pct, "%"))
+    } else if trend <= -0.10 {
+        format!("DOWNTREND {}", format_signed(ret_pct, "%"))
+    } else if row.mean_reversion_score > row.momentum_score {
+        format!("MEAN REVERSION {}", format_signed(ret_pct, "%"))
+    } else {
+        format!("BALANCED {}", format_signed(ret_pct, "%"))
+    }
+}
+
+fn spread_gate_label(spread_bps: Option<f64>) -> &'static str {
+    match spread_bps {
+        Some(value) if value.is_finite() && value <= 5.0 => "tight",
+        Some(value) if value.is_finite() && value <= 25.0 => "workable",
+        Some(value) if value.is_finite() => "wide",
+        _ => "unknown",
+    }
 }
 
 fn chart_move_summary_line(
