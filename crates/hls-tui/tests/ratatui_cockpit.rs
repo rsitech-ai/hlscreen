@@ -386,6 +386,26 @@ fn cockpit_header_renders_adaptive_layout_profile() {
     assert!(wide.contains("layout wide 240x48"));
     assert!(medium.contains("layout medium 120x40"));
     assert!(narrow.contains("layout narrow 72x24"));
+    assert!(wide.contains("VISUAL plain fallback"));
+    assert!(medium.contains("VISUAL plain fallback"));
+    assert!(!wide.contains("\u{1b}["));
+
+    let colored = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 120,
+            height: 40,
+        },
+        RatatuiColorMode::Color,
+    )
+    .expect("renders colored visual path");
+
+    assert!(colored.contains("VISUAL"));
+    assert!(colored.contains("ansi-neon active"));
+    assert_eq!(
+        active_fg_before(&colored, "VISUAL"),
+        Some("\u{1b}[38;2;0;229;255m")
+    );
 }
 
 #[test]
