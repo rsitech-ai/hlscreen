@@ -1628,13 +1628,7 @@ fn detail_lines(
             }
             lines.extend(factor_stack_lines(row, color_mode, compact));
             lines.extend(liquidity_radar_lines(row, color_mode));
-            lines.extend([Line::from(format!(
-                "flow30 {} | bbo ofi {} | depth {} | imbalance {}",
-                format_usd_signed(row.signed_notional_flow_30s),
-                format_usd_signed(row.bbo_ofi_proxy_30s),
-                format_usd(row.tob_depth_usd),
-                format_signed(row.tob_imbalance, "")
-            ))]);
+            lines.push(alpha_stack_line(row, color_mode, compact));
             lines
         }
         WorkstationView::Flow => {
@@ -1790,6 +1784,111 @@ fn quote_strip_line(
         Span::raw("read-only quote"),
     ]);
     Line::from(spans)
+}
+
+fn alpha_stack_line(
+    row: &FeatureSnapshot,
+    color_mode: RatatuiColorMode,
+    compact: bool,
+) -> Line<'static> {
+    let flow = row.signed_notional_flow_30s.unwrap_or(0.0);
+    let depth = row.tob_depth_usd.unwrap_or(0.0).abs().max(1.0);
+    let flow_pressure = (flow / depth).clamp(-1.0, 1.0);
+    let momentum = row
+        .ret_1m
+        .filter(|value| value.is_finite())
+        .map(|value| (value * 100.0).clamp(-1.0, 1.0))
+        .unwrap_or(0.0);
+    let signal = ((flow_pressure * 0.65) + (momentum * 0.35)).clamp(-1.0, 1.0);
+    let cost = spread_cost_label(row.spread_bps);
+    let risk = selected_pair_risk_label(row);
+    let width = if compact { 4 } else { 8 };
+    let signal_label = if compact { "sig " } else { "signal " };
+
+    let mut spans = vec![
+        Span::styled(
+            "ALPHA STACK ",
+            Style::default()
+                .fg(accent(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::styled(
+            signal_label,
+            Style::default().fg(flow_color(signal, color_mode)),
+        ),
+        Span::raw(format!(
+            "{}{} ",
+            signed_flow_bar(signal, 1.0, width),
+            format_signed(Some(signal), "")
+        )),
+        Span::styled(
+            "cost ",
+            Style::default().fg(cost_label_color(cost, color_mode)),
+        ),
+        Span::raw(format!("{cost} ")),
+        Span::styled(
+            "risk ",
+            Style::default().fg(risk_label_color(risk, color_mode)),
+        ),
+        Span::raw(risk.to_owned()),
+    ];
+    if compact {
+        spans.push(Span::raw(format!(
+            " | SCREEN ONLY c{} no orders",
+            row.confidence.score
+        )));
+    } else {
+        spans.push(Span::raw(format!(
+            " | flow30 {} ofi {} depth {} | SCREEN ONLY c{} no orders",
+            format_usd_signed(row.signed_notional_flow_30s),
+            format_usd_signed(row.bbo_ofi_proxy_30s),
+            format_usd(row.tob_depth_usd),
+            row.confidence.score
+        )));
+    }
+    Line::from(spans)
+}
+
+fn spread_cost_label(spread_bps: Option<f64>) -> &'static str {
+    match spread_bps {
+        Some(value) if value.is_finite() && value <= 5.0 => "tight",
+        Some(value) if value.is_finite() && value <= 25.0 => "normal",
+        Some(value) if value.is_finite() => "wide",
+        _ => "unknown",
+    }
+}
+
+fn selected_pair_risk_label(row: &FeatureSnapshot) -> &'static str {
+    if row.confidence.score < 60 || matches!(row.staleness_state, StalenessState::Stale) {
+        "elevated"
+    } else if matches!(row.staleness_state, StalenessState::Incomplete) {
+        "partial"
+    } else if row
+        .spread_bps
+        .is_some_and(|value| value.is_finite() && value > 25.0)
+    {
+        "costly"
+    } else {
+        "normal"
+    }
+}
+
+fn cost_label_color(label: &str, color_mode: RatatuiColorMode) -> Color {
+    match label {
+        "tight" => success(color_mode),
+        "normal" => text(color_mode),
+        "wide" => danger(color_mode),
+        _ => warn(color_mode),
+    }
+}
+
+fn risk_label_color(label: &str, color_mode: RatatuiColorMode) -> Color {
+    match label {
+        "normal" => success(color_mode),
+        "partial" | "costly" => warn(color_mode),
+        "elevated" => danger(color_mode),
+        _ => text(color_mode),
+    }
 }
 
 fn pair_snapshot_spans(row: &FeatureSnapshot, color_mode: RatatuiColorMode) -> Vec<Span<'static>> {
