@@ -2006,12 +2006,13 @@ fn render_chart(
         &candles,
         area.height.saturating_sub(10) as usize,
         model.ui_state.chart_window().label(),
+        color_mode,
     ));
     frame.render_widget(
         Paragraph::new(chart_lines)
             .wrap(Wrap { trim: false })
             .block(panel_for(&title, WorkstationPane::Chart, model, color_mode))
-            .style(Style::default().fg(success(color_mode))),
+            .style(Style::default().fg(text(color_mode))),
         area,
     );
 }
@@ -2251,6 +2252,7 @@ fn candle_chart_lines(
     candles: &[&CandleEvent],
     content_height: usize,
     window_label: &'static str,
+    color_mode: RatatuiColorMode,
 ) -> Vec<Line<'static>> {
     if candles.is_empty() {
         return vec![Line::from("No 1m candles")];
@@ -2268,11 +2270,15 @@ fn candle_chart_lines(
 
     for row in 0..height {
         let level = price_level(high, low, row, height);
-        let mut body = String::with_capacity(candles.len());
+        let mut spans = vec![Span::raw(format!("{} ┤", price_axis_label(level)))];
         for candle in candles {
-            body.push(candle_glyph(candle, level));
+            let glyph = candle_glyph(candle, level);
+            spans.push(Span::styled(
+                glyph.to_string(),
+                candle_glyph_style(candle, glyph, color_mode),
+            ));
         }
-        lines.push(Line::from(format!("{} ┤{}", price_axis_label(level), body)));
+        lines.push(Line::from(spans));
     }
 
     lines.push(Line::from(format!(
@@ -2331,6 +2337,16 @@ fn candle_glyph(candle: &CandleEvent, level: f64) -> char {
         '│'
     } else {
         ' '
+    }
+}
+
+fn candle_glyph_style(candle: &CandleEvent, glyph: char, color_mode: RatatuiColorMode) -> Style {
+    match glyph {
+        '█' => Style::default().fg(success(color_mode)),
+        '▓' => Style::default().fg(danger(color_mode)),
+        '│' if candle.close >= candle.open => Style::default().fg(success(color_mode)),
+        '│' => Style::default().fg(danger(color_mode)),
+        _ => Style::default().fg(text(color_mode)),
     }
 }
 
