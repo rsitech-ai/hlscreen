@@ -105,7 +105,7 @@ fn wide_cockpit_renders_all_primary_trading_workstation_regions() {
     let rendered = render_ratatui_snapshot_for_test(
         &model,
         RatatuiViewport {
-            width: 200,
+            width: 240,
             height: 48,
         },
         RatatuiColorMode::NoColor,
@@ -238,7 +238,7 @@ fn market_board_renders_score_and_bias_columns() {
     let rendered = render_ratatui_snapshot_for_test(
         &model,
         RatatuiViewport {
-            width: 200,
+            width: 240,
             height: 48,
         },
         RatatuiColorMode::NoColor,
@@ -248,6 +248,8 @@ fn market_board_renders_score_and_bias_columns() {
     assert!(rendered.contains("SIG"));
     assert!(rendered.contains("EDGE"));
     assert!(rendered.contains("BIAS"));
+    assert!(rendered.contains("SPR"));
+    assert!(rendered.contains("57.1"));
     assert!(rendered.contains("MOM+"));
     assert!(rendered.contains("██"));
     assert!(rendered.contains("13"));
@@ -265,7 +267,7 @@ fn market_board_renders_directional_edge_pulses() {
     let rendered = render_ratatui_snapshot_for_test(
         &model,
         RatatuiViewport {
-            width: 200,
+            width: 240,
             height: 48,
         },
         RatatuiColorMode::NoColor,
