@@ -3388,6 +3388,10 @@ fn expanded_status_renders_ops_command_center() {
     assert!(rendered.contains("telemetry ws 235 events 485"));
     assert!(rendered.contains("risk gate"));
     assert!(rendered.contains("degraded 01"));
+    assert!(rendered.contains("EXECUTION BOUNDARY LADDER"));
+    assert!(rendered.contains("data gate"));
+    assert!(rendered.contains("liquidity gate"));
+    assert!(rendered.contains("operator mode observe-only"));
     assert!(rendered.contains("No wallet"));
     assert!(rendered.contains("no orders"));
 }
