@@ -1286,8 +1286,9 @@ fn apply_pending_tui_actions(
 ) -> anyhow::Result<bool> {
     let mut actions = Vec::new();
     let mut redraw_requested = false;
+    let row_count = current_screened_row_count(state, screen_request)?;
     while event::poll(Duration::from_millis(0))? {
-        match live_tui_event_effect(event::read()?, ui_state, terminal_size().ok()) {
+        match live_tui_event_effect(event::read()?, ui_state, terminal_size().ok(), row_count) {
             LiveTuiEventEffect::Ignore => {}
             LiveTuiEventEffect::Redraw => redraw_requested = true,
             LiveTuiEventEffect::Action(action) => actions.push(action),
@@ -1315,6 +1316,7 @@ fn live_tui_event_effect(
     event: Event,
     ui_state: &WorkstationUiState,
     terminal_size: Option<(u16, u16)>,
+    row_count: usize,
 ) -> LiveTuiEventEffect {
     match event {
         Event::Key(key) => {
@@ -1324,8 +1326,10 @@ fn live_tui_event_effect(
             key_to_workstation_action(key, ui_state)
                 .map_or(LiveTuiEventEffect::Ignore, LiveTuiEventEffect::Action)
         }
-        Event::Mouse(mouse) => mouse_to_workstation_action(mouse, ui_state, terminal_size)
-            .map_or(LiveTuiEventEffect::Ignore, LiveTuiEventEffect::Action),
+        Event::Mouse(mouse) => {
+            mouse_to_workstation_action(mouse, ui_state, terminal_size, row_count)
+                .map_or(LiveTuiEventEffect::Ignore, LiveTuiEventEffect::Action)
+        }
         Event::Resize(_, _) => LiveTuiEventEffect::Redraw,
         _ => LiveTuiEventEffect::Ignore,
     }
@@ -1406,6 +1410,7 @@ fn mouse_to_workstation_action(
     mouse: MouseEvent,
     ui_state: &WorkstationUiState,
     terminal_size: Option<(u16, u16)>,
+    row_count: usize,
 ) -> Option<WorkstationAction> {
     if ui_state.command().is_some() {
         return None;
@@ -1414,11 +1419,140 @@ fn mouse_to_workstation_action(
     match mouse.kind {
         MouseEventKind::ScrollUp => Some(WorkstationAction::Up),
         MouseEventKind::ScrollDown => Some(WorkstationAction::Down),
-        MouseEventKind::Down(_) => terminal_size
-            .map(|(width, height)| mouse_pane_for_position(mouse.column, mouse.row, width, height))
-            .map(WorkstationAction::FocusPane),
+        MouseEventKind::Down(_) => terminal_size.map(|(width, height)| {
+            mouse_watchlist_row_for_position(
+                mouse.column,
+                mouse.row,
+                width,
+                height,
+                ui_state,
+                row_count,
+            )
+            .map_or_else(
+                || {
+                    WorkstationAction::FocusPane(mouse_pane_for_position(
+                        mouse.column,
+                        mouse.row,
+                        width,
+                        height,
+                    ))
+                },
+                WorkstationAction::SelectRow,
+            )
+        }),
         _ => None,
     }
+}
+
+fn mouse_watchlist_row_for_position(
+    column: u16,
+    row: u16,
+    width: u16,
+    height: u16,
+    ui_state: &WorkstationUiState,
+    row_count: usize,
+) -> Option<usize> {
+    if row_count == 0 {
+        return None;
+    }
+    let table = mouse_watchlist_table_geometry(column, width, height, ui_state)?;
+    if row < table.y.saturating_add(2)
+        || row >= table.y.saturating_add(table.height).saturating_sub(1)
+    {
+        return None;
+    }
+    let clicked_offset = usize::from(row.saturating_sub(table.y).saturating_sub(2));
+    let visible_start = mouse_watchlist_visible_start(
+        ui_state.selected_index(row_count).unwrap_or_default(),
+        row_count,
+        ui_state.visible_row_limit(),
+        table.height,
+    );
+    let index = visible_start.saturating_add(clicked_offset);
+    (index < row_count).then_some(index)
+}
+
+fn mouse_watchlist_table_geometry(
+    column: u16,
+    width: u16,
+    height: u16,
+    ui_state: &WorkstationUiState,
+) -> Option<MouseTableGeometry> {
+    if width >= 132 {
+        let header_height = if width >= 220 { 9 } else { 8 };
+        let body_height = height.saturating_sub(header_height).saturating_sub(3);
+        let watchlist_width = width.saturating_mul(30) / 100;
+        if column >= watchlist_width {
+            return None;
+        }
+        let router_height = watchlist_router_height(watchlist_width, body_height, ui_state);
+        return Some(MouseTableGeometry {
+            y: header_height,
+            height: body_height.saturating_sub(router_height),
+        });
+    }
+
+    if width >= 90 {
+        let body_height = height.saturating_sub(6).saturating_sub(3);
+        let watchlist_width = width.saturating_mul(38) / 100;
+        if column >= watchlist_width {
+            return None;
+        }
+        let router_height = watchlist_router_height(watchlist_width, body_height, ui_state);
+        return Some(MouseTableGeometry {
+            y: 6,
+            height: body_height.saturating_sub(router_height),
+        });
+    }
+
+    let body_height = height.saturating_sub(5).saturating_sub(2);
+    let watchlist_height = if ui_state.focused_pane() == WorkstationPane::Status {
+        body_height.saturating_mul(36) / 100
+    } else {
+        body_height.saturating_mul(48) / 100
+    };
+    Some(MouseTableGeometry {
+        y: 5,
+        height: watchlist_height,
+    })
+}
+
+fn watchlist_router_height(width: u16, height: u16, ui_state: &WorkstationUiState) -> u16 {
+    if width < 72 || height < 18 {
+        return 0;
+    }
+    if ui_state.pane_expanded() && ui_state.focused_pane() == WorkstationPane::Watchlist {
+        12
+    } else if height >= 20 {
+        7
+    } else {
+        4
+    }
+}
+
+fn mouse_watchlist_visible_start(
+    selected: usize,
+    row_count: usize,
+    density_limit: usize,
+    table_height: u16,
+) -> usize {
+    if row_count == 0 || density_limit == 0 {
+        return 0;
+    }
+    let table_row_capacity = usize::from(table_height.saturating_sub(3)).max(1);
+    let capacity = density_limit.min(table_row_capacity).min(row_count);
+    let selected = selected.min(row_count - 1);
+    let mut start = selected.saturating_sub(capacity / 2);
+    if start + capacity > row_count {
+        start = row_count - capacity;
+    }
+    start
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct MouseTableGeometry {
+    y: u16,
+    height: u16,
 }
 
 fn mouse_pane_for_position(column: u16, row: u16, width: u16, height: u16) -> WorkstationPane {
@@ -1960,6 +2094,7 @@ mod tests {
                 },
                 &state,
                 Some((160, 48)),
+                20,
             ),
             Some(WorkstationAction::Up)
         );
@@ -1973,6 +2108,7 @@ mod tests {
                 },
                 &state,
                 Some((160, 48)),
+                20,
             ),
             Some(WorkstationAction::Down)
         );
@@ -1981,13 +2117,30 @@ mod tests {
                 MouseEvent {
                     kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
                     column: 10,
-                    row: 10,
+                    row: 11,
                     modifiers: KeyModifiers::NONE,
                 },
                 &state,
                 Some((160, 48)),
+                20,
             ),
-            Some(WorkstationAction::FocusPane(WorkstationPane::Watchlist))
+            Some(WorkstationAction::SelectRow(1))
+        );
+        let mut scrolled_state = WorkstationUiState::default();
+        scrolled_state.apply(WorkstationAction::PageDown, 20);
+        assert_eq!(
+            mouse_to_workstation_action(
+                MouseEvent {
+                    kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
+                    column: 10,
+                    row: 11,
+                    modifiers: KeyModifiers::NONE,
+                },
+                &scrolled_state,
+                Some((160, 48)),
+                20,
+            ),
+            Some(WorkstationAction::SelectRow(1))
         );
         assert_eq!(
             mouse_to_workstation_action(
@@ -1999,6 +2152,7 @@ mod tests {
                 },
                 &state,
                 Some((160, 48)),
+                20,
             ),
             Some(WorkstationAction::FocusPane(WorkstationPane::Tape))
         );
@@ -2015,6 +2169,7 @@ mod tests {
                 },
                 &command_state,
                 Some((160, 48)),
+                20,
             ),
             None
         );
@@ -2027,7 +2182,7 @@ mod tests {
         assert_eq!(state.selected_index(3), Some(1));
 
         assert_eq!(
-            live_tui_event_effect(Event::Resize(96, 30), &state, Some((160, 48))),
+            live_tui_event_effect(Event::Resize(96, 30), &state, Some((160, 48)), 3),
             LiveTuiEventEffect::Redraw
         );
         assert_eq!(state.selected_index(3), Some(1));
@@ -2043,6 +2198,7 @@ mod tests {
                 Event::Key(KeyEvent::new(KeyCode::Char('j'), KeyModifiers::NONE)),
                 &state,
                 Some((160, 48)),
+                20,
             ),
             LiveTuiEventEffect::Action(WorkstationAction::Down)
         );
@@ -2056,6 +2212,7 @@ mod tests {
                 }),
                 &state,
                 Some((160, 48)),
+                20,
             ),
             LiveTuiEventEffect::Ignore
         );
@@ -2069,6 +2226,7 @@ mod tests {
                 }),
                 &state,
                 Some((160, 48)),
+                20,
             ),
             LiveTuiEventEffect::Action(WorkstationAction::Down)
         );
@@ -2085,6 +2243,7 @@ mod tests {
                 }),
                 &command_state,
                 Some((160, 48)),
+                20,
             ),
             LiveTuiEventEffect::Ignore
         );

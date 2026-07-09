@@ -3333,7 +3333,9 @@ fn render_help_overlay(
                     "[ / ] move pane focus | 1-6 panes | w/i/c/b/r/o focus | tab / shift-tab cycle overview, flow, quality, metadata, explain",
                 ),
             ]),
-            Line::from("MOUSE wheel rows | click focus | terminal support required"),
+            Line::from(
+                "MOUSE wheel rows | click watchlist row selects | click panels focus | terminal support required",
+            ),
             Line::from("1-6 panes  watchlist, detail, chart, book, tape, status"),
             Line::from(vec![
                 Span::styled(
@@ -3413,7 +3415,7 @@ fn compact_help_overlay_lines(
         )),
         Line::from(vec![
             Span::styled("NAV ", Style::default().fg(warn(color_mode))),
-            Span::raw("j/k rows | tab view | [ ] pane"),
+            Span::raw("j/k rows | click rows | tab view | [ ] pane"),
         ]),
         Line::from(vec![
             Span::styled("PANES ", Style::default().fg(warn(color_mode))),
