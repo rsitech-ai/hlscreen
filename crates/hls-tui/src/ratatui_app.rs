@@ -462,24 +462,12 @@ fn render_header(
         text.push(desk_tab_rail_line(
             &model.ui_state,
             area.width < 132,
+            viewport.width,
             color_mode,
         ));
     }
     text.extend([
-        Line::from(vec![
-            Span::styled(
-                "CONTROLS ",
-                Style::default()
-                    .fg(accent(color_mode))
-                    .add_modifier(Modifier::BOLD),
-            ),
-            Span::raw(pane_hotkey_rail(&model.ui_state, narrow)),
-            Span::raw(if narrow {
-                " | j/k ent h 1-6 /pst? q"
-            } else {
-                " | j/k row enter detail h status 1-6 panes tab views / p s t ? q"
-            }),
-        ]),
+        layout_controls_line(viewport, &model.ui_state, narrow, color_mode),
         market_internals_line(model, color_mode, narrow),
     ]);
     if !narrow && area.height >= 7 {
@@ -488,16 +476,27 @@ fn render_header(
     frame.render_widget(
         Paragraph::new(text).block(
             Block::default()
-                .title(format!(
-                    " Hyperliquid Spot Microstructure Workstation | {} ",
-                    layout_profile_label(viewport)
-                ))
+                .title(format!(" {} ", header_title(viewport)))
                 .borders(Borders::ALL)
                 .border_style(Style::default().fg(accent(color_mode)))
                 .style(panel_surface_style(color_mode)),
         ),
         area,
     );
+}
+
+fn header_title(area: Rect) -> String {
+    if area.width < 90 {
+        return format!(
+            "LAYOUT DIRECTOR 1-6 focus z expand resize-safe | {}",
+            layout_profile_label(area)
+        );
+    }
+
+    format!(
+        "Hyperliquid Spot Microstructure Workstation | {}",
+        layout_profile_label(area)
+    )
 }
 
 fn layout_profile_label(area: Rect) -> String {
@@ -522,8 +521,30 @@ fn layout_breakpoint_label(width: u16) -> &'static str {
 fn desk_tab_rail_line(
     state: &WorkstationUiState,
     compact: bool,
+    width: u16,
     color_mode: RatatuiColorMode,
 ) -> Line<'static> {
+    let (visible_panes, hidden_panes) = layout_visibility_labels(width);
+    if compact {
+        return Line::from(vec![
+            Span::styled(
+                "DESK ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(
+                "LAYOUT DIRECTOR ",
+                Style::default()
+                    .fg(warn(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(format!(
+                "visible panes {visible_panes} | hidden panes {hidden_panes} | read-only"
+            )),
+        ]);
+    }
+
     let panes = [
         (WorkstationPane::Watchlist, "WATCHLIST 1", "W1"),
         (WorkstationPane::Detail, "DETAIL 2", "D2"),
@@ -569,7 +590,70 @@ fn desk_tab_rail_line(
             pane_zoom_action_label(state)
         )));
     }
+    if width >= 220 {
+        spans.push(Span::raw(format!(
+            " | visible panes {visible_panes} | hidden panes {hidden_panes}"
+        )));
+    }
     Line::from(spans)
+}
+
+fn layout_controls_line(
+    viewport: Rect,
+    state: &WorkstationUiState,
+    narrow: bool,
+    color_mode: RatatuiColorMode,
+) -> Line<'static> {
+    let mut spans = vec![Span::styled(
+        "CONTROLS ",
+        Style::default()
+            .fg(accent(color_mode))
+            .add_modifier(Modifier::BOLD),
+    )];
+
+    if !narrow && viewport.width < 132 {
+        spans.extend([
+            Span::styled(
+                "LAYOUT DIRECTOR ",
+                Style::default()
+                    .fg(warn(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(format!(
+                "resize-safe | 1-6 focus | z expand | {}",
+                pane_hotkey_rail(state, narrow)
+            )),
+        ]);
+        return Line::from(spans);
+    }
+
+    spans.push(Span::raw(pane_hotkey_rail(state, narrow)));
+    if viewport.width >= 220 {
+        spans.push(Span::raw(" | "));
+        spans.push(Span::styled(
+            "LAYOUT DIRECTOR ",
+            Style::default()
+                .fg(warn(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ));
+        spans.push(Span::raw("resize-safe | 1-6 focus | z expand"));
+    }
+    spans.push(Span::raw(if narrow {
+        " | j/k ent h 1-6 /pst? q"
+    } else {
+        " | j/k row enter detail h status 1-6 panes tab views / p s t ? q"
+    }));
+    Line::from(spans)
+}
+
+fn layout_visibility_labels(width: u16) -> (&'static str, &'static str) {
+    if width < 90 {
+        ("watchlist detail", "chart/book/tape/status via focus")
+    } else if width < 132 {
+        ("watchlist detail chart book tape", "status drilldown")
+    } else {
+        ("watchlist detail chart book tape status", "none")
+    }
 }
 
 fn pane_hotkey_rail(state: &WorkstationUiState, narrow: bool) -> String {

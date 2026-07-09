@@ -205,6 +205,57 @@ fn cockpit_header_renders_adaptive_layout_profile() {
     assert!(narrow.contains("layout narrow 72x24"));
 }
 
+#[test]
+fn cockpit_header_renders_layout_director_across_viewports() {
+    let model = RatatuiFrameModel::new(
+        directional_snapshots(),
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        WorkstationUiState::default(),
+    )
+    .with_status("LIVE", "REC ready", "ws=120 events=300 gaps=0");
+
+    let wide = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 240,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders wide layout director");
+    let medium = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 120,
+            height: 40,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders medium layout director");
+    let narrow = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 72,
+            height: 24,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders narrow layout director");
+
+    for rendered in [&wide, &medium, &narrow] {
+        assert!(rendered.contains("LAYOUT DIRECTOR"));
+        assert!(rendered.contains("resize-safe"));
+        assert!(rendered.contains("1-6 focus"));
+        assert!(rendered.contains("z expand"));
+    }
+    assert!(wide.contains("visible panes watchlist detail chart book tape status"));
+    assert!(wide.contains("hidden panes none"));
+    assert!(medium.contains("visible panes watchlist detail chart book tape"));
+    assert!(medium.contains("hidden panes status drilldown"));
+    assert!(narrow.contains("layout narrow 72x24"));
+}
+
 fn fixture_candles() -> Vec<CandleEvent> {
     parse_ws_ndjson(include_str!(
         "../../../tests/fixtures/hyperliquid/ws_mock_live.ndjson"
