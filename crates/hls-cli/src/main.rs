@@ -65,7 +65,7 @@ mod tests {
     use crate::commands::live::LiveTuiColor;
 
     #[test]
-    fn tui_command_defaults_to_top10_fluid_workstation() {
+    fn tui_command_defaults_to_unbounded_operator_session() {
         let cli = Cli::try_parse_from(["hls", "tui"]).expect("parse tui command");
 
         let Command::Tui(args) = cli.command else {
@@ -76,6 +76,7 @@ mod tests {
         assert!(live_args.tui);
         assert_eq!(live_args.top, 10);
         assert_eq!(live_args.refresh_secs, 1);
+        assert_eq!(live_args.duration_secs, 0);
         assert_eq!(live_args.color, LiveTuiColor::Always);
         assert!(!live_args.record);
     }
@@ -85,6 +86,8 @@ mod tests {
         let cli = Cli::try_parse_from([
             "hls",
             "tui",
+            "--duration-secs",
+            "15",
             "--top",
             "25",
             "--refresh-secs",
@@ -101,6 +104,7 @@ mod tests {
 
         assert_eq!(live_args.top, 25);
         assert_eq!(live_args.refresh_secs, 3);
+        assert_eq!(live_args.duration_secs, 15);
         assert_eq!(live_args.color, LiveTuiColor::Auto);
     }
 }
