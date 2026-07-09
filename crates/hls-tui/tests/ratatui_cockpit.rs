@@ -3460,6 +3460,7 @@ fn cockpit_reflects_keyboard_view_pause_density_and_help_state() {
     assert!(rendered.contains("Command Deck"));
     assert!(rendered.contains("KEY MATRIX"));
     assert!(rendered.contains("PANES 1W 2D 3C 4B 5T 6S"));
+    assert!(rendered.contains("mnemonic focus w/i/c/b/r/o"));
     assert!(rendered.contains("z zoom/grid"));
     assert!(rendered.contains("z pane zoom"));
     assert!(rendered.contains("enter detail"));
@@ -3584,6 +3585,7 @@ fn narrow_help_overlay_renders_compact_operator_map() {
     assert!(plain.contains("pane book"));
     assert!(plain.contains("j/k rows"));
     assert!(plain.contains("1-6 panes"));
+    assert!(plain.contains("w/i/c/b/r/o focus"));
     assert!(plain.contains("g symbol"));
     assert!(plain.contains("/ filter"));
     assert!(plain.contains("z zoom"));

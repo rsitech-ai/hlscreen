@@ -3207,7 +3207,7 @@ fn render_help_overlay(
                         .add_modifier(Modifier::BOLD),
                 ),
                 Span::raw(
-                    "arrows/j/k navigate | tab views | [ ] panes | z zoom/grid | space pause",
+                    "arrows/j/k navigate | tab views | [ ] panes | w/i/c/b/r/o focus | z zoom/grid | space pause",
                 ),
             ]),
             Line::from(vec![
@@ -3223,7 +3223,7 @@ fn render_help_overlay(
                 )),
             ]),
             Line::from(
-                "PANES 1W 2D 3C 4B 5T 6S | enter detail | h health/status | watchlist detail chart book tape status",
+                "PANES 1W 2D 3C 4B 5T 6S | mnemonic focus w/i/c/b/r/o | enter detail | h health/status | watchlist detail chart book tape status",
             ),
             Line::from(vec![
                 Span::styled(
@@ -3244,7 +3244,7 @@ fn render_help_overlay(
                         .add_modifier(Modifier::BOLD),
                 ),
                 Span::raw(
-                    "[ / ] move pane focus | 1-6 panes | tab / shift-tab cycle overview, flow, quality, metadata, explain",
+                    "[ / ] move pane focus | 1-6 panes | w/i/c/b/r/o focus | tab / shift-tab cycle overview, flow, quality, metadata, explain",
                 ),
             ]),
             Line::from("MOUSE wheel rows | click focus | terminal support required"),
@@ -3331,7 +3331,7 @@ fn compact_help_overlay_lines(
         ]),
         Line::from(vec![
             Span::styled("PANES ", Style::default().fg(warn(color_mode))),
-            Span::raw("1-6 panes | enter detail | h health"),
+            Span::raw("1-6 panes | w/i/c/b/r/o focus | h health"),
         ]),
         Line::from(vec![
             Span::styled("OPS ", Style::default().fg(success(color_mode))),

@@ -1368,6 +1368,24 @@ fn key_to_workstation_action(
         KeyCode::Char('4') => Some(WorkstationAction::FocusPane(WorkstationPane::Book)),
         KeyCode::Char('5') => Some(WorkstationAction::FocusPane(WorkstationPane::Tape)),
         KeyCode::Char('6') => Some(WorkstationAction::FocusPane(WorkstationPane::Status)),
+        KeyCode::Char('w') | KeyCode::Char('W') => {
+            Some(WorkstationAction::FocusPane(WorkstationPane::Watchlist))
+        }
+        KeyCode::Char('i') | KeyCode::Char('I') => {
+            Some(WorkstationAction::FocusPane(WorkstationPane::Detail))
+        }
+        KeyCode::Char('c') | KeyCode::Char('C') => {
+            Some(WorkstationAction::FocusPane(WorkstationPane::Chart))
+        }
+        KeyCode::Char('b') | KeyCode::Char('B') => {
+            Some(WorkstationAction::FocusPane(WorkstationPane::Book))
+        }
+        KeyCode::Char('r') | KeyCode::Char('R') => {
+            Some(WorkstationAction::FocusPane(WorkstationPane::Tape))
+        }
+        KeyCode::Char('o') | KeyCode::Char('O') => {
+            Some(WorkstationAction::FocusPane(WorkstationPane::Status))
+        }
         KeyCode::Char('/') => Some(WorkstationAction::CycleFilter),
         KeyCode::Char('g') | KeyCode::Char('G') => Some(WorkstationAction::OpenSymbolSearch),
         KeyCode::Char('p') | KeyCode::Char('P') => Some(WorkstationAction::CyclePreset),
@@ -1778,6 +1796,55 @@ mod tests {
             Some(WorkstationAction::FocusPane(WorkstationPane::Status))
         );
         assert_eq!(
+            key_to_workstation_action(
+                KeyEvent::new(KeyCode::Char('w'), KeyModifiers::NONE),
+                &state
+            ),
+            Some(WorkstationAction::FocusPane(WorkstationPane::Watchlist))
+        );
+        assert_eq!(
+            key_to_workstation_action(
+                KeyEvent::new(KeyCode::Char('i'), KeyModifiers::NONE),
+                &state
+            ),
+            Some(WorkstationAction::FocusPane(WorkstationPane::Detail))
+        );
+        assert_eq!(
+            key_to_workstation_action(
+                KeyEvent::new(KeyCode::Char('c'), KeyModifiers::NONE),
+                &state
+            ),
+            Some(WorkstationAction::FocusPane(WorkstationPane::Chart))
+        );
+        assert_eq!(
+            key_to_workstation_action(
+                KeyEvent::new(KeyCode::Char('b'), KeyModifiers::NONE),
+                &state
+            ),
+            Some(WorkstationAction::FocusPane(WorkstationPane::Book))
+        );
+        assert_eq!(
+            key_to_workstation_action(
+                KeyEvent::new(KeyCode::Char('r'), KeyModifiers::NONE),
+                &state
+            ),
+            Some(WorkstationAction::FocusPane(WorkstationPane::Tape))
+        );
+        assert_eq!(
+            key_to_workstation_action(
+                KeyEvent::new(KeyCode::Char('o'), KeyModifiers::NONE),
+                &state
+            ),
+            Some(WorkstationAction::FocusPane(WorkstationPane::Status))
+        );
+        assert_eq!(
+            key_to_workstation_action(
+                KeyEvent::new(KeyCode::Char('W'), KeyModifiers::SHIFT),
+                &state
+            ),
+            Some(WorkstationAction::FocusPane(WorkstationPane::Watchlist))
+        );
+        assert_eq!(
             key_to_workstation_action(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE), &state),
             Some(WorkstationAction::FocusPane(WorkstationPane::Detail))
         );
@@ -1839,6 +1906,20 @@ mod tests {
                 &command_state
             ),
             Some(WorkstationAction::CommandChar('g'))
+        );
+        assert_eq!(
+            key_to_workstation_action(
+                KeyEvent::new(KeyCode::Char('w'), KeyModifiers::NONE),
+                &command_state
+            ),
+            Some(WorkstationAction::CommandChar('w'))
+        );
+        assert_eq!(
+            key_to_workstation_action(
+                KeyEvent::new(KeyCode::Char('O'), KeyModifiers::SHIFT),
+                &command_state
+            ),
+            Some(WorkstationAction::CommandChar('O'))
         );
     }
 
