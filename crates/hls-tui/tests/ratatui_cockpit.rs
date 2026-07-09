@@ -1460,6 +1460,48 @@ fn tape_pane_flow_view_renders_public_trade_pressure_mode() {
 }
 
 #[test]
+fn tape_pane_quality_view_renders_public_print_diagnostics() {
+    let snapshots = fixture_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Tape),
+        snapshots.len(),
+    );
+    state.apply(WorkstationAction::NextView, snapshots.len());
+    state.apply(WorkstationAction::NextView, snapshots.len());
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    )
+    .with_trades(fixture_trades());
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 160,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders public print diagnostics");
+
+    assert!(rendered.contains("view:quality"));
+    assert!(rendered.contains("[FOCUS] TAPE"));
+    assert!(rendered.contains("TAPE QUALITY MODE"));
+    assert!(rendered.contains("public print diagnostics"));
+    assert!(rendered.contains("prints 2"));
+    assert!(rendered.contains("buy 1"));
+    assert!(rendered.contains("sell 1"));
+    assert!(rendered.contains("confidence"));
+    assert!(rendered.contains("freshness"));
+    assert!(rendered.contains("flow gate"));
+    assert!(rendered.contains("tradeability"));
+    assert!(rendered.contains("Public trades only | no fills"));
+}
+
+#[test]
 fn narrow_cockpit_renders_focused_hidden_pane_as_drilldown() {
     let snapshots = fixture_snapshots();
     let mut state = WorkstationUiState::default();
