@@ -1854,6 +1854,7 @@ fn detail_lines(
             }
             if expanded_detail {
                 lines.extend(quote_terminal_deck_lines(row, color_mode));
+                lines.extend(instrument_dossier_lines(row, color_mode));
             }
             lines.extend(factor_stack_lines(row, color_mode, compact));
             lines.extend(liquidity_radar_lines(row, color_mode));
@@ -2080,6 +2081,59 @@ fn quote_terminal_deck_lines(
                 format_usd_signed(row.bbo_ofi_proxy_30s)
             )),
         ]),
+    ]
+}
+
+fn instrument_dossier_lines(
+    row: &FeatureSnapshot,
+    color_mode: RatatuiColorMode,
+) -> Vec<Line<'static>> {
+    let seeded = row
+        .metadata
+        .as_ref()
+        .and_then(|metadata| metadata.seeded_usdc)
+        .map(|value| format_usd(Some(value)))
+        .unwrap_or_else(|| "-".to_owned());
+    let feed_id = row
+        .metadata
+        .as_ref()
+        .map(|metadata| metadata.feed_identifier.as_str())
+        .unwrap_or(row.symbol.as_str());
+    let symbol = row
+        .metadata
+        .as_ref()
+        .map(|metadata| metadata.symbol.as_str())
+        .unwrap_or(row.symbol.as_str());
+
+    vec![
+        Line::from(vec![
+            Span::styled(
+                "INSTRUMENT DOSSIER ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(format!(
+                "public metadata | instrument {} | feed id {}",
+                display_symbol(row),
+                feed_id
+            )),
+        ]),
+        Line::from(format!(
+            "cohort {} | tags {} | listing {} | seeded {}",
+            metadata_label(row),
+            metadata_tags(row),
+            listing_age(row),
+            seeded
+        )),
+        Line::from(format!(
+            "source {} | symbol {} | confidence {} | freshness {}",
+            metadata_source(row),
+            symbol,
+            row.confidence.score,
+            staleness_label(&row.staleness_state)
+        )),
+        Line::from("screen-only profile | public metadata + BBO/trades | no wallet | no orders"),
     ]
 }
 
