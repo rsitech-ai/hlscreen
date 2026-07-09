@@ -252,7 +252,11 @@ struct PersistedTuiPreferences {
 }
 
 pub async fn run(args: LiveArgs) -> anyhow::Result<()> {
-    validate_live_duration(&args)?;
+    validate_live_duration(
+        args.duration_secs,
+        args.tui,
+        LiveTerminalCapabilities::detect(),
+    )?;
 
     if let Some(fixture_file) = args.fixture_file.clone() {
         return run_fixture_live(args, &fixture_file).await;
@@ -261,10 +265,43 @@ pub async fn run(args: LiveArgs) -> anyhow::Result<()> {
     run_network_live(args).await
 }
 
-fn validate_live_duration(args: &LiveArgs) -> anyhow::Result<()> {
-    if args.duration_secs == 0 && !args.tui {
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct LiveTerminalCapabilities {
+    stdin_is_terminal: bool,
+    stderr_is_terminal: bool,
+}
+
+impl LiveTerminalCapabilities {
+    fn new(stdin_is_terminal: bool, stderr_is_terminal: bool) -> Self {
+        Self {
+            stdin_is_terminal,
+            stderr_is_terminal,
+        }
+    }
+
+    fn detect() -> Self {
+        Self::new(io::stdin().is_terminal(), io::stderr().is_terminal())
+    }
+
+    fn supports_unbounded_tui(self) -> bool {
+        self.stdin_is_terminal && self.stderr_is_terminal
+    }
+}
+
+fn validate_live_duration(
+    duration_secs: u64,
+    tui: bool,
+    terminals: LiveTerminalCapabilities,
+) -> anyhow::Result<()> {
+    if duration_secs == 0 && !tui {
         bail!(
             "--duration-secs 0 is only supported with --tui; use a positive duration for `hls live`"
+        );
+    }
+
+    if duration_secs == 0 && !terminals.supports_unbounded_tui() {
+        bail!(
+            "--duration-secs 0 requires an interactive TUI with both stdin and stderr attached to a terminal; pass --duration-secs <positive> for non-interactive runs"
         );
     }
 
@@ -410,7 +447,7 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
     }
 
     let lifetime =
-        LiveRunLifetime::from_duration_secs(args.duration_secs, tokio::time::Instant::now());
+        LiveRunLifetime::from_duration_secs(args.duration_secs, tokio::time::Instant::now())?;
     let drive_result = drive_live_ws(
         &args.ws_url,
         &subscription_messages,
@@ -428,8 +465,12 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
     )
     .await;
 
+    let clean_shutdown = drive_result
+        .as_ref()
+        .map(LiveDriveSummary::is_clean_shutdown)
+        .unwrap_or(false);
     let record_summary = if let Some(recorder) = recorder {
-        match recorder.finish(drive_result.is_ok()) {
+        match recorder.finish(clean_shutdown) {
             Ok(summary) => Some(summary),
             Err(err) if drive_result.is_err() => {
                 eprintln!("recording closeout failed after live error: {err}");
@@ -467,6 +508,10 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
     println!("reconnects={}", summary.reconnects);
     println!("data_gaps={}", summary.data_gaps);
     println!("elapsed_secs={}", summary.elapsed_secs);
+    println!(
+        "stop_reason={}",
+        summary.stop_reason_label().unwrap_or("unknown")
+    );
     if !render_live_tui {
         println!("{}", render_confidence_summary(&snapshots));
     }
@@ -585,6 +630,26 @@ struct LiveDriveSummary {
     data_gaps: u64,
     elapsed_secs: u64,
     row_count: usize,
+    stop_reason: Option<LiveStopReason>,
+}
+
+impl LiveDriveSummary {
+    fn mark_stopped(&mut self, stop_reason: LiveStopReason) {
+        self.stop_reason = Some(stop_reason);
+    }
+
+    fn stop_reason_label(&self) -> Option<&'static str> {
+        self.stop_reason.map(LiveStopReason::label)
+    }
+
+    fn is_clean_shutdown(&self) -> bool {
+        self.stop_reason
+            .is_some_and(LiveStopReason::is_clean_shutdown)
+    }
+
+    fn is_no_messages_failure(&self) -> bool {
+        self.stop_reason.is_none() && self.ws_messages == 0 && self.reconnects > 0
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -594,11 +659,17 @@ enum LiveRunLifetime {
 }
 
 impl LiveRunLifetime {
-    fn from_duration_secs(duration_secs: u64, now: tokio::time::Instant) -> Self {
+    fn from_duration_secs(duration_secs: u64, now: tokio::time::Instant) -> HlsResult<Self> {
         if duration_secs == 0 {
-            Self::Unbounded
+            Ok(Self::Unbounded)
         } else {
-            Self::Bounded(now + Duration::from_secs(duration_secs))
+            now.checked_add(Duration::from_secs(duration_secs))
+                .map(Self::Bounded)
+                .ok_or_else(|| {
+                    HlsError::Config(format!(
+                        "--duration-secs value {duration_secs} is too large for this runtime"
+                    ))
+                })
         }
     }
 
@@ -619,6 +690,23 @@ enum LiveStopReason {
     DurationElapsed,
     OperatorQuit,
     Signal,
+}
+
+impl LiveStopReason {
+    fn label(self) -> &'static str {
+        match self {
+            Self::DurationElapsed => "duration_elapsed",
+            Self::OperatorQuit => "operator_quit",
+            Self::Signal => "signal",
+        }
+    }
+
+    fn is_clean_shutdown(self) -> bool {
+        matches!(
+            self,
+            Self::DurationElapsed | Self::OperatorQuit | Self::Signal
+        )
+    }
 }
 
 struct LiveProgressContext<'a> {
@@ -674,6 +762,7 @@ async fn drive_live_ws(
 
     loop {
         if lifetime.has_expired_by(tokio::time::Instant::now()) {
+            summary.mark_stopped(LiveStopReason::DurationElapsed);
             break;
         }
         let outcome = drive_live_connection(
@@ -697,11 +786,10 @@ async fn drive_live_ws(
         .await?;
 
         match outcome {
-            ConnectionOutcome::Stopped(
-                LiveStopReason::DurationElapsed
-                | LiveStopReason::OperatorQuit
-                | LiveStopReason::Signal,
-            ) => break,
+            ConnectionOutcome::Stopped(stop_reason) => {
+                summary.mark_stopped(stop_reason);
+                break;
+            }
             ConnectionOutcome::Reconnect {
                 conn_id: closed_conn_id,
                 gap_started_at_ns,
@@ -736,16 +824,40 @@ async fn drive_live_ws(
                 } else {
                     reconnect_attempt.saturating_add(1)
                 };
-                tokio::select! {
-                    _ = lifetime.wait_for_expiry() => break,
-                    _ = shutdown_signal.as_mut() => break,
-                    _ = sleep(backoff) => {}
+                let backoff_wait = sleep(backoff);
+                tokio::pin!(backoff_wait);
+                let mut ui_events = interval(Duration::from_millis(TUI_KEY_POLL_MS));
+                ui_events.tick().await;
+                let stop_reason = loop {
+                    tokio::select! {
+                        _ = lifetime.wait_for_expiry() => break Some(LiveStopReason::DurationElapsed),
+                        result = shutdown_signal.as_mut() => break Some(result?),
+                        _ = ui_events.tick(), if keyboard_interactive => {
+                            if let Some(stop_reason) = poll_live_tui_actions(
+                                tui_state.as_deref_mut(),
+                                state,
+                                screen_request,
+                                metadata,
+                                color_mode,
+                                started,
+                                &summary,
+                                tui_frame_sink.as_deref_mut(),
+                            )? {
+                                break Some(stop_reason);
+                            }
+                        }
+                        _ = &mut backoff_wait => break None,
+                    }
+                };
+                if let Some(stop_reason) = stop_reason {
+                    summary.mark_stopped(stop_reason);
+                    break;
                 }
             }
         }
     }
 
-    if summary.ws_messages == 0 && summary.reconnects > 0 {
+    if summary.is_no_messages_failure() {
         return Err(HlsError::External(format!(
             "live run ended without receiving any WebSocket messages after {} reconnect attempt(s)",
             summary.reconnects
@@ -774,14 +886,35 @@ async fn drive_live_connection(
     mut tui_state: Option<&mut WorkstationUiState>,
     recorder: Option<&LiveRecorder>,
     summary: &mut LiveDriveSummary,
-    shutdown_signal: &mut Pin<Box<impl Future<Output = LiveStopReason>>>,
+    shutdown_signal: &mut Pin<Box<impl Future<Output = anyhow::Result<LiveStopReason>>>>,
 ) -> anyhow::Result<ConnectionOutcome> {
     let connect_started_ns = now_ns_u64()?;
-    let (ws, _) = match tokio::select! {
-        _ = lifetime.wait_for_expiry() => return Ok(ConnectionOutcome::Stopped(LiveStopReason::DurationElapsed)),
-        reason = shutdown_signal.as_mut() => return Ok(ConnectionOutcome::Stopped(reason)),
-        result = connect_async(ws_url) => result,
-    } {
+    let mut ui_events = interval(Duration::from_millis(TUI_KEY_POLL_MS));
+    ui_events.tick().await;
+    let connect = connect_async(ws_url);
+    tokio::pin!(connect);
+    let connect_result = loop {
+        tokio::select! {
+            _ = lifetime.wait_for_expiry() => return Ok(ConnectionOutcome::Stopped(LiveStopReason::DurationElapsed)),
+            result = shutdown_signal.as_mut() => return result.map(ConnectionOutcome::Stopped),
+            _ = ui_events.tick(), if keyboard_interactive => {
+                if let Some(stop_reason) = poll_live_tui_actions(
+                    tui_state.as_deref_mut(),
+                    state,
+                    screen_request,
+                    metadata,
+                    color_mode,
+                    started,
+                    summary,
+                    tui_frame_sink.as_deref_mut(),
+                )? {
+                    return Ok(ConnectionOutcome::Stopped(stop_reason));
+                }
+            }
+            result = &mut connect => break result,
+        }
+    };
+    let (ws, _) = match connect_result {
         Ok(value) => value,
         Err(err) => {
             return Ok(ConnectionOutcome::Reconnect {
@@ -796,7 +929,18 @@ async fn drive_live_connection(
     let (mut write, mut read) = ws.split();
 
     for message in subscription_messages {
-        if let Err(err) = write.send(Message::Text(message.clone().into())).await {
+        let send_result = tokio::select! {
+            _ = lifetime.wait_for_expiry() => {
+                let _ = write.send(Message::Close(None)).await;
+                return Ok(ConnectionOutcome::Stopped(LiveStopReason::DurationElapsed));
+            }
+            result = shutdown_signal.as_mut() => {
+                let _ = write.send(Message::Close(None)).await;
+                return result.map(ConnectionOutcome::Stopped);
+            }
+            result = write.send(Message::Text(message.clone().into())) => result,
+        };
+        if let Err(err) = send_result {
             return Ok(ConnectionOutcome::Reconnect {
                 conn_id,
                 gap_started_at_ns: connect_started_ns,
@@ -822,9 +966,9 @@ async fn drive_live_connection(
                 let _ = write.send(Message::Close(None)).await;
                 return Ok(ConnectionOutcome::Stopped(LiveStopReason::DurationElapsed));
             }
-            reason = shutdown_signal.as_mut() => {
+            result = shutdown_signal.as_mut() => {
                 let _ = write.send(Message::Close(None)).await;
-                return Ok(ConnectionOutcome::Stopped(reason));
+                return result.map(ConnectionOutcome::Stopped);
             }
             _ = progress.tick() => {
                 render_live_progress(LiveProgressContext {
@@ -838,22 +982,18 @@ async fn drive_live_connection(
                 }, tui_frame_sink.as_deref_mut())?;
             }
             _ = ui_events.tick(), if keyboard_interactive => {
-                if let Some(ui_state) = tui_state.as_deref_mut()
-                    && apply_pending_tui_actions(ui_state, state, screen_request)?
-                {
-                    render_live_progress(LiveProgressContext {
-                        state,
-                        screen_request,
-                        metadata,
-                        color_mode,
-                        tui_state: Some(ui_state),
-                        started,
-                        summary,
-                    }, tui_frame_sink.as_deref_mut())?;
-                    if ui_state.quit_requested() {
-                        let _ = write.send(Message::Close(None)).await;
-                        return Ok(ConnectionOutcome::Stopped(LiveStopReason::OperatorQuit));
-                    }
+                if let Some(stop_reason) = poll_live_tui_actions(
+                    tui_state.as_deref_mut(),
+                    state,
+                    screen_request,
+                    metadata,
+                    color_mode,
+                    started,
+                    summary,
+                    tui_frame_sink.as_deref_mut(),
+                )? {
+                    let _ = write.send(Message::Close(None)).await;
+                    return Ok(ConnectionOutcome::Stopped(stop_reason));
                 }
             }
             _ = heartbeat.tick() => {
@@ -1457,6 +1597,47 @@ fn apply_pending_tui_actions(
         apply_live_tui_action(action, ui_state, state, screen_request)?;
     }
     Ok(true)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn poll_live_tui_actions<S>(
+    ui_state: Option<&mut WorkstationUiState>,
+    state: &LiveMarketState,
+    screen_request: &mut ScreenRequest,
+    metadata: &[MetadataEnrichment],
+    color_mode: RatatuiColorMode,
+    started: Instant,
+    summary: &LiveDriveSummary,
+    tui_frame_sink: Option<&mut S>,
+) -> anyhow::Result<Option<LiveStopReason>>
+where
+    S: LiveTuiFrameSink + ?Sized,
+{
+    let Some(ui_state) = ui_state else {
+        return Ok(None);
+    };
+    if apply_pending_tui_actions(ui_state, state, screen_request)? {
+        render_live_progress(
+            LiveProgressContext {
+                state,
+                screen_request,
+                metadata,
+                color_mode,
+                tui_state: Some(ui_state),
+                started,
+                summary,
+            },
+            tui_frame_sink,
+        )?;
+    }
+
+    Ok(operator_stop_reason(ui_state))
+}
+
+fn operator_stop_reason(ui_state: &WorkstationUiState) -> Option<LiveStopReason> {
+    ui_state
+        .quit_requested()
+        .then_some(LiveStopReason::OperatorQuit)
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -2830,26 +3011,39 @@ fn live_table_title(recording_active: bool) -> &'static str {
     }
 }
 
-async fn wait_for_shutdown_signal() -> LiveStopReason {
+fn shutdown_listener_setup<T>(result: io::Result<T>) -> anyhow::Result<T> {
+    result.context("install shutdown signal listener")
+}
+
+fn shutdown_signal_stop_reason(result: io::Result<()>) -> anyhow::Result<LiveStopReason> {
+    result
+        .context("wait for OS shutdown signal")
+        .map(|()| LiveStopReason::Signal)
+}
+
+#[cfg(unix)]
+fn sigterm_stop_reason(delivery: Option<()>) -> anyhow::Result<LiveStopReason> {
+    delivery
+        .context("SIGTERM shutdown listener closed before receiving a signal")
+        .map(|()| LiveStopReason::Signal)
+}
+
+async fn wait_for_shutdown_signal() -> anyhow::Result<LiveStopReason> {
     #[cfg(unix)]
     {
-        let Ok(mut terminate) =
-            tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
-        else {
-            let _ = tokio::signal::ctrl_c().await;
-            return LiveStopReason::Signal;
-        };
+        let mut terminate = shutdown_listener_setup(tokio::signal::unix::signal(
+            tokio::signal::unix::SignalKind::terminate(),
+        ))?;
 
         tokio::select! {
-            _ = tokio::signal::ctrl_c() => LiveStopReason::Signal,
-            _ = terminate.recv() => LiveStopReason::Signal,
+            result = tokio::signal::ctrl_c() => shutdown_signal_stop_reason(result),
+            delivery = terminate.recv() => sigterm_stop_reason(delivery),
         }
     }
 
     #[cfg(not(unix))]
     {
-        let _ = tokio::signal::ctrl_c().await;
-        LiveStopReason::Signal
+        shutdown_signal_stop_reason(tokio::signal::ctrl_c().await)
     }
 }
 
@@ -2931,11 +3125,25 @@ mod tests {
     }
 
     #[test]
+    fn unbounded_tui_duration_requires_interactive_stdio() {
+        let err = validate_live_duration(0, true, LiveTerminalCapabilities::new(false, true))
+            .expect_err("unbounded TUI needs interactive stdio");
+
+        assert!(
+            err.to_string()
+                .contains("both stdin and stderr attached to a terminal")
+        );
+        assert!(
+            validate_live_duration(0, true, LiveTerminalCapabilities::new(true, true),).is_ok()
+        );
+    }
+
+    #[test]
     fn live_run_lifetime_zero_is_unbounded() {
         let now = tokio::time::Instant::now();
 
         assert_eq!(
-            LiveRunLifetime::from_duration_secs(0, now),
+            LiveRunLifetime::from_duration_secs(0, now).expect("unbounded lifetime"),
             LiveRunLifetime::Unbounded
         );
     }
@@ -2945,19 +3153,83 @@ mod tests {
         let now = tokio::time::Instant::now();
 
         assert_eq!(
-            LiveRunLifetime::from_duration_secs(15, now),
+            LiveRunLifetime::from_duration_secs(15, now).expect("bounded lifetime"),
             LiveRunLifetime::Bounded(now + Duration::from_secs(15))
         );
     }
 
     #[test]
+    fn live_run_lifetime_overflow_returns_an_error() {
+        let err = LiveRunLifetime::from_duration_secs(u64::MAX, tokio::time::Instant::now())
+            .expect_err("overflowing duration must fail without panic");
+
+        assert!(err.to_string().contains("too large"));
+    }
+
+    #[test]
     fn live_run_lifetime_only_bounded_lifetimes_expire() {
         let now = tokio::time::Instant::now();
-        let bounded = LiveRunLifetime::from_duration_secs(15, now);
-        let unbounded = LiveRunLifetime::from_duration_secs(0, now);
+        let bounded = LiveRunLifetime::from_duration_secs(15, now).expect("bounded lifetime");
+        let unbounded = LiveRunLifetime::from_duration_secs(0, now).expect("unbounded lifetime");
 
         assert!(bounded.has_expired_by(now + Duration::from_secs(15)));
         assert!(!unbounded.has_expired_by(now + Duration::from_secs(15)));
+    }
+
+    #[test]
+    fn shutdown_listener_errors_are_not_successful_signal_stops() {
+        let setup_err = shutdown_listener_setup::<()>(Err(std::io::Error::other("setup failed")))
+            .expect_err("listener setup failure propagates");
+        assert!(
+            setup_err
+                .to_string()
+                .contains("install shutdown signal listener")
+        );
+
+        let delivery_err =
+            shutdown_signal_stop_reason(Err(std::io::Error::other("delivery failed")))
+                .expect_err("signal delivery failure propagates");
+        assert!(
+            delivery_err
+                .to_string()
+                .contains("wait for OS shutdown signal")
+        );
+    }
+
+    #[test]
+    fn live_drive_summary_preserves_clean_stop_reasons() {
+        let mut summary = LiveDriveSummary {
+            reconnects: 1,
+            ..LiveDriveSummary::default()
+        };
+        summary.mark_stopped(LiveStopReason::Signal);
+
+        assert_eq!(summary.stop_reason, Some(LiveStopReason::Signal));
+        assert_eq!(summary.stop_reason_label(), Some("signal"));
+        assert!(summary.is_clean_shutdown());
+        assert!(!summary.is_no_messages_failure());
+    }
+
+    #[test]
+    fn live_drive_summary_rejects_unstopped_no_message_runs() {
+        let summary = LiveDriveSummary {
+            reconnects: 1,
+            ..LiveDriveSummary::default()
+        };
+
+        assert!(summary.is_no_messages_failure());
+        assert!(!summary.is_clean_shutdown());
+    }
+
+    #[test]
+    fn operator_quit_reason_is_available_during_connection_waits() {
+        let mut state = WorkstationUiState::default();
+        state.apply(WorkstationAction::Quit, 1);
+
+        assert_eq!(
+            operator_stop_reason(&state),
+            Some(LiveStopReason::OperatorQuit)
+        );
     }
 
     #[test]

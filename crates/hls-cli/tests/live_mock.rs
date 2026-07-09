@@ -103,7 +103,7 @@ fn live_once_tui_uses_unified_ratatui_cockpit() {
 }
 
 #[test]
-fn tui_command_once_uses_unified_ratatui_cockpit_without_extra_flags() {
+fn tui_command_once_uses_unified_ratatui_cockpit_with_bounded_noninteractive_duration() {
     let assert = Command::cargo_bin("hls")
         .expect("hls binary")
         .args([
@@ -115,6 +115,8 @@ fn tui_command_once_uses_unified_ratatui_cockpit_without_extra_flags() {
             "--metadata-file",
             &fixture("tests/fixtures/microstructure/metadata_enrichment.json"),
             "--once",
+            "--duration-secs",
+            "1",
         ])
         .assert()
         .success()
