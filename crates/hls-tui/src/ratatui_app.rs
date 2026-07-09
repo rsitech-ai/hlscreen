@@ -6092,6 +6092,14 @@ fn book_lines(
             ask_notional,
             color_mode,
         ));
+        lines.extend(book_queue_terminal_lines(
+            row,
+            quote_share,
+            bid_notional,
+            ask_notional,
+            content_width,
+            color_mode,
+        ));
     }
 
     lines.extend([
@@ -6230,6 +6238,74 @@ fn book_liquidity_wall_monitor_lines(
                 format_signed(edge_bps, "")
             )),
         ]),
+    ]
+}
+
+fn book_queue_terminal_lines(
+    row: &FeatureSnapshot,
+    quote_share: Option<(f64, f64)>,
+    bid_notional: Option<f64>,
+    ask_notional: Option<f64>,
+    content_width: u16,
+    color_mode: RatatuiColorMode,
+) -> Vec<Line<'static>> {
+    let (bid_share, ask_share) = quote_share.unwrap_or((0.0, 0.0));
+    let skew = bid_share - ask_share;
+    let wall_width = if content_width >= 128 { 14 } else { 10 };
+    let passive_label = if content_width >= 118 {
+        "passive wall "
+    } else {
+        "wall "
+    };
+    let friction_label = if content_width >= 118 {
+        "friction gate "
+    } else {
+        "friction "
+    };
+
+    vec![
+        Line::from(vec![
+            Span::styled(
+                "QUEUE TERMINAL ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(format!("{} public top-book model", display_symbol(row))),
+        ]),
+        Line::from(vec![
+            Span::styled(passive_label, Style::default().fg(accent(color_mode))),
+            Span::styled("bid ", Style::default().fg(success(color_mode))),
+            Span::raw(format!(
+                "{} {} ",
+                depth_bar(bid_share, wall_width),
+                format_usd(bid_notional)
+            )),
+            Span::styled("ask ", Style::default().fg(danger(color_mode))),
+            Span::raw(format!(
+                "{} {} | skew {}",
+                depth_bar(ask_share, wall_width),
+                format_usd(ask_notional),
+                signed_meter(skew)
+            )),
+        ]),
+        Line::from(vec![
+            Span::styled(
+                "aggressive OFI ",
+                Style::default().fg(flow_color(
+                    row.bbo_ofi_proxy_30s.unwrap_or_default(),
+                    color_mode,
+                )),
+            ),
+            Span::raw(format!(
+                "{} | {friction_label}spr {}bps recovery {} | resilience {}",
+                format_usd_signed(row.bbo_ofi_proxy_30s),
+                format_optional(row.spread_bps, 1),
+                format_duration_ms(row.spread_recovery_ms),
+                row.resilience_state.as_str()
+            )),
+        ]),
+        Line::from("boundary read-only BBO model | no wallet | no orders | no L2 reconstruction"),
     ]
 }
 
