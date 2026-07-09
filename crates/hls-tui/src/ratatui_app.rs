@@ -648,7 +648,7 @@ fn render_detail(
         return;
     };
 
-    let lines = detail_lines(row, model.ui_state.view(), color_mode);
+    let lines = detail_lines(row, model.ui_state.view(), color_mode, area.width);
     frame.render_widget(
         Paragraph::new(lines)
             .wrap(Wrap { trim: true })
@@ -661,7 +661,9 @@ fn detail_lines(
     row: &FeatureSnapshot,
     view: WorkstationView,
     color_mode: RatatuiColorMode,
+    width: u16,
 ) -> Vec<Line<'static>> {
+    let compact = width <= 72;
     let heading = Line::from(vec![
         Span::styled(
             display_symbol(row).to_owned(),
@@ -688,7 +690,7 @@ fn detail_lines(
                     row.resilience_state.as_str()
                 )),
             ];
-            lines.extend(factor_stack_lines(row, color_mode));
+            lines.extend(factor_stack_lines(row, color_mode, compact));
             lines.extend(liquidity_radar_lines(row, color_mode));
             lines.extend([
                 Line::from(format!(
@@ -762,7 +764,7 @@ fn detail_lines(
         ],
         WorkstationView::Explain => {
             let mut lines = vec![heading, Line::from("Explain")];
-            lines.extend(factor_stack_lines(row, color_mode));
+            lines.extend(factor_stack_lines(row, color_mode, compact));
             lines.extend([
                 Line::from(format!("why-ranked {}", why_tokens(row))),
                 Line::from("Screen output is heuristic context only, not orders or advice."),
@@ -835,10 +837,15 @@ fn liquidity_radar_lines(
     ]
 }
 
-fn factor_stack_lines(row: &FeatureSnapshot, color_mode: RatatuiColorMode) -> Vec<Line<'static>> {
+fn factor_stack_lines(
+    row: &FeatureSnapshot,
+    color_mode: RatatuiColorMode,
+    compact: bool,
+) -> Vec<Line<'static>> {
     let Some(breakdown) = row.score_breakdown.as_ref() else {
+        let label = if compact { "FACTORS" } else { "FACTOR STACK" };
         return vec![Line::from(format!(
-            "FACTOR STACK unavailable | confidence {}",
+            "{label} unavailable | confidence {}",
             row.confidence.score
         ))];
     };
@@ -852,6 +859,37 @@ fn factor_stack_lines(row: &FeatureSnapshot, color_mode: RatatuiColorMode) -> Ve
             .unwrap_or(std::cmp::Ordering::Equal)
             .then_with(|| left.name.cmp(&right.name))
     });
+
+    if compact {
+        let compact_components = components
+            .iter()
+            .take(2)
+            .map(|component| {
+                format!(
+                    "{} {} {}",
+                    compact_factor_name(&component.name),
+                    score_contribution_bar(component.signed_contribution, 4),
+                    format_signed(Some(component.signed_contribution), "")
+                )
+            })
+            .collect::<Vec<_>>()
+            .join(" | ");
+        return vec![Line::from(vec![
+            Span::styled(
+                "FACTORS ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(format!(
+                "raw {:.1} adj {:.1} c{} | {}",
+                breakdown.raw_total,
+                breakdown.adjusted_total,
+                breakdown.confidence_score,
+                compact_components
+            )),
+        ])];
+    }
 
     let component_text = components
         .into_iter()
