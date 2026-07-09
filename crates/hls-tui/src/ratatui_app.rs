@@ -5552,6 +5552,7 @@ fn render_status_panel(
             gaps,
             color_mode,
         ));
+        lines.extend(status_color_lab_lines(color_mode));
     }
     lines.extend([
         status_quality_matrix_line(&rows, color_mode),
@@ -5655,6 +5656,35 @@ fn status_ops_command_center_lines(
                 model.recorder_status
             )),
         ]),
+    ]
+}
+
+fn status_color_lab_lines(color_mode: RatatuiColorMode) -> Vec<Line<'static>> {
+    vec![
+        Line::from(vec![
+            Span::styled(
+                "COLOR LAB ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(format!(
+                "mode {} path {} palette {} | public data only",
+                color_mode.label(),
+                color_mode.color_path_label(),
+                color_mode.palette_label()
+            )),
+        ]),
+        Line::from(vec![
+            Span::styled("swatches ", Style::default().fg(accent(color_mode))),
+            Span::styled("▲ bid/up ", Style::default().fg(success(color_mode))),
+            Span::styled("▼ ask/down ", Style::default().fg(danger(color_mode))),
+            Span::styled("● alert ", Style::default().fg(warn(color_mode))),
+            Span::raw("truecolor RGB / ANSI fallback"),
+        ]),
+        Line::from(
+            "fix --color always | unset NO_COLOR | TERM=xterm-256color | use iTerm2/Ghostty/WezTerm truecolor",
+        ),
     ]
 }
 
