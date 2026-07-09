@@ -160,6 +160,10 @@ pub fn render_ratatui_frame(
     color_mode: RatatuiColorMode,
 ) {
     let area = frame.area();
+    frame.render_widget(
+        Block::default().style(cockpit_background_style(color_mode)),
+        area,
+    );
     if area.width < 90 {
         render_narrow(frame, area, model, color_mode);
     } else if area.width < 132 {
@@ -480,7 +484,8 @@ fn render_header(
                     layout_profile_label(viewport)
                 ))
                 .borders(Borders::ALL)
-                .border_style(Style::default().fg(accent(color_mode))),
+                .border_style(Style::default().fg(accent(color_mode)))
+                .style(panel_surface_style(color_mode)),
         ),
         area,
     );
@@ -3871,7 +3876,8 @@ fn render_status_bar(
                         .border_style(focus_style(
                             model.ui_state.focused_pane() == WorkstationPane::Status,
                             color_mode,
-                        )),
+                        ))
+                        .style(panel_surface_style(color_mode)),
                 ),
             area,
         );
@@ -3888,7 +3894,8 @@ fn render_status_bar(
                     .border_style(focus_style(
                         model.ui_state.focused_pane() == WorkstationPane::Status,
                         color_mode,
-                    )),
+                    ))
+                    .style(panel_surface_style(color_mode)),
             ),
             area,
         );
@@ -4567,6 +4574,7 @@ fn panel(title: &str, color_mode: RatatuiColorMode) -> Block<'static> {
         .title(format!(" {title} "))
         .borders(Borders::ALL)
         .border_style(Style::default().fg(accent(color_mode)))
+        .style(panel_surface_style(color_mode))
 }
 
 fn panel_for(
@@ -4585,6 +4593,23 @@ fn panel_for(
         .title(title)
         .borders(Borders::ALL)
         .border_style(focus_style(focused, color_mode))
+        .style(pane_surface_style(focused, color_mode))
+}
+
+fn cockpit_background_style(color_mode: RatatuiColorMode) -> Style {
+    Style::default().bg(cockpit_background(color_mode))
+}
+
+fn panel_surface_style(color_mode: RatatuiColorMode) -> Style {
+    Style::default().bg(panel_surface(color_mode))
+}
+
+fn pane_surface_style(focused: bool, color_mode: RatatuiColorMode) -> Style {
+    if focused {
+        Style::default().bg(focused_panel_surface(color_mode))
+    } else {
+        panel_surface_style(color_mode)
+    }
 }
 
 fn focus_style(focused: bool, color_mode: RatatuiColorMode) -> Style {
@@ -4597,6 +4622,27 @@ fn focus_style(focused: bool, color_mode: RatatuiColorMode) -> Style {
         style.add_modifier(Modifier::BOLD)
     } else {
         style
+    }
+}
+
+fn cockpit_background(color_mode: RatatuiColorMode) -> Color {
+    match color_mode {
+        RatatuiColorMode::NoColor => Color::Reset,
+        RatatuiColorMode::Auto | RatatuiColorMode::Color => Color::Rgb(3, 7, 12),
+    }
+}
+
+fn panel_surface(color_mode: RatatuiColorMode) -> Color {
+    match color_mode {
+        RatatuiColorMode::NoColor => Color::Reset,
+        RatatuiColorMode::Auto | RatatuiColorMode::Color => Color::Rgb(8, 14, 22),
+    }
+}
+
+fn focused_panel_surface(color_mode: RatatuiColorMode) -> Color {
+    match color_mode {
+        RatatuiColorMode::NoColor => Color::Reset,
+        RatatuiColorMode::Auto | RatatuiColorMode::Color => Color::Rgb(16, 24, 36),
     }
 }
 
