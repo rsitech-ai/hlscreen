@@ -72,6 +72,48 @@ fn cockpit_renders_command_palette_with_validation_error() {
     assert!(rendered.contains("Enter apply"));
 }
 
+#[test]
+fn command_palette_renders_preset_deck_with_active_context() {
+    let snapshots = fixture_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(WorkstationAction::CyclePreset, snapshots.len());
+    for ch in "flow_pressure".chars() {
+        state.apply(WorkstationAction::CommandChar(ch), snapshots.len());
+    }
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest {
+            preset: Some("liquidity_resilience".to_owned()),
+            where_expr: None,
+            sort: Some("score:desc".to_owned()),
+        },
+        state,
+    );
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 140,
+            height: 40,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders preset command deck");
+
+    assert!(rendered.contains("COMMAND CENTER"));
+    assert!(rendered.contains("TARGET preset"));
+    assert!(rendered.contains("INPUT flow_pressure"));
+    assert!(rendered.contains("ACTIVE preset liquidity_resilience"));
+    assert!(rendered.contains("sort score:desc"));
+    assert!(rendered.contains("visible rows 01"));
+    assert!(rendered.contains("PRESET DECK"));
+    assert!(rendered.contains("liquidity_resilience"));
+    assert!(rendered.contains("flow_pressure"));
+    assert!(rendered.contains("metadata_unknown"));
+    assert!(rendered.contains("read-only presets"));
+}
+
 fn fixture_candles() -> Vec<CandleEvent> {
     parse_ws_ndjson(include_str!(
         "../../../tests/fixtures/hyperliquid/ws_mock_live.ndjson"
