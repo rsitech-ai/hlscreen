@@ -185,6 +185,12 @@ fn render_wide(
         .split(area);
     render_header(frame, root[0], area, model, color_mode);
     render_status_bar(frame, root[2], model, color_mode);
+    if model.ui_state.pane_expanded() {
+        render_expanded_pane(frame, root[1], model, color_mode);
+        render_help_overlay(frame, area, model, color_mode);
+        render_command_palette(frame, area, model, color_mode);
+        return;
+    }
 
     let body = Layout::default()
         .direction(Direction::Horizontal)
@@ -242,6 +248,12 @@ fn render_medium(
         .split(area);
     render_header(frame, root[0], area, model, color_mode);
     render_status_bar(frame, root[2], model, color_mode);
+    if model.ui_state.pane_expanded() {
+        render_expanded_pane(frame, root[1], model, color_mode);
+        render_help_overlay(frame, area, model, color_mode);
+        render_command_palette(frame, area, model, color_mode);
+        return;
+    }
 
     let body = Layout::default()
         .direction(Direction::Horizontal)
@@ -315,6 +327,19 @@ fn render_narrow(
         ])
         .split(area);
     render_header(frame, root[0], area, model, color_mode);
+    if model.ui_state.pane_expanded() {
+        let expanded_area = Rect {
+            x: root[1].x,
+            y: root[1].y,
+            width: root[1].width,
+            height: root[1].height.saturating_add(root[2].height),
+        };
+        render_expanded_pane(frame, expanded_area, model, color_mode);
+        render_status_bar(frame, root[3], model, color_mode);
+        render_help_overlay(frame, area, model, color_mode);
+        render_command_palette(frame, area, model, color_mode);
+        return;
+    }
     render_watchlist(frame, root[1], model, color_mode);
     render_narrow_drilldown(frame, root[2], model, color_mode);
     render_status_bar(frame, root[3], model, color_mode);
@@ -337,6 +362,54 @@ fn render_narrow_drilldown(
             render_detail(frame, area, model, "DETAIL", color_mode);
         }
     }
+}
+
+fn render_expanded_pane(
+    frame: &mut Frame<'_>,
+    area: Rect,
+    model: &RatatuiFrameModel,
+    color_mode: RatatuiColorMode,
+) {
+    if area.height == 0 {
+        return;
+    }
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(1), Constraint::Min(1)])
+        .split(area);
+    frame.render_widget(
+        Paragraph::new(expanded_pane_line(model, color_mode)),
+        chunks[0],
+    );
+    match model.ui_state.focused_pane() {
+        WorkstationPane::Watchlist => render_watchlist(frame, chunks[1], model, color_mode),
+        WorkstationPane::Detail => {
+            render_detail(
+                frame,
+                chunks[1],
+                model,
+                "EXPANDED MICROSTRUCTURE",
+                color_mode,
+            );
+        }
+        WorkstationPane::Chart => render_chart(frame, chunks[1], model, color_mode),
+        WorkstationPane::Book => render_book(frame, chunks[1], model, color_mode),
+        WorkstationPane::Tape => render_tape(frame, chunks[1], model, color_mode),
+        WorkstationPane::Status => render_status_panel(frame, chunks[1], model, color_mode),
+    }
+}
+
+fn expanded_pane_line(model: &RatatuiFrameModel, color_mode: RatatuiColorMode) -> Line<'static> {
+    let pane = model.ui_state.focused_pane().label();
+    Line::from(vec![
+        Span::styled(
+            format!("EXPANDED {pane} "),
+            Style::default()
+                .fg(warn(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw("z grid | 1-6 switch pane | tab view | t window | / command | read-only"),
+    ])
 }
 
 fn render_header(
@@ -469,15 +542,17 @@ fn desk_tab_rail_line(
     }
     if compact {
         spans.push(Span::raw(format!(
-            " | v {} | d {} | read-only",
+            " | v {} | d {} | z {} | read-only",
             state.view().label(),
-            state.density().label()
+            state.density().label(),
+            pane_zoom_action_label(state)
         )));
     } else {
         spans.push(Span::raw(format!(
-            " | view {} | density {} | read-only",
+            " | view {} | density {} | z {} | read-only",
             state.view().label(),
-            state.density().label()
+            state.density().label(),
+            pane_zoom_action_label(state)
         )));
     }
     Line::from(spans)
@@ -504,6 +579,19 @@ fn pane_hotkey_rail(state: &WorkstationUiState, narrow: bool) -> String {
         })
         .collect::<Vec<_>>()
         .join(" ")
+        + if state.pane_expanded() {
+            " | z grid"
+        } else {
+            " | z zoom"
+        }
+}
+
+fn pane_zoom_action_label(state: &WorkstationUiState) -> &'static str {
+    if state.pane_expanded() {
+        "grid"
+    } else {
+        "zoom"
+    }
 }
 
 fn market_internals_line(
@@ -2102,12 +2190,18 @@ fn compact_ui_mode_label(state: &WorkstationUiState) -> String {
         .command()
         .map(|command| format!(" cmd:{}", command.target().label()))
         .unwrap_or_default();
+    let zoom = if state.pane_expanded() {
+        format!(" zoom:{}", state.focused_pane().label())
+    } else {
+        String::new()
+    };
     format!(
-        "view:{} pane:{} dens:{} chart:{}{}",
+        "view:{} pane:{} dens:{} chart:{}{}{}",
         state.view().label(),
         state.focused_pane().label(),
         state.density().label(),
         state.chart_window().label(),
+        zoom,
         command
     )
 }
@@ -2117,12 +2211,18 @@ fn narrow_ui_mode_label(state: &WorkstationUiState) -> String {
         .command()
         .map(|command| format!(" cmd:{}", command.target().label()))
         .unwrap_or_default();
+    let zoom = if state.pane_expanded() {
+        format!(" z:{}", state.focused_pane().label())
+    } else {
+        String::new()
+    };
     format!(
-        "v:{} p:{} d:{} c:{}{}",
+        "v:{} p:{} d:{} c:{}{}{}",
         state.view().label(),
         state.focused_pane().label(),
         state.density().label(),
         state.chart_window().label(),
+        zoom,
         command
     )
 }

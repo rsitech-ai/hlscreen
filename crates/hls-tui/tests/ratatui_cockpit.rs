@@ -971,6 +971,74 @@ fn header_renders_keyboard_pane_hotkey_rail() {
 }
 
 #[test]
+fn wide_cockpit_expands_focused_chart_pane() {
+    let snapshots = fixture_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Chart),
+        snapshots.len(),
+    );
+    state.apply(WorkstationAction::TogglePaneZoom, snapshots.len());
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    )
+    .with_candles(fixture_candles());
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 160,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders expanded chart pane");
+
+    assert!(rendered.contains("zoom:chart"));
+    assert!(rendered.contains("EXPANDED chart"));
+    assert!(rendered.contains("z grid"));
+    assert!(rendered.contains("CANDLES"));
+    assert!(rendered.contains("WINDOWS"));
+}
+
+#[test]
+fn narrow_cockpit_expands_focused_book_pane() {
+    let snapshots = fixture_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Book),
+        snapshots.len(),
+    );
+    state.apply(WorkstationAction::TogglePaneZoom, snapshots.len());
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    );
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 72,
+            height: 24,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders expanded book pane");
+
+    assert!(rendered.contains("z:book"));
+    assert!(rendered.contains("EXPANDED book"));
+    assert!(rendered.contains("z grid"));
+    assert!(rendered.contains("BOOK"));
+    assert!(rendered.contains("BID"));
+    assert!(rendered.contains("ASK"));
+}
+
+#[test]
 fn medium_cockpit_keeps_book_and_tape_visible() {
     let model = RatatuiFrameModel::new(
         fixture_snapshots(),
