@@ -3675,6 +3675,7 @@ fn cockpit_reflects_keyboard_view_pause_density_and_help_state() {
     assert!(rendered.contains("HELP"));
     assert!(rendered.contains("Command Deck"));
     assert!(rendered.contains("KEY MATRIX"));
+    assert!(rendered.contains("left/right"));
     assert!(rendered.contains("PANES 1W 2D 3C 4B 5T 6S"));
     assert!(rendered.contains("mnemonic focus w/i/c/b/r/o"));
     assert!(rendered.contains("z zoom/grid"));
@@ -3806,6 +3807,7 @@ fn narrow_help_overlay_renders_compact_operator_map() {
     assert!(plain.contains("HELP COMPACT"));
     assert!(plain.contains("pane book"));
     assert!(plain.contains("j/k rows"));
+    assert!(plain.contains("left/right panes"));
     assert!(plain.contains("wheel panes"));
     assert!(plain.contains("active zoom"));
     assert!(plain.contains("click rows/rails/tabs"));
