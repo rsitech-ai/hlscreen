@@ -1286,35 +1286,50 @@ fn apply_pending_tui_actions(
     screen_request: &mut ScreenRequest,
 ) -> anyhow::Result<bool> {
     let mut actions = Vec::new();
+    let mut redraw_requested = false;
     while event::poll(Duration::from_millis(0))? {
-        match event::read()? {
-            Event::Key(key) => {
-                if key.kind != KeyEventKind::Press {
-                    continue;
-                }
-                if let Some(action) = key_to_workstation_action(key, ui_state) {
-                    actions.push(action);
-                }
-            }
-            Event::Mouse(mouse) => {
-                if let Some(action) =
-                    mouse_to_workstation_action(mouse, ui_state, terminal_size().ok())
-                {
-                    actions.push(action);
-                }
-            }
-            _ => {}
+        match live_tui_event_effect(event::read()?, ui_state, terminal_size().ok()) {
+            LiveTuiEventEffect::Ignore => {}
+            LiveTuiEventEffect::Redraw => redraw_requested = true,
+            LiveTuiEventEffect::Action(action) => actions.push(action),
         }
     }
 
     if actions.is_empty() {
-        return Ok(false);
+        return Ok(redraw_requested);
     }
 
     for action in actions {
         apply_live_tui_action(action, ui_state, state, screen_request)?;
     }
     Ok(true)
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum LiveTuiEventEffect {
+    Ignore,
+    Redraw,
+    Action(WorkstationAction),
+}
+
+fn live_tui_event_effect(
+    event: Event,
+    ui_state: &WorkstationUiState,
+    terminal_size: Option<(u16, u16)>,
+) -> LiveTuiEventEffect {
+    match event {
+        Event::Key(key) => {
+            if key.kind != KeyEventKind::Press {
+                return LiveTuiEventEffect::Ignore;
+            }
+            key_to_workstation_action(key, ui_state)
+                .map_or(LiveTuiEventEffect::Ignore, LiveTuiEventEffect::Action)
+        }
+        Event::Mouse(mouse) => mouse_to_workstation_action(mouse, ui_state, terminal_size)
+            .map_or(LiveTuiEventEffect::Ignore, LiveTuiEventEffect::Action),
+        Event::Resize(_, _) => LiveTuiEventEffect::Redraw,
+        _ => LiveTuiEventEffect::Ignore,
+    }
 }
 
 fn key_to_workstation_action(
@@ -1830,6 +1845,76 @@ mod tests {
                 Some((160, 48)),
             ),
             None
+        );
+    }
+
+    #[test]
+    fn live_tui_resize_event_requests_redraw_without_mutating_state() {
+        let mut state = WorkstationUiState::default();
+        state.apply(WorkstationAction::Down, 3);
+        assert_eq!(state.selected_index(3), Some(1));
+
+        assert_eq!(
+            live_tui_event_effect(Event::Resize(96, 30), &state, Some((160, 48))),
+            LiveTuiEventEffect::Redraw
+        );
+        assert_eq!(state.selected_index(3), Some(1));
+        assert_eq!(state.view(), WorkstationView::Overview);
+        assert_eq!(state.focused_pane(), WorkstationPane::Watchlist);
+    }
+
+    #[test]
+    fn live_tui_event_effect_preserves_key_and_mouse_action_mapping() {
+        let state = WorkstationUiState::default();
+        assert_eq!(
+            live_tui_event_effect(
+                Event::Key(KeyEvent::new(KeyCode::Char('j'), KeyModifiers::NONE)),
+                &state,
+                Some((160, 48)),
+            ),
+            LiveTuiEventEffect::Action(WorkstationAction::Down)
+        );
+        assert_eq!(
+            live_tui_event_effect(
+                Event::Key(KeyEvent {
+                    code: KeyCode::Char('j'),
+                    modifiers: KeyModifiers::NONE,
+                    kind: KeyEventKind::Release,
+                    state: crossterm::event::KeyEventState::NONE,
+                }),
+                &state,
+                Some((160, 48)),
+            ),
+            LiveTuiEventEffect::Ignore
+        );
+        assert_eq!(
+            live_tui_event_effect(
+                Event::Mouse(MouseEvent {
+                    kind: MouseEventKind::ScrollDown,
+                    column: 0,
+                    row: 0,
+                    modifiers: KeyModifiers::NONE,
+                }),
+                &state,
+                Some((160, 48)),
+            ),
+            LiveTuiEventEffect::Action(WorkstationAction::Down)
+        );
+
+        let mut command_state = WorkstationUiState::default();
+        command_state.apply(WorkstationAction::CycleFilter, 1);
+        assert_eq!(
+            live_tui_event_effect(
+                Event::Mouse(MouseEvent {
+                    kind: MouseEventKind::ScrollDown,
+                    column: 0,
+                    row: 0,
+                    modifiers: KeyModifiers::NONE,
+                }),
+                &command_state,
+                Some((160, 48)),
+            ),
+            LiveTuiEventEffect::Ignore
         );
     }
 
