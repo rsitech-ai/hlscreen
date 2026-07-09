@@ -195,6 +195,18 @@ fn render_wide(
         ])
         .split(root[1]);
     render_watchlist(frame, body[0], model, color_mode);
+    if model.ui_state.focused_pane() == WorkstationPane::Status {
+        let status_area = Rect {
+            x: body[1].x,
+            y: body[1].y,
+            width: body[1].width.saturating_add(body[2].width),
+            height: body[1].height,
+        };
+        render_status_panel(frame, status_area, model, color_mode);
+        render_help_overlay(frame, area, model, color_mode);
+        render_command_palette(frame, area, model, color_mode);
+        return;
+    }
 
     let detail_height = adaptive_detail_height(model.ui_state.view(), body[1].height, 12);
     let center = Layout::default()
@@ -236,6 +248,12 @@ fn render_medium(
         .constraints([Constraint::Percentage(38), Constraint::Percentage(62)])
         .split(root[1]);
     render_watchlist(frame, body[0], model, color_mode);
+    if model.ui_state.focused_pane() == WorkstationPane::Status {
+        render_status_panel(frame, body[1], model, color_mode);
+        render_help_overlay(frame, area, model, color_mode);
+        render_command_palette(frame, area, model, color_mode);
+        return;
+    }
 
     let detail_height = adaptive_detail_height(model.ui_state.view(), body[1].height, 19);
     let center = Layout::default()
@@ -4067,7 +4085,8 @@ fn render_status_panel(
     let gaps = health_metric(&model.health_status, "gaps").unwrap_or(0);
     let ingest_ratio = (market_events as f64 / 500.0).clamp(0.0, 1.0);
     let ws_ratio = (ws_messages as f64 / 500.0).clamp(0.0, 1.0);
-    let lines = vec![
+    let compact = area.width < 90;
+    let mut lines = vec![
         Line::from(vec![
             Span::styled(
                 "stream ",
@@ -4116,6 +4135,11 @@ fn render_status_panel(
             Span::raw(depth_bar(ingest_ratio, 4)),
             Span::raw(" ingest"),
         ]),
+    ];
+    if !compact {
+        lines.push(status_regime_board_line(&rows, color_mode));
+    }
+    lines.extend([
         status_quality_matrix_line(&rows, color_mode),
         Line::from(format!(
             "active {} pane {} palette {} / filter t chart",
@@ -4130,10 +4154,14 @@ fn render_status_panel(
                     .fg(accent(color_mode))
                     .add_modifier(Modifier::BOLD),
             ),
-            Span::raw("no orders 1-6 focus p preset s sort space pause"),
+            Span::raw(if compact {
+                "no orders 1-6 focus p preset s sort space pause"
+            } else {
+                "no orders 1-6 focus status ? help p preset s sort space pause"
+            }),
         ]),
         Line::from("read-only safety | No wallet | public market data only"),
-    ];
+    ]);
     frame.render_widget(
         Paragraph::new(lines)
             .wrap(Wrap { trim: true })
@@ -4146,6 +4174,72 @@ fn render_status_panel(
             .style(Style::default().fg(text(color_mode))),
         area,
     );
+}
+
+fn status_regime_board_line(
+    rows: &[FeatureSnapshot],
+    color_mode: RatatuiColorMode,
+) -> Line<'static> {
+    let up = rows
+        .iter()
+        .filter(|row| row.ret_1m.is_some_and(|value| value > 0.0))
+        .count();
+    let down = rows
+        .iter()
+        .filter(|row| row.ret_1m.is_some_and(|value| value < 0.0))
+        .count();
+    let net_flow = rows
+        .iter()
+        .filter_map(|row| row.signed_notional_flow_30s)
+        .filter(|value| value.is_finite())
+        .sum::<f64>();
+    let depth = rows
+        .iter()
+        .filter_map(|row| row.tob_depth_usd)
+        .filter(|value| value.is_finite())
+        .sum::<f64>();
+    let avg_confidence = if rows.is_empty() {
+        0
+    } else {
+        let total = rows
+            .iter()
+            .map(|row| row.confidence.score as u64)
+            .sum::<u64>();
+        (total / rows.len() as u64).min(100)
+    };
+    let regime = market_regime_label(up, down);
+
+    Line::from(vec![
+        Span::styled(
+            "REGIME BOARD ",
+            Style::default()
+                .fg(accent(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::styled(
+            format!("regime {regime} "),
+            Style::default()
+                .fg(market_regime_color(up, down, color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw(format!(
+            "breadth {:02}/{:02} heat {} ",
+            up.min(99),
+            down.min(99),
+            market_heat_bar(up, down)
+        )),
+        Span::styled(
+            format!("net flow {} ", format_usd_signed(Some(net_flow))),
+            Style::default()
+                .fg(flow_color(net_flow, color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw(format!(
+            "depth {} avg conf {} | portfolio scan read-only",
+            format_usd(Some(depth)),
+            avg_confidence
+        )),
+    ])
 }
 
 fn status_quality_matrix_line(

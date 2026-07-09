@@ -1292,6 +1292,47 @@ fn narrow_cockpit_renders_status_focus_as_operational_drilldown() {
 }
 
 #[test]
+fn wide_status_focus_renders_market_regime_board() {
+    let mut snapshots = directional_snapshots();
+    snapshots[0].tob_depth_usd = Some(1_200.0);
+    snapshots[1].tob_depth_usd = Some(8_800.0);
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Status),
+        snapshots.len(),
+    );
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    )
+    .with_status("LIVE", "REC ready", "ws=235 events=485 reconnects=0 gaps=0");
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 240,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders wide status regime board");
+
+    assert!(rendered.contains("[FOCUS] STATUS"));
+    assert!(rendered.contains("REGIME BOARD"));
+    assert!(rendered.contains("portfolio scan read-only"));
+    assert!(rendered.contains("regime mixed"));
+    assert!(rendered.contains("breadth 01/01"));
+    assert!(rendered.contains("heat ██░░"));
+    assert!(rendered.contains("net flow -$4.2K"));
+    assert!(rendered.contains("depth $10.0K"));
+    assert!(rendered.contains("avg conf 100"));
+    assert!(rendered.contains("status ? help"));
+    assert!(rendered.contains("No wallet"));
+}
+
+#[test]
 fn cockpit_color_mode_is_explicit_and_does_not_pollute_no_color_snapshots() {
     let model = RatatuiFrameModel::new(
         fixture_snapshots(),
