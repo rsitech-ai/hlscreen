@@ -150,6 +150,37 @@ fn fixture_trades() -> Vec<TradeEvent> {
     .collect()
 }
 
+fn directional_chart_candles(symbol: &str) -> Vec<CandleEvent> {
+    vec![
+        CandleEvent {
+            recv_ts_ns: 1,
+            open_ts_ms: 1_710_000_000_000,
+            close_ts_ms: 1_710_000_059_999,
+            hl_coin: symbol.to_owned(),
+            interval: "1m".to_owned(),
+            open: 10.0,
+            high: 12.0,
+            low: 9.8,
+            close: 12.0,
+            volume_base: 100.0,
+            trade_count: 10,
+        },
+        CandleEvent {
+            recv_ts_ns: 2,
+            open_ts_ms: 1_710_000_060_000,
+            close_ts_ms: 1_710_000_119_999,
+            hl_coin: symbol.to_owned(),
+            interval: "1m".to_owned(),
+            open: 12.0,
+            high: 12.2,
+            low: 10.0,
+            close: 10.0,
+            volume_base: 160.0,
+            trade_count: 12,
+        },
+    ]
+}
+
 #[test]
 fn wide_cockpit_renders_all_primary_trading_workstation_regions() {
     let model = RatatuiFrameModel::new(
@@ -1145,6 +1176,44 @@ fn cockpit_color_mode_is_explicit_and_does_not_pollute_no_color_snapshots() {
     assert!(colored.contains("\u{1b}[38;2;"));
     assert!(colored.contains("\u{1b}[48;2;"));
     assert!(colored.contains("WATCHLIST"));
+}
+
+#[test]
+fn cockpit_chart_colorizes_directional_candles_in_color_mode() {
+    let snapshots = fixture_snapshots();
+    let candles = directional_chart_candles(&snapshots[0].symbol);
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        WorkstationUiState::default(),
+    )
+    .with_candles(candles);
+
+    let plain = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 160,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("plain chart renders");
+    let colored = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 160,
+            height: 48,
+        },
+        RatatuiColorMode::Color,
+    )
+    .expect("colored chart renders");
+
+    assert!(!plain.contains("\u{1b}["));
+    assert!(plain.contains("█"));
+    assert!(plain.contains("▓"));
+    assert!(colored.contains("\u{1b}[38;2;0;255;154m█"));
+    assert!(colored.contains("\u{1b}[38;2;255;77;109m▓"));
 }
 
 #[test]
