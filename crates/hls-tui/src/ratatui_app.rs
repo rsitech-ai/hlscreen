@@ -180,7 +180,7 @@ fn render_wide(
         .constraints([
             Constraint::Length(7),
             Constraint::Min(12),
-            Constraint::Length(2),
+            Constraint::Length(3),
         ])
         .split(area);
     render_header(frame, root[0], model, color_mode);
@@ -237,7 +237,7 @@ fn render_medium(
         .constraints([
             Constraint::Length(6),
             Constraint::Min(12),
-            Constraint::Length(2),
+            Constraint::Length(3),
         ])
         .split(area);
     render_header(frame, root[0], model, color_mode);
@@ -3734,13 +3734,27 @@ fn render_status_bar(
     model: &RatatuiFrameModel,
     color_mode: RatatuiColorMode,
 ) {
-    let status = if area.width < 90 {
-        compact_status_bar_line(model)
+    if area.width < 90 {
+        frame.render_widget(
+            Paragraph::new(compact_status_bar_line(model))
+                .wrap(Wrap { trim: true })
+                .style(Style::default().fg(warn(color_mode)))
+                .block(
+                    Block::default()
+                        .borders(Borders::TOP)
+                        .border_style(focus_style(
+                            model.ui_state.focused_pane() == WorkstationPane::Status,
+                            color_mode,
+                        )),
+                ),
+            area,
+        );
     } else {
-        market_status_bar_line(model, color_mode)
-    };
-    frame.render_widget(
-        Paragraph::new(status)
+        frame.render_widget(
+            Paragraph::new(vec![
+                market_status_bar_line(model, color_mode),
+                action_status_bar_line(color_mode),
+            ])
             .wrap(Wrap { trim: true })
             .style(Style::default().fg(warn(color_mode)))
             .block(
@@ -3751,8 +3765,9 @@ fn render_status_bar(
                         color_mode,
                     )),
             ),
-        area,
-    );
+            area,
+        );
+    }
 }
 
 fn compact_status_bar_line(model: &RatatuiFrameModel) -> Line<'static> {
@@ -3804,8 +3819,18 @@ fn market_status_bar_line(
         ),
     ]);
     spans.extend(risk_strip_spans(model, color_mode));
-    spans.extend([
-        Span::raw(" | ACTION STRIP | "),
+    Line::from(spans)
+}
+
+fn action_status_bar_line(color_mode: RatatuiColorMode) -> Line<'static> {
+    Line::from(vec![
+        Span::styled(
+            "ACTION STRIP ",
+            Style::default()
+                .fg(accent(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw("j/k row ent detail tab view / filter p preset s sort t win ? help q quit | "),
         Span::styled(
             "THEME ",
             Style::default()
@@ -3817,8 +3842,7 @@ fn market_status_bar_line(
         Span::styled("▼", Style::default().fg(danger(color_mode))),
         Span::styled("● ", Style::default().fg(warn(color_mode))),
         Span::raw("--color always | "),
-    ]);
-    Line::from(spans)
+    ])
 }
 
 fn risk_strip_spans(model: &RatatuiFrameModel, color_mode: RatatuiColorMode) -> Vec<Span<'static>> {
