@@ -1765,6 +1765,11 @@ fn render_help_overlay(
         Line::from("tab / shift-tab  cycle overview, flow, quality, metadata, explain"),
         Line::from("[ / ]  move pane focus: watchlist, detail, chart, book, tape, status"),
         Line::from("1-6 panes  watchlist, detail, chart, book, tape, status"),
+        Line::from(format!(
+            "PALETTE DIAGNOSTIC mode {} palette {} | truecolor ANSI | force --color always",
+            color_mode.label(),
+            color_mode.palette_label()
+        )),
         Line::from("mouse wheel moves rows; click focuses panes when terminal mouse is available"),
         Line::from("/ filter  |  p preset  |  s sort  |  t chart window"),
         Line::from("d  density  |  space  pause display  |  ?  help  |  q  quit"),

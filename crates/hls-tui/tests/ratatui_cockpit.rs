@@ -1334,6 +1334,10 @@ fn cockpit_reflects_keyboard_view_pause_density_and_help_state() {
     assert!(rendered.contains("PANES 1W 2D 3C 4B 5T 6S"));
     assert!(rendered.contains("MARKET OPS / filter p preset s sort"));
     assert!(rendered.contains("STATE view flow | pane chart | density dense"));
+    assert!(rendered.contains("PALETTE DIAGNOSTIC"));
+    assert!(rendered.contains("mode no-color"));
+    assert!(rendered.contains("truecolor ANSI"));
+    assert!(rendered.contains("force --color always"));
     assert!(rendered.contains("READ-ONLY public market data only"));
     assert!(rendered.contains("[ / ]"));
     assert!(rendered.contains("1-6 panes"));
