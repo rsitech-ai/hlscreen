@@ -950,6 +950,46 @@ fn detail_panel_renders_selected_pair_alpha_risk_stack() {
 }
 
 #[test]
+fn expanded_detail_renders_quote_terminal_deck() {
+    let snapshots = fixture_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Detail),
+        snapshots.len(),
+    );
+    state.apply(WorkstationAction::TogglePaneZoom, snapshots.len());
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    );
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 190,
+            height: 50,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders expanded quote terminal");
+
+    assert!(rendered.contains("EXPANDED detail"));
+    assert!(rendered.contains("QUOTE TERMINAL"));
+    assert!(rendered.contains("instrument HYPE/USDC"));
+    assert!(rendered.contains("BID 34.9000"));
+    assert!(rendered.contains("ASK 35.1000"));
+    assert!(rendered.contains("spread 57.1bps"));
+    assert!(rendered.contains("top book $"));
+    assert!(rendered.contains("FLOW"));
+    assert!(rendered.contains("CONF 100"));
+    assert!(rendered.contains("public BBO/trades only"));
+    assert!(rendered.contains("no orders"));
+    assert!(rendered.contains("not advice"));
+}
+
+#[test]
 fn detail_explain_view_renders_why_ranked_deck() {
     let snapshots = fixture_snapshots();
     let mut state = WorkstationUiState::default();
