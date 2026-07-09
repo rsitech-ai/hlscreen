@@ -466,6 +466,45 @@ fn market_pulse_uses_display_symbols_for_metadata_backed_rows() {
 }
 
 #[test]
+fn cockpit_header_renders_interactive_desk_tab_rail() {
+    let snapshots = directional_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Chart),
+        snapshots.len(),
+    );
+    state.apply(WorkstationAction::NextView, snapshots.len());
+    state.apply(WorkstationAction::ToggleDensity, snapshots.len());
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    );
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 180,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders interactive desk tab rail");
+
+    assert!(rendered.contains("DESK"));
+    assert!(rendered.contains("WATCHLIST 1"));
+    assert!(rendered.contains("DETAIL 2"));
+    assert!(rendered.contains("[CHART 3]"));
+    assert!(rendered.contains("BOOK 4"));
+    assert!(rendered.contains("TAPE 5"));
+    assert!(rendered.contains("OPS 6"));
+    assert!(rendered.contains("view flow"));
+    assert!(rendered.contains("density dense"));
+    assert!(rendered.contains("read-only"));
+}
+
+#[test]
 fn detail_panel_renders_score_factor_stack() {
     let model = RatatuiFrameModel::new(
         fixture_snapshots(),
