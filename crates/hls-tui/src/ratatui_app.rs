@@ -3168,126 +3168,132 @@ fn render_help_overlay(
     let popup = centered_rect(76, 54, area);
     frame.render_widget(Clear, popup);
     let state = &model.ui_state;
-    let lines = vec![
-        Line::from(vec![
-            Span::styled(
-                "OPERATOR KEYBOARD MAP",
-                Style::default()
-                    .fg(accent(color_mode))
-                    .add_modifier(Modifier::BOLD),
+    let lines = if popup.width < 64 {
+        compact_help_overlay_lines(state, model, color_mode)
+    } else {
+        vec![
+            Line::from(vec![
+                Span::styled(
+                    "OPERATOR KEYBOARD MAP",
+                    Style::default()
+                        .fg(accent(color_mode))
+                        .add_modifier(Modifier::BOLD),
+                ),
+                Span::raw(" | Command Deck"),
+            ]),
+            Line::from(vec![
+                Span::styled(
+                    "STATE ",
+                    Style::default()
+                        .fg(accent(color_mode))
+                        .add_modifier(Modifier::BOLD),
+                ),
+                Span::raw(format!(
+                    "view {} | pane {} | density {} | focus {} | chart {} | zoom {} | {}",
+                    state.view().label(),
+                    state.focused_pane().label(),
+                    state.density().label(),
+                    state.focused_pane().label(),
+                    state.chart_window().label(),
+                    pane_zoom_action_label(state),
+                    pause_label(model)
+                )),
+            ]),
+            Line::from(vec![
+                Span::styled(
+                    "KEY MATRIX ",
+                    Style::default()
+                        .fg(warn(color_mode))
+                        .add_modifier(Modifier::BOLD),
+                ),
+                Span::raw(
+                    "arrows/j/k navigate | tab views | [ ] panes | z zoom/grid | space pause",
+                ),
+            ]),
+            Line::from(vec![
+                Span::styled(
+                    "NAVIGATION ",
+                    Style::default()
+                        .fg(warn(color_mode))
+                        .add_modifier(Modifier::BOLD),
+                ),
+                Span::raw(format!(
+                    "active pane {} | j/k or arrows act on focused pane: rows, detail view, or chart window",
+                    state.focused_pane().label()
+                )),
+            ]),
+            Line::from(
+                "PANES 1W 2D 3C 4B 5T 6S | enter detail | h health/status | watchlist detail chart book tape status",
             ),
-            Span::raw(" | Command Deck"),
-        ]),
-        Line::from(vec![
-            Span::styled(
-                "STATE ",
-                Style::default()
-                    .fg(accent(color_mode))
-                    .add_modifier(Modifier::BOLD),
-            ),
-            Span::raw(format!(
-                "view {} | pane {} | density {} | focus {} | chart {} | zoom {} | {}",
-                state.view().label(),
-                state.focused_pane().label(),
-                state.density().label(),
-                state.focused_pane().label(),
-                state.chart_window().label(),
-                pane_zoom_action_label(state),
-                pause_label(model)
+            Line::from(vec![
+                Span::styled(
+                    "MARKET COMMANDS ",
+                    Style::default()
+                        .fg(success(color_mode))
+                        .add_modifier(Modifier::BOLD),
+                ),
+                Span::raw(
+                    "MARKET OPS g symbol / filter p preset s sort | t chart window | z pane zoom | d density",
+                ),
+            ]),
+            Line::from(vec![
+                Span::styled(
+                    "LAYOUT ",
+                    Style::default()
+                        .fg(accent(color_mode))
+                        .add_modifier(Modifier::BOLD),
+                ),
+                Span::raw(
+                    "[ / ] move pane focus | 1-6 panes | tab / shift-tab cycle overview, flow, quality, metadata, explain",
+                ),
+            ]),
+            Line::from("MOUSE wheel rows | click focus | terminal support required"),
+            Line::from("1-6 panes  watchlist, detail, chart, book, tape, status"),
+            Line::from(vec![
+                Span::styled(
+                    "COLOR SUPPORT ",
+                    Style::default()
+                        .fg(warn(color_mode))
+                        .add_modifier(Modifier::BOLD),
+                ),
+                Span::raw(format!(
+                    "PALETTE DIAGNOSTIC mode {} palette {}",
+                    color_mode.label(),
+                    color_mode.palette_label()
+                )),
+            ]),
+            Line::from(format!(
+                "COLOR PATH {} | truecolor ANSI | force --color always",
+                color_mode.color_path_label()
             )),
-        ]),
-        Line::from(vec![
-            Span::styled(
-                "KEY MATRIX ",
-                Style::default()
-                    .fg(warn(color_mode))
-                    .add_modifier(Modifier::BOLD),
+            Line::from(
+                "If the cockpit is black/white: avoid --color never, use --color always, and check terminal truecolor support",
             ),
-            Span::raw("arrows/j/k navigate | tab views | [ ] panes | z zoom/grid | space pause"),
-        ]),
-        Line::from(vec![
-            Span::styled(
-                "NAVIGATION ",
-                Style::default()
-                    .fg(warn(color_mode))
-                    .add_modifier(Modifier::BOLD),
+            Line::from(
+                "g symbol  |  / filter  |  p preset  |  s sort  |  t chart window  |  z zoom  |  enter detail  |  h health",
             ),
-            Span::raw(format!(
-                "active pane {} | j/k or arrows act on focused pane: rows, detail view, or chart window",
-                state.focused_pane().label()
-            )),
-        ]),
-        Line::from(
-            "PANES 1W 2D 3C 4B 5T 6S | enter detail | h health/status | watchlist detail chart book tape status",
-        ),
-        Line::from(vec![
-            Span::styled(
-                "MARKET COMMANDS ",
-                Style::default()
-                    .fg(success(color_mode))
-                    .add_modifier(Modifier::BOLD),
-            ),
-            Span::raw(
-                "MARKET OPS g symbol / filter p preset s sort | t chart window | z pane zoom | d density",
-            ),
-        ]),
-        Line::from(vec![
-            Span::styled(
-                "LAYOUT ",
-                Style::default()
-                    .fg(accent(color_mode))
-                    .add_modifier(Modifier::BOLD),
-            ),
-            Span::raw(
-                "[ / ] move pane focus | 1-6 panes | tab / shift-tab cycle overview, flow, quality, metadata, explain",
-            ),
-        ]),
-        Line::from("MOUSE wheel rows | click focus | terminal support required"),
-        Line::from("1-6 panes  watchlist, detail, chart, book, tape, status"),
-        Line::from(vec![
-            Span::styled(
-                "COLOR SUPPORT ",
-                Style::default()
-                    .fg(warn(color_mode))
-                    .add_modifier(Modifier::BOLD),
-            ),
-            Span::raw(format!(
-                "PALETTE DIAGNOSTIC mode {} palette {}",
-                color_mode.label(),
-                color_mode.palette_label()
-            )),
-        ]),
-        Line::from(format!(
-            "COLOR PATH {} | truecolor ANSI | force --color always",
-            color_mode.color_path_label()
-        )),
-        Line::from(
-            "If the cockpit is black/white: avoid --color never, use --color always, and check terminal truecolor support",
-        ),
-        Line::from(
-            "g symbol  |  / filter  |  p preset  |  s sort  |  t chart window  |  z zoom  |  enter detail  |  h health",
-        ),
-        Line::from("d  density  |  space  pause display  |  ?  help  |  q  quit"),
-        Line::from(vec![
-            Span::styled(
-                "CAPITAL BOUNDARY ",
-                Style::default()
-                    .fg(danger(color_mode))
-                    .add_modifier(Modifier::BOLD),
-            ),
-            Span::raw("no wallet | no private streams | no order routes"),
-        ]),
-        Line::from(vec![
-            Span::styled(
-                "READ-ONLY ",
-                Style::default()
-                    .fg(success(color_mode))
-                    .add_modifier(Modifier::BOLD),
-            ),
-            Span::raw("public market data only | no wallet | no order routes"),
-        ]),
-        Line::from("Display only: no wallet, private streams, or order routes."),
-    ];
+            Line::from("d  density  |  space  pause display  |  ?  help  |  q  quit"),
+            Line::from(vec![
+                Span::styled(
+                    "CAPITAL BOUNDARY ",
+                    Style::default()
+                        .fg(danger(color_mode))
+                        .add_modifier(Modifier::BOLD),
+                ),
+                Span::raw("no wallet | no private streams | no order routes"),
+            ]),
+            Line::from(vec![
+                Span::styled(
+                    "READ-ONLY ",
+                    Style::default()
+                        .fg(success(color_mode))
+                        .add_modifier(Modifier::BOLD),
+                ),
+                Span::raw("public market data only | no wallet | no order routes"),
+            ]),
+            Line::from("Display only: no wallet, private streams, or order routes."),
+        ]
+    };
     frame.render_widget(
         Paragraph::new(lines)
             .wrap(Wrap { trim: true })
@@ -3295,6 +3301,55 @@ fn render_help_overlay(
             .style(Style::default().fg(text(color_mode))),
         popup,
     );
+}
+
+fn compact_help_overlay_lines(
+    state: &WorkstationUiState,
+    model: &RatatuiFrameModel,
+    color_mode: RatatuiColorMode,
+) -> Vec<Line<'static>> {
+    vec![
+        Line::from(vec![
+            Span::styled(
+                "HELP COMPACT ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw("operator map"),
+        ]),
+        Line::from(format!(
+            "view {} | pane {} | density {} | {}",
+            state.view().label(),
+            state.focused_pane().label(),
+            state.density().label(),
+            pause_label(model)
+        )),
+        Line::from(vec![
+            Span::styled("NAV ", Style::default().fg(warn(color_mode))),
+            Span::raw("j/k rows | tab view | [ ] pane"),
+        ]),
+        Line::from(vec![
+            Span::styled("PANES ", Style::default().fg(warn(color_mode))),
+            Span::raw("1-6 panes | enter detail | h health"),
+        ]),
+        Line::from(vec![
+            Span::styled("OPS ", Style::default().fg(success(color_mode))),
+            Span::raw("g symbol | / filter | p preset | s sort"),
+        ]),
+        Line::from("t chart | d density | z zoom | space pause | q quit"),
+        Line::from(format!("color {} | use --color always", color_mode.label())),
+        Line::from(format!("path {}", color_mode.color_path_label())),
+        Line::from(vec![
+            Span::styled(
+                "READ-ONLY ",
+                Style::default()
+                    .fg(danger(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw("public market data only"),
+        ]),
+    ]
 }
 
 fn render_command_palette(
