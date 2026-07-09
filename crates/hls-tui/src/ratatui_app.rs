@@ -1322,7 +1322,7 @@ fn render_chart(
     let Some(latest) = candles.last() else {
         frame.render_widget(
             Paragraph::new(vec![
-                chart_window_tabs_line(model.ui_state.chart_window(), color_mode, area.width < 72),
+                chart_window_tabs_line(model.ui_state.chart_window(), color_mode, area.width <= 72),
                 Line::from("Waiting for public 1m candle frames."),
                 Line::from("No synthetic candles are rendered."),
             ])
@@ -1350,7 +1350,7 @@ fn render_chart(
     let mut chart_lines = vec![chart_window_tabs_line(
         model.ui_state.chart_window(),
         color_mode,
-        area.width < 72,
+        area.width <= 72,
     )];
     chart_lines.extend(candle_chart_lines(
         &candles,
@@ -1398,6 +1398,14 @@ fn chart_window_tabs_line(
             spans.push(Span::raw(label.to_owned()));
         }
     }
+    spans.push(Span::styled(
+        if compact {
+            "  t:window"
+        } else {
+            "  t:cycle window"
+        },
+        Style::default().fg(text(color_mode)),
+    ));
     Line::from(spans)
 }
 

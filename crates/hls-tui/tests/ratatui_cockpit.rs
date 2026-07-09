@@ -946,3 +946,36 @@ fn cockpit_chart_renders_interactive_window_tab_rail() {
     assert!(rendered.contains("WINDOWS 1m 5m 15m [30m] 60m"));
     assert!(rendered.contains("chart:30m"));
 }
+
+#[test]
+fn narrow_chart_focus_renders_compact_window_controls() {
+    let snapshots = fixture_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Chart),
+        snapshots.len(),
+    );
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    )
+    .with_candles(fixture_candles());
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 72,
+            height: 24,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders compact chart controls");
+
+    assert!(rendered.contains("[FOCUS] CANDLES"));
+    assert!(rendered.contains("WIN 1 5 [15] 30 60"));
+    assert!(rendered.contains("t:window"));
+    assert!(rendered.contains("live | chart:t | top1"));
+    assert!(rendered.contains("RO no-wallet"));
+}
