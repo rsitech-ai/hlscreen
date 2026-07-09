@@ -758,6 +758,52 @@ fn expanded_watchlist_renders_market_heatmap_deck() {
 }
 
 #[test]
+fn expanded_watchlist_renders_command_center_deck() {
+    let mut snapshots = directional_snapshots();
+    snapshots[0].tob_depth_usd = Some(245.0);
+    snapshots[1].tob_depth_usd = Some(8_800.0);
+    snapshots[1].confidence.score = 55;
+    snapshots[1].confidence.level = ConfidenceLevel::Low;
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Watchlist),
+        snapshots.len(),
+    );
+    state.apply(WorkstationAction::TogglePaneZoom, snapshots.len());
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    )
+    .with_candles(fixture_candles());
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 190,
+            height: 52,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders expanded watchlist command center");
+
+    assert!(rendered.contains("EXPANDED watchlist"));
+    assert!(rendered.contains("WATCHLIST COMMAND CENTER"));
+    assert!(rendered.contains("selected HYPE/USDC"));
+    assert!(rendered.contains("visible 02"));
+    assert!(rendered.contains("tradeable"));
+    assert!(rendered.contains("degraded"));
+    assert!(rendered.contains("hotkeys j/k ent tab"));
+    assert!(rendered.contains("leaders mover DOWN/USDC"));
+    assert!(rendered.contains("flow DOWN/USDC -$4.2K"));
+    assert!(rendered.contains("depth DOWN/USDC $8.8K"));
+    assert!(rendered.contains("read-only scanner"));
+    assert!(rendered.contains("no wallet"));
+    assert!(rendered.contains("no orders"));
+}
+
+#[test]
 fn market_board_renders_directional_edge_pulses() {
     let model = RatatuiFrameModel::new(
         directional_snapshots(),
