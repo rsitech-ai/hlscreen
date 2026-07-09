@@ -193,9 +193,10 @@ fn render_wide(
         .split(root[1]);
     render_watchlist(frame, body[0], model, color_mode);
 
+    let detail_height = adaptive_detail_height(model.ui_state.view(), body[1].height, 12);
     let center = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Length(9), Constraint::Min(12)])
+        .constraints([Constraint::Length(detail_height), Constraint::Min(12)])
         .split(body[1]);
     render_detail(frame, center[0], model, "MICROSTRUCTURE", color_mode);
     render_chart(frame, center[1], model, color_mode);
@@ -233,10 +234,11 @@ fn render_medium(
         .split(root[1]);
     render_watchlist(frame, body[0], model, color_mode);
 
+    let detail_height = adaptive_detail_height(model.ui_state.view(), body[1].height, 19);
     let center = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(8),
+            Constraint::Length(detail_height),
             Constraint::Min(10),
             Constraint::Length(9),
         ])
@@ -251,6 +253,19 @@ fn render_medium(
     render_tape(frame, lower[1], model, color_mode);
     render_help_overlay(frame, area, model, color_mode);
     render_command_palette(frame, area, model, color_mode);
+}
+
+fn adaptive_detail_height(
+    view: WorkstationView,
+    available_height: u16,
+    reserved_height: u16,
+) -> u16 {
+    let desired = match view {
+        WorkstationView::Overview | WorkstationView::Flow | WorkstationView::Explain => 10,
+        WorkstationView::Quality | WorkstationView::Metadata => 8,
+    };
+    let max_without_starving_neighbors = available_height.saturating_sub(reserved_height).max(6);
+    desired.min(max_without_starving_neighbors).max(6)
 }
 
 fn render_narrow(
