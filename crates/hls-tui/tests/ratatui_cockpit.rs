@@ -1629,6 +1629,10 @@ fn detail_overview_renders_quote_card() {
     assert!(rendered.contains("PAIR SNAPSHOT"));
     assert!(rendered.contains("freshness fresh"));
     assert!(rendered.contains("read-only quote"));
+    assert!(rendered.contains("BID/ASK BALANCE"));
+    assert!(rendered.contains("bid share"));
+    assert!(rendered.contains("ask share"));
+    assert!(rendered.contains("public BBO only"));
 }
 
 #[test]
