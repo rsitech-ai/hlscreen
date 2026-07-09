@@ -1402,8 +1402,9 @@ fn render_help_overlay(
     if !model.ui_state.help_open() {
         return;
     }
-    let popup = centered_rect(70, 42, area);
+    let popup = centered_rect(76, 54, area);
     frame.render_widget(Clear, popup);
+    let state = &model.ui_state;
     let lines = vec![
         Line::from(vec![Span::styled(
             "Command Deck",
@@ -1411,6 +1412,34 @@ fn render_help_overlay(
                 .fg(accent(color_mode))
                 .add_modifier(Modifier::BOLD),
         )]),
+        Line::from(vec![
+            Span::styled(
+                "STATE ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(format!(
+                "view {} | pane {} | density {} | chart {} | {}",
+                state.view().label(),
+                state.focused_pane().label(),
+                state.density().label(),
+                state.chart_window().label(),
+                pause_label(model)
+            )),
+        ]),
+        Line::from(vec![
+            Span::styled(
+                "KEY MATRIX ",
+                Style::default()
+                    .fg(warn(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw("arrows/j/k navigate | tab views | [ ] panes | space pause"),
+        ]),
+        Line::from("PANES 1W 2D 3C 4B 5T 6S | watchlist detail chart book tape status"),
+        Line::from("MARKET OPS / filter p preset s sort | t chart window | d density"),
+        Line::from("MOUSE wheel rows | click focus | terminal support required"),
         Line::from("j/k or arrows  act on focused pane: rows, detail view, or chart window"),
         Line::from("tab / shift-tab  cycle overview, flow, quality, metadata, explain"),
         Line::from("[ / ]  move pane focus: watchlist, detail, chart, book, tape, status"),
@@ -1418,6 +1447,15 @@ fn render_help_overlay(
         Line::from("mouse wheel moves rows; click focuses panes when terminal mouse is available"),
         Line::from("/ filter  |  p preset  |  s sort  |  t chart window"),
         Line::from("d  density  |  space  pause display  |  ?  help  |  q  quit"),
+        Line::from(vec![
+            Span::styled(
+                "READ-ONLY ",
+                Style::default()
+                    .fg(success(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw("public market data only | no wallet | no order routes"),
+        ]),
         Line::from("Display only: no wallet, private streams, or order routes."),
     ];
     frame.render_widget(
