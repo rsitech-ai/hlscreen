@@ -1515,6 +1515,43 @@ fn cockpit_chart_renders_selected_pair_edge_hud() {
 }
 
 #[test]
+fn wide_chart_renders_selected_pair_public_prints_strip() {
+    let snapshots = fixture_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Chart),
+        snapshots.len(),
+    );
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    )
+    .with_candles(fixture_candles())
+    .with_trades(fixture_trades());
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 220,
+            height: 52,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders chart prints strip");
+
+    assert!(rendered.contains("PRINTS STRIP"));
+    assert!(rendered.contains("public time-and-sales"));
+    assert!(rendered.contains("prints 2"));
+    assert!(rendered.contains("buy 1"));
+    assert!(rendered.contains("sell 1"));
+    assert!(rendered.contains("last SELL"));
+    assert!(rendered.contains("35.2000"));
+    assert!(rendered.contains("no fills"));
+}
+
+#[test]
 fn wide_chart_renders_selected_pair_order_pressure_lane() {
     let snapshots = directional_snapshots();
     let mut state = WorkstationUiState::default();

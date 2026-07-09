@@ -2030,6 +2030,12 @@ fn render_chart(
         area.width.saturating_sub(4) as usize,
         model.ui_state.chart_window().candle_limit(),
     );
+    let show_prints_strip = show_chart_prints_strip(area, model, &row.symbol);
+    let chart_trades = if show_prints_strip {
+        selected_trades(model, &row.symbol, 4)
+    } else {
+        Vec::new()
+    };
     let Some(latest) = candles.last() else {
         frame.render_widget(
             Paragraph::new({
@@ -2041,6 +2047,9 @@ fn render_chart(
                 lines.extend(selected_pair_edge_hud_lines(row, color_mode));
                 if show_chart_order_pressure(area) {
                     lines.extend(selected_pair_order_pressure_lines(row, color_mode));
+                }
+                if show_prints_strip {
+                    lines.extend(chart_prints_strip_lines(&chart_trades, color_mode));
                 }
                 lines.extend(chart_session_strip_lines(row, color_mode));
                 lines.extend([
@@ -2080,13 +2089,16 @@ fn render_chart(
     if show_order_pressure {
         chart_lines.extend(selected_pair_order_pressure_lines(row, color_mode));
     }
+    if show_prints_strip {
+        chart_lines.extend(chart_prints_strip_lines(&chart_trades, color_mode));
+    }
     chart_lines.push(chart_move_summary_line(&candles, color_mode));
     chart_lines.push(chart_candle_hud_line(latest, color_mode));
     chart_lines.extend(chart_session_strip_lines(row, color_mode));
+    let chart_overhead = 11 + u16::from(show_order_pressure) * 3 + u16::from(show_prints_strip) * 3;
     chart_lines.extend(candle_chart_lines(
         &candles,
-        area.height
-            .saturating_sub(if show_order_pressure { 14 } else { 11 }) as usize,
+        area.height.saturating_sub(chart_overhead) as usize,
         model.ui_state.chart_window().label(),
         color_mode,
     ));
@@ -2101,6 +2113,12 @@ fn render_chart(
 
 fn show_chart_order_pressure(area: Rect) -> bool {
     area.width >= 96 && area.height >= 26
+}
+
+fn show_chart_prints_strip(area: Rect, model: &RatatuiFrameModel, symbol: &str) -> bool {
+    area.width >= 96
+        && area.height >= 30
+        && model.trades.iter().any(|trade| trade.hl_coin == symbol)
 }
 
 fn chart_window_tabs_line(
@@ -2268,6 +2286,79 @@ fn selected_pair_order_pressure_lines(
                 format_usd_signed(row.bbo_ofi_proxy_30s)
             )),
         ]),
+    ]
+}
+
+fn chart_prints_strip_lines(
+    trades: &[&TradeEvent],
+    color_mode: RatatuiColorMode,
+) -> Vec<Line<'static>> {
+    if trades.is_empty() {
+        return Vec::new();
+    }
+    let buy_count = trades
+        .iter()
+        .filter(|trade| trade.side == TradeSide::Buy)
+        .count();
+    let sell_count = trades
+        .iter()
+        .filter(|trade| trade.side == TradeSide::Sell)
+        .count();
+    let net_notional = trades
+        .iter()
+        .map(|trade| match trade.side {
+            TradeSide::Buy => trade.notional,
+            TradeSide::Sell => -trade.notional,
+        })
+        .sum::<f64>();
+    let latest = trades[0];
+    let recent = trades
+        .iter()
+        .take(3)
+        .map(|trade| {
+            format!(
+                "{} {} {}",
+                trade_side_label(trade.side),
+                format_plain_number(trade.price),
+                format_usd(Some(trade.notional))
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(" | ");
+
+    vec![
+        Line::from(vec![
+            Span::styled(
+                "PRINTS STRIP ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(format!("public time-and-sales | prints {} ", trades.len())),
+            Span::styled("buy ", Style::default().fg(success(color_mode))),
+            Span::raw(format!("{buy_count} ")),
+            Span::styled("sell ", Style::default().fg(danger(color_mode))),
+            Span::raw(format!(
+                "{sell_count} net {}",
+                format_usd_signed(Some(net_notional))
+            )),
+        ]),
+        Line::from(vec![
+            Span::raw("last "),
+            Span::styled(
+                trade_side_label(latest.side),
+                Style::default()
+                    .fg(trade_side_color(latest.side, color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(format!(
+                " px {} size {} notional {} | no fills",
+                format_plain_number(latest.price),
+                format_size(Some(latest.size)),
+                format_usd(Some(latest.notional))
+            )),
+        ]),
+        Line::from(format!("recent {recent} | public trades only")),
     ]
 }
 
