@@ -797,6 +797,14 @@ fn wide_watchlist_renders_selected_row_router_strip() {
     assert!(rendered.contains("quality Q"));
     assert!(rendered.contains("j/k move"));
     assert!(rendered.contains("tab detail"));
+    assert!(rendered.contains("ROW ACTION MAP"));
+    assert!(rendered.contains("enter detail"));
+    assert!(rendered.contains("3 chart"));
+    assert!(rendered.contains("4 book"));
+    assert!(rendered.contains("5 tape"));
+    assert!(rendered.contains("/ filter"));
+    assert!(rendered.contains("z expand"));
+    assert!(rendered.contains("display only"));
     assert!(rendered.contains("read-only row context"));
 }
 
