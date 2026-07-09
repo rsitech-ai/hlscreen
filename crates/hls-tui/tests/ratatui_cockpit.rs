@@ -836,6 +836,8 @@ fn cockpit_color_mode_is_explicit_and_does_not_pollute_no_color_snapshots() {
 
     assert!(!plain.contains("\u{1b}["));
     assert!(colored.contains("\u{1b}["));
+    assert!(colored.contains("\u{1b}[38;2;"));
+    assert!(colored.contains("\u{1b}[48;2;"));
     assert!(colored.contains("WATCHLIST"));
 }
 
