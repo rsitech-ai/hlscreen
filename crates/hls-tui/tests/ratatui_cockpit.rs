@@ -952,6 +952,43 @@ fn market_board_renders_directional_edge_pulses() {
 }
 
 #[test]
+fn watchlist_color_mode_keeps_selected_row_semantic_cell_colors() {
+    let model = RatatuiFrameModel::new(
+        directional_snapshots(),
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        WorkstationUiState::default(),
+    );
+
+    let plain = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 240,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("plain watchlist renders");
+    let colored = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 240,
+            height: 48,
+        },
+        RatatuiColorMode::Color,
+    )
+    .expect("colored watchlist renders");
+
+    assert!(!plain.contains("\u{1b}["));
+    assert!(plain.contains(">01"));
+    assert!(plain.contains("UP+0.57%"));
+    assert!(plain.contains("DN-1.23%"));
+    assert!(colored.contains("\u{1b}[48;2;0;95;73m"));
+    assert!(colored.contains("\u{1b}[38;2;0;255;154mUP+0.57"));
+    assert!(colored.contains("\u{1b}[38;2;255;77;109m-$35"));
+}
+
+#[test]
 fn cockpit_header_renders_market_internals_rail() {
     let model = RatatuiFrameModel::new(
         directional_snapshots(),

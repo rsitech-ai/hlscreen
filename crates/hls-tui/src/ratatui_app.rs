@@ -960,100 +960,218 @@ fn render_watchlist(
         .skip(visible_range.start)
         .take(visible_range.len())
         .map(|(index, row)| {
-            let style = if index == selected {
-                Style::default()
-                    .fg(Color::Black)
-                    .bg(success(color_mode))
-                    .add_modifier(Modifier::BOLD)
-            } else if row.staleness_state != StalenessState::Fresh {
-                Style::default().fg(warn(color_mode))
-            } else {
-                market_row_style(row, color_mode)
-            };
+            let is_selected = index == selected;
+            let style = watchlist_row_base_style(row, is_selected, color_mode);
             if compact {
                 Row::new(vec![
-                    Cell::from(watchlist_rank_label(index, selected)),
-                    Cell::from(display_symbol(row).to_owned()),
-                    Cell::from(format_board_price(row.price)),
-                    Cell::from(micro_heat_lane(row, true)),
-                    Cell::from(trend_label(row.ret_1m)),
-                    Cell::from(format_usd_signed(row.signed_notional_flow_30s)),
-                    Cell::from(quality_badge(row)),
+                    watchlist_cell(
+                        watchlist_rank_label(index, selected),
+                        accent(color_mode),
+                        is_selected,
+                        color_mode,
+                    ),
+                    watchlist_cell(
+                        display_symbol(row).to_owned(),
+                        text(color_mode),
+                        is_selected,
+                        color_mode,
+                    ),
+                    watchlist_price_cell(row, is_selected, color_mode),
+                    watchlist_cell(
+                        micro_heat_lane(row, true),
+                        watchlist_heat_color(row, color_mode),
+                        is_selected,
+                        color_mode,
+                    ),
+                    watchlist_trend_cell(row, is_selected, color_mode),
+                    watchlist_flow_cell(row, is_selected, color_mode),
+                    watchlist_quality_cell(row, is_selected, color_mode),
                 ])
                 .style(style)
             } else if quality_view {
                 Row::new(vec![
-                    Cell::from(watchlist_rank_label(index, selected)),
-                    Cell::from(display_symbol(row).to_owned()),
-                    Cell::from(format_board_price(row.price)),
-                    Cell::from(confidence_compact_label(row)),
-                    Cell::from(staleness_label(&row.staleness_state)),
-                    Cell::from(tradeability_compact_label(row.tradeability_state)),
-                    Cell::from(resilience_compact_label(row.resilience_state)),
-                    Cell::from(format_optional(row.spread_bps, 1)),
-                    Cell::from(format_usd(row.tob_depth_usd)),
-                    Cell::from(format_usd_signed(row.signed_notional_flow_30s)),
-                    Cell::from(quality_badge(row)),
+                    watchlist_cell(
+                        watchlist_rank_label(index, selected),
+                        accent(color_mode),
+                        is_selected,
+                        color_mode,
+                    ),
+                    watchlist_cell(
+                        display_symbol(row).to_owned(),
+                        text(color_mode),
+                        is_selected,
+                        color_mode,
+                    ),
+                    watchlist_price_cell(row, is_selected, color_mode),
+                    watchlist_cell(
+                        confidence_compact_label(row),
+                        confidence_color(row.confidence.score, color_mode),
+                        is_selected,
+                        color_mode,
+                    ),
+                    watchlist_cell(
+                        staleness_label(&row.staleness_state).to_owned(),
+                        staleness_color(&row.staleness_state, color_mode),
+                        is_selected,
+                        color_mode,
+                    ),
+                    watchlist_cell(
+                        tradeability_compact_label(row.tradeability_state).to_owned(),
+                        tradeability_color(row.tradeability_state, color_mode),
+                        is_selected,
+                        color_mode,
+                    ),
+                    watchlist_cell(
+                        resilience_compact_label(row.resilience_state).to_owned(),
+                        resilience_color(row.resilience_state, color_mode),
+                        is_selected,
+                        color_mode,
+                    ),
+                    watchlist_spread_cell(row, is_selected, color_mode),
+                    watchlist_depth_cell(row, is_selected, color_mode),
+                    watchlist_flow_cell(row, is_selected, color_mode),
+                    watchlist_quality_cell(row, is_selected, color_mode),
                 ])
                 .style(style)
             } else if explain_view {
                 Row::new(vec![
-                    Cell::from(watchlist_rank_label(index, selected)),
-                    Cell::from(display_symbol(row).to_owned()),
-                    Cell::from(format_board_price(row.price)),
-                    Cell::from(score_signal_label(row)),
-                    Cell::from(score_component_compact_label(
+                    watchlist_cell(
+                        watchlist_rank_label(index, selected),
+                        accent(color_mode),
+                        is_selected,
+                        color_mode,
+                    ),
+                    watchlist_cell(
+                        display_symbol(row).to_owned(),
+                        text(color_mode),
+                        is_selected,
+                        color_mode,
+                    ),
+                    watchlist_price_cell(row, is_selected, color_mode),
+                    watchlist_score_cell(score_signal_label(row), row, is_selected, color_mode),
+                    watchlist_score_cell(
+                        score_component_compact_label(
+                            row,
+                            "liquidity_resilience",
+                            row.liquidity_score,
+                        ),
                         row,
-                        "liquidity_resilience",
-                        row.liquidity_score,
-                    )),
-                    Cell::from(score_component_compact_label(
+                        is_selected,
+                        color_mode,
+                    ),
+                    watchlist_score_cell(
+                        score_component_compact_label(row, "momentum", row.momentum_score),
                         row,
-                        "momentum",
-                        row.momentum_score,
-                    )),
-                    Cell::from(score_component_compact_label(
+                        is_selected,
+                        color_mode,
+                    ),
+                    watchlist_score_cell(
+                        score_component_compact_label(
+                            row,
+                            "mean_reversion_context",
+                            row.mean_reversion_score,
+                        ),
                         row,
-                        "mean_reversion_context",
-                        row.mean_reversion_score,
-                    )),
-                    Cell::from(why_ranked_compact_label(row)),
-                    Cell::from(format_optional(row.spread_bps, 1)),
-                    Cell::from(format_usd_signed(row.signed_notional_flow_30s)),
-                    Cell::from(quality_badge(row)),
+                        is_selected,
+                        color_mode,
+                    ),
+                    watchlist_cell(
+                        why_ranked_compact_label(row),
+                        watchlist_heat_color(row, color_mode),
+                        is_selected,
+                        color_mode,
+                    ),
+                    watchlist_spread_cell(row, is_selected, color_mode),
+                    watchlist_flow_cell(row, is_selected, color_mode),
+                    watchlist_quality_cell(row, is_selected, color_mode),
                 ])
                 .style(style)
             } else if enhanced {
                 Row::new(vec![
-                    Cell::from(watchlist_rank_label(index, selected)),
-                    Cell::from(display_symbol(row).to_owned()),
-                    Cell::from(format_board_price(row.price)),
-                    Cell::from(watchlist_candle_sparkline(&model.candles, &row.symbol, 5)),
-                    Cell::from(score_signal_label(row)),
-                    Cell::from(score_edge_bar(row)),
-                    Cell::from(micro_heat_lane(row, false)),
-                    Cell::from(score_bias_label(row)),
-                    Cell::from(format_optional(row.spread_bps, 1)),
-                    Cell::from(trend_label(row.ret_1m)),
-                    Cell::from(format_usd_signed(row.signed_notional_flow_30s)),
-                    Cell::from(format_usd(row.tob_depth_usd)),
-                    Cell::from(quality_badge(row)),
+                    watchlist_cell(
+                        watchlist_rank_label(index, selected),
+                        accent(color_mode),
+                        is_selected,
+                        color_mode,
+                    ),
+                    watchlist_cell(
+                        display_symbol(row).to_owned(),
+                        text(color_mode),
+                        is_selected,
+                        color_mode,
+                    ),
+                    watchlist_price_cell(row, is_selected, color_mode),
+                    watchlist_cell(
+                        watchlist_candle_sparkline(&model.candles, &row.symbol, 5),
+                        watchlist_direction_color(row, color_mode),
+                        is_selected,
+                        color_mode,
+                    ),
+                    watchlist_score_cell(score_signal_label(row), row, is_selected, color_mode),
+                    watchlist_cell(
+                        score_edge_bar(row),
+                        watchlist_direction_color(row, color_mode),
+                        is_selected,
+                        color_mode,
+                    ),
+                    watchlist_cell(
+                        micro_heat_lane(row, false),
+                        watchlist_heat_color(row, color_mode),
+                        is_selected,
+                        color_mode,
+                    ),
+                    watchlist_cell(
+                        score_bias_label(row),
+                        watchlist_direction_color(row, color_mode),
+                        is_selected,
+                        color_mode,
+                    ),
+                    watchlist_spread_cell(row, is_selected, color_mode),
+                    watchlist_trend_cell(row, is_selected, color_mode),
+                    watchlist_flow_cell(row, is_selected, color_mode),
+                    watchlist_depth_cell(row, is_selected, color_mode),
+                    watchlist_quality_cell(row, is_selected, color_mode),
                 ])
                 .style(style)
             } else {
                 Row::new(vec![
-                    Cell::from(watchlist_rank_label(index, selected)),
-                    Cell::from(display_symbol(row).to_owned()),
-                    Cell::from(format_board_price(row.price)),
-                    Cell::from(score_signal_label(row)),
-                    Cell::from(score_edge_bar(row)),
-                    Cell::from(micro_heat_lane(row, false)),
-                    Cell::from(score_bias_label(row)),
-                    Cell::from(format_optional(row.spread_bps, 1)),
-                    Cell::from(trend_label(row.ret_1m)),
-                    Cell::from(format_usd_signed(row.signed_notional_flow_30s)),
-                    Cell::from(format_usd(row.tob_depth_usd)),
-                    Cell::from(quality_badge(row)),
+                    watchlist_cell(
+                        watchlist_rank_label(index, selected),
+                        accent(color_mode),
+                        is_selected,
+                        color_mode,
+                    ),
+                    watchlist_cell(
+                        display_symbol(row).to_owned(),
+                        text(color_mode),
+                        is_selected,
+                        color_mode,
+                    ),
+                    watchlist_price_cell(row, is_selected, color_mode),
+                    watchlist_score_cell(score_signal_label(row), row, is_selected, color_mode),
+                    watchlist_cell(
+                        score_edge_bar(row),
+                        watchlist_direction_color(row, color_mode),
+                        is_selected,
+                        color_mode,
+                    ),
+                    watchlist_cell(
+                        micro_heat_lane(row, false),
+                        watchlist_heat_color(row, color_mode),
+                        is_selected,
+                        color_mode,
+                    ),
+                    watchlist_cell(
+                        score_bias_label(row),
+                        watchlist_direction_color(row, color_mode),
+                        is_selected,
+                        color_mode,
+                    ),
+                    watchlist_spread_cell(row, is_selected, color_mode),
+                    watchlist_trend_cell(row, is_selected, color_mode),
+                    watchlist_flow_cell(row, is_selected, color_mode),
+                    watchlist_depth_cell(row, is_selected, color_mode),
+                    watchlist_quality_cell(row, is_selected, color_mode),
                 ])
                 .style(style)
             }
@@ -1221,6 +1339,194 @@ fn render_watchlist(
                 chunks[1],
             );
         }
+    }
+}
+
+fn watchlist_row_base_style(
+    row: &FeatureSnapshot,
+    selected: bool,
+    color_mode: RatatuiColorMode,
+) -> Style {
+    if selected {
+        return Style::default()
+            .bg(watchlist_selected_bg(color_mode))
+            .add_modifier(Modifier::BOLD);
+    }
+
+    if row.staleness_state != StalenessState::Fresh {
+        Style::default().fg(warn(color_mode))
+    } else {
+        market_row_style(row, color_mode)
+    }
+}
+
+fn watchlist_cell(
+    value: String,
+    fg: Color,
+    selected: bool,
+    color_mode: RatatuiColorMode,
+) -> Cell<'static> {
+    let style = watchlist_cell_style(fg, selected, color_mode);
+    Cell::from(value).style(style)
+}
+
+fn watchlist_cell_style(fg: Color, selected: bool, color_mode: RatatuiColorMode) -> Style {
+    let style = Style::default().fg(fg);
+    if selected {
+        style
+            .bg(watchlist_selected_bg(color_mode))
+            .add_modifier(Modifier::BOLD)
+    } else {
+        style
+    }
+}
+
+fn watchlist_selected_bg(color_mode: RatatuiColorMode) -> Color {
+    match color_mode {
+        RatatuiColorMode::NoColor => Color::White,
+        RatatuiColorMode::Auto | RatatuiColorMode::Color => Color::Rgb(0, 95, 73),
+    }
+}
+
+fn watchlist_price_cell(
+    row: &FeatureSnapshot,
+    selected: bool,
+    color_mode: RatatuiColorMode,
+) -> Cell<'static> {
+    watchlist_cell(
+        format_board_price(row.price),
+        watchlist_direction_color(row, color_mode),
+        selected,
+        color_mode,
+    )
+}
+
+fn watchlist_spread_cell(
+    row: &FeatureSnapshot,
+    selected: bool,
+    color_mode: RatatuiColorMode,
+) -> Cell<'static> {
+    watchlist_cell(
+        format_optional(row.spread_bps, 1),
+        cost_label_color(spread_cost_label(row.spread_bps), color_mode),
+        selected,
+        color_mode,
+    )
+}
+
+fn watchlist_trend_cell(
+    row: &FeatureSnapshot,
+    selected: bool,
+    color_mode: RatatuiColorMode,
+) -> Cell<'static> {
+    watchlist_cell(
+        trend_label(row.ret_1m),
+        flow_color(row.ret_1m.unwrap_or_default(), color_mode),
+        selected,
+        color_mode,
+    )
+}
+
+fn watchlist_flow_cell(
+    row: &FeatureSnapshot,
+    selected: bool,
+    color_mode: RatatuiColorMode,
+) -> Cell<'static> {
+    watchlist_cell(
+        format_usd_signed(row.signed_notional_flow_30s),
+        flow_color(row.signed_notional_flow_30s.unwrap_or_default(), color_mode),
+        selected,
+        color_mode,
+    )
+}
+
+fn watchlist_depth_cell(
+    row: &FeatureSnapshot,
+    selected: bool,
+    color_mode: RatatuiColorMode,
+) -> Cell<'static> {
+    let color = if row
+        .tob_depth_usd
+        .is_some_and(|value| value.is_finite() && value > 0.0)
+    {
+        success(color_mode)
+    } else {
+        text(color_mode)
+    };
+    watchlist_cell(format_usd(row.tob_depth_usd), color, selected, color_mode)
+}
+
+fn watchlist_quality_cell(
+    row: &FeatureSnapshot,
+    selected: bool,
+    color_mode: RatatuiColorMode,
+) -> Cell<'static> {
+    let badge = quality_badge(row);
+    let color = match badge {
+        "T" => success(color_mode),
+        "!" => danger(color_mode),
+        _ => warn(color_mode),
+    };
+    watchlist_cell(badge.to_owned(), color, selected, color_mode)
+}
+
+fn watchlist_score_cell(
+    value: String,
+    row: &FeatureSnapshot,
+    selected: bool,
+    color_mode: RatatuiColorMode,
+) -> Cell<'static> {
+    watchlist_cell(
+        value,
+        watchlist_direction_color(row, color_mode),
+        selected,
+        color_mode,
+    )
+}
+
+fn watchlist_direction_color(row: &FeatureSnapshot, color_mode: RatatuiColorMode) -> Color {
+    let move_value = row.ret_1m.unwrap_or_default();
+    if move_value != 0.0 {
+        flow_color(move_value, color_mode)
+    } else {
+        flow_color(row.signed_notional_flow_30s.unwrap_or_default(), color_mode)
+    }
+}
+
+fn watchlist_heat_color(row: &FeatureSnapshot, color_mode: RatatuiColorMode) -> Color {
+    let cost = spread_cost_label(row.spread_bps);
+    if cost == "tight" {
+        success(color_mode)
+    } else if cost == "wide" {
+        danger(color_mode)
+    } else {
+        warn(color_mode)
+    }
+}
+
+fn staleness_color(staleness: &StalenessState, color_mode: RatatuiColorMode) -> Color {
+    match staleness {
+        StalenessState::Fresh => success(color_mode),
+        StalenessState::Incomplete => warn(color_mode),
+        StalenessState::Stale => danger(color_mode),
+    }
+}
+
+fn tradeability_color(state: TradeabilityState, color_mode: RatatuiColorMode) -> Color {
+    match state {
+        TradeabilityState::Tradeable => success(color_mode),
+        TradeabilityState::Costly | TradeabilityState::Stale => danger(color_mode),
+        TradeabilityState::Thin => warn(color_mode),
+        TradeabilityState::Unknown => text(color_mode),
+    }
+}
+
+fn resilience_color(state: LiquidityResilienceState, color_mode: RatatuiColorMode) -> Color {
+    match state {
+        LiquidityResilienceState::Normal => success(color_mode),
+        LiquidityResilienceState::Recovering => warn(color_mode),
+        LiquidityResilienceState::Shock | LiquidityResilienceState::Brittle => danger(color_mode),
+        LiquidityResilienceState::Unknown => text(color_mode),
     }
 }
 
