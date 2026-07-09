@@ -1634,6 +1634,61 @@ fn narrow_status_bar_renders_contextual_focus_keys() {
 }
 
 #[test]
+fn narrow_status_bar_surfaces_quality_alert_outside_watchlist_focus() {
+    let mut snapshots = fixture_snapshots();
+    snapshots[0].confidence.score = 44;
+    snapshots[0].confidence.level = ConfidenceLevel::Low;
+    snapshots[0].staleness_state = StalenessState::Stale;
+    snapshots[0].updated_ms_ago = Some(3_400);
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Chart),
+        snapshots.len(),
+    );
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    )
+    .with_status("LIVE", "REC ready", "ws=235 events=485 reconnects=0 gaps=0");
+
+    let plain = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 72,
+            height: 24,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("plain compact quality rail renders");
+    let colored = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 72,
+            height: 24,
+        },
+        RatatuiColorMode::Color,
+    )
+    .expect("colored compact quality rail renders");
+
+    assert!(!plain.contains("\u{1b}["));
+    assert!(plain.contains("ws235 ev485 r0 g0"));
+    assert!(plain.contains("QALERT"));
+    assert!(plain.contains("conf44"));
+    assert!(plain.contains("chart:t"));
+    assert!(plain.contains("RO no-wallet"));
+    assert_eq!(
+        active_fg_before(&colored, "QALERT"),
+        Some("\u{1b}[38;2;255;77;109m")
+    );
+    assert_eq!(
+        active_fg_before(&colored, "conf44"),
+        Some("\u{1b}[38;2;255;77;109m")
+    );
+}
+
+#[test]
 fn header_renders_keyboard_pane_hotkey_rail() {
     let snapshots = fixture_snapshots();
     let mut state = WorkstationUiState::default();

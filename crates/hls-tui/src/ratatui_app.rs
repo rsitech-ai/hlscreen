@@ -6402,7 +6402,7 @@ fn render_status_bar(
 ) {
     if area.width < 90 {
         frame.render_widget(
-            Paragraph::new(compact_status_bar_line(model))
+            Paragraph::new(compact_status_bar_line(model, color_mode))
                 .wrap(Wrap { trim: true })
                 .style(Style::default().fg(warn(color_mode)))
                 .block(
@@ -6439,25 +6439,150 @@ fn render_status_bar(
     }
 }
 
-fn compact_status_bar_line(model: &RatatuiFrameModel) -> Line<'static> {
-    if model.ui_state.focused_pane() == WorkstationPane::Watchlist {
-        return Line::from(format!(
-            "{} | {} | {} | {} | {} | RO no-wallet",
-            compact_health_label(&model.health_status),
-            display_state_label(model),
-            focused_pane_key_label(model.ui_state.focused_pane(), true),
-            compact_mode_label(&model.request, model.rows.len()),
-            operational_quality_label(model, true),
-        ));
+fn compact_status_bar_line(
+    model: &RatatuiFrameModel,
+    color_mode: RatatuiColorMode,
+) -> Line<'static> {
+    if let Some(row) = worst_quality_row(&model.rows) {
+        return compact_alert_status_bar_line(model, row, color_mode);
     }
 
-    Line::from(format!(
-        "{} | {} | {} | ACTION {} | RO no-wallet",
-        display_state_label(model),
-        focused_pane_key_label(model.ui_state.focused_pane(), true),
-        compact_mode_label(&model.request, model.rows.len()),
-        focused_pane_action_label(model.ui_state.focused_pane(), true),
-    ))
+    let pane = model.ui_state.focused_pane();
+    if pane == WorkstationPane::Watchlist {
+        return Line::from(vec![
+            Span::styled(
+                compact_health_label(&model.health_status),
+                Style::default().fg(accent(color_mode)),
+            ),
+            Span::raw(" | "),
+            Span::styled(
+                display_state_label(model),
+                Style::default()
+                    .fg(if model.ui_state.paused() {
+                        warn(color_mode)
+                    } else {
+                        success(color_mode)
+                    })
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(" | "),
+            Span::styled(
+                focused_pane_key_label(pane, true),
+                Style::default()
+                    .fg(pane_accent(pane, color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(format!(
+                " | {} | ",
+                compact_mode_label(&model.request, model.rows.len())
+            )),
+            Span::styled(
+                operational_quality_label(model, true),
+                Style::default()
+                    .fg(warn(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(" | "),
+            Span::styled(
+                "RO no-wallet",
+                Style::default()
+                    .fg(danger(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+        ]);
+    }
+
+    Line::from(vec![
+        Span::styled(
+            display_state_label(model),
+            Style::default()
+                .fg(if model.ui_state.paused() {
+                    warn(color_mode)
+                } else {
+                    success(color_mode)
+                })
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw(" | "),
+        Span::styled(
+            focused_pane_key_label(pane, true),
+            Style::default()
+                .fg(pane_accent(pane, color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw(format!(
+            " | {} | ACTION ",
+            compact_mode_label(&model.request, model.rows.len())
+        )),
+        Span::styled(
+            focused_pane_action_label(pane, true),
+            Style::default().fg(pane_accent(pane, color_mode)),
+        ),
+        Span::raw(" | "),
+        Span::styled(
+            "RO no-wallet",
+            Style::default()
+                .fg(danger(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+    ])
+}
+
+fn compact_alert_status_bar_line(
+    model: &RatatuiFrameModel,
+    row: &FeatureSnapshot,
+    color_mode: RatatuiColorMode,
+) -> Line<'static> {
+    let pane = model.ui_state.focused_pane();
+    let alert_color = if row.staleness_state != StalenessState::Fresh || row.confidence.score < 50 {
+        danger(color_mode)
+    } else {
+        warn(color_mode)
+    };
+    Line::from(vec![
+        Span::styled(
+            compact_health_label(&model.health_status),
+            Style::default().fg(accent(color_mode)),
+        ),
+        Span::raw("|"),
+        Span::styled(
+            display_state_label(model),
+            Style::default()
+                .fg(if model.ui_state.paused() {
+                    warn(color_mode)
+                } else {
+                    success(color_mode)
+                })
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw("|"),
+        Span::styled(
+            focused_pane_key_label(pane, true),
+            Style::default()
+                .fg(pane_accent(pane, color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw("|"),
+        Span::styled(
+            "QALERT ",
+            Style::default()
+                .fg(alert_color)
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::styled(
+            format!("conf{}", row.confidence.score),
+            Style::default()
+                .fg(confidence_color(row.confidence.score, color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw("|"),
+        Span::styled(
+            "RO no-wallet",
+            Style::default()
+                .fg(danger(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+    ])
 }
 
 fn market_status_bar_line(
