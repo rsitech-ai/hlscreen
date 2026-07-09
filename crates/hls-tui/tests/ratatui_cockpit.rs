@@ -1731,6 +1731,45 @@ fn wide_status_focus_renders_market_regime_board() {
 }
 
 #[test]
+fn wide_status_focus_renders_cross_pair_signal_matrix() {
+    let mut snapshots = ten_directional_snapshots();
+    snapshots[0].tob_depth_usd = Some(1_200.0);
+    snapshots[1].tob_depth_usd = Some(8_800.0);
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Status),
+        snapshots.len(),
+    );
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    )
+    .with_status("LIVE", "REC ready", "ws=235 events=485 reconnects=0 gaps=0");
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 240,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders wide status signal matrix");
+
+    assert!(rendered.contains("[FOCUS] STATUS"));
+    assert!(rendered.contains("SIGNAL MATRIX"));
+    assert!(rendered.contains("HYPE:"));
+    assert!(rendered.contains("DOWN:"));
+    assert!(rendered.contains("L"));
+    assert!(rendered.contains("F+"));
+    assert!(rendered.contains("F-"));
+    assert!(rendered.contains("+2"));
+    assert!(rendered.contains("No wallet"));
+}
+
+#[test]
 fn wide_status_focus_renders_latency_strip() {
     let mut snapshots = directional_snapshots();
     snapshots[0].updated_ms_ago = Some(120);
