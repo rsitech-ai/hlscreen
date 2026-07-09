@@ -78,6 +78,7 @@ fn live_once_tui_uses_unified_ratatui_cockpit() {
         ])
         .assert()
         .success()
+        .stdout(predicate::str::contains("\u{1b}["))
         .stdout(predicate::str::contains("WATCHLIST"))
         .stdout(predicate::str::contains("MICROSTRUCTURE"))
         .stdout(predicate::str::contains("CANDLES 1m"))
