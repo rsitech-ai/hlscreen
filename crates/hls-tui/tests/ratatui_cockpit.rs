@@ -3560,6 +3560,49 @@ fn expanded_status_renders_ops_command_center() {
 }
 
 #[test]
+fn expanded_status_renders_mission_control_deck() {
+    let mut snapshots = directional_snapshots();
+    snapshots[0].tob_depth_usd = Some(1_200.0);
+    snapshots[1].confidence.score = 55;
+    snapshots[1].confidence.level = ConfidenceLevel::Low;
+    snapshots[1].staleness_state = StalenessState::Stale;
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Status),
+        snapshots.len(),
+    );
+    state.apply(WorkstationAction::TogglePaneZoom, snapshots.len());
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    )
+    .with_status("LIVE", "REC ready", "ws=235 events=485 reconnects=2 gaps=1");
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 190,
+            height: 52,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders expanded mission control deck");
+
+    assert!(rendered.contains("EXPANDED status"));
+    assert!(rendered.contains("MISSION CONTROL"));
+    assert!(rendered.contains("stream gate"));
+    assert!(rendered.contains("quality gate"));
+    assert!(rendered.contains("risk gate"));
+    assert!(rendered.contains("operator state observe-only"));
+    assert!(rendered.contains("public market data only"));
+    assert!(rendered.contains("No wallet"));
+    assert!(rendered.contains("no orders"));
+    assert!(rendered.contains("no private streams"));
+}
+
+#[test]
 fn expanded_status_renders_portfolio_risk_terminal() {
     let mut snapshots = ten_directional_snapshots();
     snapshots[0].tob_depth_usd = Some(2_000.0);

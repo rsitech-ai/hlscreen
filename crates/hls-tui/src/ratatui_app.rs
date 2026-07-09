@@ -8713,6 +8713,14 @@ fn render_status_panel(
         lines.push(status_signal_matrix_line(&rows, area.width, color_mode));
     }
     if model.ui_state.pane_expanded() && model.ui_state.focused_pane() == WorkstationPane::Status {
+        lines.extend(status_mission_control_lines(
+            &rows,
+            ws_messages,
+            market_events,
+            reconnects,
+            gaps,
+            color_mode,
+        ));
         lines.extend(status_ops_command_center_lines(
             model,
             &rows,
@@ -8767,6 +8775,90 @@ fn render_status_panel(
             .style(Style::default().fg(text(color_mode))),
         area,
     );
+}
+
+fn status_mission_control_lines(
+    rows: &[FeatureSnapshot],
+    ws_messages: u64,
+    market_events: u64,
+    reconnects: u64,
+    gaps: u64,
+    color_mode: RatatuiColorMode,
+) -> Vec<Line<'static>> {
+    let degraded = rows
+        .iter()
+        .filter(|row| row.confidence.score < 70 || row.staleness_state != StalenessState::Fresh)
+        .count();
+    let stale = rows
+        .iter()
+        .filter(|row| row.staleness_state != StalenessState::Fresh)
+        .count();
+    let wide_spread = rows
+        .iter()
+        .filter(|row| {
+            row.spread_bps
+                .is_some_and(|value| value.is_finite() && value > 25.0)
+        })
+        .count();
+    let thin_depth = rows
+        .iter()
+        .filter(|row| row.tob_depth_usd.is_none_or(|value| value < 1_000.0))
+        .count();
+    let stream_gate = if gaps == 0 && reconnects <= 1 && ws_messages > 0 && market_events > 0 {
+        "clear"
+    } else if gaps <= 2 && reconnects <= 3 {
+        "watch"
+    } else {
+        "degraded"
+    };
+    let quality_gate = if degraded == 0 && stale == 0 {
+        "clear"
+    } else if degraded <= 2 && stale <= 2 {
+        "watch"
+    } else {
+        "degraded"
+    };
+    let risk_gate = if wide_spread == 0 && thin_depth == 0 && degraded == 0 {
+        "clear"
+    } else if wide_spread <= 2 && thin_depth <= 2 && degraded <= 2 {
+        "watch"
+    } else {
+        "degraded"
+    };
+
+    vec![
+        Line::from(vec![
+            Span::styled(
+                "MISSION CONTROL ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw("operator state observe-only | public market data only"),
+        ]),
+        Line::from(vec![
+            Span::styled(
+                format!("stream gate {stream_gate} "),
+                Style::default().fg(gate_color(stream_gate, color_mode)),
+            ),
+            Span::raw(format!(
+                "ws {ws_messages} events {market_events} reconnects {reconnects} gaps {gaps}"
+            )),
+        ]),
+        Line::from(vec![
+            Span::styled(
+                format!("quality gate {quality_gate} "),
+                Style::default().fg(gate_color(quality_gate, color_mode)),
+            ),
+            Span::raw(format!("degraded {degraded:02} stale {stale:02}  ")),
+            Span::styled(
+                format!("risk gate {risk_gate} "),
+                Style::default().fg(gate_color(risk_gate, color_mode)),
+            ),
+            Span::raw(format!("wide {wide_spread:02} thin {thin_depth:02}")),
+        ]),
+        Line::from("boundary No wallet | no orders | no private streams | screen heuristics only"),
+    ]
 }
 
 fn status_ops_command_center_lines(
