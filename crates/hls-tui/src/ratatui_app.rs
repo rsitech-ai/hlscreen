@@ -1271,9 +1271,9 @@ fn render_watchlist(
         !compact && !quality_view && !explain_view && area.width >= 72 && !model.candles.is_empty();
     let show_row_router = !compact && area.width >= 65 && area.height >= 18 && !rows.is_empty();
     let row_router_height = if expanded_watchlist {
-        12
+        13
     } else if area.height >= 20 {
-        7
+        9
     } else {
         4
     };
@@ -1702,7 +1702,8 @@ fn render_watchlist(
                 .style(Style::default().fg(text(color_mode)))
                 .block(
                     Block::default()
-                        .borders(Borders::TOP)
+                        .title(" ROW COMMAND DECK ")
+                        .borders(Borders::ALL)
                         .border_style(Style::default().fg(accent(color_mode))),
                 ),
                 chunks[1],
@@ -1997,16 +1998,17 @@ fn watchlist_row_router_lines(
 ) -> Vec<Line<'static>> {
     let mut lines = vec![
         Line::from(vec![
+            Span::raw("╞ "),
             Span::styled(
                 "ROW ROUTER ",
                 Style::default()
                     .fg(accent(color_mode))
                     .add_modifier(Modifier::BOLD),
             ),
-            Span::raw(format!("selected {} | ", display_symbol(row))),
-            Span::raw(format!("spr {}bps | ", format_optional(row.spread_bps, 1))),
+            Span::raw(format!("{} ", display_symbol(row))),
+            Span::raw(format!("spr{} ", format_optional(row.spread_bps, 1))),
             Span::styled(
-                format!("flow {}", format_usd_signed(row.signed_notional_flow_30s)),
+                format!("flow{} ╡", format_usd_signed(row.signed_notional_flow_30s)),
                 Style::default().fg(flow_color(
                     row.signed_notional_flow_30s.unwrap_or_default(),
                     color_mode,
@@ -2014,7 +2016,7 @@ fn watchlist_row_router_lines(
             ),
         ]),
         Line::from(format!(
-            "trade {} | quality {} | j/k move | tab detail",
+            "╞ trade {} | quality {} | j/k move | tab detail ╡",
             row.tradeability_state.as_str(),
             quality_badge(row)
         )),
@@ -2031,15 +2033,16 @@ fn watchlist_row_router_lines(
 fn row_action_map_lines(color_mode: RatatuiColorMode) -> Vec<Line<'static>> {
     vec![
         Line::from(vec![
+            Span::raw("╞ "),
             Span::styled(
                 "ROW ACTION MAP ",
                 Style::default()
                     .fg(accent(color_mode))
                     .add_modifier(Modifier::BOLD),
             ),
-            Span::raw("enter/i detail | c/3 chart | b/4 book | r/5 tape"),
+            Span::raw("enter detail c/3 chart b/4 book r/5 tape ╡"),
         ]),
-        Line::from("w/1 watchlist | o/6 ops | / filter | z expand | display only"),
+        Line::from("╞ w/1 watch | o/6 ops | / filter | z expand | display only ╡"),
     ]
 }
 
@@ -2292,6 +2295,7 @@ fn watchlist_scanner_rail_lines(
         });
 
     let mut first_line = vec![
+        Span::raw("╞ "),
         Span::styled(
             "SCANNER RAIL ",
             Style::default()
@@ -2308,7 +2312,8 @@ fn watchlist_scanner_rail_lines(
     } else {
         first_line.push(Span::raw("mover -".to_owned()));
     }
-    let mut second_line = vec![Span::raw("read-only scan | ")];
+    first_line.push(Span::raw(" ╡"));
+    let mut second_line = vec![Span::raw("╞ read-only scan | ")];
     if let Some((row, _)) = flow_leader {
         second_line.push(Span::styled(
             format!(
@@ -2337,6 +2342,7 @@ fn watchlist_scanner_rail_lines(
     } else {
         second_line.push(Span::raw("depth -".to_owned()));
     }
+    second_line.push(Span::raw(" ╡"));
 
     vec![Line::from(first_line), Line::from(second_line)]
 }

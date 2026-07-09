@@ -1404,9 +1404,14 @@ fn wide_watchlist_renders_selected_row_router_strip() {
     .expect("renders selected row router");
 
     assert!(rendered.contains("ROW ROUTER"));
-    assert!(rendered.contains("selected HYPE/USDC"));
-    assert!(rendered.contains("spr 57.1bps"));
-    assert!(rendered.contains("flow -$35"));
+    assert!(rendered.contains("ROW COMMAND DECK"));
+    assert!(rendered.contains("╞ ROW ROUTER"));
+    assert!(rendered.contains("╞ ROW ACTION MAP"));
+    assert!(rendered.contains("╞ SCANNER RAIL"));
+    assert!(rendered.contains("╡"));
+    assert!(rendered.contains("ROW ROUTER HYPE/USDC"));
+    assert!(rendered.contains("spr57.1"));
+    assert!(rendered.contains("flow-$35"));
     assert!(rendered.contains("trade unknown"));
     assert!(rendered.contains("quality Q"));
     assert!(rendered.contains("j/k move"));
@@ -1447,7 +1452,7 @@ fn wide_watchlist_renders_dynamic_scanner_rail() {
     .expect("renders scanner rail");
 
     assert!(rendered.contains("SCANNER RAIL"));
-    assert!(rendered.contains("selected HYPE/USDC"));
+    assert!(rendered.contains("ROW ROUTER HYPE/USDC"));
     assert!(rendered.contains("mover DOWN/USDC DN-1.23%"));
     assert!(rendered.contains("flow DOWN/USDC -$4.2K"));
     assert!(rendered.contains("depth DOWN/USDC $8.8K"));
