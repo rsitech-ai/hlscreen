@@ -571,11 +571,24 @@ fn render_watchlist(
         .unwrap_or_default();
     let compact = area.width <= 64;
     let enhanced = !compact && area.width >= 72 && !model.candles.is_empty();
+    let show_row_router = !compact && area.width >= 72 && area.height >= 18 && !rows.is_empty();
+    let chunks = if show_row_router {
+        Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Min(8), Constraint::Length(4)])
+            .split(area)
+    } else {
+        Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Min(1)])
+            .split(area)
+    };
+    let table_area = chunks[0];
     let visible_range = watchlist_visible_range(
         selected,
         rows.len(),
         model.ui_state.visible_row_limit(),
-        area.height,
+        table_area.height,
     );
     let title = if rows.is_empty() {
         "WATCHLIST 0/0".to_owned()
@@ -739,7 +752,22 @@ fn render_watchlist(
         model,
         color_mode,
     ));
-    frame.render_widget(table, area);
+    frame.render_widget(table, table_area);
+    if show_row_router {
+        if let Some(row) = selected_row(&rows, model) {
+            frame.render_widget(
+                Paragraph::new(watchlist_row_router_lines(row, color_mode))
+                    .wrap(Wrap { trim: true })
+                    .style(Style::default().fg(text(color_mode)))
+                    .block(
+                        Block::default()
+                            .borders(Borders::TOP)
+                            .border_style(Style::default().fg(accent(color_mode))),
+                    ),
+                chunks[1],
+            );
+        }
+    }
 }
 
 fn watchlist_rank_label(index: usize, selected: usize) -> String {
@@ -830,6 +858,37 @@ fn left_pad_to_width(value: String, width: usize) -> String {
     } else {
         format!("{}{}", " ".repeat(width - len), value)
     }
+}
+
+fn watchlist_row_router_lines(
+    row: &FeatureSnapshot,
+    color_mode: RatatuiColorMode,
+) -> Vec<Line<'static>> {
+    vec![
+        Line::from(vec![
+            Span::styled(
+                "ROW ROUTER ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(format!("selected {} | ", display_symbol(row))),
+            Span::raw(format!("spr {}bps | ", format_optional(row.spread_bps, 1))),
+            Span::styled(
+                format!("flow {}", format_usd_signed(row.signed_notional_flow_30s)),
+                Style::default().fg(flow_color(
+                    row.signed_notional_flow_30s.unwrap_or_default(),
+                    color_mode,
+                )),
+            ),
+        ]),
+        Line::from(format!(
+            "trade {} | quality {} | j/k move | tab detail",
+            row.tradeability_state.as_str(),
+            quality_badge(row)
+        )),
+        Line::from("read-only row context"),
+    ]
 }
 
 fn market_row_style(row: &FeatureSnapshot, color_mode: RatatuiColorMode) -> Style {

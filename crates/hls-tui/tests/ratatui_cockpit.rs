@@ -346,6 +346,37 @@ fn wide_market_board_renders_public_candle_sparkline_lane() {
 }
 
 #[test]
+fn wide_watchlist_renders_selected_row_router_strip() {
+    let model = RatatuiFrameModel::new(
+        fixture_snapshots(),
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        WorkstationUiState::default(),
+    )
+    .with_candles(fixture_candles());
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 240,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders selected row router");
+
+    assert!(rendered.contains("ROW ROUTER"));
+    assert!(rendered.contains("selected HYPE/USDC"));
+    assert!(rendered.contains("spr 57.1bps"));
+    assert!(rendered.contains("flow -$35"));
+    assert!(rendered.contains("trade unknown"));
+    assert!(rendered.contains("quality Q"));
+    assert!(rendered.contains("j/k move"));
+    assert!(rendered.contains("tab detail"));
+    assert!(rendered.contains("read-only row context"));
+}
+
+#[test]
 fn market_board_renders_directional_edge_pulses() {
     let model = RatatuiFrameModel::new(
         directional_snapshots(),
