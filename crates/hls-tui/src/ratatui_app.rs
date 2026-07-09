@@ -6590,19 +6590,20 @@ fn market_status_bar_line(
     color_mode: RatatuiColorMode,
     width: u16,
 ) -> Line<'static> {
-    let mut spans = vec![
-        Span::raw(format!(
-            " {} | {} | No wallet | ",
-            compact_health_label(&model.health_status),
-            pause_label(model),
-        )),
-        Span::styled(
-            "MARKET TICKER ",
-            Style::default()
-                .fg(accent(color_mode))
-                .add_modifier(Modifier::BOLD),
-        ),
-    ];
+    let mut spans = vec![Span::raw(format!(
+        " {} | {} | No wallet | ",
+        compact_health_label(&model.health_status),
+        pause_label(model),
+    ))];
+    if width < 180 {
+        spans.extend(status_bar_compact_quality_alert_spans(model, color_mode));
+    }
+    spans.push(Span::styled(
+        "MARKET TICKER ",
+        Style::default()
+            .fg(accent(color_mode))
+            .add_modifier(Modifier::BOLD),
+    ));
     spans.extend(market_ticker_spans(model, color_mode));
     spans.extend([
         Span::raw(" | "),
@@ -6618,6 +6619,35 @@ fn market_status_bar_line(
     }
     spans.extend(risk_strip_spans(model, color_mode));
     Line::from(spans)
+}
+
+fn status_bar_compact_quality_alert_spans(
+    model: &RatatuiFrameModel,
+    color_mode: RatatuiColorMode,
+) -> Vec<Span<'static>> {
+    let Some(row) = worst_quality_row(&model.rows) else {
+        return Vec::new();
+    };
+    let alert_color = if row.staleness_state != StalenessState::Fresh || row.confidence.score < 50 {
+        danger(color_mode)
+    } else {
+        warn(color_mode)
+    };
+    vec![
+        Span::styled(
+            "QALERT ",
+            Style::default()
+                .fg(alert_color)
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::styled(
+            format!("conf{} ", row.confidence.score),
+            Style::default()
+                .fg(confidence_color(row.confidence.score, color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw("| "),
+    ]
 }
 
 fn status_bar_quality_alert_spans(
