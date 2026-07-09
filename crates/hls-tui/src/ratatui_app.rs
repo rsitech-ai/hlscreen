@@ -5367,6 +5367,17 @@ fn render_status_panel(
         lines.push(status_regime_board_line(&rows, color_mode));
         lines.push(status_signal_matrix_line(&rows, area.width, color_mode));
     }
+    if model.ui_state.pane_expanded() && model.ui_state.focused_pane() == WorkstationPane::Status {
+        lines.extend(status_ops_command_center_lines(
+            model,
+            &rows,
+            ws_messages,
+            market_events,
+            reconnects,
+            gaps,
+            color_mode,
+        ));
+    }
     lines.extend([
         status_quality_matrix_line(&rows, color_mode),
         Line::from(format!(
@@ -5406,6 +5417,79 @@ fn render_status_panel(
             .style(Style::default().fg(text(color_mode))),
         area,
     );
+}
+
+fn status_ops_command_center_lines(
+    model: &RatatuiFrameModel,
+    rows: &[FeatureSnapshot],
+    ws_messages: u64,
+    market_events: u64,
+    reconnects: u64,
+    gaps: u64,
+    color_mode: RatatuiColorMode,
+) -> Vec<Line<'static>> {
+    let degraded = rows
+        .iter()
+        .filter(|row| row.confidence.score < 70 || row.staleness_state != StalenessState::Fresh)
+        .count();
+    let stale = rows
+        .iter()
+        .filter(|row| row.staleness_state != StalenessState::Fresh)
+        .count();
+    let ingest_gate = if gaps == 0 && reconnects <= 1 {
+        "clear"
+    } else if gaps <= 2 {
+        "watch"
+    } else {
+        "degraded"
+    };
+    let risk_gate = if degraded == 0 && stale == 0 {
+        "clean"
+    } else if degraded <= 2 {
+        "review"
+    } else {
+        "degraded"
+    };
+
+    vec![
+        Line::from(vec![
+            Span::styled(
+                "OPS COMMAND CENTER ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw("read-only run control | No wallet | no orders"),
+        ]),
+        Line::from(vec![
+            Span::styled(
+                format!("ingest gate {ingest_gate} "),
+                Style::default().fg(gate_color(ingest_gate, color_mode)),
+            ),
+            Span::raw(format!(
+                "telemetry ws {ws_messages} events {market_events} reconnects {reconnects} gaps {gaps}"
+            )),
+        ]),
+        Line::from(vec![
+            Span::styled(
+                format!("risk gate {risk_gate} "),
+                Style::default().fg(gate_color(risk_gate, color_mode)),
+            ),
+            Span::raw(format!(
+                "degraded {degraded:02} stale {stale:02} recorder {}",
+                model.recorder_status
+            )),
+        ]),
+    ]
+}
+
+fn gate_color(label: &str, color_mode: RatatuiColorMode) -> Color {
+    match label {
+        "clear" | "clean" => success(color_mode),
+        "watch" | "review" => warn(color_mode),
+        "degraded" => danger(color_mode),
+        _ => text(color_mode),
+    }
 }
 
 fn status_regime_board_line(
