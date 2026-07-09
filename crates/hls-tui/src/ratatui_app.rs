@@ -3465,6 +3465,12 @@ fn book_lines(
         lines.insert(3, book_microprice_line(row, quote_share, color_mode));
     }
     if !compact_book {
+        lines.push(book_exec_quality_band_line(
+            row,
+            quote_share,
+            content_width < 96,
+            color_mode,
+        ));
         lines.extend(book_snap_lines(
             row,
             quote_share,
@@ -3600,6 +3606,63 @@ fn book_lines(
         Line::from(format!("adverse {}", row.adverse_selection_proxy.as_str())),
     ]);
     lines
+}
+
+fn book_exec_quality_band_line(
+    row: &FeatureSnapshot,
+    quote_share: Option<(f64, f64)>,
+    compact: bool,
+    color_mode: RatatuiColorMode,
+) -> Line<'static> {
+    let skew = quote_share.map_or(0.0, |(bid, ask)| bid - ask);
+    let edge_bps = match (microprice(row), mid_price(row)) {
+        (Some(micro), Some(mid)) if mid.abs() > f64::EPSILON => {
+            Some(((micro - mid) / mid) * 10_000.0)
+        }
+        _ => None,
+    };
+    let spread = format_optional(row.spread_bps, 1);
+    let depth = format_usd(row.tob_depth_usd);
+    let tradeability = row.tradeability_state.as_str();
+    let resilience = row.resilience_state.as_str();
+    let adverse = row.adverse_selection_proxy.as_str();
+
+    if compact {
+        return Line::from(vec![
+            Span::styled(
+                "EXEC QUALITY ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(format!(
+                "spr {spread}bps depth {depth} skew {} edge {}bps trade {tradeability} | read-only",
+                format_signed(Some(skew), ""),
+                format_signed(edge_bps, "")
+            )),
+        ]);
+    }
+
+    Line::from(vec![
+        Span::styled(
+            "EXEC QUALITY ",
+            Style::default()
+                .fg(accent(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw(format!("spread {spread}bps  depth {depth}  ")),
+        Span::styled(
+            format!("skew {}  ", signed_meter(skew)),
+            Style::default().fg(flow_color(skew, color_mode)),
+        ),
+        Span::styled(
+            format!("micro edge {}bps  ", format_signed(edge_bps, "")),
+            Style::default().fg(flow_color(edge_bps.unwrap_or_default(), color_mode)),
+        ),
+        Span::raw(format!(
+            "trade {tradeability} resilience {resilience} adverse {adverse} | no orders"
+        )),
+    ])
 }
 
 fn book_quality_mode_lines(

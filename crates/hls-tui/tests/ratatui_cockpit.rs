@@ -1303,6 +1303,40 @@ fn book_pane_renders_read_only_bbo_ladder() {
 }
 
 #[test]
+fn book_pane_renders_execution_quality_band() {
+    let snapshots = fixture_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Book),
+        snapshots.len(),
+    );
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    );
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 320,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders execution quality band");
+
+    assert!(rendered.contains("[FOCUS] BOOK"));
+    assert!(rendered.contains("EXEC QUALITY"));
+    assert!(rendered.contains("spread 57.1bps"));
+    assert!(rendered.contains("depth $245"));
+    assert!(rendered.contains("edge"));
+    assert!(rendered.contains("trade unknown"));
+    assert!(rendered.contains("read-only"));
+}
+
+#[test]
 fn wide_book_pane_renders_queue_share_snap() {
     let snapshots = fixture_snapshots();
     let mut state = WorkstationUiState::default();
