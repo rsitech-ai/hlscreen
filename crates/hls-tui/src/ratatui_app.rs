@@ -3420,7 +3420,7 @@ fn render_help_overlay(
                         .add_modifier(Modifier::BOLD),
                 ),
                 Span::raw(
-                    "arrows/j/k navigate | tab views | [ ] panes | w/i/c/b/r/o focus | z zoom/grid | space pause",
+                    "up/down j/k nav | left/right [ ] panes | tab views | w/i/c/b/r/o focus | z zoom/grid | space pause",
                 ),
             ]),
             Line::from(vec![
@@ -3457,7 +3457,7 @@ fn render_help_overlay(
                         .add_modifier(Modifier::BOLD),
                 ),
                 Span::raw(
-                    "[ / ] move pane focus | 1-6 panes | w/i/c/b/r/o focus | tab / shift-tab cycle overview, flow, quality, metadata, explain",
+                    "left/right [ / ] panes | 1-6 panes | w/i/c/b/r/o focus | tab/shift-tab views",
                 ),
             ]),
             Line::from(
@@ -3546,15 +3546,15 @@ fn compact_help_overlay_lines(
         ]),
         Line::from(vec![
             Span::styled("PANES ", Style::default().fg(warn(color_mode))),
-            Span::raw("1-6 panes | w/i/c/b/r/o focus | active zoom"),
+            Span::raw("left/right panes | 1-6 panes"),
         ]),
+        Line::from("w/i/c/b/r/o focus | active zoom"),
         Line::from(vec![
             Span::styled("OPS ", Style::default().fg(success(color_mode))),
             Span::raw("g symbol | / filter | p preset | s sort"),
         ]),
         Line::from("t chart | d density | z zoom | space pause | q quit"),
         Line::from(format!("color {} | use --color always", color_mode.label())),
-        Line::from(format!("path {}", color_mode.color_path_label())),
         Line::from(vec![
             Span::styled(
                 "READ-ONLY ",
