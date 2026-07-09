@@ -2576,6 +2576,9 @@ fn medium_cockpit_renders_lower_pane_keyboard_router() {
     assert!(plain.contains("5 tape"));
     assert!(plain.contains("public BBO/trades only"));
     assert!(plain.contains("z zoom"));
+    assert!(plain.contains("╞ ADAPTIVE DESK"));
+    assert!(plain.contains("zoom ─"));
+    assert!(plain.contains("╡"));
     assert_eq!(
         active_fg_before(&colored, "ADAPTIVE DESK"),
         Some("\u{1b}[38;2;0;229;255m")
