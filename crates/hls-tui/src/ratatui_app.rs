@@ -580,6 +580,11 @@ fn render_header(
     };
     let status_tail = if narrow {
         format!("  {mode_label}")
+    } else if viewport.width < 132 {
+        format!(
+            "  {mode_label}  filter {}",
+            compact_filter_label(&model.title, &model.request)
+        )
     } else {
         format!("  {mode_label}  filter:{filter}")
     };
@@ -835,10 +840,7 @@ fn layout_controls_line(
                     .fg(warn(color_mode))
                     .add_modifier(Modifier::BOLD),
             ),
-            Span::raw(format!(
-                "resize-safe | 1-6 focus | z expand | {}",
-                pane_hotkey_rail(state, narrow)
-            )),
+            Span::raw("resize-safe | 1-6 focus | z expand | keys /pstdzsp h? q"),
         ]);
         return Line::from(spans);
     }
@@ -7259,34 +7261,54 @@ fn market_status_bar_line(
     color_mode: RatatuiColorMode,
     width: u16,
 ) -> Line<'static> {
-    let mut spans = vec![Span::raw(format!(
-        " {} | {} | No wallet | ",
-        compact_health_label(&model.health_status),
-        pause_label(model),
-    ))];
+    let mut spans = vec![Span::raw(if width < 132 {
+        format!(
+            " {} | {} | No wallet | ",
+            compact_status_health_label(&model.health_status),
+            pause_label(model),
+        )
+    } else {
+        format!(
+            " {} | {} | No wallet | ",
+            compact_health_label(&model.health_status),
+            pause_label(model),
+        )
+    })];
     if width < 180 {
         spans.extend(status_bar_compact_quality_alert_spans(model, color_mode));
     }
+    if width < 132 {
+        spans.push(Span::styled(
+            "TICKER ",
+            Style::default()
+                .fg(accent(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ));
+        spans.extend(compact_market_ticker_spans(model, color_mode));
+    } else {
+        spans.push(Span::styled(
+            "MARKET TICKER ",
+            Style::default()
+                .fg(accent(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ));
+        spans.extend(market_ticker_spans(model, color_mode));
+    }
+    spans.push(Span::raw(" | "));
     spans.push(Span::styled(
-        "MARKET TICKER ",
+        if width < 132 {
+            medium_quality_label(model)
+        } else {
+            format!("{} | ", operational_quality_label(model, false))
+        },
         Style::default()
-            .fg(accent(color_mode))
+            .fg(warn(color_mode))
             .add_modifier(Modifier::BOLD),
     ));
-    spans.extend(market_ticker_spans(model, color_mode));
-    spans.extend([
-        Span::raw(" | "),
-        Span::styled(
-            format!("{} | ", operational_quality_label(model, false)),
-            Style::default()
-                .fg(warn(color_mode))
-                .add_modifier(Modifier::BOLD),
-        ),
-    ]);
     if width >= 180 {
         spans.extend(status_bar_quality_alert_spans(model, color_mode));
     }
-    spans.extend(risk_strip_spans(model, color_mode));
+    spans.extend(risk_strip_spans(model, color_mode, width < 132));
     Line::from(spans)
 }
 
@@ -7475,13 +7497,17 @@ fn neon_state_spans(
     ]
 }
 
-fn risk_strip_spans(model: &RatatuiFrameModel, color_mode: RatatuiColorMode) -> Vec<Span<'static>> {
+fn risk_strip_spans(
+    model: &RatatuiFrameModel,
+    color_mode: RatatuiColorMode,
+    compact: bool,
+) -> Vec<Span<'static>> {
     let rows = screened_rows(model);
     if rows.is_empty() {
         return vec![
             Span::raw(" | "),
             Span::styled(
-                "RISK STRIP ",
+                if compact { "RISK " } else { "RISK STRIP " },
                 Style::default()
                     .fg(warn(color_mode))
                     .add_modifier(Modifier::BOLD),
@@ -7507,6 +7533,23 @@ fn risk_strip_spans(model: &RatatuiFrameModel, color_mode: RatatuiColorMode) -> 
     let pressure_style = Style::default()
         .fg(flow_color(net_flow, color_mode))
         .add_modifier(Modifier::BOLD);
+
+    if compact {
+        return vec![
+            Span::raw(" | "),
+            Span::styled(
+                "RISK ",
+                Style::default()
+                    .fg(warn(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(format!("c{:.0} d{:02} ", avg_confidence, degraded.min(99))),
+            Span::styled(
+                format!("f{}", format_usd_signed(Some(net_flow))),
+                pressure_style,
+            ),
+        ];
+    }
 
     vec![
         Span::raw(" | "),
@@ -7690,6 +7733,54 @@ fn market_ticker_spans(
     spans
 }
 
+fn compact_market_ticker_spans(
+    model: &RatatuiFrameModel,
+    color_mode: RatatuiColorMode,
+) -> Vec<Span<'static>> {
+    let rows = screened_rows(model);
+    if rows.is_empty() {
+        return vec![Span::raw("no rows")];
+    }
+
+    let up = rows
+        .iter()
+        .filter(|row| row.ret_1m.is_some_and(|value| value > 0.0))
+        .count();
+    let down = rows
+        .iter()
+        .filter(|row| row.ret_1m.is_some_and(|value| value < 0.0))
+        .count();
+    let flow_leader = rows
+        .iter()
+        .filter_map(|row| {
+            row.signed_notional_flow_30s
+                .filter(|value| value.is_finite())
+                .map(|value| (row, value))
+        })
+        .max_by(|(_, left), (_, right)| {
+            left.abs()
+                .partial_cmp(&right.abs())
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
+
+    let mut spans = vec![
+        Span::styled("BR ", Style::default().fg(accent(color_mode))),
+        Span::raw(format!("{:02}/{:02}", up.min(99), down.min(99))),
+    ];
+    if let Some((row, _)) = flow_leader {
+        spans.push(Span::raw(" | "));
+        spans.push(Span::styled(
+            format!(
+                "FL {} {}",
+                compact_display_symbol(row),
+                format_usd_signed(row.signed_notional_flow_30s)
+            ),
+            market_row_style(row, color_mode).add_modifier(Modifier::BOLD),
+        ));
+    }
+    spans
+}
+
 fn market_return_leader(
     rows: &[FeatureSnapshot],
     positive: bool,
@@ -7729,12 +7820,52 @@ fn operational_quality_label(model: &RatatuiFrameModel, compact: bool) -> String
     }
 }
 
+fn medium_quality_label(model: &RatatuiFrameModel) -> String {
+    let rows = screened_rows(model);
+    let tradeable = rows
+        .iter()
+        .filter(|row| matches!(row.tradeability_state, TradeabilityState::Tradeable))
+        .count();
+    let degraded = rows
+        .iter()
+        .filter(|row| row.confidence.score < 70 || row.staleness_state != StalenessState::Fresh)
+        .count();
+    let stale = rows
+        .iter()
+        .filter(|row| row.staleness_state != StalenessState::Fresh)
+        .count();
+    format!("Q T{tradeable:02} !{degraded:02} stale{stale:02}")
+}
+
 fn compact_health_label(health_status: &str) -> String {
     health_status
         .replace("ws=", "ws")
         .replace("events=", "ev")
         .replace("reconnects=", "r")
         .replace("gaps=", "g")
+}
+
+fn compact_status_health_label(health_status: &str) -> String {
+    if health_status.contains("fixture") {
+        "fixture".to_owned()
+    } else if health_status.contains("ws=") {
+        let compact = compact_health_label(health_status);
+        let ws = compact
+            .split_whitespace()
+            .find(|part| part.starts_with("ws"))
+            .unwrap_or("ws-");
+        let gaps = compact
+            .split_whitespace()
+            .find(|part| part.starts_with('g'))
+            .unwrap_or("g-");
+        format!("{ws}/{gaps}")
+    } else {
+        compact_health_label(health_status)
+    }
+}
+
+fn compact_display_symbol(row: &FeatureSnapshot) -> String {
+    display_symbol(row).replace("/USDC", "")
 }
 
 fn display_state_label(model: &RatatuiFrameModel) -> &'static str {
@@ -8574,6 +8705,16 @@ fn filter_label(title: &str, request: &ScreenRequest) -> String {
         (Some(preset), Some(where_expr)) => format!("{where_expr}; preset {preset}"),
         (Some(preset), None) => preset.clone(),
         (None, Some(where_expr)) => where_expr.clone(),
+        (None, None) => title.to_owned(),
+    }
+}
+
+fn compact_filter_label(title: &str, request: &ScreenRequest) -> String {
+    match (&request.preset, &request.where_expr) {
+        (Some(preset), Some(where_expr)) => format!("{where_expr}; p:{preset}"),
+        (Some(preset), None) => format!("p:{preset}"),
+        (None, Some(where_expr)) => where_expr.clone(),
+        (None, None) if title.contains("READ-ONLY") => "RO-live".to_owned(),
         (None, None) => title.to_owned(),
     }
 }
