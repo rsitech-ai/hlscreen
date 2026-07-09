@@ -720,6 +720,44 @@ fn wide_watchlist_renders_dynamic_scanner_rail() {
 }
 
 #[test]
+fn expanded_watchlist_renders_market_heatmap_deck() {
+    let mut snapshots = directional_snapshots();
+    snapshots[0].tob_depth_usd = Some(245.0);
+    snapshots[1].tob_depth_usd = Some(8_800.0);
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Watchlist),
+        snapshots.len(),
+    );
+    state.apply(WorkstationAction::TogglePaneZoom, snapshots.len());
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    )
+    .with_candles(fixture_candles());
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 180,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders expanded watchlist heatmap deck");
+
+    assert!(rendered.contains("EXPANDED watchlist"));
+    assert!(rendered.contains("MARKET HEATMAP"));
+    assert!(rendered.contains("breadth 01/01"));
+    assert!(rendered.contains("heat ██░░"));
+    assert!(rendered.contains("top mover DOWN/USDC"));
+    assert!(rendered.contains("top flow DOWN/USDC -$4.2K"));
+    assert!(rendered.contains("read-only scan"));
+}
+
+#[test]
 fn market_board_renders_directional_edge_pulses() {
     let model = RatatuiFrameModel::new(
         directional_snapshots(),
