@@ -199,6 +199,7 @@ TTY mouse controls for terminals with mouse reporting enabled:
 - On medium and standard-wide terminals, click the header `CMD g / p s t d z sp ? q` rail for symbol jump, filter, preset, sort, timeframe, density, zoom, pause, help, and quit.
 - Click the bottom `ACTION STRIP` in wide/medium terminals: activates visible controls such as symbol jump, density, pause, filter, preset, sort, chart window, help, and quit.
 - On narrow terminals, the compact `/pstdzsp h? q` rail is clickable: filter, preset, sort, timeframe, density, zoom, pause, health/status, help, and quit.
+- On very short terminals under 20 rows, `hls live --tui` switches to a `MICRO LAYOUT` that keeps the focused pane, resize-safe controls, color diagnostics, and read-only status visible.
 
 Color defaults to `always` for `hls live --tui`, so the Ratatui workstation uses
 the ANSI theme out of the box. Use `--color auto` to follow terminal and

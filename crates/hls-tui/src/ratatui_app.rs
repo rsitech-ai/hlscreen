@@ -173,12 +173,94 @@ pub fn render_ratatui_frame(
         Block::default().style(cockpit_background_style(color_mode)),
         area,
     );
-    if area.width < 90 {
+    if area.height < 20 {
+        render_micro(frame, area, model, color_mode);
+    } else if area.width < 90 {
         render_narrow(frame, area, model, color_mode);
     } else if area.width < 132 {
         render_medium(frame, area, model, color_mode);
     } else {
         render_wide(frame, area, model, color_mode);
+    }
+}
+
+fn render_micro(
+    frame: &mut Frame<'_>,
+    area: Rect,
+    model: &RatatuiFrameModel,
+    color_mode: RatatuiColorMode,
+) {
+    let root = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(4),
+            Constraint::Min(6),
+            Constraint::Length(2),
+        ])
+        .split(area);
+    render_micro_header(frame, root[0], area, model, color_mode);
+    render_micro_body(frame, root[1], model, color_mode);
+    render_status_bar(frame, root[2], model, color_mode);
+    render_help_overlay(frame, area, model, color_mode);
+    render_command_palette(frame, area, model, color_mode);
+}
+
+fn render_micro_header(
+    frame: &mut Frame<'_>,
+    area: Rect,
+    viewport: Rect,
+    model: &RatatuiFrameModel,
+    color_mode: RatatuiColorMode,
+) {
+    let state = &model.ui_state;
+    let lines = vec![
+        Line::from(vec![
+            Span::styled(
+                "MICRO LAYOUT ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(format!(
+                "{}x{} | pane {} | {} | {}",
+                viewport.width,
+                viewport.height,
+                state.focused_pane().label(),
+                pause_label(model),
+                color_mode.color_path_label(),
+            )),
+        ]),
+        Line::from(vec![
+            Span::styled("KEYS ", Style::default().fg(warn(color_mode))),
+            Span::raw("1-6 focus | w/i/c/b/r/o | j/k | z zoom | / p s t d sp ? q | "),
+            Span::styled("read-only", Style::default().fg(success(color_mode))),
+        ]),
+    ];
+    frame.render_widget(
+        Paragraph::new(lines).block(
+            Block::default()
+                .title(" RESIZE-SAFE MICRO DESK ")
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(accent(color_mode)))
+                .style(panel_surface_style(color_mode)),
+        ),
+        area,
+    );
+}
+
+fn render_micro_body(
+    frame: &mut Frame<'_>,
+    area: Rect,
+    model: &RatatuiFrameModel,
+    color_mode: RatatuiColorMode,
+) {
+    match model.ui_state.focused_pane() {
+        WorkstationPane::Watchlist => render_watchlist(frame, area, model, color_mode),
+        WorkstationPane::Detail => render_detail(frame, area, model, "MICRO DETAIL", color_mode),
+        WorkstationPane::Chart => render_chart(frame, area, model, color_mode),
+        WorkstationPane::Book => render_book(frame, area, model, color_mode),
+        WorkstationPane::Tape => render_tape(frame, area, model, color_mode),
+        WorkstationPane::Status => render_status_panel(frame, area, model, color_mode),
     }
 }
 
