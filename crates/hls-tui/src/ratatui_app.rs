@@ -1764,9 +1764,9 @@ fn row_action_map_lines(color_mode: RatatuiColorMode) -> Vec<Line<'static>> {
                     .fg(accent(color_mode))
                     .add_modifier(Modifier::BOLD),
             ),
-            Span::raw("enter detail | 3 chart | 4 book | 5 tape"),
+            Span::raw("enter/i detail | c/3 chart | b/4 book | r/5 tape"),
         ]),
-        Line::from("route / filter | z expand | display only"),
+        Line::from("w/1 watchlist | o/6 ops | / filter | z expand | display only"),
     ]
 }
 
@@ -1881,7 +1881,7 @@ fn watchlist_command_center_lines(
         ]),
         Line::from(leader_spans),
         Line::from(
-            "hotkeys j/k ent tab / filter p preset s sort | read-only scanner | no wallet | no orders",
+            "hotkeys j/k ent tab w/i/c/b/r/o | / filter p preset s sort | read-only scanner | no wallet | no orders",
         ),
     ]
 }

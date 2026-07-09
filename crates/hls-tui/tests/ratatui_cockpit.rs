@@ -1020,9 +1020,10 @@ fn wide_watchlist_renders_selected_row_router_strip() {
     assert!(rendered.contains("tab detail"));
     assert!(rendered.contains("ROW ACTION MAP"));
     assert!(rendered.contains("enter detail"));
-    assert!(rendered.contains("3 chart"));
-    assert!(rendered.contains("4 book"));
-    assert!(rendered.contains("5 tape"));
+    assert!(rendered.contains("c/3 chart"));
+    assert!(rendered.contains("b/4 book"));
+    assert!(rendered.contains("r/5 tape"));
+    assert!(rendered.contains("o/6 ops"));
     assert!(rendered.contains("/ filter"));
     assert!(rendered.contains("z expand"));
     assert!(rendered.contains("display only"));
@@ -1135,7 +1136,7 @@ fn expanded_watchlist_renders_command_center_deck() {
     assert!(rendered.contains("visible 02"));
     assert!(rendered.contains("tradeable"));
     assert!(rendered.contains("degraded"));
-    assert!(rendered.contains("hotkeys j/k ent tab"));
+    assert!(rendered.contains("hotkeys j/k ent tab w/i/c/b/r/o"));
     assert!(rendered.contains("leaders mover DOWN/USDC"));
     assert!(rendered.contains("flow DOWN/USDC -$4.2K"));
     assert!(rendered.contains("depth DOWN/USDC $8.8K"));
