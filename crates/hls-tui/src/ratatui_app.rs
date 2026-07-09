@@ -723,7 +723,7 @@ fn layout_controls_line(
         spans.push(Span::raw("resize-safe | 1-6 focus | z expand"));
     }
     spans.push(Span::raw(if narrow {
-        " | w/i/c/b/r/o | j/k ent /pstzh? q"
+        " | w/i/c/b/r/o | j/k ent /pstdzsp h? q"
     } else {
         " | w/i/c/b/r/o focus | j/k row enter detail h status 1-6 panes tab views / p s t ? q"
     }));

@@ -1722,7 +1722,7 @@ fn narrow_cockpit_collapses_to_watchlist_and_detail_without_tape() {
     assert!(rendered.contains("WATCHLIST"));
     assert!(rendered.contains("DETAIL"));
     assert!(rendered.contains("v:overview p:watchlist d:balanced c:15m"));
-    assert!(rendered.contains("j/k ent /pstzh? q"));
+    assert!(rendered.contains("j/k ent /pstdzsp h? q"));
     assert!(rendered.contains("INT rows"));
     assert!(rendered.contains(" dn "));
     assert!(rendered.contains(" tr "));
@@ -1855,7 +1855,7 @@ fn header_renders_keyboard_pane_hotkey_rail() {
 
     assert!(rendered.contains("CONTROLS 1W 2D 3C [4B] 5T 6S"));
     assert!(rendered.contains("w/i/c/b/r/o"));
-    assert!(rendered.contains("j/k ent /pstzh? q"));
+    assert!(rendered.contains("j/k ent /pstdzsp h? q"));
     assert!(rendered.contains("[FOCUS] BOOK"));
 }
 
