@@ -3334,7 +3334,7 @@ fn render_help_overlay(
                 ),
             ]),
             Line::from(
-                "MOUSE wheel rows | click rows/panes/views/windows | terminal mouse required",
+                "MOUSE wheel rows | click rows/panes/views/windows/cmds | terminal mouse required",
             ),
             Line::from("1-6 panes  watchlist, detail, chart, book, tape, status"),
             Line::from(vec![
@@ -3415,7 +3415,7 @@ fn compact_help_overlay_lines(
         )),
         Line::from(vec![
             Span::styled("NAV ", Style::default().fg(warn(color_mode))),
-            Span::raw("j/k rows | click rows/rails/tabs | tab"),
+            Span::raw("j/k rows | click rows/rails/tabs/cmds"),
         ]),
         Line::from(vec![
             Span::styled("PANES ", Style::default().fg(warn(color_mode))),
