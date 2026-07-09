@@ -807,6 +807,12 @@ fn narrow_cockpit_renders_status_focus_as_operational_drilldown() {
     assert!(rendered.contains("stream LIVE"));
     assert!(rendered.contains("recorder REC ready"));
     assert!(rendered.contains("ws=235 events=485 reconnects=0 gaps=0"));
+    assert!(rendered.contains("LIVE OPS"));
+    assert!(rendered.contains("ws 235"));
+    assert!(rendered.contains("events 485"));
+    assert!(rendered.contains("reconnects 0"));
+    assert!(rendered.contains("gaps 0"));
+    assert!(rendered.contains("ingest"));
     assert!(rendered.contains("pane status"));
     assert!(rendered.contains("terminal color no-color"));
     assert!(rendered.contains("palette plain"));
