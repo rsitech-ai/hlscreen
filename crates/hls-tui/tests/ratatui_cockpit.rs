@@ -217,8 +217,9 @@ fn wide_cockpit_renders_all_primary_trading_workstation_regions() {
     assert!(rendered.contains("confidence"));
     assert!(rendered.contains("No wallet"));
     assert!(rendered.contains("MARKET"));
-    assert!(rendered.contains("HYPE/USDC UP+0.57%"));
-    assert!(rendered.contains("DOWN/USDC DN-1.23% -$4.2K"));
+    assert!(rendered.contains("TICKER"));
+    assert!(rendered.contains("UP HYPE/USDC +0.57%"));
+    assert!(rendered.contains("DOWN DOWN/USDC -1.23%"));
     assert!(rendered.contains("STATUS LIVE"));
     assert!(rendered.contains("CONTROLS"));
     assert!(rendered.contains("QUALITY"));
@@ -231,6 +232,35 @@ fn wide_cockpit_renders_all_primary_trading_workstation_regions() {
     assert!(rendered.contains("01"));
     assert!(rendered.contains("UP"));
     assert!(rendered.contains("DN"));
+}
+
+#[test]
+fn wide_status_bar_renders_dynamic_market_ticker_rail() {
+    let model = RatatuiFrameModel::new(
+        directional_snapshots(),
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        WorkstationUiState::default(),
+    )
+    .with_status("LIVE", "REC ready", "ws=120 events=300 gaps=0");
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 240,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders wide status ticker");
+
+    assert!(rendered.contains("TICKER"));
+    assert!(rendered.contains("UP HYPE/USDC +0.57%"));
+    assert!(rendered.contains("DOWN DOWN/USDC -1.23%"));
+    assert!(rendered.contains("FLOW DOWN/USDC -$4.2K"));
+    assert!(rendered.contains("BREADTH 01/01"));
+    assert!(rendered.contains("ACTION STRIP"));
+    assert!(rendered.contains("No wallet"));
 }
 
 fn directional_snapshots() -> Vec<hls_core::market_state::FeatureSnapshot> {
