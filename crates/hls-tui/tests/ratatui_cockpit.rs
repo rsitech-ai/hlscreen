@@ -1770,6 +1770,39 @@ fn book_pane_renders_bid_ask_share_and_notional_bars() {
 }
 
 #[test]
+fn book_pane_renders_pressure_tape() {
+    let snapshots = fixture_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Book),
+        snapshots.len(),
+    );
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    );
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 160,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders book pressure tape");
+
+    assert!(rendered.contains("PRESSURE TAPE"));
+    assert!(rendered.contains("BOOK SNAP"));
+    assert!(rendered.contains("bid share"));
+    assert!(rendered.contains("ask share"));
+    assert!(rendered.contains("queue skew"));
+    assert!(rendered.contains("read-only top-book"));
+}
+
+#[test]
 fn book_pane_renders_read_only_bbo_ladder() {
     let snapshots = fixture_snapshots();
     let mut state = WorkstationUiState::default();

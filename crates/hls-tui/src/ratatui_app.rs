@@ -4836,10 +4836,10 @@ fn microprice(row: &FeatureSnapshot) -> Option<f64> {
 }
 
 fn book_snap_lines(
-    row: &FeatureSnapshot,
+    _row: &FeatureSnapshot,
     quote_share: Option<(f64, f64)>,
-    bid_notional: Option<f64>,
-    ask_notional: Option<f64>,
+    _bid_notional: Option<f64>,
+    _ask_notional: Option<f64>,
     color_mode: RatatuiColorMode,
     compact: bool,
 ) -> Vec<Line<'static>> {
@@ -4855,6 +4855,7 @@ fn book_snap_lines(
             let width = if compact { 6 } else { 8 };
             (depth_bar_empty(width), depth_bar_empty(width))
         });
+    let skew = quote_share.map_or(0.0, |(bid, ask)| bid - ask);
     vec![
         Line::from(vec![
             Span::styled(
@@ -4869,10 +4870,8 @@ fn book_snap_lines(
             Span::raw(format!("{ask_share} {ask_bar}")),
         ]),
         Line::from(format!(
-            "queue map read-only top-book {} / {} spr {} bps",
-            format_usd(bid_notional),
-            format_usd(ask_notional),
-            format_optional(row.spread_bps, 1)
+            "PRESSURE TAPE queue skew {} | queue map | read-only top-book",
+            signed_meter(skew),
         )),
     ]
 }
