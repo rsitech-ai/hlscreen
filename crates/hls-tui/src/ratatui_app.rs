@@ -191,7 +191,7 @@ fn render_wide(
     let root = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(7),
+            Constraint::Length(8),
             Constraint::Min(12),
             Constraint::Length(3),
         ])
@@ -500,7 +500,7 @@ fn render_header(
     } else {
         format!("  {mode_label}  filter:{filter}")
     };
-    let mut status_spans = vec![
+    let status_spans = vec![
         Span::styled(
             "STATUS ",
             Style::default()
@@ -514,10 +514,10 @@ fn render_header(
         ),
         Span::raw(status_tail),
     ];
-    if viewport.width >= 220 {
-        status_spans.extend(top_command_strip_spans(color_mode));
-    }
     let mut text = vec![Line::from(status_spans)];
+    if viewport.width >= 220 {
+        text.push(top_command_strip_line(color_mode));
+    }
     if !narrow {
         text.push(desk_tab_rail_line(
             &model.ui_state,
@@ -545,19 +545,24 @@ fn render_header(
     );
 }
 
-fn top_command_strip_spans(color_mode: RatatuiColorMode) -> Vec<Span<'static>> {
-    vec![
-        Span::raw("  |  "),
+fn top_command_strip_line(color_mode: RatatuiColorMode) -> Line<'static> {
+    Line::from(vec![
         Span::styled(
             "TOP BAR ",
             Style::default()
                 .fg(accent(color_mode))
                 .add_modifier(Modifier::BOLD),
         ),
-        Span::raw(
-            "WATCHLIST [1]  PORTFOLIO RISK [6] EXEC GUARD read-only proxy  SEARCH [/]  HELP [?]  QUIT [q]",
+        Span::styled(
+            "DESK NAV ",
+            Style::default()
+                .fg(warn(color_mode))
+                .add_modifier(Modifier::BOLD),
         ),
-    ]
+        Span::raw(
+            "[w/1] WATCH  [i/2] DETAIL  [c/3] CHART  [b/4] BOOK  [r/5] TAPE  [o/6] OPS  SEARCH [/]  HELP [?]  QUIT [q]  EXEC GUARD read-only proxy",
+        ),
+    ])
 }
 
 fn header_title(area: Rect) -> String {
@@ -714,9 +719,9 @@ fn layout_controls_line(
         spans.push(Span::raw("resize-safe | 1-6 focus | z expand"));
     }
     spans.push(Span::raw(if narrow {
-        " | j/k ent h 1-6 /pst? q"
+        " | w/i/c/b/r/o | j/k ent /pstzh? q"
     } else {
-        " | j/k row enter detail h status 1-6 panes tab views / p s t ? q"
+        " | w/i/c/b/r/o focus | j/k row enter detail h status 1-6 panes tab views / p s t ? q"
     }));
     Line::from(spans)
 }
@@ -752,7 +757,9 @@ fn pane_hotkey_rail(state: &WorkstationUiState, narrow: bool) -> String {
         })
         .collect::<Vec<_>>()
         .join(" ")
-        + if state.pane_expanded() {
+        + if narrow {
+            ""
+        } else if state.pane_expanded() {
             " | z grid"
         } else {
             " | z zoom"
