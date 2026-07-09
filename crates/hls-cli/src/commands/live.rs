@@ -121,6 +121,17 @@ impl LiveDiagnostics {
     }
 }
 
+fn after_live_tui_teardown<Recording, Preferences>(
+    teardown: impl FnOnce(),
+    finish_recording: impl FnOnce() -> Recording,
+    save_preferences: impl FnOnce() -> Preferences,
+) -> (Recording, Preferences) {
+    teardown();
+    let recording = finish_recording();
+    let preferences = save_preferences();
+    (recording, preferences)
+}
+
 #[derive(Debug, Args)]
 pub struct LiveArgs {
     #[arg(long)]
@@ -540,39 +551,41 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
         .as_ref()
         .map(LiveDriveSummary::is_clean_shutdown)
         .unwrap_or(false);
-    let record_summary_result: anyhow::Result<Option<RecordSummary>> =
-        if let Some(recorder) = recorder {
-            recorder
-                .finish(clean_shutdown)
-                .map(Some)
-                .map_err(anyhow::Error::from)
-        } else {
-            Ok(None)
-        };
+    let (record_summary_result, tui_preference_save) = after_live_tui_teardown(
+        || {
+            drop(tui_renderer);
+            drop(terminal_mode);
+            diagnostics.flush_deferred();
+        },
+        || -> anyhow::Result<Option<RecordSummary>> {
+            if let Some(recorder) = recorder {
+                recorder
+                    .finish(clean_shutdown)
+                    .map(Some)
+                    .map_err(anyhow::Error::from)
+            } else {
+                Ok(None)
+            }
+        },
+        || {
+            if let Some(ui_state) = tui_state.as_ref() {
+                save_tui_preferences(&args.data_dir, ui_state.preferences())
+            } else {
+                Ok(())
+            }
+        },
+    );
     if drive_result.is_err()
         && let Err(err) = &record_summary_result
     {
         diagnostics.emit(
-            render_live_tui,
+            false,
             format!("recording closeout failed after live error: {err}"),
         );
     }
-
-    let tui_preference_save = if let Some(ui_state) = tui_state.as_ref() {
-        save_tui_preferences(&args.data_dir, ui_state.preferences())
-    } else {
-        Ok(())
-    };
     if let Err(err) = &tui_preference_save {
-        diagnostics.emit(
-            render_live_tui,
-            format!("tui preferences save skipped: {err}"),
-        );
+        diagnostics.emit(false, format!("tui preferences save skipped: {err}"));
     }
-
-    drop(tui_renderer);
-    drop(terminal_mode);
-    diagnostics.flush_deferred();
 
     let mut summary = drive_result?;
     let record_summary = record_summary_result?;
@@ -3453,6 +3466,40 @@ mod tests {
         let deferred = diagnostics.take_deferred();
         assert_eq!(deferred.len(), MAX_DEFERRED_LIVE_DIAGNOSTICS);
         assert_eq!(deferred.first().map(String::as_str), Some("warning-2"));
+    }
+
+    #[test]
+    fn live_closeout_orders_terminal_teardown_before_blocking_work() {
+        let order = std::cell::RefCell::new(Vec::new());
+
+        let (recording, preferences) = after_live_tui_teardown(
+            || {
+                order
+                    .borrow_mut()
+                    .extend(["renderer drop", "guard drop", "deferred diagnostics"]);
+            },
+            || {
+                order.borrow_mut().push("recorder finish");
+                "recording complete"
+            },
+            || {
+                order.borrow_mut().push("preferences save");
+                "preferences complete"
+            },
+        );
+
+        assert_eq!(recording, "recording complete");
+        assert_eq!(preferences, "preferences complete");
+        assert_eq!(
+            order.into_inner(),
+            vec![
+                "renderer drop",
+                "guard drop",
+                "deferred diagnostics",
+                "recorder finish",
+                "preferences save",
+            ]
+        );
     }
 
     #[test]
