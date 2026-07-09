@@ -950,6 +950,44 @@ fn cockpit_chart_renders_price_axis_and_public_candle_footer() {
 }
 
 #[test]
+fn cockpit_chart_renders_selected_pair_edge_hud() {
+    let snapshots = directional_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Chart),
+        snapshots.len(),
+    );
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    )
+    .with_candles(fixture_candles());
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 160,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders chart edge hud");
+
+    assert!(rendered.contains("EDGE HUD"));
+    assert!(rendered.contains("trade unknown"));
+    assert!(rendered.contains("conf 100"));
+    assert!(rendered.contains("spr 57.1bps"));
+    assert!(rendered.contains("risk unknown"));
+    assert!(rendered.contains("LIQ"));
+    assert!(rendered.contains("flow -$35"));
+    assert!(rendered.contains("depth $245"));
+    assert!(rendered.contains("imb -0.15"));
+    assert!(rendered.contains("score 2"));
+}
+
+#[test]
 fn cockpit_chart_renders_interactive_window_tab_rail() {
     let snapshots = fixture_snapshots();
     let mut state = WorkstationUiState::default();
@@ -1009,6 +1047,8 @@ fn narrow_chart_focus_renders_compact_window_controls() {
     assert!(rendered.contains("[FOCUS] CANDLES"));
     assert!(rendered.contains("WIN 1 5 [15] 30 60"));
     assert!(rendered.contains("t:window"));
+    assert!(rendered.contains("EDGE HUD"));
+    assert!(rendered.contains("LIQ"));
     assert!(rendered.contains("live | chart:t | top1"));
     assert!(rendered.contains("RO no-wallet"));
 }
