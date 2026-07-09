@@ -1777,10 +1777,11 @@ fn render_help_overlay(
                     .add_modifier(Modifier::BOLD),
             ),
             Span::raw(format!(
-                "view {} | pane {} | density {} | chart {} | {}",
+                "view {} | pane {} | density {} | focus {} | chart {} | {}",
                 state.view().label(),
                 state.focused_pane().label(),
                 state.density().label(),
+                state.focused_pane().label(),
                 state.chart_window().label(),
                 pause_label(model)
             )),
@@ -3408,12 +3409,22 @@ fn market_status_bar_line(
 ) -> Line<'static> {
     let mut spans = vec![
         Span::raw(format!(
-            " {} | {} | focus {} | ACTION STRIP {} | No wallet | {} | ",
+            " {} | {} | ",
             model.health_status,
             pause_label(model),
+        )),
+        Span::styled(
+            "MARKET TICKER ",
+            Style::default()
+                .fg(accent(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+    ];
+    spans.extend(market_ticker_spans(model, color_mode));
+    spans.extend([
+        Span::raw(format!(
+            " | ACTION STRIP {} | No wallet | ",
             focused_pane_key_label(model.ui_state.focused_pane(), false),
-            focused_pane_action_label(model.ui_state.focused_pane(), false),
-            mode_label(&model.request, model.rows.len())
         )),
         Span::styled(
             format!("{} | ", operational_quality_label(model, false)),
@@ -3421,17 +3432,8 @@ fn market_status_bar_line(
                 .fg(warn(color_mode))
                 .add_modifier(Modifier::BOLD),
         ),
-        Span::styled(
-            "MARKET ",
-            Style::default()
-                .fg(accent(color_mode))
-                .add_modifier(Modifier::BOLD),
-        ),
-    ];
-    spans.extend(market_ticker_spans(model, color_mode));
-    spans.push(Span::raw(
-        " | no private streams, no order routes; not advice. ",
-    ));
+        Span::raw("read-only public tape "),
+    ]);
     Line::from(spans)
 }
 
@@ -3537,22 +3539,82 @@ fn market_ticker_spans(
     if rows.is_empty() {
         return vec![Span::raw("no rows")];
     }
-    let mut spans = Vec::new();
-    for (index, row) in rows.iter().take(4).enumerate() {
-        if index > 0 {
-            spans.push(Span::raw(" | "));
-        }
+
+    let up = rows
+        .iter()
+        .filter(|row| row.ret_1m.is_some_and(|value| value > 0.0))
+        .count();
+    let down = rows
+        .iter()
+        .filter(|row| row.ret_1m.is_some_and(|value| value < 0.0))
+        .count();
+    let up_leader = market_return_leader(&rows, true);
+    let down_leader = market_return_leader(&rows, false);
+    let flow_leader = rows
+        .iter()
+        .filter_map(|row| {
+            row.signed_notional_flow_30s
+                .filter(|value| value.is_finite())
+                .map(|value| (row, value))
+        })
+        .max_by(|(_, left), (_, right)| {
+            left.abs()
+                .partial_cmp(&right.abs())
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
+
+    let mut spans = vec![
+        Span::styled("BREADTH ", Style::default().fg(accent(color_mode))),
+        Span::raw(format!("{:02}/{:02}", up.min(99), down.min(99))),
+    ];
+    if let Some((row, value)) = up_leader {
+        spans.push(Span::raw(" | "));
+        spans.push(Span::styled(
+            format!("UP {} {:+.2}%", display_symbol(row), value * 100.0),
+            Style::default()
+                .fg(success(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ));
+    }
+    if let Some((row, value)) = down_leader {
+        spans.push(Span::raw(" | "));
+        spans.push(Span::styled(
+            format!("DOWN {} {:+.2}%", display_symbol(row), value * 100.0),
+            Style::default()
+                .fg(danger(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ));
+    }
+    if let Some((row, _)) = flow_leader {
+        spans.push(Span::raw(" | "));
         spans.push(Span::styled(
             format!(
-                "{} {} {}",
+                "FLOW {} {}",
                 display_symbol(row),
-                trend_label(row.ret_1m),
                 format_usd_signed(row.signed_notional_flow_30s)
             ),
             market_row_style(row, color_mode).add_modifier(Modifier::BOLD),
         ));
     }
     spans
+}
+
+fn market_return_leader(
+    rows: &[FeatureSnapshot],
+    positive: bool,
+) -> Option<(&FeatureSnapshot, f64)> {
+    rows.iter()
+        .filter_map(|row| {
+            row.ret_1m
+                .filter(|value| value.is_finite())
+                .filter(|value| (*value > 0.0) == positive)
+                .map(|value| (row, value))
+        })
+        .max_by(|(_, left), (_, right)| {
+            left.abs()
+                .partial_cmp(&right.abs())
+                .unwrap_or(std::cmp::Ordering::Equal)
+        })
 }
 
 fn operational_quality_label(model: &RatatuiFrameModel, compact: bool) -> String {
