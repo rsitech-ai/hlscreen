@@ -3307,12 +3307,17 @@ fn render_command_palette(
         return;
     };
     let popup = centered_rect(74, 54, area);
+    let compact = popup.width < 64;
     frame.render_widget(Clear, popup);
     frame.render_widget(
-        Paragraph::new(command_palette_lines(command, model, color_mode))
-            .wrap(Wrap { trim: true })
-            .block(panel("COMMAND", color_mode))
-            .style(Style::default().fg(text(color_mode))),
+        Paragraph::new(if compact {
+            compact_command_palette_lines(command, model, color_mode)
+        } else {
+            command_palette_lines(command, model, color_mode)
+        })
+        .wrap(Wrap { trim: true })
+        .block(panel("COMMAND", color_mode))
+        .style(Style::default().fg(text(color_mode))),
         popup,
     );
 }
@@ -3364,6 +3369,88 @@ fn command_palette_lines(
         lines.push(command_error_line(error, color_mode));
     }
     lines
+}
+
+fn compact_command_palette_lines(
+    command: &WorkstationCommand,
+    model: &RatatuiFrameModel,
+    color_mode: RatatuiColorMode,
+) -> Vec<Line<'static>> {
+    let target = command.target().label();
+    let input = if command.input().is_empty() {
+        "<empty>"
+    } else {
+        command.input()
+    };
+    let mut lines = vec![
+        Line::from(vec![
+            Span::styled(
+                "COMMAND COMPACT ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(
+                target.to_owned(),
+                Style::default()
+                    .fg(warn(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+        ]),
+        Line::from(format!("{target} > {input}")),
+        compact_command_suggestions_line(command, model, color_mode),
+        Line::from("Enter apply | Esc cancel"),
+        Line::from(format!(
+            "rows {:02} | view {} | pane {}",
+            screened_rows(model).len().min(99),
+            model.ui_state.view().label(),
+            model.ui_state.focused_pane().label()
+        )),
+        Line::from(vec![
+            Span::styled(
+                "RO no-wallet ",
+                Style::default()
+                    .fg(danger(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw("public market data only"),
+        ]),
+    ];
+    if let Some(error) = model.ui_state.command_error() {
+        lines.push(command_error_line(error, color_mode));
+    }
+    lines
+}
+
+fn compact_command_suggestions_line(
+    command: &WorkstationCommand,
+    model: &RatatuiFrameModel,
+    color_mode: RatatuiColorMode,
+) -> Line<'static> {
+    match command.target() {
+        crate::interaction::WorkstationCommandTarget::Symbol => {
+            let suggestions = visible_symbol_suggestions(command.input(), model);
+            Line::from(vec![
+                Span::styled("SUGGEST ", Style::default().fg(success(color_mode))),
+                Span::raw(suggestions.join(" ")),
+            ])
+        }
+        crate::interaction::WorkstationCommandTarget::Preset => {
+            let suggestions = preset_suggestions(command.input());
+            Line::from(vec![
+                Span::styled("SUGGEST ", Style::default().fg(success(color_mode))),
+                Span::raw(suggestions.join(" ")),
+            ])
+        }
+        crate::interaction::WorkstationCommandTarget::Filter => Line::from(vec![
+            Span::styled("SUGGEST ", Style::default().fg(success(color_mode))),
+            Span::raw("confidence >= 70 | spread_bps < 5"),
+        ]),
+        crate::interaction::WorkstationCommandTarget::Sort => Line::from(vec![
+            Span::styled("SUGGEST ", Style::default().fg(success(color_mode))),
+            Span::raw("score:desc | spread_bps:asc"),
+        ]),
+    }
 }
 
 fn command_center_title_line(color_mode: RatatuiColorMode) -> Line<'static> {
