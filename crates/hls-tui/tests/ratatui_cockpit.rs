@@ -2751,6 +2751,64 @@ fn wide_status_focus_renders_latency_strip() {
 }
 
 #[test]
+fn status_focus_renders_data_quality_watch_for_degraded_rows() {
+    let mut snapshots = ten_directional_snapshots();
+    snapshots[1].confidence.score = 42;
+    snapshots[1].confidence.level = ConfidenceLevel::Low;
+    snapshots[1].staleness_state = StalenessState::Stale;
+    snapshots[1].updated_ms_ago = Some(3_200);
+    snapshots[2].confidence.score = 68;
+    snapshots[2].staleness_state = StalenessState::Fresh;
+    snapshots[2].updated_ms_ago = Some(900);
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Status),
+        snapshots.len(),
+    );
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    )
+    .with_status("LIVE", "REC ready", "ws=235 events=485 reconnects=2 gaps=1");
+
+    let plain = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 240,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("plain status quality watch renders");
+    let colored = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 240,
+            height: 48,
+        },
+        RatatuiColorMode::Color,
+    )
+    .expect("colored status quality watch renders");
+
+    assert!(!plain.contains("\u{1b}["));
+    assert!(plain.contains("DATA QUALITY WATCH"));
+    assert!(plain.contains("stale"));
+    assert!(plain.contains("conf42"));
+    assert!(plain.contains("age 3.2s"));
+    assert!(plain.contains("public rows only"));
+    assert_eq!(
+        active_fg_before(&colored, "DATA QUALITY WATCH"),
+        Some("\u{1b}[38;2;0;229;255m")
+    );
+    assert_eq!(
+        active_fg_before(&colored, "conf42"),
+        Some("\u{1b}[38;2;255;77;109m")
+    );
+}
+
+#[test]
 fn cockpit_color_mode_is_explicit_and_does_not_pollute_no_color_snapshots() {
     let model = RatatuiFrameModel::new(
         fixture_snapshots(),
