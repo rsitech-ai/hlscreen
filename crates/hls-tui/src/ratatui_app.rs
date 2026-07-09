@@ -3445,6 +3445,7 @@ fn render_status_panel(
             Span::raw(depth_bar(ingest_ratio, 4)),
             Span::raw(" ingest"),
         ]),
+        status_quality_matrix_line(&rows, color_mode),
         Line::from(format!(
             "active {} pane {} palette {} / filter t chart",
             mode_label(&model.request, rows.len()),
@@ -3474,6 +3475,60 @@ fn render_status_panel(
             .style(Style::default().fg(text(color_mode))),
         area,
     );
+}
+
+fn status_quality_matrix_line(
+    rows: &[FeatureSnapshot],
+    color_mode: RatatuiColorMode,
+) -> Line<'static> {
+    let total = rows.len();
+    let tradeable = rows
+        .iter()
+        .filter(|row| matches!(row.tradeability_state, TradeabilityState::Tradeable))
+        .count();
+    let degraded = rows
+        .iter()
+        .filter(|row| row.confidence.score < 70 || row.staleness_state != StalenessState::Fresh)
+        .count();
+    let stale = rows
+        .iter()
+        .filter(|row| row.staleness_state != StalenessState::Fresh)
+        .count();
+    let confidence = if total == 0 {
+        0
+    } else {
+        let sum = rows
+            .iter()
+            .map(|row| row.confidence.score as u64)
+            .sum::<u64>();
+        (sum / total as u64).min(100)
+    };
+    let tradeable_ratio = if total == 0 {
+        0.0
+    } else {
+        tradeable as f64 / total as f64
+    };
+    let confidence_ratio = confidence as f64 / 100.0;
+
+    Line::from(vec![
+        Span::styled(
+            "QUALITY MATRIX ",
+            Style::default()
+                .fg(accent(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::styled("tradeable ", Style::default().fg(success(color_mode))),
+        Span::raw(format!(
+            "{tradeable}/{total} {}  ",
+            depth_bar(tradeable_ratio, 4)
+        )),
+        Span::styled("degraded ", Style::default().fg(warn(color_mode))),
+        Span::raw(format!("{degraded}  ")),
+        Span::styled("stale ", Style::default().fg(danger(color_mode))),
+        Span::raw(format!("{stale}  ")),
+        Span::styled("confidence ", Style::default().fg(success(color_mode))),
+        Span::raw(format!("{confidence} {}", depth_bar(confidence_ratio, 4))),
+    ])
 }
 
 fn health_metric(health_status: &str, key: &str) -> Option<u64> {

@@ -1164,6 +1164,11 @@ fn narrow_cockpit_renders_status_focus_as_operational_drilldown() {
     assert!(rendered.contains("OPS RADAR"));
     assert!(rendered.contains("WS load"));
     assert!(rendered.contains("EVENT flow"));
+    assert!(rendered.contains("QUALITY MATRIX"));
+    assert!(rendered.contains("tradeable"));
+    assert!(rendered.contains("degraded"));
+    assert!(rendered.contains("stale"));
+    assert!(rendered.contains("confidence"));
     assert!(rendered.contains("SAFETY GATES"));
     assert!(rendered.contains("no orders"));
     assert!(rendered.contains("pane status"));
