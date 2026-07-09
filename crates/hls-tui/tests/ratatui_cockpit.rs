@@ -1215,6 +1215,43 @@ fn wide_cockpit_expands_focused_chart_pane() {
 }
 
 #[test]
+fn expanded_chart_renders_public_intelligence_deck() {
+    let snapshots = fixture_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Chart),
+        snapshots.len(),
+    );
+    state.apply(WorkstationAction::TogglePaneZoom, snapshots.len());
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    )
+    .with_candles(fixture_candles())
+    .with_trades(fixture_trades());
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 180,
+            height: 52,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders expanded chart intelligence deck");
+
+    assert!(rendered.contains("EXPANDED chart"));
+    assert!(rendered.contains("CHART INTEL"));
+    assert!(rendered.contains("trend"));
+    assert!(rendered.contains("range pos"));
+    assert!(rendered.contains("vol pulse"));
+    assert!(rendered.contains("public candles + prints only"));
+    assert!(rendered.contains("no orders"));
+}
+
+#[test]
 fn narrow_cockpit_expands_focused_book_pane() {
     let snapshots = fixture_snapshots();
     let mut state = WorkstationUiState::default();
