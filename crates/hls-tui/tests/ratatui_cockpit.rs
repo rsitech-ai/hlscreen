@@ -4404,6 +4404,10 @@ fn wide_chart_renders_selected_pair_order_pressure_lane() {
     .expect("renders wide chart pressure lane");
 
     assert!(rendered.contains("ORDER PRESSURE"));
+    assert!(rendered.contains("STRUCTURE TAPE"));
+    assert!(rendered.contains("higher highs"));
+    assert!(rendered.contains("lower lows"));
+    assert!(rendered.contains("public candles only"));
     assert!(rendered.contains("BID"));
     assert!(rendered.contains("ASK"));
     assert!(rendered.contains("bid wall"));
