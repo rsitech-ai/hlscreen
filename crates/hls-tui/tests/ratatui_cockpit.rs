@@ -127,6 +127,49 @@ fn command_palette_renders_preset_deck_with_active_context() {
     assert!(rendered.contains("read-only presets"));
 }
 
+#[test]
+fn cockpit_header_renders_adaptive_layout_profile() {
+    let model = RatatuiFrameModel::new(
+        directional_snapshots(),
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        WorkstationUiState::default(),
+    )
+    .with_status("LIVE", "REC ready", "ws=120 events=300 gaps=0");
+
+    let wide = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 240,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders wide layout profile");
+    let medium = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 120,
+            height: 40,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders medium layout profile");
+    let narrow = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 72,
+            height: 24,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders narrow layout profile");
+
+    assert!(wide.contains("layout wide 240x48"));
+    assert!(medium.contains("layout medium 120x40"));
+    assert!(narrow.contains("layout narrow 72x24"));
+}
+
 fn fixture_candles() -> Vec<CandleEvent> {
     parse_ws_ndjson(include_str!(
         "../../../tests/fixtures/hyperliquid/ws_mock_live.ndjson"
