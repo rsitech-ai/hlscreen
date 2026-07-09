@@ -1879,6 +1879,48 @@ fn book_pane_renders_read_only_bbo_ladder() {
 }
 
 #[test]
+fn book_pane_color_mode_renders_semantic_depth_lens() {
+    let snapshots = fixture_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Book),
+        snapshots.len(),
+    );
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    );
+
+    let plain = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 320,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("plain book depth lens renders");
+    let colored = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 320,
+            height: 48,
+        },
+        RatatuiColorMode::Color,
+    )
+    .expect("colored book depth lens renders");
+
+    assert!(!plain.contains("\u{1b}["));
+    assert!(plain.contains("DEPTH LENS"));
+    assert!(plain.contains("read-only top-book"));
+    assert!(colored.contains("DEPTH LENS"));
+    assert!(colored.contains("\u{1b}[38;2;0;255;154mbid █"));
+    assert!(colored.contains("\u{1b}[38;2;255;77;109mask █"));
+}
+
+#[test]
 fn book_pane_renders_execution_quality_band() {
     let snapshots = fixture_snapshots();
     let mut state = WorkstationUiState::default();
