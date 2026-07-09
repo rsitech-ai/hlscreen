@@ -3650,6 +3650,48 @@ fn expanded_status_renders_portfolio_risk_terminal() {
 }
 
 #[test]
+fn expanded_status_renders_desk_exposure_radar() {
+    let mut snapshots = directional_snapshots();
+    snapshots[0].tob_depth_usd = Some(1_200.0);
+    snapshots[1].tob_depth_usd = Some(8_800.0);
+    snapshots[1].confidence.score = 55;
+    snapshots[1].confidence.level = ConfidenceLevel::Low;
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Status),
+        snapshots.len(),
+    );
+    state.apply(WorkstationAction::TogglePaneZoom, snapshots.len());
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    )
+    .with_status("LIVE", "REC ready", "ws=235 events=485 reconnects=0 gaps=0");
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 190,
+            height: 52,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders expanded desk exposure radar");
+
+    assert!(rendered.contains("DESK EXPOSURE RADAR"));
+    assert!(rendered.contains("long bucket 01 depth $1.2K"));
+    assert!(rendered.contains("short bucket 01 depth $8.8K"));
+    assert!(rendered.contains("neutral bucket 00"));
+    assert!(rendered.contains("public notional proxy"));
+    assert!(rendered.contains("confidence drag DOWN/USDC conf55"));
+    assert!(rendered.contains("screen exposure only"));
+    assert!(rendered.contains("not sizing"));
+    assert!(rendered.contains("not advice"));
+}
+
+#[test]
 fn expanded_status_renders_color_lab_diagnostics() {
     let snapshots = fixture_snapshots();
     let mut state = WorkstationUiState::default();

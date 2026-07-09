@@ -8752,6 +8752,7 @@ fn render_status_panel(
             &rows, reconnects, gaps, color_mode,
         ));
         lines.extend(status_portfolio_risk_terminal_lines(&rows, color_mode));
+        lines.extend(status_desk_exposure_radar_lines(&rows, color_mode));
         lines.extend(status_color_lab_lines(color_mode));
     }
     lines.extend([
@@ -9135,6 +9136,94 @@ fn status_portfolio_risk_terminal_lines(
             Span::raw(format!(
                 "degraded {degraded:02} wide {wide_spread:02} stale {stale:02} gate {risk_gate} | not advice"
             )),
+        ]),
+    ]
+}
+
+fn status_desk_exposure_radar_lines(
+    rows: &[FeatureSnapshot],
+    color_mode: RatatuiColorMode,
+) -> Vec<Line<'static>> {
+    let mut long_count = 0usize;
+    let mut short_count = 0usize;
+    let mut neutral_count = 0usize;
+    let mut long_depth = 0.0;
+    let mut short_depth = 0.0;
+    let mut neutral_depth = 0.0;
+
+    for row in rows {
+        let depth = row
+            .tob_depth_usd
+            .filter(|value| value.is_finite() && *value > 0.0)
+            .unwrap_or_default();
+        match row.ret_1m.filter(|value| value.is_finite()) {
+            Some(value) if value > 0.0 => {
+                long_count += 1;
+                long_depth += depth;
+            }
+            Some(value) if value < 0.0 => {
+                short_count += 1;
+                short_depth += depth;
+            }
+            _ => {
+                neutral_count += 1;
+                neutral_depth += depth;
+            }
+        }
+    }
+
+    let total_depth = long_depth + short_depth + neutral_depth;
+    let depth_skew = if total_depth > 0.0 {
+        ((long_depth - short_depth) / total_depth).clamp(-1.0, 1.0)
+    } else {
+        0.0
+    };
+    let confidence_drag = rows
+        .iter()
+        .min_by_key(|row| row.confidence.score)
+        .map_or_else(
+            || "-".to_owned(),
+            |row| format!("{} conf{}", display_symbol(row), row.confidence.score),
+        );
+
+    vec![
+        Line::from(vec![
+            Span::styled(
+                "DESK EXPOSURE RADAR ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw("screen exposure only | public notional proxy | not sizing"),
+        ]),
+        Line::from(vec![
+            Span::styled("long bucket ", Style::default().fg(success(color_mode))),
+            Span::raw(format!(
+                "{:02} depth {}  ",
+                long_count.min(99),
+                format_usd(Some(long_depth))
+            )),
+            Span::styled("short bucket ", Style::default().fg(danger(color_mode))),
+            Span::raw(format!(
+                "{:02} depth {}  ",
+                short_count.min(99),
+                format_usd(Some(short_depth))
+            )),
+            Span::styled("neutral bucket ", Style::default().fg(text(color_mode))),
+            Span::raw(format!(
+                "{:02} depth {}",
+                neutral_count.min(99),
+                format_usd(Some(neutral_depth))
+            )),
+        ]),
+        Line::from(vec![
+            Span::styled(
+                "depth skew ",
+                Style::default().fg(flow_color(depth_skew, color_mode)),
+            ),
+            Span::raw(format!("{}  ", signed_meter(depth_skew))),
+            Span::styled("confidence drag ", Style::default().fg(warn(color_mode))),
+            Span::raw(format!("{confidence_drag} | not advice")),
         ]),
     ]
 }
