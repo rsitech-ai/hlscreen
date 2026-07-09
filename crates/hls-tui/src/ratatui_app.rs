@@ -597,7 +597,9 @@ fn render_header(
     } else {
         compact_ui_mode_label(&model.ui_state)
     };
-    let status_tail = if narrow {
+    let status_tail = if narrow && model.ui_state.focused_pane() == WorkstationPane::Status {
+        format!("  {}", adaptive_layout_rail_label(viewport))
+    } else if narrow {
         format!("  {mode_label}")
     } else if viewport.width < 110 {
         format!(
@@ -907,6 +909,17 @@ fn layout_controls_line(
     )];
 
     if !narrow && viewport.width < 132 {
+        let fit_copy = if viewport.width < 110 {
+            format!(
+                "resize-safe | keys /pstdzsp h? q | {}",
+                adaptive_layout_rail_label(viewport)
+            )
+        } else {
+            format!(
+                "resize-safe | 1-6 focus | z expand | keys /pstdzsp h? q | {}",
+                adaptive_layout_rail_label(viewport)
+            )
+        };
         spans.extend([
             Span::styled(
                 "LAYOUT DIRECTOR ",
@@ -914,12 +927,22 @@ fn layout_controls_line(
                     .fg(warn(color_mode))
                     .add_modifier(Modifier::BOLD),
             ),
-            Span::raw("resize-safe | 1-6 focus | z expand | keys /pstdzsp h? q"),
+            Span::raw(fit_copy),
         ]);
         return Line::from(spans);
     }
 
     spans.push(Span::raw(pane_hotkey_rail(state, narrow)));
+    if !narrow {
+        spans.push(Span::raw(" | "));
+        spans.push(Span::styled(
+            "ADAPT ",
+            Style::default()
+                .fg(warn(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ));
+        spans.push(Span::raw(adaptive_layout_label(viewport)));
+    }
     if viewport.width >= 220 {
         spans.push(Span::raw(" | "));
         spans.push(Span::styled(
@@ -936,6 +959,32 @@ fn layout_controls_line(
         " | w/i/c/b/r/o focus | j/k row enter detail h status 1-6 panes tab views / p s t ? q"
     }));
     Line::from(spans)
+}
+
+fn adaptive_layout_rail_label(viewport: Rect) -> String {
+    format!("ADAPT {}", adaptive_layout_label(viewport))
+}
+
+fn adaptive_layout_label(viewport: Rect) -> String {
+    let (profile, visible_count, hidden_count) = adaptive_layout_profile(viewport.width);
+    if hidden_count == 0 {
+        format!("{profile}{}x{} all", viewport.width, viewport.height)
+    } else {
+        format!(
+            "{profile}{}x{} v{visible_count}/h{hidden_count}",
+            viewport.width, viewport.height
+        )
+    }
+}
+
+fn adaptive_layout_profile(width: u16) -> (&'static str, u8, u8) {
+    if width < 90 {
+        ("n", 2, 4)
+    } else if width < 132 {
+        ("m", 5, 1)
+    } else {
+        ("w", 6, 0)
+    }
 }
 
 fn layout_visibility_labels(width: u16) -> (&'static str, &'static str) {

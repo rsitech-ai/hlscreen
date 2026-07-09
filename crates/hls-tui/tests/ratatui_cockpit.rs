@@ -918,6 +918,7 @@ fn wide_status_bar_renders_action_key_rail() {
     .expect("renders wide action key rail");
 
     assert!(rendered.contains("ACTION STRIP"));
+    assert!(rendered.contains("ADAPT w240x48 all"));
     assert!(rendered.contains("j/k row"));
     assert!(rendered.contains("ent detail"));
     assert!(rendered.contains("tab view"));
@@ -993,6 +994,7 @@ fn medium_header_and_status_use_fit_to_width_rails() {
     assert!(rendered.contains(
         "CONTROLS LAYOUT DIRECTOR resize-safe | 1-6 focus | z expand | keys /pstdzsp h? q"
     ));
+    assert!(rendered.contains("ADAPT m120x40 v5/h1"));
     assert!(rendered.contains("TICKER BR 01/01"));
     assert!(rendered.contains("Q T00 !00 stale00"));
     assert!(rendered.contains("RISK c100 d00 f-$4.2K"));
@@ -1037,6 +1039,7 @@ fn compact_medium_and_standard_wide_rails_fit_without_half_words() {
     assert!(compact.contains(
         "DESK CMD g/p/s/t/d/z/sp/?/q | visible watch/detail/chart/book/tape | hidden status"
     ));
+    assert!(compact.contains("ADAPT m100x30 v5/h1"));
     assert!(compact.contains("ACTION j/k ent tab g z zoom d sp /p/s/t/?/q | RO no-wallet"));
     assert!(compact.contains("RISK c100 d00 f-$4.2K"));
     assert!(!compact.contains("chart│"));
@@ -3258,6 +3261,7 @@ fn narrow_cockpit_renders_status_focus_as_operational_drilldown() {
     .expect("renders status drilldown");
 
     assert!(rendered.contains("[FOCUS] STATUS"));
+    assert!(rendered.contains("ADAPT n72x24 v2/h4"));
     assert!(rendered.contains("stream LIVE"));
     assert!(rendered.contains("recorder REC ready"));
     assert!(rendered.contains("ws=235 events=485 reconnects=0 gaps=0"));
