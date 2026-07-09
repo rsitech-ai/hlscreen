@@ -2001,12 +2001,13 @@ fn render_help_overlay(
                     .add_modifier(Modifier::BOLD),
             ),
             Span::raw(format!(
-                "view {} | pane {} | density {} | focus {} | chart {} | {}",
+                "view {} | pane {} | density {} | focus {} | chart {} | zoom {} | {}",
                 state.view().label(),
                 state.focused_pane().label(),
                 state.density().label(),
                 state.focused_pane().label(),
                 state.chart_window().label(),
+                pane_zoom_action_label(state),
                 pause_label(model)
             )),
         ]),
@@ -2017,12 +2018,14 @@ fn render_help_overlay(
                     .fg(warn(color_mode))
                     .add_modifier(Modifier::BOLD),
             ),
-            Span::raw("arrows/j/k navigate | tab views | [ ] panes | space pause"),
+            Span::raw("arrows/j/k navigate | tab views | [ ] panes | z zoom/grid | space pause"),
         ]),
         Line::from(
             "PANES 1W 2D 3C 4B 5T 6S | enter detail | h health/status | watchlist detail chart book tape status",
         ),
-        Line::from("MARKET OPS / filter p preset s sort | t chart window | d density"),
+        Line::from(
+            "MARKET OPS / filter p preset s sort | t chart window | z pane zoom | d density",
+        ),
         Line::from("MOUSE wheel rows | click focus | terminal support required"),
         Line::from("j/k or arrows  act on focused pane: rows, detail view, or chart window"),
         Line::from("tab / shift-tab  cycle overview, flow, quality, metadata, explain"),
@@ -2035,7 +2038,7 @@ fn render_help_overlay(
         )),
         Line::from("mouse wheel moves rows; click focuses panes when terminal mouse is available"),
         Line::from(
-            "/ filter  |  p preset  |  s sort  |  t chart window  |  enter detail  |  h health",
+            "/ filter  |  p preset  |  s sort  |  t chart window  |  z zoom  |  enter detail  |  h health",
         ),
         Line::from("d  density  |  space  pause display  |  ?  help  |  q  quit"),
         Line::from(vec![
@@ -3876,7 +3879,7 @@ fn render_status_bar(
         frame.render_widget(
             Paragraph::new(vec![
                 market_status_bar_line(model, color_mode),
-                action_status_bar_line(color_mode, area.width),
+                action_status_bar_line(&model.ui_state, color_mode, area.width),
             ])
             .style(Style::default().fg(warn(color_mode)))
             .block(
@@ -3900,7 +3903,7 @@ fn compact_status_bar_line(model: &RatatuiFrameModel) -> Line<'static> {
             display_state_label(model),
             focused_pane_key_label(model.ui_state.focused_pane(), true),
             compact_mode_label(&model.request, model.rows.len()),
-            operational_quality_label(model, true)
+            operational_quality_label(model, true),
         ));
     }
 
@@ -3944,11 +3947,21 @@ fn market_status_bar_line(
     Line::from(spans)
 }
 
-fn action_status_bar_line(color_mode: RatatuiColorMode, width: u16) -> Line<'static> {
+fn action_status_bar_line(
+    state: &WorkstationUiState,
+    color_mode: RatatuiColorMode,
+    width: u16,
+) -> Line<'static> {
     let action_copy = if width < 132 {
-        "j/k ent tab / p s t ? q | "
+        format!(
+            "j/k ent tab z {} / p s t ? q | ",
+            pane_zoom_action_label(state)
+        )
     } else {
-        "j/k row ent detail tab view / filter p preset s sort t win ? help q quit | "
+        format!(
+            "j/k row ent detail tab view z {} / filter p preset s sort t win ? help q quit | ",
+            pane_zoom_action_label(state)
+        )
     };
 
     Line::from(vec![

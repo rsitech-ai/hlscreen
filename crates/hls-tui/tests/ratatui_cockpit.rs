@@ -337,6 +337,7 @@ fn wide_status_bar_renders_action_key_rail() {
     assert!(rendered.contains("j/k row"));
     assert!(rendered.contains("ent detail"));
     assert!(rendered.contains("tab view"));
+    assert!(rendered.contains("z zoom"));
     assert!(rendered.contains("/ filter"));
     assert!(rendered.contains("p preset"));
     assert!(rendered.contains("s sort"));
@@ -370,6 +371,7 @@ fn medium_status_bar_compacts_action_and_theme_rails() {
 
     assert!(rendered.contains("ACTION STRIP"));
     assert!(rendered.contains("j/k ent tab"));
+    assert!(rendered.contains("z zoom"));
     assert!(rendered.contains("/ p s t ? q"));
     assert!(rendered.contains("THEME plain"));
     assert!(rendered.contains("--color always"));
@@ -1732,6 +1734,8 @@ fn cockpit_reflects_keyboard_view_pause_density_and_help_state() {
     assert!(rendered.contains("Command Deck"));
     assert!(rendered.contains("KEY MATRIX"));
     assert!(rendered.contains("PANES 1W 2D 3C 4B 5T 6S"));
+    assert!(rendered.contains("z zoom/grid"));
+    assert!(rendered.contains("z pane zoom"));
     assert!(rendered.contains("enter detail"));
     assert!(rendered.contains("h health/status"));
     assert!(rendered.contains("MARKET OPS / filter p preset s sort"));
