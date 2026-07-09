@@ -4948,7 +4948,10 @@ fn tape_lines(
     let pulse_width = if compact { 8 } else { 18 };
 
     let mut lines = vec![
-        Line::from(format!("Selected flow {}", display_symbol(selected))),
+        Line::from(format!(
+            "TAPE RAIL Selected flow {}",
+            display_symbol(selected)
+        )),
         Line::from(vec![
             Span::styled(
                 "FLOW pulse ",
