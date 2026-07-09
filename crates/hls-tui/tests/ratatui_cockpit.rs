@@ -438,6 +438,37 @@ fn wide_watchlist_renders_selected_row_router_strip() {
 }
 
 #[test]
+fn wide_watchlist_renders_dynamic_scanner_rail() {
+    let mut snapshots = directional_snapshots();
+    snapshots[0].tob_depth_usd = Some(245.0);
+    snapshots[1].tob_depth_usd = Some(8_800.0);
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        WorkstationUiState::default(),
+    )
+    .with_candles(fixture_candles());
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 240,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders scanner rail");
+
+    assert!(rendered.contains("SCANNER RAIL"));
+    assert!(rendered.contains("selected HYPE/USDC"));
+    assert!(rendered.contains("mover DOWN/USDC DN-1.23%"));
+    assert!(rendered.contains("flow DOWN/USDC -$4.2K"));
+    assert!(rendered.contains("depth DOWN/USDC $8.8K"));
+    assert!(rendered.contains("read-only scan"));
+}
+
+#[test]
 fn market_board_renders_directional_edge_pulses() {
     let model = RatatuiFrameModel::new(
         directional_snapshots(),
