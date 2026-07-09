@@ -661,10 +661,11 @@ fn render_watchlist(
     let compact = area.width <= 64;
     let enhanced = !compact && area.width >= 72 && !model.candles.is_empty();
     let show_row_router = !compact && area.width >= 72 && area.height >= 18 && !rows.is_empty();
+    let row_router_height = if area.height >= 20 { 5 } else { 4 };
     let chunks = if show_row_router {
         Layout::default()
             .direction(Direction::Vertical)
-            .constraints([Constraint::Min(8), Constraint::Length(4)])
+            .constraints([Constraint::Min(8), Constraint::Length(row_router_height)])
             .split(area)
     } else {
         Layout::default()
@@ -845,7 +846,7 @@ fn render_watchlist(
     if show_row_router {
         if let Some(row) = selected_row(&rows, model) {
             frame.render_widget(
-                Paragraph::new(watchlist_row_router_lines(row, color_mode))
+                Paragraph::new(watchlist_row_router_lines(row, &rows, color_mode))
                     .wrap(Wrap { trim: true })
                     .style(Style::default().fg(text(color_mode)))
                     .block(
@@ -951,9 +952,10 @@ fn left_pad_to_width(value: String, width: usize) -> String {
 
 fn watchlist_row_router_lines(
     row: &FeatureSnapshot,
+    rows: &[FeatureSnapshot],
     color_mode: RatatuiColorMode,
 ) -> Vec<Line<'static>> {
-    vec![
+    let mut lines = vec![
         Line::from(vec![
             Span::styled(
                 "ROW ROUTER ",
@@ -976,8 +978,101 @@ fn watchlist_row_router_lines(
             row.tradeability_state.as_str(),
             quality_badge(row)
         )),
-        Line::from("read-only row context"),
-    ]
+    ];
+    lines.extend(watchlist_scanner_rail_lines(rows, color_mode));
+    lines
+}
+
+fn watchlist_scanner_rail_lines(
+    rows: &[FeatureSnapshot],
+    color_mode: RatatuiColorMode,
+) -> Vec<Line<'static>> {
+    if rows.is_empty() {
+        return vec![Line::from("read-only row context")];
+    }
+    let move_leader = rows
+        .iter()
+        .filter_map(|row| {
+            row.ret_1m
+                .filter(|value| value.is_finite())
+                .map(|value| (row, value))
+        })
+        .max_by(|(_, left), (_, right)| {
+            left.abs()
+                .partial_cmp(&right.abs())
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
+    let flow_leader = rows
+        .iter()
+        .filter_map(|row| {
+            row.signed_notional_flow_30s
+                .filter(|value| value.is_finite())
+                .map(|value| (row, value))
+        })
+        .max_by(|(_, left), (_, right)| {
+            left.abs()
+                .partial_cmp(&right.abs())
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
+    let depth_leader = rows
+        .iter()
+        .filter_map(|row| {
+            row.tob_depth_usd
+                .filter(|value| value.is_finite())
+                .map(|value| (row, value))
+        })
+        .max_by(|(_, left), (_, right)| {
+            left.partial_cmp(right).unwrap_or(std::cmp::Ordering::Equal)
+        });
+
+    let mut first_line = vec![
+        Span::styled(
+            "SCANNER RAIL ",
+            Style::default()
+                .fg(accent(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw("read-only row context | "),
+    ];
+    if let Some((row, _)) = move_leader {
+        first_line.push(Span::styled(
+            format!("mover {} {}", display_symbol(row), trend_label(row.ret_1m)),
+            market_row_style(row, color_mode).add_modifier(Modifier::BOLD),
+        ));
+    } else {
+        first_line.push(Span::raw("mover -".to_owned()));
+    }
+    let mut second_line = vec![Span::raw("read-only scan | ")];
+    if let Some((row, _)) = flow_leader {
+        second_line.push(Span::styled(
+            format!(
+                "flow {} {}",
+                display_symbol(row),
+                format_usd_signed(row.signed_notional_flow_30s)
+            ),
+            Style::default()
+                .fg(flow_color(
+                    row.signed_notional_flow_30s.unwrap_or_default(),
+                    color_mode,
+                ))
+                .add_modifier(Modifier::BOLD),
+        ));
+    } else {
+        second_line.push(Span::raw("flow -".to_owned()));
+    }
+    second_line.push(Span::raw(" | "));
+    if let Some((row, depth)) = depth_leader {
+        second_line.push(Span::styled(
+            format!("depth {} {}", display_symbol(row), format_usd(Some(depth))),
+            Style::default()
+                .fg(success(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ));
+    } else {
+        second_line.push(Span::raw("depth -".to_owned()));
+    }
+
+    vec![Line::from(first_line), Line::from(second_line)]
 }
 
 fn market_row_style(row: &FeatureSnapshot, color_mode: RatatuiColorMode) -> Style {
