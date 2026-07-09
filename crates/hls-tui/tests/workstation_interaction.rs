@@ -122,7 +122,7 @@ fn focused_panes_scope_navigation_actions() {
 }
 
 #[test]
-fn interactive_renderer_marks_focused_row_and_view() {
+fn workstation_renderer_marks_focused_row_and_view() {
     let snapshots = fixture_snapshots();
     let mut state = WorkstationUiState::default();
     state.apply(WorkstationAction::Down, snapshots.len());
@@ -146,7 +146,7 @@ fn interactive_renderer_marks_focused_row_and_view() {
 }
 
 #[test]
-fn interactive_renderer_shows_help_overlay_without_mocking_data() {
+fn workstation_renderer_shows_help_overlay_without_mocking_data() {
     let snapshots = fixture_snapshots();
     let mut state = WorkstationUiState::default();
     state.apply(WorkstationAction::ToggleHelp, snapshots.len());
@@ -169,7 +169,7 @@ fn interactive_renderer_shows_help_overlay_without_mocking_data() {
 }
 
 #[test]
-fn interactive_renderer_can_fit_narrow_terminals_without_wrapping() {
+fn workstation_renderer_can_fit_narrow_terminals_without_wrapping() {
     let mut snapshots = fixture_snapshots();
     for index in 0..10 {
         let mut row = snapshots[0].clone();
