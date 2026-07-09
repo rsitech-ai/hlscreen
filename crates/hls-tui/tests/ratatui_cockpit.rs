@@ -1424,6 +1424,7 @@ fn wide_watchlist_renders_selected_row_router_strip() {
     assert!(rendered.contains("ROW COMMAND DECK"));
     assert!(rendered.contains("╞ ROW ROUTER"));
     assert!(rendered.contains("╞ ROW ACTION MAP"));
+    assert!(rendered.contains("╞ INTENT DECK"));
     assert!(rendered.contains("╞ SCANNER RAIL"));
     assert!(rendered.contains("╡"));
     assert!(rendered.contains("ROW ROUTER HYPE/USDC"));
@@ -1441,6 +1442,10 @@ fn wide_watchlist_renders_selected_row_router_strip() {
     assert!(rendered.contains("o/6 ops"));
     assert!(rendered.contains("/ filter"));
     assert!(rendered.contains("z expand"));
+    assert!(rendered.contains("intent inspect"));
+    assert!(rendered.contains("route detail/chart/book/tape"));
+    assert!(rendered.contains("no order route"));
+    assert!(rendered.contains("no wallet"));
     assert!(rendered.contains("display only"));
     assert!(rendered.contains("read-only row context"));
 }

@@ -1320,9 +1320,9 @@ fn render_watchlist(
         !compact && !quality_view && !explain_view && area.width >= 72 && !model.candles.is_empty();
     let show_row_router = !compact && area.width >= 65 && area.height >= 18 && !rows.is_empty();
     let row_router_height = if expanded_watchlist {
-        13
+        15
     } else if area.height >= 20 {
-        9
+        11
     } else {
         4
     };
@@ -2070,6 +2070,7 @@ fn watchlist_row_router_lines(
             quality_badge(row)
         )),
     ];
+    lines.extend(row_intent_deck_lines(color_mode));
     lines.extend(row_action_map_lines(color_mode));
     lines.extend(watchlist_scanner_rail_lines(rows, color_mode));
     if expanded {
@@ -2077,6 +2078,35 @@ fn watchlist_row_router_lines(
         lines.extend(watchlist_command_center_lines(row, rows, color_mode));
     }
     lines
+}
+
+fn row_intent_deck_lines(color_mode: RatatuiColorMode) -> Vec<Line<'static>> {
+    vec![
+        Line::from(vec![
+            Span::raw("╞ "),
+            Span::styled(
+                "INTENT DECK ",
+                Style::default()
+                    .fg(warn(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(
+                "no order route",
+                Style::default()
+                    .fg(danger(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(" | "),
+            Span::styled(
+                "no wallet",
+                Style::default()
+                    .fg(danger(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(" | intent inspect ╡"),
+        ]),
+        Line::from("╞ route detail/chart/book/tape | read-only inspect ╡"),
+    ]
 }
 
 fn row_action_map_lines(color_mode: RatatuiColorMode) -> Vec<Line<'static>> {
