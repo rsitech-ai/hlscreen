@@ -1702,6 +1702,7 @@ fn render_detail(
         color_mode,
         area.width,
         title == "DETAIL",
+        model.ui_state.pane_expanded() && model.ui_state.focused_pane() == WorkstationPane::Detail,
     );
     frame.render_widget(
         Paragraph::new(lines)
@@ -1717,8 +1718,9 @@ fn detail_lines(
     color_mode: RatatuiColorMode,
     width: u16,
     force_compact: bool,
+    expanded_detail: bool,
 ) -> Vec<Line<'static>> {
-    let compact = force_compact || width <= 72;
+    let compact = (force_compact && !expanded_detail) || width <= 72;
     let tabs = detail_view_tabs_line(view, color_mode, compact);
     let heading = detail_heading_line(row, color_mode, compact);
 
@@ -1732,6 +1734,9 @@ fn detail_lines(
             ];
             if compact {
                 lines.insert(2, selected_bbo_line(row, color_mode));
+            }
+            if expanded_detail {
+                lines.extend(quote_terminal_deck_lines(row, color_mode));
             }
             lines.extend(factor_stack_lines(row, color_mode, compact));
             lines.extend(liquidity_radar_lines(row, color_mode));
@@ -1891,6 +1896,74 @@ fn quote_strip_line(
         Span::raw("read-only quote"),
     ]);
     Line::from(spans)
+}
+
+fn quote_terminal_deck_lines(
+    row: &FeatureSnapshot,
+    color_mode: RatatuiColorMode,
+) -> Vec<Line<'static>> {
+    let bid_notional = notional(row.bid_px, row.bid_sz);
+    let ask_notional = notional(row.ask_px, row.ask_sz);
+    let (bid_share, ask_share) = quote_share(bid_notional, ask_notional).unwrap_or((0.0, 0.0));
+    let flow = row.signed_notional_flow_30s.unwrap_or(0.0);
+    let depth = row.tob_depth_usd.unwrap_or(0.0).abs().max(1.0);
+    let flow_ratio = (flow / depth).clamp(-1.0, 1.0);
+
+    vec![
+        Line::from(vec![
+            Span::styled(
+                "QUOTE TERMINAL ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(format!("instrument {} | ", display_symbol(row))),
+            Span::styled(
+                format!("CONF {} ", row.confidence.score),
+                Style::default().fg(confidence_color(row.confidence.score, color_mode)),
+            ),
+            Span::raw(format!(
+                "| trade {} | resilience {}",
+                row.tradeability_state.as_str(),
+                row.resilience_state.as_str()
+            )),
+        ]),
+        Line::from(vec![
+            Span::styled("BID ", Style::default().fg(success(color_mode))),
+            Span::raw(format!(
+                "{} {} {}  ",
+                format_price(row.bid_px),
+                format_usd(bid_notional),
+                depth_bar(bid_share, 8)
+            )),
+            Span::styled("ASK ", Style::default().fg(danger(color_mode))),
+            Span::raw(format!(
+                "{} {} {}",
+                format_price(row.ask_px),
+                format_usd(ask_notional),
+                depth_bar(ask_share, 8)
+            )),
+        ]),
+        Line::from(vec![
+            Span::styled("SPREAD ", Style::default().fg(warn(color_mode))),
+            Span::raw(format!(
+                "spread {}bps | mid {} | top book {} | imb {}",
+                format_optional(row.spread_bps, 1),
+                format_price(mid_price(row)),
+                format_usd(row.tob_depth_usd),
+                format_signed(row.tob_imbalance, "")
+            )),
+        ]),
+        Line::from(vec![
+            Span::styled("FLOW ", Style::default().fg(flow_color(flow, color_mode))),
+            Span::raw(format!(
+                "{} {} | OFI {} | public BBO/trades only | no orders | not advice",
+                signed_flow_bar(flow_ratio, 1.0, 10),
+                format_usd_signed(row.signed_notional_flow_30s),
+                format_usd_signed(row.bbo_ofi_proxy_30s)
+            )),
+        ]),
+    ]
 }
 
 fn alpha_stack_line(
