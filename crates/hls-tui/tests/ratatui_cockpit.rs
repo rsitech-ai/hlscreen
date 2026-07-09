@@ -1654,6 +1654,42 @@ fn cockpit_chart_renders_session_microstructure_strip() {
 }
 
 #[test]
+fn wide_chart_renders_selected_pair_crosshair_context() {
+    let snapshots = directional_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Chart),
+        snapshots.len(),
+    );
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    )
+    .with_candles(fixture_candles());
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 220,
+            height: 52,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders chart crosshair context");
+
+    assert!(rendered.contains("CROSSHAIR"));
+    assert!(rendered.contains("selected HYPE/USDC"));
+    assert!(rendered.contains("range pos"));
+    assert!(rendered.contains("session high"));
+    assert!(rendered.contains("session low"));
+    assert!(rendered.contains("spread 57.1bps"));
+    assert!(rendered.contains("confidence 100"));
+    assert!(rendered.contains("read-only chart lens"));
+}
+
+#[test]
 fn cockpit_chart_renders_interactive_window_tab_rail() {
     let snapshots = fixture_snapshots();
     let mut state = WorkstationUiState::default();

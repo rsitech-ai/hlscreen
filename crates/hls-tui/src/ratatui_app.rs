@@ -2180,6 +2180,7 @@ fn render_chart(
         area.width <= 72,
     )];
     let show_order_pressure = show_chart_order_pressure(area);
+    let show_crosshair_context = show_chart_crosshair_context(area);
     chart_lines.extend(selected_pair_edge_hud_lines(row, color_mode));
     if show_order_pressure {
         chart_lines.extend(selected_pair_order_pressure_lines(row, color_mode));
@@ -2189,8 +2190,14 @@ fn render_chart(
     }
     chart_lines.push(chart_move_summary_line(&candles, color_mode));
     chart_lines.push(chart_candle_hud_line(latest, color_mode));
+    if show_crosshair_context {
+        chart_lines.extend(chart_crosshair_context_lines(row, &candles, color_mode));
+    }
     chart_lines.extend(chart_session_strip_lines(row, color_mode));
-    let chart_overhead = 11 + u16::from(show_order_pressure) * 3 + u16::from(show_prints_strip) * 3;
+    let chart_overhead = 11
+        + u16::from(show_order_pressure) * 3
+        + u16::from(show_prints_strip) * 3
+        + u16::from(show_crosshair_context) * 2;
     chart_lines.extend(candle_chart_lines(
         &candles,
         area.height.saturating_sub(chart_overhead) as usize,
@@ -2214,6 +2221,10 @@ fn show_chart_prints_strip(area: Rect, model: &RatatuiFrameModel, symbol: &str) 
     area.width >= 96
         && area.height >= 30
         && model.trades.iter().any(|trade| trade.hl_coin == symbol)
+}
+
+fn show_chart_crosshair_context(area: Rect) -> bool {
+    area.width >= 96 && area.height >= 30
 }
 
 fn chart_window_tabs_line(
@@ -2594,6 +2605,67 @@ fn chart_candle_hud_line(candle: &CandleEvent, color_mode: RatatuiColorMode) -> 
             candle.trade_count
         )),
     ])
+}
+
+fn chart_crosshair_context_lines(
+    row: &FeatureSnapshot,
+    candles: &[&CandleEvent],
+    color_mode: RatatuiColorMode,
+) -> Vec<Line<'static>> {
+    let Some(latest) = candles.last().copied() else {
+        return Vec::new();
+    };
+    let high = candles
+        .iter()
+        .map(|candle| candle.high)
+        .fold(f64::NEG_INFINITY, f64::max);
+    let low = candles
+        .iter()
+        .map(|candle| candle.low)
+        .fold(f64::INFINITY, f64::min);
+    let range_pos = if (high - low).abs() < f64::EPSILON {
+        0.5
+    } else {
+        ((latest.close - low) / (high - low)).clamp(0.0, 1.0)
+    };
+
+    vec![
+        Line::from(vec![
+            Span::styled(
+                "CROSSHAIR ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(format!("selected {} | ", display_symbol(row))),
+            Span::raw(format!("last {} | ", format_plain_number(latest.close))),
+            Span::styled(
+                format!(
+                    "range pos {} {}",
+                    percent_label(range_pos),
+                    depth_bar(range_pos, 10)
+                ),
+                Style::default().fg(warn(color_mode)),
+            ),
+        ]),
+        Line::from(vec![
+            Span::raw(format!(
+                "session high {} | session low {} | spread {}bps | ",
+                format_plain_number(high),
+                format_plain_number(low),
+                format_optional(row.spread_bps, 1)
+            )),
+            Span::styled(
+                format!("momentum {} | ", trend_label(row.ret_1m)),
+                market_row_style(row, color_mode),
+            ),
+            Span::styled(
+                format!("confidence {}", row.confidence.score),
+                Style::default().fg(confidence_color(row.confidence.score, color_mode)),
+            ),
+            Span::raw(" | read-only chart lens"),
+        ]),
+    ]
 }
 
 fn selected_candles<'a>(
