@@ -394,6 +394,8 @@ fn narrow_cockpit_collapses_to_watchlist_and_detail_without_tape() {
     assert!(rendered.contains("live | watchlist | top1"));
     assert!(rendered.contains("RO no-wallet"));
     assert!(!rendered.contains("top-10 by screen rank"));
+    assert!(rendered.contains("BBO bid"));
+    assert!(rendered.contains("ask"));
     assert!(rendered.contains("FACTORS"));
     assert!(!rendered.contains("FACTOR STACK"));
     assert!(rendered.contains("HYPE/USDC"));
