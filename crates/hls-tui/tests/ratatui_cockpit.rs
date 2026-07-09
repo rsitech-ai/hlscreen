@@ -436,6 +436,7 @@ fn cockpit_header_renders_layout_director_across_viewports() {
     assert!(wide.contains("hidden panes none"));
     assert!(medium.contains("visible panes watchlist detail chart book tape"));
     assert!(medium.contains("hidden panes status drilldown"));
+    assert!(medium.contains("CMD g / p s t d z sp ? q"));
     assert!(narrow.contains("layout narrow 72x24"));
 }
 
@@ -1435,6 +1436,7 @@ fn cockpit_header_renders_interactive_desk_tab_rail() {
     assert!(rendered.contains("BOOK 4"));
     assert!(rendered.contains("TAPE 5"));
     assert!(rendered.contains("OPS 6"));
+    assert!(rendered.contains("CMD g / p s t d z sp ? q"));
     assert!(rendered.contains("view flow"));
     assert!(rendered.contains("density dense"));
     assert!(rendered.contains("EXEC GUARD"));
