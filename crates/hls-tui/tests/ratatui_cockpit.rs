@@ -189,6 +189,35 @@ fn ultrawide_header_renders_stateful_command_dock() {
 }
 
 #[test]
+fn standard_wide_header_and_status_compact_dense_rails() {
+    let model = RatatuiFrameModel::new(
+        directional_snapshots(),
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        WorkstationUiState::default(),
+    )
+    .with_status("LIVE", "REC ready", "ws=120 events=300 gaps=0");
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 220,
+            height: 56,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders standard-wide compact cockpit");
+
+    assert!(rendered.contains("visible watch/detail/chart/book/tape/status"));
+    assert!(rendered.contains("hidden none"));
+    assert!(!rendered.contains("visible panes watchlist detail chart book tape status"));
+    assert!(!rendered.contains("hidden panes none"));
+    assert!(rendered.contains("NEON mixed RO"));
+    assert!(rendered.contains("breadth 01/01"));
+    assert!(!rendered.contains("NEON STATE regime mixed read-only signal cockpit"));
+}
+
+#[test]
 fn command_palette_renders_preset_deck_with_active_context() {
     let snapshots = fixture_snapshots();
     let mut state = WorkstationUiState::default();
