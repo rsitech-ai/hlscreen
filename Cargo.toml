@@ -36,7 +36,13 @@ hls-server = { path = "crates/hls-server" }
 hls-store = { path = "crates/hls-store" }
 hls-tui = { path = "crates/hls-tui" }
 predicates = "3.1"
-ratatui = "0.29"
+portable-pty = "0.9"
+ratatui = { version = "0.30.2", default-features = false, features = [
+    "std",
+    "crossterm_0_29",
+    "layout-cache",
+    "underline-color",
+] }
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 rusqlite = { version = "0.32", features = ["bundled"] }
 serde = { version = "1.0", features = ["derive"] }
@@ -45,7 +51,7 @@ sha2 = "0.10"
 tempfile = "3.10"
 thiserror = "2.0"
 time = { version = "0.3", features = ["formatting", "parsing", "serde"] }
-tokio = { version = "1.45", features = ["fs", "macros", "rt-multi-thread", "time"] }
+tokio = { version = "1.45", features = ["fs", "macros", "rt-multi-thread", "signal", "time"] }
 tokio-tungstenite = { version = "0.26", default-features = false, features = ["connect", "rustls-tls-webpki-roots"] }
 toml = "0.8"
 futures-util = "0.3"

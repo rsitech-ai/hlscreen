@@ -123,3 +123,49 @@ fn tui_command_once_uses_unified_ratatui_cockpit_without_extra_flags() {
 
     assert_unified_ratatui_cockpit_output(&output);
 }
+
+#[test]
+fn tui_command_once_auto_color_omits_ansi_for_redirected_stdout() {
+    let assert = Command::cargo_bin("hls")
+        .expect("hls binary")
+        .args([
+            "tui",
+            "--symbols",
+            "@107",
+            "--fixture-file",
+            &fixture("tests/fixtures/hyperliquid/ws_mock_live.ndjson"),
+            "--once",
+            "--color",
+            "auto",
+        ])
+        .env("TERM", "xterm-256color")
+        .env_remove("NO_COLOR")
+        .env_remove("HLS_FORCE_COLOR")
+        .env_remove("CLICOLOR_FORCE")
+        .env_remove("FORCE_COLOR")
+        .assert()
+        .success();
+    let output = String::from_utf8(assert.get_output().stdout.clone()).expect("stdout is utf8");
+
+    assert!(output.contains("RATATUI"));
+    assert!(!output.contains("\u{1b}["));
+}
+
+#[test]
+fn live_once_allows_zero_duration_fixture_without_tty() {
+    Command::cargo_bin("hls")
+        .expect("hls binary")
+        .args([
+            "live",
+            "--symbols",
+            "@107",
+            "--fixture-file",
+            &fixture("tests/fixtures/hyperliquid/ws_mock_live.ndjson"),
+            "--once",
+            "--duration-secs",
+            "0",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("@107"));
+}

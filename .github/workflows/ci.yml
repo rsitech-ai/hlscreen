@@ -12,6 +12,56 @@ permissions:
   contents: read
 
 jobs:
+  rustsec:
+    name: RustSec advisory scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install Rust toolchain
+        run: rustup toolchain install 1.88 --profile minimal
+
+      - name: Install cargo-audit
+        run: cargo install cargo-audit --version 0.22.2 --locked
+
+      - name: Deny vulnerabilities and dependency warnings
+        run: cargo audit --deny warnings
+
+  pty-tui:
+    name: PTY TUI (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install Rust toolchain
+        run: rustup toolchain install 1.88 --profile minimal
+
+      - name: Cache cargo registry and PTY build outputs
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-pty-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            cargo-pty-${{ runner.os }}-
+
+      - name: Verify interactive terminal lifecycle
+        run: cargo test -p hls-cli --test pty_tui --locked
+
   rust:
     name: Rust workspace
     runs-on: ubuntu-latest
