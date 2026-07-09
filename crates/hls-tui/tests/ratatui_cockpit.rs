@@ -2118,6 +2118,53 @@ fn expanded_status_renders_ops_command_center() {
 }
 
 #[test]
+fn expanded_status_renders_portfolio_risk_terminal() {
+    let mut snapshots = ten_directional_snapshots();
+    snapshots[0].tob_depth_usd = Some(2_000.0);
+    snapshots[1].tob_depth_usd = Some(8_000.0);
+    snapshots[1].confidence.score = 55;
+    snapshots[1].confidence.level = ConfidenceLevel::Low;
+    snapshots[1].staleness_state = StalenessState::Stale;
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Status),
+        snapshots.len(),
+    );
+    state.apply(WorkstationAction::TogglePaneZoom, snapshots.len());
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    )
+    .with_status("LIVE", "REC ready", "ws=235 events=485 reconnects=1 gaps=0");
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 190,
+            height: 52,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders expanded portfolio risk terminal");
+
+    assert!(rendered.contains("EXPANDED status"));
+    assert!(rendered.contains("PORTFOLIO RISK TERMINAL"));
+    assert!(rendered.contains("screen exposure only"));
+    assert!(rendered.contains("no positions"));
+    assert!(rendered.contains("no orders"));
+    assert!(rendered.contains("up screens"));
+    assert!(rendered.contains("down screens"));
+    assert!(rendered.contains("flow skew"));
+    assert!(rendered.contains("concentration top"));
+    assert!(rendered.contains("public top-book depth proxy"));
+    assert!(rendered.contains("risk stack degraded"));
+    assert!(rendered.contains("stale 01"));
+    assert!(rendered.contains("not advice"));
+}
+
+#[test]
 fn expanded_status_renders_color_lab_diagnostics() {
     let snapshots = fixture_snapshots();
     let mut state = WorkstationUiState::default();
