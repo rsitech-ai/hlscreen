@@ -3334,7 +3334,7 @@ fn render_help_overlay(
                 ),
             ]),
             Line::from(
-                "MOUSE wheel panes | click rows/panes/views/windows/cmds | terminal mouse required",
+                "MOUSE wheel panes | click rows/panes/views/windows/cmds | active pane click zoom",
             ),
             Line::from("1-6 panes  watchlist, detail, chart, book, tape, status"),
             Line::from(vec![
@@ -3415,11 +3415,11 @@ fn compact_help_overlay_lines(
         )),
         Line::from(vec![
             Span::styled("NAV ", Style::default().fg(warn(color_mode))),
-            Span::raw("j/k rows | click rows/rails/tabs/cmds"),
+            Span::raw("j/k rows | wheel panes | click rows/rails/tabs"),
         ]),
         Line::from(vec![
             Span::styled("PANES ", Style::default().fg(warn(color_mode))),
-            Span::raw("1-6 panes | wheel panes | w/i/c/b/r/o focus"),
+            Span::raw("1-6 panes | w/i/c/b/r/o focus | active zoom"),
         ]),
         Line::from(vec![
             Span::styled("OPS ", Style::default().fg(success(color_mode))),

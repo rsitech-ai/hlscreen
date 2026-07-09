@@ -188,6 +188,14 @@ TTY keyboard controls for the Ratatui `hls live --tui` cockpit:
 - `Space`: toggle paused UI state while ingestion remains read-only public data.
 - `q` or `Esc`: cleanly stop the bounded live run.
 
+TTY mouse controls for terminals with mouse reporting enabled:
+
+- Wheel over a pane: scrolls that pane's native control, so watchlist moves rows, detail cycles views, and chart cycles windows.
+- Click a watchlist row: selects that pair.
+- Click an inactive pane rail/tab: focuses that pane.
+- Click the already-active pane rail/tab: expands or collapses that pane, matching `z`.
+- Click detail view tabs, chart window tabs, or header command controls: activates the visible read-only display control.
+
 Color defaults to `always` for `hls live --tui`, so the Ratatui workstation uses
 the ANSI theme out of the box. Use `--color auto` to follow terminal and
 environment detection, or `--color never` for deterministic monochrome output.
