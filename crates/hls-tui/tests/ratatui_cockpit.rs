@@ -4104,6 +4104,11 @@ fn wide_chart_renders_public_print_markers_on_candles() {
     assert!(rendered.contains("BS buy 1 sell 1"));
     assert!(rendered.contains("net +$35"));
     assert!(rendered.contains("public prints no fills"));
+    assert!(rendered.contains("ORDERFLOW RIBBON"));
+    assert!(rendered.contains("ribbon BS"));
+    assert!(rendered.contains("buy $70"));
+    assert!(rendered.contains("sell $35"));
+    assert!(rendered.contains("public prints mapped to candles"));
 }
 
 #[test]
