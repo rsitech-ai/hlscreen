@@ -2850,6 +2850,7 @@ fn command_palette_lines(
         command_router_line(command),
         Line::from(active_command_context_line(&model.request)),
         command_result_preview_line(model),
+        command_suggestions_line(command, model),
         Line::from(
             "KEYFLOW g symbol | / filter | p preset | s sort | t timeframe | enter detail | h health | d density | ? help",
         ),
@@ -2903,6 +2904,68 @@ fn command_result_preview_line(model: &RatatuiFrameModel) -> Line<'static> {
         top,
         selected
     ))
+}
+
+fn command_suggestions_line(
+    command: &WorkstationCommand,
+    model: &RatatuiFrameModel,
+) -> Line<'static> {
+    match command.target() {
+        crate::interaction::WorkstationCommandTarget::Symbol => {
+            let suggestions = visible_symbol_suggestions(command.input(), model);
+            Line::from(format!(
+                "SMART SUGGESTIONS symbols {} | visible live rows | Enter accepts highlighted visible row",
+                suggestions.join(" ")
+            ))
+        }
+        crate::interaction::WorkstationCommandTarget::Preset => {
+            let suggestions = preset_suggestions(command.input());
+            Line::from(format!(
+                "SMART SUGGESTIONS presets {} | empty clears preset | read-only screen",
+                suggestions.join(" ")
+            ))
+        }
+        crate::interaction::WorkstationCommandTarget::Filter => Line::from(
+            "SMART SUGGESTIONS filters confidence >= 70 | spread_bps < 5 | tradeability_state == tradeable",
+        ),
+        crate::interaction::WorkstationCommandTarget::Sort => Line::from(
+            "SMART SUGGESTIONS sorts score:desc | spread_bps:asc | signed_notional_flow_30s:desc",
+        ),
+    }
+}
+
+fn visible_symbol_suggestions(input: &str, model: &RatatuiFrameModel) -> Vec<String> {
+    let needle = input.trim().to_ascii_lowercase();
+    let mut suggestions = screened_rows(model)
+        .iter()
+        .filter(|row| {
+            if needle.is_empty() {
+                return true;
+            }
+            display_symbol(row).to_ascii_lowercase().contains(&needle)
+                || row.symbol.to_ascii_lowercase().contains(&needle)
+        })
+        .take(5)
+        .map(|row| display_symbol(row).to_owned())
+        .collect::<Vec<_>>();
+    if suggestions.is_empty() {
+        suggestions.push("no-visible-match".to_owned());
+    }
+    suggestions
+}
+
+fn preset_suggestions(input: &str) -> Vec<String> {
+    let needle = input.trim().to_ascii_lowercase();
+    let mut suggestions = builtin_presets()
+        .into_iter()
+        .map(|preset| preset.name.to_owned())
+        .filter(|name| needle.is_empty() || name.to_ascii_lowercase().contains(&needle))
+        .take(5)
+        .collect::<Vec<_>>();
+    if suggestions.is_empty() {
+        suggestions.push("clear".to_owned());
+    }
+    suggestions
 }
 
 fn active_command_context_line(request: &ScreenRequest) -> String {

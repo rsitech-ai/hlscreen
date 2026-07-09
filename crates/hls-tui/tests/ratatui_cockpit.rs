@@ -163,6 +163,38 @@ fn command_palette_renders_symbol_jump_deck() {
 }
 
 #[test]
+fn command_palette_renders_live_symbol_suggestions() {
+    let snapshots = directional_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(WorkstationAction::OpenSymbolSearch, snapshots.len());
+    for ch in "down".chars() {
+        state.apply(WorkstationAction::CommandChar(ch), snapshots.len());
+    }
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    );
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 140,
+            height: 40,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders symbol suggestions");
+
+    assert!(rendered.contains("SMART SUGGESTIONS"));
+    assert!(rendered.contains("symbols DOWN/USDC"));
+    assert!(rendered.contains("visible live rows"));
+    assert!(rendered.contains("Enter accepts highlighted visible row"));
+    assert!(rendered.contains("SAFETY no orders"));
+}
+
+#[test]
 fn cockpit_header_renders_adaptive_layout_profile() {
     let model = RatatuiFrameModel::new(
         directional_snapshots(),
