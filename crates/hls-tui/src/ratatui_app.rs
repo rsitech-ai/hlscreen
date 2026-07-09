@@ -6423,6 +6423,70 @@ fn render_tape(
     );
 }
 
+fn tape_rail_line(
+    selected: &FeatureSnapshot,
+    content_width: usize,
+    color_mode: RatatuiColorMode,
+) -> Line<'static> {
+    if content_width < 51 {
+        return Line::from(vec![
+            Span::styled(
+                "TAPE INTENT",
+                Style::default()
+                    .fg(warn(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(" Selected flow"),
+        ]);
+    }
+    let selected_flow = if content_width >= 56 {
+        format!("Selected flow {}", display_symbol(selected))
+    } else {
+        "Selected flow".to_string()
+    };
+    Line::from(vec![
+        Span::styled(
+            "TAPE INTENT",
+            Style::default()
+                .fg(warn(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw(format!(" | TAPE RAIL {selected_flow}")),
+    ])
+}
+
+fn tape_scope_line(
+    selected: &FeatureSnapshot,
+    content_width: usize,
+    color_mode: RatatuiColorMode,
+) -> Line<'static> {
+    if content_width < 51 {
+        return Line::from("public flow scope");
+    }
+    if content_width <= 60 {
+        return Line::from(vec![
+            Span::styled(
+                "no fills",
+                Style::default()
+                    .fg(danger(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(" public prints/flow only "),
+            Span::styled(
+                "no private streams",
+                Style::default()
+                    .fg(danger(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+        ]);
+    }
+    Line::from(format!(
+        "flow30 {} | OFI {} | no fills public prints/flow only no private streams",
+        format_usd_signed(selected.signed_notional_flow_30s),
+        format_usd_signed(selected.bbo_ofi_proxy_30s)
+    ))
+}
+
 fn tape_lines(
     rows: &[FeatureSnapshot],
     model: &RatatuiFrameModel,
@@ -6466,10 +6530,7 @@ fn tape_lines(
     let pulse_width = if compact { 8 } else { 18 };
 
     let mut lines = vec![
-        Line::from(format!(
-            "TAPE RAIL Selected flow {}",
-            display_symbol(selected)
-        )),
+        tape_rail_line(selected, content_width, color_mode),
         Line::from(vec![
             Span::styled(
                 "FLOW pulse ",
@@ -6497,11 +6558,7 @@ fn tape_lines(
             Span::raw(signed_flow_bar(net_flow, pressure_scale, pulse_width)),
             Span::raw(format!(" {}", format_usd_signed(Some(net_flow)))),
         ]),
-        Line::from(format!(
-            "flow30 {} | OFI {}",
-            format_usd_signed(selected.signed_notional_flow_30s),
-            format_usd_signed(selected.bbo_ofi_proxy_30s)
-        )),
+        tape_scope_line(selected, content_width, color_mode),
     ];
     if !compact {
         lines.extend(flow_spectrum_lines(rows, pulse_width, color_mode));
