@@ -1302,6 +1302,46 @@ fn book_pane_flow_view_renders_depth_flow_mode() {
 }
 
 #[test]
+fn book_pane_quality_view_renders_read_only_liquidity_evidence() {
+    let snapshots = fixture_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Book),
+        snapshots.len(),
+    );
+    state.apply(WorkstationAction::NextView, snapshots.len());
+    state.apply(WorkstationAction::NextView, snapshots.len());
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    );
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 240,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders book quality mode");
+
+    assert!(rendered.contains("view:quality"));
+    assert!(rendered.contains("[FOCUS] BOOK"));
+    assert!(rendered.contains("BOOK QUALITY MODE"));
+    assert!(rendered.contains("confidence"));
+    assert!(rendered.contains("freshness"));
+    assert!(rendered.contains("tradeability"));
+    assert!(rendered.contains("resilience"));
+    assert!(rendered.contains("spread gate"));
+    assert!(rendered.contains("depth gate"));
+    assert!(rendered.contains("queue evidence"));
+    assert!(rendered.contains("read-only BBO evidence"));
+}
+
+#[test]
 fn tape_pane_renders_flow_pulse_and_net_pressure_bars() {
     let snapshots = directional_snapshots();
     let mut state = WorkstationUiState::default();
