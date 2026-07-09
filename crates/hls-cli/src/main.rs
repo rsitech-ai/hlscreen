@@ -1,5 +1,7 @@
 #![forbid(unsafe_code)]
 
+use std::{panic, sync::Once};
+
 use clap::{Parser, Subcommand};
 
 use crate::commands::{
@@ -17,9 +19,13 @@ use crate::commands::{
 
 mod commands;
 
+pub(crate) const HLS_RENDERER_ID: &str = "ratatui-workstation";
+pub(crate) const HLS_VERSION: &str = concat!(env!("CARGO_PKG_VERSION"), " (ratatui-workstation)");
+
 #[derive(Debug, Parser)]
 #[command(name = "hls")]
 #[command(about = "Read-only Hyperliquid spot screener")]
+#[command(version = HLS_VERSION)]
 struct Cli {
     #[command(subcommand)]
     command: Command,
@@ -40,8 +46,20 @@ enum Command {
     Server(ServerArgs),
 }
 
+static PANIC_HOOK_INSTALL: Once = Once::new();
+
+fn install_terminal_restoring_panic_hook() {
+    PANIC_HOOK_INSTALL.call_once(|| {
+        let previous = panic::take_hook();
+        panic::set_hook(Box::new(move |panic_info| {
+            commands::live::handle_terminal_panic(|| previous(panic_info))
+        }));
+    });
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    install_terminal_restoring_panic_hook();
     match Cli::parse().command {
         Command::Init(args) => commands::init::run(args).await,
         Command::Doctor(args) => commands::doctor::run(args).await,
@@ -65,7 +83,7 @@ mod tests {
     use crate::commands::live::LiveTuiColor;
 
     #[test]
-    fn tui_command_defaults_to_top10_fluid_workstation() {
+    fn tui_command_defaults_to_unbounded_operator_session() {
         let cli = Cli::try_parse_from(["hls", "tui"]).expect("parse tui command");
 
         let Command::Tui(args) = cli.command else {
@@ -76,6 +94,7 @@ mod tests {
         assert!(live_args.tui);
         assert_eq!(live_args.top, 10);
         assert_eq!(live_args.refresh_secs, 1);
+        assert_eq!(live_args.duration_secs, 0);
         assert_eq!(live_args.color, LiveTuiColor::Always);
         assert!(!live_args.record);
     }
@@ -85,6 +104,8 @@ mod tests {
         let cli = Cli::try_parse_from([
             "hls",
             "tui",
+            "--duration-secs",
+            "15",
             "--top",
             "25",
             "--refresh-secs",
@@ -101,6 +122,7 @@ mod tests {
 
         assert_eq!(live_args.top, 25);
         assert_eq!(live_args.refresh_secs, 3);
+        assert_eq!(live_args.duration_secs, 15);
         assert_eq!(live_args.color, LiveTuiColor::Auto);
     }
 }
