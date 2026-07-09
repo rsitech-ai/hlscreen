@@ -2971,6 +2971,12 @@ fn render_chart(
             &chart_trades,
             color_mode,
         ));
+        chart_lines.extend(chart_tactical_matrix_lines(
+            row,
+            &candles,
+            model.ui_state.chart_window(),
+            color_mode,
+        ));
     }
     chart_lines.push(chart_move_summary_line(&candles, color_mode));
     chart_lines.push(chart_candle_hud_line(latest, color_mode));
@@ -2988,7 +2994,7 @@ fn render_chart(
         + u16::from(show_crosshair_context) * 2
         + u16::from(show_profile_rail)
         + u16::from(show_trade_markers)
-        + u16::from(show_chart_intel) * 3;
+        + u16::from(show_chart_intel) * 7;
     chart_lines.extend(candle_chart_lines(
         &candles,
         area.height.saturating_sub(chart_overhead) as usize,
@@ -3399,6 +3405,114 @@ fn chart_intelligence_deck_lines(
             )),
         ]),
         Line::from("public candles + prints only | no orders | no fills | read-only lens"),
+    ]
+}
+
+fn chart_tactical_matrix_lines(
+    row: &FeatureSnapshot,
+    candles: &[&CandleEvent],
+    active_window: WorkstationChartWindow,
+    color_mode: RatatuiColorMode,
+) -> Vec<Line<'static>> {
+    let Some(first) = candles.first().copied() else {
+        return Vec::new();
+    };
+    let latest = candles.last().copied().unwrap_or(first);
+    let high = candles
+        .iter()
+        .map(|candle| candle.high)
+        .fold(f64::NEG_INFINITY, f64::max);
+    let low = candles
+        .iter()
+        .map(|candle| candle.low)
+        .fold(f64::INFINITY, f64::min);
+    let trend_pct = if first.open.abs() > f64::EPSILON {
+        Some(((latest.close - first.open) / first.open) * 100.0)
+    } else {
+        None
+    };
+    let range_pct = if first.open.abs() > f64::EPSILON {
+        Some(((high - low).abs() / first.open.abs()) * 100.0)
+    } else {
+        None
+    };
+    let total_volume = candles
+        .iter()
+        .map(|candle| candle.volume_base.max(0.0))
+        .sum::<f64>();
+    let avg_volume = if candles.is_empty() {
+        0.0
+    } else {
+        total_volume / candles.len() as f64
+    };
+    let volume_pulse = if avg_volume > 0.0 {
+        latest.volume_base.max(0.0) / avg_volume
+    } else {
+        0.0
+    };
+    let flow = row.signed_notional_flow_30s.unwrap_or_default();
+    let depth = row.tob_depth_usd.unwrap_or_default().abs().max(1.0);
+    let flow_pressure = (flow / depth).clamp(-1.0, 1.0);
+    let liquidity_gate = spread_gate_label(row.spread_bps);
+    let volatility_label = match range_pct {
+        Some(value) if value >= 2.0 => "hot",
+        Some(value) if value >= 0.5 => "active",
+        Some(_) => "quiet",
+        None => "unknown",
+    };
+
+    vec![
+        Line::from(vec![
+            Span::styled(
+                "TACTICAL MATRIX ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(format!(
+                "window {} | regime {}",
+                active_window.label(),
+                chart_regime_label(row)
+            )),
+        ]),
+        Line::from(vec![
+            Span::styled(
+                "trend ",
+                Style::default().fg(flow_color(trend_pct.unwrap_or_default(), color_mode)),
+            ),
+            Span::raw(format!(
+                "{} | volatility {} range {} | volume pulse {:.2}x",
+                format_signed(trend_pct, "%"),
+                volatility_label,
+                format_optional(range_pct, 2),
+                volume_pulse
+            )),
+        ]),
+        Line::from(vec![
+            Span::styled(
+                "liquidity gate ",
+                Style::default().fg(gate_color(liquidity_gate, color_mode)),
+            ),
+            Span::raw(format!(
+                "{} spread {}bps depth {}  ",
+                liquidity_gate,
+                format_optional(row.spread_bps, 1),
+                format_usd(row.tob_depth_usd)
+            )),
+            Span::styled(
+                "flow gate ",
+                Style::default().fg(flow_color(flow_pressure, color_mode)),
+            ),
+            Span::raw(format!(
+                "{} {}",
+                signed_meter(flow_pressure),
+                format_usd_signed(row.signed_notional_flow_30s)
+            )),
+        ]),
+        Line::from(format!(
+            "confidence {} | public candles/BBO/trades only | no orders | not advice",
+            row.confidence.score
+        )),
     ]
 }
 
