@@ -6387,7 +6387,7 @@ fn render_status_bar(
     } else {
         frame.render_widget(
             Paragraph::new(vec![
-                market_status_bar_line(model, color_mode),
+                market_status_bar_line(model, color_mode, area.width),
                 action_status_bar_line(model, color_mode, area.width),
             ])
             .style(Style::default().fg(warn(color_mode)))
@@ -6430,6 +6430,7 @@ fn compact_status_bar_line(model: &RatatuiFrameModel) -> Line<'static> {
 fn market_status_bar_line(
     model: &RatatuiFrameModel,
     color_mode: RatatuiColorMode,
+    width: u16,
 ) -> Line<'static> {
     let mut spans = vec![
         Span::raw(format!(
@@ -6454,8 +6455,57 @@ fn market_status_bar_line(
                 .add_modifier(Modifier::BOLD),
         ),
     ]);
+    if width >= 180 {
+        spans.extend(status_bar_quality_alert_spans(model, color_mode));
+    }
     spans.extend(risk_strip_spans(model, color_mode));
     Line::from(spans)
+}
+
+fn status_bar_quality_alert_spans(
+    model: &RatatuiFrameModel,
+    color_mode: RatatuiColorMode,
+) -> Vec<Span<'static>> {
+    let Some(row) = worst_quality_row(&model.rows) else {
+        return Vec::new();
+    };
+    let alert_color = if row.staleness_state != StalenessState::Fresh || row.confidence.score < 50 {
+        danger(color_mode)
+    } else {
+        warn(color_mode)
+    };
+    vec![
+        Span::styled(
+            "QUALITY ALERT ",
+            Style::default()
+                .fg(alert_color)
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::styled(
+            display_symbol(row).to_owned(),
+            Style::default()
+                .fg(alert_color)
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw(format!(" {} ", staleness_label(&row.staleness_state))),
+        Span::styled(
+            format!("conf{} ", row.confidence.score),
+            Style::default()
+                .fg(confidence_color(row.confidence.score, color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw(format!("age {} | ", format_duration_ms(row.updated_ms_ago))),
+    ]
+}
+
+fn worst_quality_row(rows: &[FeatureSnapshot]) -> Option<&FeatureSnapshot> {
+    rows.iter()
+        .filter(|row| row.confidence.score < 70 || row.staleness_state != StalenessState::Fresh)
+        .max_by(|left, right| {
+            status_quality_watch_rank(left)
+                .cmp(&status_quality_watch_rank(right))
+                .then_with(|| display_symbol(right).cmp(display_symbol(left)))
+        })
 }
 
 fn action_status_bar_line(
