@@ -499,7 +499,7 @@ fn top_command_strip_spans(color_mode: RatatuiColorMode) -> Vec<Span<'static>> {
                 .add_modifier(Modifier::BOLD),
         ),
         Span::raw(
-            "WATCHLIST [1]  PORTFOLIO RISK [6] read-only proxy  SEARCH [/]  HELP [?]  QUIT [q]",
+            "WATCHLIST [1]  PORTFOLIO RISK [6] EXEC GUARD read-only proxy  SEARCH [/]  HELP [?]  QUIT [q]",
         ),
     ]
 }
@@ -559,7 +559,7 @@ fn desk_tab_rail_line(
                     .add_modifier(Modifier::BOLD),
             ),
             Span::raw(format!(
-                "visible panes {visible_panes} | hidden panes {hidden_panes} | read-only"
+                "visible panes {visible_panes} | hidden panes {hidden_panes} | EXEC GUARD read-only"
             )),
         ]);
     }
@@ -603,7 +603,7 @@ fn desk_tab_rail_line(
         )));
     } else {
         spans.push(Span::raw(format!(
-            " | view {} | density {} | z {} | read-only",
+            " | view {} | density {} | z {} | EXEC GUARD read-only",
             state.view().label(),
             state.density().label(),
             pane_zoom_action_label(state)
