@@ -1,7 +1,7 @@
 use std::{
     fs,
     io::{self, IsTerminal, Write},
-    path::PathBuf,
+    path::{Path, PathBuf},
     sync::mpsc::{self, Receiver, SyncSender, TrySendError},
     thread::{self, JoinHandle},
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
@@ -46,13 +46,15 @@ use hls_store::{
 use hls_tui::{
     app::{render_confidence_summary, render_screened_table},
     interaction::{
-        WorkstationAction, WorkstationCommandTarget, WorkstationPane, WorkstationUiState,
+        WorkstationAction, WorkstationChartWindow, WorkstationCommandTarget, WorkstationDensity,
+        WorkstationPane, WorkstationUiPreferences, WorkstationUiState, WorkstationView,
     },
     ratatui_app::{
         RatatuiColorMode, RatatuiFrameModel, RatatuiViewport, render_ratatui_snapshot_for_test,
     },
 };
 use ratatui::{Terminal, backend::CrosstermBackend};
+use serde::{Deserialize, Serialize};
 use tokio::time::{interval, sleep_until, timeout_at};
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 
@@ -67,6 +69,7 @@ const LIVE_RECORDER_QUEUE_CAPACITY: usize = 65_536;
 const INITIAL_RECONNECT_BACKOFF_MS: u64 = 1_000;
 const MAX_RECONNECT_BACKOFF_MS: u64 = 30_000;
 const TUI_KEY_POLL_MS: u64 = 100;
+const TUI_PREFERENCES_FILE: &str = "tui-preferences.toml";
 
 #[derive(Debug, Args)]
 pub struct LiveArgs {
@@ -140,6 +143,13 @@ pub enum LiveTuiColor {
     Auto,
     Always,
     Never,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+struct PersistedTuiPreferences {
+    view: String,
+    density: String,
+    chart_window: String,
 }
 
 pub async fn run(args: LiveArgs) -> anyhow::Result<()> {
@@ -279,7 +289,8 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
     let keyboard_interactive =
         render_live_tui && io::stdin().is_terminal() && io::stderr().is_terminal();
     let _terminal_mode = LiveTuiGuard::enable(keyboard_interactive)?;
-    let mut tui_state = render_live_tui.then(WorkstationUiState::default);
+    let mut tui_state = render_live_tui
+        .then(|| WorkstationUiState::from_preferences(load_tui_preferences(&args.data_dir)));
 
     eprintln!(
         "read-only live run: symbols={} subscriptions={} streams_per_symbol={} duration_secs={} ws_url={}",
@@ -320,7 +331,16 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
         None
     };
 
+    let tui_preference_save = if let Some(ui_state) = tui_state.as_ref() {
+        save_tui_preferences(&args.data_dir, ui_state.preferences())
+    } else {
+        Ok(())
+    };
+
     let mut summary = drive_result?;
+    if let Err(err) = tui_preference_save {
+        eprintln!("tui preferences save skipped: {err}");
+    }
     let mut snapshots = FeatureEngine::default().snapshots(&state, now_ms_i64()?);
     attach_metadata(&mut snapshots, metadata);
     summary.row_count = snapshots.len();
@@ -1142,6 +1162,84 @@ fn resolve_live_ratatui_color_mode(color: LiveTuiColor, auto_enabled: bool) -> R
     }
 }
 
+fn tui_preferences_path(data_dir: &Path) -> PathBuf {
+    data_dir.join(TUI_PREFERENCES_FILE)
+}
+
+fn load_tui_preferences(data_dir: &Path) -> WorkstationUiPreferences {
+    match try_load_tui_preferences(data_dir) {
+        Ok(preferences) => preferences,
+        Err(err) => {
+            eprintln!("tui preferences load skipped: {err}");
+            WorkstationUiPreferences::default()
+        }
+    }
+}
+
+fn try_load_tui_preferences(data_dir: &Path) -> anyhow::Result<WorkstationUiPreferences> {
+    let path = tui_preferences_path(data_dir);
+    if !path.exists() {
+        return Ok(WorkstationUiPreferences::default());
+    }
+
+    let raw = fs::read_to_string(&path).with_context(|| format!("read {}", path.display()))?;
+    let persisted: PersistedTuiPreferences =
+        toml::from_str(&raw).with_context(|| format!("parse {}", path.display()))?;
+    persisted
+        .to_preferences()
+        .with_context(|| format!("decode {}", path.display()))
+}
+
+fn save_tui_preferences(
+    data_dir: &Path,
+    preferences: WorkstationUiPreferences,
+) -> anyhow::Result<()> {
+    fs::create_dir_all(data_dir).with_context(|| format!("create {}", data_dir.display()))?;
+    let path = tui_preferences_path(data_dir);
+    let raw = toml::to_string_pretty(&PersistedTuiPreferences::from_preferences(preferences))
+        .context("encode TUI preferences")?;
+    fs::write(&path, raw).with_context(|| format!("write {}", path.display()))
+}
+
+impl PersistedTuiPreferences {
+    fn from_preferences(preferences: WorkstationUiPreferences) -> Self {
+        Self {
+            view: preferences.view.label().to_owned(),
+            density: preferences.density.label().to_owned(),
+            chart_window: preferences.chart_window.label().to_owned(),
+        }
+    }
+
+    fn to_preferences(&self) -> anyhow::Result<WorkstationUiPreferences> {
+        Ok(WorkstationUiPreferences {
+            view: parse_workstation_view(&self.view)
+                .with_context(|| format!("unknown TUI view {:?}", self.view))?,
+            density: parse_workstation_density(&self.density)
+                .with_context(|| format!("unknown TUI density {:?}", self.density))?,
+            chart_window: parse_workstation_chart_window(&self.chart_window)
+                .with_context(|| format!("unknown TUI chart window {:?}", self.chart_window))?,
+        })
+    }
+}
+
+fn parse_workstation_view(label: &str) -> Option<WorkstationView> {
+    WorkstationView::ALL
+        .into_iter()
+        .find(|candidate| candidate.label() == label)
+}
+
+fn parse_workstation_density(label: &str) -> Option<WorkstationDensity> {
+    WorkstationDensity::ALL
+        .into_iter()
+        .find(|candidate| candidate.label() == label)
+}
+
+fn parse_workstation_chart_window(label: &str) -> Option<WorkstationChartWindow> {
+    WorkstationChartWindow::ALL
+        .into_iter()
+        .find(|candidate| candidate.label() == label)
+}
+
 fn live_terminal_color_enabled() -> bool {
     if live_terminal_color_forced() {
         true
@@ -1780,6 +1878,58 @@ mod tests {
         assert_eq!(
             resolve_live_ratatui_color_mode(LiveTuiColor::Never, true),
             RatatuiColorMode::NoColor
+        );
+    }
+
+    #[test]
+    fn live_tui_preferences_round_trip_display_state() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        let preferences = WorkstationUiPreferences {
+            view: WorkstationView::Flow,
+            density: WorkstationDensity::Dense,
+            chart_window: WorkstationChartWindow::ThirtyMinutes,
+        };
+        let state = WorkstationUiState::from_preferences(preferences);
+
+        assert_eq!(state.view(), WorkstationView::Flow);
+        assert_eq!(state.density(), WorkstationDensity::Dense);
+        assert_eq!(state.chart_window(), WorkstationChartWindow::ThirtyMinutes);
+        assert_eq!(state.preferences(), preferences);
+
+        save_tui_preferences(temp.path(), state.preferences()).expect("preferences save");
+        let raw =
+            fs::read_to_string(tui_preferences_path(temp.path())).expect("preferences file reads");
+
+        assert!(raw.contains("view = \"flow\""));
+        assert!(raw.contains("density = \"dense\""));
+        assert!(raw.contains("chart_window = \"30m\""));
+        assert_eq!(load_tui_preferences(temp.path()), preferences);
+    }
+
+    #[test]
+    fn live_tui_preferences_fall_back_for_bad_local_files() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        fs::create_dir_all(temp.path()).expect("create temp data dir");
+        let path = tui_preferences_path(temp.path());
+
+        fs::write(
+            &path,
+            r#"
+view = "orders"
+density = "dense"
+chart_window = "15m"
+"#,
+        )
+        .expect("write unknown preference");
+        assert_eq!(
+            load_tui_preferences(temp.path()),
+            WorkstationUiPreferences::default()
+        );
+
+        fs::write(&path, "not valid toml = [").expect("write malformed preference");
+        assert_eq!(
+            load_tui_preferences(temp.path()),
+            WorkstationUiPreferences::default()
         );
     }
 

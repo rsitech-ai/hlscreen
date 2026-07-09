@@ -683,6 +683,7 @@ dependencies = [
  "hls-tui",
  "predicates",
  "ratatui",
+ "serde",
  "serde_json",
  "tempfile",
  "tokio",
