@@ -395,6 +395,11 @@ fn detail_panel_renders_liquidity_radar() {
     .expect("renders liquidity radar");
 
     assert!(rendered.contains("LIQUIDITY RADAR"));
+    assert!(rendered.contains("QUOTE STRIP"));
+    assert!(rendered.contains("bid 34.9000"));
+    assert!(rendered.contains("ask 35.1000"));
+    assert!(rendered.contains("mid 35.0000"));
+    assert!(rendered.contains("read-only quote"));
     assert!(rendered.contains("spread cost"));
     assert!(rendered.contains("depth"));
     assert!(rendered.contains("imbalance"));
