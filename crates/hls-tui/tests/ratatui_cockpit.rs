@@ -86,6 +86,71 @@ fn cockpit_renders_command_palette_with_validation_error() {
 }
 
 #[test]
+fn command_palette_color_mode_renders_semantic_command_deck() {
+    let snapshots = fixture_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(WorkstationAction::CycleFilter, snapshots.len());
+    for ch in "spread_bps < 5".chars() {
+        state.apply(WorkstationAction::CommandChar(ch), snapshots.len());
+    }
+    state.set_command_error("invalid filter token".to_owned());
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    );
+
+    let plain = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 140,
+            height: 40,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("plain command deck renders");
+    let colored = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 140,
+            height: 40,
+        },
+        RatatuiColorMode::Color,
+    )
+    .expect("colored command deck renders");
+
+    assert!(!plain.contains("\u{1b}["));
+    assert_eq!(
+        active_fg_before(&colored, "COMMAND CENTER"),
+        Some("\u{1b}[38;2;0;229;255m")
+    );
+    assert_eq!(
+        active_fg_before(&colored, "TARGET"),
+        Some("\u{1b}[38;2;255;214;102m")
+    );
+    assert_eq!(
+        active_fg_before(&colored, "INPUT"),
+        Some("\u{1b}[38;2;0;255;154m")
+    );
+    assert_eq!(
+        active_fg_before(&colored, "ERROR"),
+        Some("\u{1b}[38;2;255;77;109m")
+    );
+    assert!(colored.contains("COMMAND ROUTER"));
+    assert!(colored.contains("SMART SUGGESTIONS"));
+    assert!(colored.contains("SAFETY no orders"));
+}
+
+fn active_fg_before<'a>(rendered: &'a str, label: &str) -> Option<&'a str> {
+    let label_index = rendered.find(label)?;
+    let prefix = &rendered[..label_index];
+    let fg_index = prefix.rfind("\u{1b}[38;2;")?;
+    let fg_end = prefix[fg_index..].find('m')?;
+    Some(&prefix[fg_index..fg_index + fg_end + 1])
+}
+
+#[test]
 fn command_palette_renders_preset_deck_with_active_context() {
     let snapshots = fixture_snapshots();
     let mut state = WorkstationUiState::default();

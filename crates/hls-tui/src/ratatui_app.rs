@@ -3173,7 +3173,7 @@ fn render_command_palette(
     let popup = centered_rect(74, 54, area);
     frame.render_widget(Clear, popup);
     frame.render_widget(
-        Paragraph::new(command_palette_lines(command, model))
+        Paragraph::new(command_palette_lines(command, model, color_mode))
             .wrap(Wrap { trim: true })
             .block(panel("COMMAND", color_mode))
             .style(Style::default().fg(text(color_mode))),
@@ -3184,6 +3184,7 @@ fn render_command_palette(
 fn command_palette_lines(
     command: &WorkstationCommand,
     model: &RatatuiFrameModel,
+    color_mode: RatatuiColorMode,
 ) -> Vec<Line<'static>> {
     let target = command.target().label();
     let input = if command.input().is_empty() {
@@ -3192,16 +3193,14 @@ fn command_palette_lines(
         command.input()
     };
     let mut lines = vec![
-        Line::from("COMMAND CENTER"),
-        Line::from(format!("TARGET {target} | INPUT {input}")),
-        command_router_line(command),
+        command_center_title_line(color_mode),
+        command_target_input_line(target, input, color_mode),
+        command_router_line(command, color_mode),
         Line::from(active_command_context_line(&model.request)),
-        command_result_preview_line(model),
-        command_suggestions_line(command, model),
-        Line::from(
-            "KEYFLOW g symbol | / filter | p preset | s sort | t timeframe | enter detail | h health | d density | ? help",
-        ),
-        Line::from("GUARDRAILS read-only display mutation only | last valid screen retained"),
+        command_result_preview_line(model, color_mode),
+        command_suggestions_line(command, model, color_mode),
+        command_keyflow_line(color_mode),
+        command_guardrails_line(color_mode),
         Line::from(format!(
             "SCOPE read-only screened rows {} | view {} | pane {}",
             screened_rows(model).len(),
@@ -3226,59 +3225,173 @@ fn command_palette_lines(
         Line::from("SAFETY no orders | no wallet | public market data only"),
     ];
     if let Some(error) = model.ui_state.command_error() {
-        lines.push(Line::from(format!("error: {error}")));
+        lines.push(command_error_line(error, color_mode));
     }
     lines
 }
 
-fn command_router_line(command: &WorkstationCommand) -> Line<'static> {
-    Line::from(format!(
-        "COMMAND ROUTER target {} | Enter apply | Esc rollback | live ingestion continues",
-        command.target().label()
-    ))
+fn command_center_title_line(color_mode: RatatuiColorMode) -> Line<'static> {
+    Line::from(vec![Span::styled(
+        "COMMAND CENTER",
+        Style::default()
+            .fg(accent(color_mode))
+            .add_modifier(Modifier::BOLD),
+    )])
 }
 
-fn command_result_preview_line(model: &RatatuiFrameModel) -> Line<'static> {
+fn command_target_input_line(
+    target: &str,
+    input: &str,
+    color_mode: RatatuiColorMode,
+) -> Line<'static> {
+    Line::from(vec![
+        Span::styled(
+            "TARGET ",
+            Style::default()
+                .fg(warn(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw(format!("{target} | ")),
+        Span::styled(
+            "INPUT ",
+            Style::default()
+                .fg(success(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw(input.to_owned()),
+    ])
+}
+
+fn command_router_line(
+    command: &WorkstationCommand,
+    color_mode: RatatuiColorMode,
+) -> Line<'static> {
+    Line::from(vec![
+        Span::styled(
+            "COMMAND ROUTER ",
+            Style::default()
+                .fg(accent(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw(format!(
+            "target {} | Enter apply | Esc rollback | ",
+            command.target().label()
+        )),
+        Span::styled(
+            "live ingestion continues",
+            Style::default().fg(success(color_mode)),
+        ),
+    ])
+}
+
+fn command_result_preview_line(
+    model: &RatatuiFrameModel,
+    color_mode: RatatuiColorMode,
+) -> Line<'static> {
     let rows = screened_rows(model);
     let top = rows
         .first()
         .map_or_else(|| "-".to_owned(), |row| display_symbol(row).to_owned());
     let selected = selected_row(&rows, model)
         .map_or_else(|| "-".to_owned(), |row| display_symbol(row).to_owned());
-    Line::from(format!(
-        "RESULT PREVIEW rows {:02} | top {} | selected {} | last valid screen retained",
-        rows.len().min(99),
-        top,
-        selected
-    ))
+    Line::from(vec![
+        Span::styled(
+            "RESULT PREVIEW ",
+            Style::default()
+                .fg(accent(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw(format!("rows {:02} | top ", rows.len().min(99))),
+        Span::styled(top, Style::default().fg(success(color_mode))),
+        Span::raw(" | selected "),
+        Span::styled(selected, Style::default().fg(warn(color_mode))),
+        Span::raw(" | last valid screen retained"),
+    ])
 }
 
 fn command_suggestions_line(
     command: &WorkstationCommand,
     model: &RatatuiFrameModel,
+    color_mode: RatatuiColorMode,
 ) -> Line<'static> {
+    let label = Span::styled(
+        "SMART SUGGESTIONS ",
+        Style::default()
+            .fg(accent(color_mode))
+            .add_modifier(Modifier::BOLD),
+    );
     match command.target() {
         crate::interaction::WorkstationCommandTarget::Symbol => {
             let suggestions = visible_symbol_suggestions(command.input(), model);
-            Line::from(format!(
-                "SMART SUGGESTIONS symbols {} | visible live rows | Enter accepts highlighted visible row",
-                suggestions.join(" ")
-            ))
+            Line::from(vec![
+                label,
+                Span::styled("symbols ", Style::default().fg(success(color_mode))),
+                Span::raw(format!(
+                    "{} | visible live rows | Enter accepts highlighted visible row",
+                    suggestions.join(" ")
+                )),
+            ])
         }
         crate::interaction::WorkstationCommandTarget::Preset => {
             let suggestions = preset_suggestions(command.input());
-            Line::from(format!(
-                "SMART SUGGESTIONS presets {} | empty clears preset | read-only screen",
-                suggestions.join(" ")
-            ))
+            Line::from(vec![
+                label,
+                Span::styled("presets ", Style::default().fg(success(color_mode))),
+                Span::raw(format!(
+                    "{} | empty clears preset | read-only screen",
+                    suggestions.join(" ")
+                )),
+            ])
         }
-        crate::interaction::WorkstationCommandTarget::Filter => Line::from(
-            "SMART SUGGESTIONS filters confidence >= 70 | spread_bps < 5 | tradeability_state == tradeable",
-        ),
-        crate::interaction::WorkstationCommandTarget::Sort => Line::from(
-            "SMART SUGGESTIONS sorts score:desc | spread_bps:asc | signed_notional_flow_30s:desc",
-        ),
+        crate::interaction::WorkstationCommandTarget::Filter => Line::from(vec![
+            label,
+            Span::styled("filters ", Style::default().fg(success(color_mode))),
+            Span::raw("confidence >= 70 | spread_bps < 5 | tradeability_state == tradeable"),
+        ]),
+        crate::interaction::WorkstationCommandTarget::Sort => Line::from(vec![
+            label,
+            Span::styled("sorts ", Style::default().fg(success(color_mode))),
+            Span::raw("score:desc | spread_bps:asc | signed_notional_flow_30s:desc"),
+        ]),
     }
+}
+
+fn command_keyflow_line(color_mode: RatatuiColorMode) -> Line<'static> {
+    Line::from(vec![
+        Span::styled(
+            "KEYFLOW ",
+            Style::default()
+                .fg(warn(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw(
+            "g symbol | / filter | p preset | s sort | t timeframe | enter detail | h health | d density | ? help",
+        ),
+    ])
+}
+
+fn command_guardrails_line(color_mode: RatatuiColorMode) -> Line<'static> {
+    Line::from(vec![
+        Span::styled(
+            "GUARDRAILS ",
+            Style::default()
+                .fg(danger(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw("read-only display mutation only | last valid screen retained"),
+    ])
+}
+
+fn command_error_line(error: &str, color_mode: RatatuiColorMode) -> Line<'static> {
+    Line::from(vec![
+        Span::styled(
+            "ERROR ",
+            Style::default()
+                .fg(danger(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw(error.to_owned()),
+    ])
 }
 
 fn visible_symbol_suggestions(input: &str, model: &RatatuiFrameModel) -> Vec<String> {
