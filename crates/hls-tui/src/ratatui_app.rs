@@ -3753,9 +3753,8 @@ fn render_status_bar(
         frame.render_widget(
             Paragraph::new(vec![
                 market_status_bar_line(model, color_mode),
-                action_status_bar_line(color_mode),
+                action_status_bar_line(color_mode, area.width),
             ])
-            .wrap(Wrap { trim: true })
             .style(Style::default().fg(warn(color_mode)))
             .block(
                 Block::default()
@@ -3822,7 +3821,13 @@ fn market_status_bar_line(
     Line::from(spans)
 }
 
-fn action_status_bar_line(color_mode: RatatuiColorMode) -> Line<'static> {
+fn action_status_bar_line(color_mode: RatatuiColorMode, width: u16) -> Line<'static> {
+    let action_copy = if width < 132 {
+        "j/k ent tab / p s t ? q | "
+    } else {
+        "j/k row ent detail tab view / filter p preset s sort t win ? help q quit | "
+    };
+
     Line::from(vec![
         Span::styled(
             "ACTION STRIP ",
@@ -3830,7 +3835,7 @@ fn action_status_bar_line(color_mode: RatatuiColorMode) -> Line<'static> {
                 .fg(accent(color_mode))
                 .add_modifier(Modifier::BOLD),
         ),
-        Span::raw("j/k row ent detail tab view / filter p preset s sort t win ? help q quit | "),
+        Span::raw(action_copy),
         Span::styled(
             "THEME ",
             Style::default()
