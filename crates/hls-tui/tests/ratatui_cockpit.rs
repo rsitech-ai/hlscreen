@@ -1994,6 +1994,58 @@ fn expanded_status_renders_ops_command_center() {
 }
 
 #[test]
+fn expanded_status_renders_color_lab_diagnostics() {
+    let snapshots = fixture_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Status),
+        snapshots.len(),
+    );
+    state.apply(WorkstationAction::TogglePaneZoom, snapshots.len());
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    )
+    .with_status("LIVE", "REC ready", "ws=235 events=485 reconnects=0 gaps=0");
+
+    let plain = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 170,
+            height: 42,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders no-color status lab");
+    let colored = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 170,
+            height: 42,
+        },
+        RatatuiColorMode::Color,
+    )
+    .expect("renders colored status lab");
+
+    assert!(!plain.contains("\u{1b}["));
+    assert!(plain.contains("COLOR LAB"));
+    assert!(plain.contains("mode no-color"));
+    assert!(plain.contains("path plain fallback"));
+    assert!(plain.contains("fix --color always"));
+    assert!(plain.contains("NO_COLOR"));
+    assert!(plain.contains("TERM=xterm-256color"));
+    assert!(plain.contains("truecolor"));
+    assert!(plain.contains("public data only"));
+    assert!(colored.contains("COLOR LAB"));
+    assert!(colored.contains("mode color"));
+    assert!(colored.contains("path ansi-neon active"));
+    assert!(colored.contains("\u{1b}[38;2;0;255;154m▲"));
+    assert!(colored.contains("\u{1b}[38;2;255;77;109m▼"));
+}
+
+#[test]
 fn wide_status_focus_renders_cross_pair_signal_matrix() {
     let mut snapshots = ten_directional_snapshots();
     snapshots[0].tob_depth_usd = Some(1_200.0);
