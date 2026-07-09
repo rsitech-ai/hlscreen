@@ -137,16 +137,25 @@ Fetch read-only public spot metadata:
 ./target/debug/hls symbols --top 5
 ```
 
-Run bounded public live screen for the current spot universe:
+Run the current workspace's interactive public live screen:
 
 ```bash
-./target/debug/hls tui
+cargo run -p hls-cli -- tui
 ```
 
 `hls tui` is the default interactive workstation entrypoint. It enables the
 Ratatui cockpit, tracks the top 10 public spot pairs, refreshes once per second,
-uses the ANSI color theme by default, and remains read-only: no wallet, private
-stream, signing, order route, or execution capability is loaded.
+uses the ANSI color theme by default, and runs until `q`, `Esc`, `Ctrl-C`, or
+`SIGTERM`. Its default `--duration-secs 0` means run until an operator stops it;
+pass a positive duration for automation. It remains read-only: no wallet,
+private stream, signing, order route, or execution capability is loaded.
+
+For a shell-wide `hls` command, install the exact checked-out workspace once:
+
+```bash
+cargo install --path crates/hls-cli --locked --force
+hls tui
+```
 
 Use `hls live --tui` when you want a scripted recording run with explicit
 storage flags:
@@ -209,7 +218,7 @@ TTY keyboard controls for the Ratatui `hls tui` / `hls live --tui` cockpit:
 - `d`: cycle row density.
 - `?` or `F1`: show/hide help.
 - `Space`: toggle paused UI state while ingestion remains read-only public data.
-- `q` or `Esc`: cleanly stop the bounded live run.
+- `q` or `Esc`: cleanly stop the live run.
 
 TTY mouse controls for terminals with mouse reporting enabled:
 
@@ -237,6 +246,29 @@ screenshots make color mode drift obvious without crowding narrow terminals.
 The legacy `HLS_FORCE_COLOR=1`, `CLICOLOR_FORCE=1`, and `FORCE_COLOR=1`
 environment overrides still force color in `auto`; `NO_COLOR=1` or `TERM=dumb`
 still disables color in `auto`.
+
+The interactive renderer owns stderr while the alternate screen is active;
+stdin and stderr must both remain attached to a TTY for the default unbounded
+session. Redirecting stderr disables interactive terminal ownership. Stdout is
+reserved for the completion summary after terminal restoration.
+
+To verify which binary and terminal policy the shell is actually using:
+
+```bash
+command -v hls
+hls --version
+hls doctor --terminal
+```
+
+The version must include `ratatui-workstation`, and `doctor --terminal` reports
+the executable path, working directory, TTY state, renderer, `TERM`,
+`COLORTERM`, `TMUX`, `NO_COLOR`, and force/auto color decisions without creating
+the data directory. If the renderer tag is missing, the shell found an older
+binary. Reinstall from this checkout, then run `hash -r` in Bash/Zsh (or
+`rehash` in shells that provide it). When multiple worktrees exist, confirm the
+source being built with `git rev-parse --show-toplevel` and
+`git rev-parse --short HEAD`; `cargo run -p hls-cli -- tui` always uses the
+current workspace and avoids an unrelated global install.
 
 Live TTY sessions persist display-only TUI preferences at
 `<data-dir>/tui-preferences.toml`, including the active view, row density, and

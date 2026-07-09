@@ -606,7 +606,7 @@ async fn run_fixture_live(args: LiveArgs, fixture_file: &PathBuf) -> anyhow::Res
             where_expr: args.r#where,
             sort: args.sort,
         };
-        let color_mode = live_ratatui_color_mode(args.color);
+        let color_mode = live_ratatui_color_mode(args.color, io::stdout().is_terminal());
         if args.tui {
             let model = live_tui_model(
                 &snapshots,
@@ -643,7 +643,7 @@ async fn run_interactive_fixture_tui(
     mut screen_request: ScreenRequest,
     metadata: Vec<MetadataEnrichment>,
 ) -> anyhow::Result<()> {
-    let color_mode = live_ratatui_color_mode(args.color);
+    let color_mode = live_ratatui_color_mode(args.color, io::stderr().is_terminal());
     let keyboard_interactive = io::stdin().is_terminal() && io::stderr().is_terminal();
     let lifetime =
         LiveRunLifetime::from_duration_secs(args.duration_secs, tokio::time::Instant::now())?;
@@ -653,6 +653,13 @@ async fn run_interactive_fixture_tui(
         diagnostics.emit(true, warning);
     }
     let mut ui_state = WorkstationUiState::from_preferences(preflight.preferences);
+    let mut shutdown_signal = match install_shutdown_signal() {
+        Ok(signal) => signal,
+        Err(err) => {
+            diagnostics.flush_deferred();
+            return Err(err);
+        }
+    };
 
     let terminal_mode = match LiveTuiGuard::enable(keyboard_interactive) {
         Ok(guard) => guard,
@@ -677,7 +684,6 @@ async fn run_interactive_fixture_tui(
 
     let started = Instant::now();
     let summary = LiveDriveSummary::default();
-    let mut shutdown_signal = Box::pin(wait_for_shutdown_signal());
     let session_result = async {
         render_live_progress(
             LiveProgressContext {
@@ -688,6 +694,7 @@ async fn run_interactive_fixture_tui(
                 tui_state: Some(&ui_state),
                 started,
                 summary: &summary,
+                mode: LiveProgressMode::Fixture,
             },
             Some(&mut tui_renderer),
         )?;
@@ -700,6 +707,7 @@ async fn run_interactive_fixture_tui(
             &mut screen_request,
             &metadata,
             color_mode,
+            LiveProgressMode::Fixture,
             started,
             &summary,
             Some(&mut tui_renderer),
@@ -767,10 +775,11 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
     };
     let mut metadata = selection.metadata;
     metadata.extend(load_metadata_enrichments(args.metadata_file.as_ref())?);
-    let render_live_tui = args.tui || io::stderr().is_terminal();
-    let color_mode = live_ratatui_color_mode(args.color);
-    let keyboard_interactive =
-        render_live_tui && io::stdin().is_terminal() && io::stderr().is_terminal();
+    let stderr_tty = io::stderr().is_terminal();
+    let render_live_tui = args.tui || stderr_tty;
+    let tui_color_mode = live_ratatui_color_mode(args.color, stderr_tty);
+    let output_color_mode = live_ratatui_color_mode(args.color, io::stdout().is_terminal());
+    let keyboard_interactive = render_live_tui && io::stdin().is_terminal() && stderr_tty;
     let lifetime =
         LiveRunLifetime::from_duration_secs(args.duration_secs, tokio::time::Instant::now())?;
     let mut diagnostics = LiveDiagnostics::default();
@@ -794,6 +803,13 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
             args.ws_url
         );
     }
+    let mut shutdown_signal = match install_shutdown_signal() {
+        Ok(signal) => signal,
+        Err(err) => {
+            diagnostics.flush_deferred();
+            return Err(err);
+        }
+    };
 
     let terminal_mode = match LiveTuiGuard::enable(keyboard_interactive) {
         Ok(guard) => guard,
@@ -823,12 +839,13 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
         &subscription_messages,
         &symbols,
         lifetime,
+        &mut shutdown_signal,
         Duration::from_secs(args.refresh_secs.max(1)),
         &mut state,
         &mut screen_request,
         &metadata,
         tui_renderer.as_mut(),
-        color_mode,
+        tui_color_mode,
         keyboard_interactive,
         tui_state.as_mut(),
         recorder.as_ref(),
@@ -930,7 +947,7 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
                 ),
             ),
         );
-        render_live_tui_snapshot(&model, None, color_mode)?
+        render_live_tui_snapshot(&model, None, output_color_mode)?
     } else {
         render_screened_table(
             &snapshots,
@@ -1097,6 +1114,30 @@ impl LiveStopReason {
     }
 }
 
+type ShutdownSignal = Pin<Box<dyn Future<Output = anyhow::Result<LiveStopReason>> + Send>>;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum LiveProgressMode {
+    Live,
+    Fixture,
+}
+
+impl LiveProgressMode {
+    fn title(self) -> &'static str {
+        match self {
+            Self::Live => "READ-ONLY Hyperliquid spot live screen",
+            Self::Fixture => "READ-ONLY Hyperliquid spot fixture replay",
+        }
+    }
+
+    fn status(self) -> &'static str {
+        match self {
+            Self::Live => "LIVE",
+            Self::Fixture => "fixture",
+        }
+    }
+}
+
 struct LiveProgressContext<'a> {
     state: &'a LiveMarketState,
     screen_request: &'a ScreenRequest,
@@ -1105,6 +1146,7 @@ struct LiveProgressContext<'a> {
     tui_state: Option<&'a WorkstationUiState>,
     started: Instant,
     summary: &'a LiveDriveSummary,
+    mode: LiveProgressMode,
 }
 
 #[derive(Debug)]
@@ -1153,13 +1195,14 @@ where
 #[allow(clippy::too_many_arguments)]
 async fn wait_for_live_stop(
     lifetime: LiveRunLifetime,
-    shutdown_signal: &mut Pin<Box<impl Future<Output = anyhow::Result<LiveStopReason>>>>,
+    shutdown_signal: &mut ShutdownSignal,
     keyboard_interactive: bool,
     mut tui_state: Option<&mut WorkstationUiState>,
     state: &LiveMarketState,
     screen_request: &mut ScreenRequest,
     metadata: &[MetadataEnrichment],
     color_mode: RatatuiColorMode,
+    progress_mode: LiveProgressMode,
     started: Instant,
     summary: &LiveDriveSummary,
     mut tui_frame_sink: Option<&mut LiveTuiRenderer>,
@@ -1177,6 +1220,7 @@ async fn wait_for_live_stop(
                     screen_request,
                     metadata,
                     color_mode,
+                    progress_mode,
                     started,
                     summary,
                     tui_frame_sink.as_deref_mut(),
@@ -1193,7 +1237,7 @@ async fn send_live_message<S>(
     write: &mut S,
     message: Message,
     lifetime: LiveRunLifetime,
-    shutdown_signal: &mut Pin<Box<impl Future<Output = anyhow::Result<LiveStopReason>>>>,
+    shutdown_signal: &mut ShutdownSignal,
     keyboard_interactive: bool,
     tui_state: Option<&mut WorkstationUiState>,
     state: &LiveMarketState,
@@ -1216,6 +1260,7 @@ where
         screen_request,
         metadata,
         color_mode,
+        LiveProgressMode::Live,
         started,
         summary,
         tui_frame_sink,
@@ -1229,6 +1274,7 @@ async fn drive_live_ws(
     subscription_messages: &[String],
     symbols: &[String],
     lifetime: LiveRunLifetime,
+    shutdown_signal: &mut ShutdownSignal,
     refresh_interval: Duration,
     state: &mut LiveMarketState,
     screen_request: &mut ScreenRequest,
@@ -1244,8 +1290,6 @@ async fn drive_live_ws(
     let mut summary = LiveDriveSummary::default();
     let mut conn_id = 0;
     let mut reconnect_attempt = 0;
-    let mut shutdown_signal = Box::pin(wait_for_shutdown_signal());
-
     loop {
         if lifetime.has_expired_by(tokio::time::Instant::now()) {
             summary.mark_stopped(LiveStopReason::DurationElapsed);
@@ -1267,7 +1311,7 @@ async fn drive_live_ws(
             tui_state.as_deref_mut(),
             recorder,
             &mut summary,
-            &mut shutdown_signal,
+            shutdown_signal,
         )
         .await?;
 
@@ -1328,6 +1372,7 @@ async fn drive_live_ws(
                                 screen_request,
                                 metadata,
                                 color_mode,
+                                LiveProgressMode::Live,
                                 started,
                                 &summary,
                                 tui_frame_sink.as_deref_mut(),
@@ -1375,7 +1420,7 @@ async fn drive_live_connection(
     mut tui_state: Option<&mut WorkstationUiState>,
     recorder: Option<&LiveRecorder>,
     summary: &mut LiveDriveSummary,
-    shutdown_signal: &mut Pin<Box<impl Future<Output = anyhow::Result<LiveStopReason>>>>,
+    shutdown_signal: &mut ShutdownSignal,
 ) -> anyhow::Result<ConnectionOutcome> {
     let connect_started_ns = now_ns_u64()?;
     let mut ui_events = interval(Duration::from_millis(TUI_KEY_POLL_MS));
@@ -1393,6 +1438,7 @@ async fn drive_live_connection(
                     screen_request,
                     metadata,
                     color_mode,
+                    LiveProgressMode::Live,
                     started,
                     summary,
                     tui_frame_sink.as_deref_mut(),
@@ -1477,6 +1523,7 @@ async fn drive_live_connection(
                     tui_state: tui_state.as_deref(),
                     started,
                     summary,
+                    mode: LiveProgressMode::Live,
                 }, tui_frame_sink.as_deref_mut())?;
             }
             _ = ui_events.tick(), if keyboard_interactive => {
@@ -1486,6 +1533,7 @@ async fn drive_live_connection(
                     screen_request,
                     metadata,
                     color_mode,
+                    LiveProgressMode::Live,
                     started,
                     summary,
                     tui_frame_sink.as_deref_mut(),
@@ -1918,13 +1966,13 @@ where
         attach_metadata(&mut snapshots, ctx.metadata.to_vec());
         let model = live_tui_model(
             &snapshots,
-            "READ-ONLY Hyperliquid spot live screen",
+            ctx.mode.title(),
             ctx.screen_request,
             ctx.tui_state,
             live_tui_candles(ctx.state),
             live_tui_trades(ctx.state),
             LiveTuiStatus::new(
-                "LIVE",
+                ctx.mode.status(),
                 "REC ready",
                 format!(
                     "{}s ws={} events={} reconnects={} gaps={}",
@@ -1939,7 +1987,8 @@ where
         tui_frame_sink.draw(&model, ctx.color_mode)?;
     } else {
         eprintln!(
-            "live progress: elapsed_secs={} ws_messages={} market_events={} reconnects={} data_gaps={}",
+            "{} progress: elapsed_secs={} ws_messages={} market_events={} reconnects={} data_gaps={}",
+            ctx.mode.status().to_ascii_lowercase(),
             ctx.started.elapsed().as_secs(),
             ctx.summary.ws_messages,
             ctx.summary.market_events,
@@ -2029,8 +2078,29 @@ fn live_ratatui_viewport_from_size(size: Option<(u16, u16)>) -> RatatuiViewport 
     RatatuiViewport { width, height }
 }
 
-fn live_ratatui_color_mode(color: LiveTuiColor) -> RatatuiColorMode {
-    resolve_live_ratatui_color_mode(color, live_terminal_color_enabled())
+fn live_ratatui_color_mode(color: LiveTuiColor, output_is_terminal: bool) -> RatatuiColorMode {
+    resolve_live_ratatui_color_mode(color, live_terminal_color_enabled(output_is_terminal))
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct LiveTerminalColorDiagnostics {
+    pub force_color: bool,
+    pub auto_color: bool,
+    pub effective_auto_color: bool,
+}
+
+pub(crate) fn live_terminal_color_diagnostics() -> LiveTerminalColorDiagnostics {
+    live_terminal_color_diagnostics_for(io::stderr().is_terminal())
+}
+
+fn live_terminal_color_diagnostics_for(output_is_terminal: bool) -> LiveTerminalColorDiagnostics {
+    let force_color = live_terminal_color_forced();
+    let auto_color = live_terminal_color_auto_enabled(output_is_terminal);
+    LiveTerminalColorDiagnostics {
+        force_color,
+        auto_color,
+        effective_auto_color: force_color || auto_color,
+    }
 }
 
 fn resolve_live_ratatui_color_mode(color: LiveTuiColor, auto_enabled: bool) -> RatatuiColorMode {
@@ -2127,12 +2197,8 @@ fn parse_workstation_chart_window(label: &str) -> Option<WorkstationChartWindow>
         .find(|candidate| candidate.label() == label)
 }
 
-fn live_terminal_color_enabled() -> bool {
-    if live_terminal_color_forced() {
-        true
-    } else {
-        live_terminal_color_auto_enabled()
-    }
+fn live_terminal_color_enabled(output_is_terminal: bool) -> bool {
+    live_terminal_color_diagnostics_for(output_is_terminal).effective_auto_color
 }
 
 fn live_terminal_color_forced() -> bool {
@@ -2145,8 +2211,8 @@ fn live_terminal_color_forced() -> bool {
     false
 }
 
-fn live_terminal_color_auto_enabled() -> bool {
-    if std::env::var_os("NO_COLOR").is_some() {
+fn live_terminal_color_auto_enabled(output_is_terminal: bool) -> bool {
+    if !output_is_terminal || std::env::var_os("NO_COLOR").is_some() {
         return false;
     }
     !matches!(std::env::var("TERM").as_deref(), Ok("dumb"))
@@ -2200,6 +2266,7 @@ fn poll_live_tui_actions<S>(
     screen_request: &mut ScreenRequest,
     metadata: &[MetadataEnrichment],
     color_mode: RatatuiColorMode,
+    progress_mode: LiveProgressMode,
     started: Instant,
     summary: &LiveDriveSummary,
     tui_frame_sink: Option<&mut S>,
@@ -2220,6 +2287,7 @@ where
                 tui_state: Some(ui_state),
                 started,
                 summary,
+                mode: progress_mode,
             },
             tui_frame_sink,
         )?;
@@ -3602,7 +3670,7 @@ impl LiveTuiRenderer<io::Stderr> {
                 let stderr = io::stderr();
                 let backend = CrosstermBackend::new(stderr);
                 let mut terminal = Terminal::new(backend)?;
-                terminal.clear()?;
+                ratatui::backend::Backend::clear(terminal.backend_mut())?;
                 Ok(terminal)
             })
             .map_err(live_tui_session_operation_error)??;
@@ -3689,6 +3757,7 @@ fn shutdown_listener_setup<T>(result: io::Result<T>) -> anyhow::Result<T> {
     result.context("install shutdown signal listener")
 }
 
+#[cfg(any(test, not(any(unix, windows))))]
 fn shutdown_signal_stop_reason(result: io::Result<()>) -> anyhow::Result<LiveStopReason> {
     result
         .context("wait for OS shutdown signal")
@@ -3696,28 +3765,54 @@ fn shutdown_signal_stop_reason(result: io::Result<()>) -> anyhow::Result<LiveSto
 }
 
 #[cfg(unix)]
-fn sigterm_stop_reason(delivery: Option<()>) -> anyhow::Result<LiveStopReason> {
+fn unix_signal_stop_reason(signal: &str, delivery: Option<()>) -> anyhow::Result<LiveStopReason> {
     delivery
-        .context("SIGTERM shutdown listener closed before receiving a signal")
+        .with_context(|| format!("{signal} shutdown listener closed before receiving a signal"))
         .map(|()| LiveStopReason::Signal)
 }
 
-async fn wait_for_shutdown_signal() -> anyhow::Result<LiveStopReason> {
+#[cfg(unix)]
+fn sigterm_stop_reason(delivery: Option<()>) -> anyhow::Result<LiveStopReason> {
+    unix_signal_stop_reason("SIGTERM", delivery)
+}
+
+fn install_shutdown_signal() -> anyhow::Result<ShutdownSignal> {
     #[cfg(unix)]
     {
+        let mut interrupt = shutdown_listener_setup(tokio::signal::unix::signal(
+            tokio::signal::unix::SignalKind::interrupt(),
+        ))?;
         let mut terminate = shutdown_listener_setup(tokio::signal::unix::signal(
             tokio::signal::unix::SignalKind::terminate(),
         ))?;
 
-        tokio::select! {
-            result = tokio::signal::ctrl_c() => shutdown_signal_stop_reason(result),
-            delivery = terminate.recv() => sigterm_stop_reason(delivery),
-        }
+        let signal: ShutdownSignal = Box::pin(async move {
+            tokio::select! {
+                delivery = interrupt.recv() => unix_signal_stop_reason("SIGINT", delivery),
+                delivery = terminate.recv() => sigterm_stop_reason(delivery),
+            }
+        });
+        Ok(signal)
     }
 
-    #[cfg(not(unix))]
+    #[cfg(windows)]
     {
-        shutdown_signal_stop_reason(tokio::signal::ctrl_c().await)
+        let mut interrupt = shutdown_listener_setup(tokio::signal::windows::ctrl_c())?;
+        let signal: ShutdownSignal = Box::pin(async move {
+            interrupt
+                .recv()
+                .await
+                .context("CTRL_C shutdown listener closed before receiving a signal")
+                .map(|()| LiveStopReason::Signal)
+        });
+        Ok(signal)
+    }
+
+    #[cfg(not(any(unix, windows)))]
+    {
+        Ok(Box::pin(async {
+            shutdown_signal_stop_reason(tokio::signal::ctrl_c().await)
+        }))
     }
 }
 
@@ -5996,6 +6091,7 @@ mod tests {
                     tui_state: None,
                     started: Instant::now(),
                     summary: &summary,
+                    mode: LiveProgressMode::Live,
                 },
                 Some(&mut sink),
             )
