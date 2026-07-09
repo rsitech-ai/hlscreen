@@ -178,7 +178,7 @@ fn render_wide(
     let root = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(6),
+            Constraint::Length(7),
             Constraint::Min(12),
             Constraint::Length(2),
         ])
@@ -223,7 +223,7 @@ fn render_medium(
     let root = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(5),
+            Constraint::Length(6),
             Constraint::Min(12),
             Constraint::Length(2),
         ])
@@ -339,21 +339,28 @@ fn render_header(
     } else {
         format!("  {mode_label}  filter:{filter}")
     };
-    let mut text = vec![
-        Line::from(vec![
-            Span::styled(
-                "STATUS ",
-                Style::default()
-                    .fg(accent(color_mode))
-                    .add_modifier(Modifier::BOLD),
-            ),
-            Span::raw(format!("{}  ", model.stream_status)),
-            Span::styled(
-                model.recorder_status.clone(),
-                Style::default().fg(success(color_mode)),
-            ),
-            Span::raw(status_tail),
-        ]),
+    let mut text = vec![Line::from(vec![
+        Span::styled(
+            "STATUS ",
+            Style::default()
+                .fg(accent(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw(format!("{}  ", model.stream_status)),
+        Span::styled(
+            model.recorder_status.clone(),
+            Style::default().fg(success(color_mode)),
+        ),
+        Span::raw(status_tail),
+    ])];
+    if !narrow {
+        text.push(desk_tab_rail_line(
+            &model.ui_state,
+            area.width < 132,
+            color_mode,
+        ));
+    }
+    text.extend([
         Line::from(vec![
             Span::styled(
                 "CONTROLS ",
@@ -369,8 +376,8 @@ fn render_header(
             }),
         ]),
         market_internals_line(model, color_mode, narrow),
-    ];
-    if !narrow && area.height >= 6 {
+    ]);
+    if !narrow && area.height >= 7 {
         text.push(market_pulse_line(model, color_mode));
     }
     frame.render_widget(
@@ -382,6 +389,57 @@ fn render_header(
         ),
         area,
     );
+}
+
+fn desk_tab_rail_line(
+    state: &WorkstationUiState,
+    compact: bool,
+    color_mode: RatatuiColorMode,
+) -> Line<'static> {
+    let panes = [
+        (WorkstationPane::Watchlist, "WATCHLIST 1", "W1"),
+        (WorkstationPane::Detail, "DETAIL 2", "D2"),
+        (WorkstationPane::Chart, "CHART 3", "C3"),
+        (WorkstationPane::Book, "BOOK 4", "B4"),
+        (WorkstationPane::Tape, "TAPE 5", "T5"),
+        (WorkstationPane::Status, "OPS 6", "O6"),
+    ];
+    let mut spans = vec![Span::styled(
+        "DESK ",
+        Style::default()
+            .fg(accent(color_mode))
+            .add_modifier(Modifier::BOLD),
+    )];
+    for (index, (pane, label, short_label)) in panes.iter().enumerate() {
+        if index > 0 {
+            spans.push(Span::raw(" "));
+        }
+        let tab_label = if compact { *short_label } else { *label };
+        if state.focused_pane() == *pane {
+            spans.push(Span::styled(
+                format!("[{tab_label}]"),
+                Style::default()
+                    .fg(warn(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ));
+        } else {
+            spans.push(Span::raw(tab_label.to_owned()));
+        }
+    }
+    if compact {
+        spans.push(Span::raw(format!(
+            " | v {} | d {} | read-only",
+            state.view().label(),
+            state.density().label()
+        )));
+    } else {
+        spans.push(Span::raw(format!(
+            " | view {} | density {} | read-only",
+            state.view().label(),
+            state.density().label()
+        )));
+    }
+    Line::from(spans)
 }
 
 fn pane_hotkey_rail(state: &WorkstationUiState, narrow: bool) -> String {
