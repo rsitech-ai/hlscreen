@@ -4809,6 +4809,7 @@ fn render_status_panel(
             &rows, reconnects, gaps, color_mode,
         ));
         lines.push(status_regime_board_line(&rows, color_mode));
+        lines.push(status_signal_matrix_line(&rows, area.width, color_mode));
     }
     lines.extend([
         status_quality_matrix_line(&rows, color_mode),
@@ -4959,6 +4960,81 @@ fn status_latency_strip_line(
             stale.min(99)
         )),
     ])
+}
+
+fn status_signal_matrix_line(
+    rows: &[FeatureSnapshot],
+    area_width: u16,
+    color_mode: RatatuiColorMode,
+) -> Line<'static> {
+    let max_pairs = ((area_width.saturating_sub(22)) / 17).clamp(1, 8) as usize;
+    let mut spans = vec![Span::styled(
+        "SIGNAL MATRIX ",
+        Style::default()
+            .fg(accent(color_mode))
+            .add_modifier(Modifier::BOLD),
+    )];
+
+    if rows.is_empty() {
+        spans.push(Span::raw("no screened rows"));
+        return Line::from(spans);
+    }
+
+    for (index, row) in rows.iter().take(max_pairs).enumerate() {
+        if index > 0 {
+            spans.push(Span::raw(" | "));
+        }
+        spans.push(Span::styled(
+            status_signal_matrix_cell(row),
+            market_row_style(row, color_mode),
+        ));
+    }
+
+    if rows.len() > max_pairs {
+        spans.push(Span::raw(format!(" | +{}", rows.len() - max_pairs)));
+    }
+
+    Line::from(spans)
+}
+
+fn status_signal_matrix_cell(row: &FeatureSnapshot) -> String {
+    let symbol = status_matrix_symbol(row);
+    let direction = if row.ret_1m.unwrap_or_default() > 0.0 {
+        "▲"
+    } else if row.ret_1m.unwrap_or_default() < 0.0 {
+        "▼"
+    } else if row.signed_notional_flow_30s.unwrap_or_default() > 0.0 {
+        "▲"
+    } else if row.signed_notional_flow_30s.unwrap_or_default() < 0.0 {
+        "▼"
+    } else {
+        "◆"
+    };
+    let liquidity = row
+        .tob_depth_usd
+        .filter(|value| value.is_finite() && *value > 0.0)
+        .map(|value| (value.log10() / 6.0).clamp(0.0, 1.0))
+        .unwrap_or_default();
+    let flow = if row.signed_notional_flow_30s.unwrap_or_default() > 0.0 {
+        '+'
+    } else if row.signed_notional_flow_30s.unwrap_or_default() < 0.0 {
+        '-'
+    } else {
+        '='
+    };
+    format!(
+        "{symbol}:{direction}L{}F{flow}{}",
+        depth_bar(liquidity, 2),
+        quality_badge(row)
+    )
+}
+
+fn status_matrix_symbol(row: &FeatureSnapshot) -> String {
+    let raw = display_symbol(row)
+        .split('/')
+        .next()
+        .unwrap_or_else(|| display_symbol(row));
+    raw.chars().take(5).collect()
 }
 
 fn row_age_p95_ms(rows: &[FeatureSnapshot]) -> Option<i64> {
