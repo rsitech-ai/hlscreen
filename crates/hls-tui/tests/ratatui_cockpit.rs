@@ -389,6 +389,84 @@ fn cockpit_header_renders_adaptive_layout_profile() {
 }
 
 #[test]
+fn micro_cockpit_uses_focused_pane_on_very_short_terminals() {
+    let snapshots = fixture_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Chart),
+        snapshots.len(),
+    );
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    )
+    .with_candles(fixture_candles())
+    .with_status("LIVE", "REC ready", "ws=120 events=300 gaps=0");
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 120,
+            height: 18,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders micro chart layout");
+
+    assert!(rendered.contains("MICRO LAYOUT"));
+    assert!(rendered.contains("RESIZE-SAFE MICRO DESK"));
+    assert!(rendered.contains("pane chart"));
+    assert!(rendered.contains("read-only"));
+    assert!(rendered.contains("1-6 focus"));
+    assert!(rendered.contains("z zoom"));
+    assert!(rendered.contains("CANDLES"));
+}
+
+#[test]
+fn micro_cockpit_keeps_watchlist_and_color_diagnostics_on_short_shells() {
+    let model = RatatuiFrameModel::new(
+        fixture_snapshots(),
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        WorkstationUiState::default(),
+    )
+    .with_status("fixture", "REC ready", "ws=12 events=20 gaps=0");
+
+    let plain = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 80,
+            height: 16,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("plain micro layout renders");
+    let colored = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 80,
+            height: 16,
+        },
+        RatatuiColorMode::Color,
+    )
+    .expect("colored micro layout renders");
+
+    assert!(!plain.contains("\u{1b}["));
+    assert!(plain.contains("MICRO LAYOUT"));
+    assert!(plain.contains("pane watchlist"));
+    assert!(plain.contains("plain fallback"));
+    assert!(plain.contains("WATCHLIST"));
+    assert_eq!(
+        active_fg_before(&colored, "MICRO LAYOUT"),
+        Some("\u{1b}[38;2;0;229;255m")
+    );
+    assert!(colored.contains("ansi-neon active"));
+    assert!(colored.contains("\u{1b}[48;2;8;14;22m"));
+}
+
+#[test]
 fn cockpit_header_renders_layout_director_across_viewports() {
     let model = RatatuiFrameModel::new(
         directional_snapshots(),
