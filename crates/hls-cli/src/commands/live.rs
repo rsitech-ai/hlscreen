@@ -1,7 +1,9 @@
 use std::{
     fs,
+    future::{Future, pending},
     io::{self, IsTerminal, Write},
     path::{Path, PathBuf},
+    pin::Pin,
     sync::mpsc::{self, Receiver, SyncSender, TrySendError},
     thread::{self, JoinHandle},
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
@@ -56,7 +58,7 @@ use hls_tui::{
 };
 use ratatui::{Terminal, backend::CrosstermBackend};
 use serde::{Deserialize, Serialize};
-use tokio::time::{interval, sleep_until, timeout_at};
+use tokio::time::{interval, sleep, sleep_until};
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 
 use crate::commands::metadata::{attach_metadata, load_metadata_enrichments};
@@ -64,6 +66,7 @@ use crate::commands::record::{default_run_id, enabled_outputs, parse_symbols};
 
 const DEFAULT_WS_URL: &str = "wss://api.hyperliquid.xyz/ws";
 const DEFAULT_LIVE_DURATION_SECS: u64 = 60;
+const DEFAULT_TUI_DURATION_SECS: u64 = 0;
 const DEFAULT_REFRESH_SECS: u64 = 30;
 const DEFAULT_LIVE_TOP: usize = 50;
 const DEFAULT_TUI_TOP: usize = 10;
@@ -153,7 +156,7 @@ pub struct TuiArgs {
     #[arg(long)]
     pub all_symbols: bool,
 
-    #[arg(long, default_value_t = DEFAULT_LIVE_DURATION_SECS)]
+    #[arg(long, default_value_t = DEFAULT_TUI_DURATION_SECS)]
     pub duration_secs: u64,
 
     #[arg(long, default_value_t = DEFAULT_TUI_REFRESH_SECS)]
@@ -249,11 +252,23 @@ struct PersistedTuiPreferences {
 }
 
 pub async fn run(args: LiveArgs) -> anyhow::Result<()> {
+    validate_live_duration(&args)?;
+
     if let Some(fixture_file) = args.fixture_file.clone() {
         return run_fixture_live(args, &fixture_file).await;
     }
 
     run_network_live(args).await
+}
+
+fn validate_live_duration(args: &LiveArgs) -> anyhow::Result<()> {
+    if args.duration_secs == 0 && !args.tui {
+        bail!(
+            "--duration-secs 0 is only supported with --tui; use a positive duration for `hls live`"
+        );
+    }
+
+    Ok(())
 }
 
 pub async fn run_tui(args: TuiArgs) -> anyhow::Result<()> {
@@ -335,9 +350,6 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
     if args.once {
         bail!("--once is only supported with --fixture-file");
     }
-    if args.duration_secs == 0 {
-        bail!("--duration-secs must be greater than zero");
-    }
     if args.parquet {
         bail!(
             "Parquet output is not implemented in this slice; use --normalized for replayable JSONL"
@@ -397,11 +409,13 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
         );
     }
 
+    let lifetime =
+        LiveRunLifetime::from_duration_secs(args.duration_secs, tokio::time::Instant::now());
     let drive_result = drive_live_ws(
         &args.ws_url,
         &subscription_messages,
         &symbols,
-        Duration::from_secs(args.duration_secs),
+        lifetime,
         Duration::from_secs(args.refresh_secs.max(1)),
         &mut state,
         &mut screen_request,
@@ -573,6 +587,40 @@ struct LiveDriveSummary {
     row_count: usize,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum LiveRunLifetime {
+    Bounded(tokio::time::Instant),
+    Unbounded,
+}
+
+impl LiveRunLifetime {
+    fn from_duration_secs(duration_secs: u64, now: tokio::time::Instant) -> Self {
+        if duration_secs == 0 {
+            Self::Unbounded
+        } else {
+            Self::Bounded(now + Duration::from_secs(duration_secs))
+        }
+    }
+
+    fn has_expired_by(self, now: tokio::time::Instant) -> bool {
+        matches!(self, Self::Bounded(deadline) if now >= deadline)
+    }
+
+    async fn wait_for_expiry(self) {
+        match self {
+            Self::Bounded(deadline) => sleep_until(deadline).await,
+            Self::Unbounded => pending::<()>().await,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum LiveStopReason {
+    DurationElapsed,
+    OperatorQuit,
+    Signal,
+}
+
 struct LiveProgressContext<'a> {
     state: &'a LiveMarketState,
     screen_request: &'a ScreenRequest,
@@ -585,7 +633,7 @@ struct LiveProgressContext<'a> {
 
 #[derive(Debug)]
 enum ConnectionOutcome {
-    DurationElapsed,
+    Stopped(LiveStopReason),
     Reconnect {
         conn_id: u64,
         gap_started_at_ns: u64,
@@ -607,7 +655,7 @@ async fn drive_live_ws(
     ws_url: &str,
     subscription_messages: &[String],
     symbols: &[String],
-    duration: Duration,
+    lifetime: LiveRunLifetime,
     refresh_interval: Duration,
     state: &mut LiveMarketState,
     screen_request: &mut ScreenRequest,
@@ -619,17 +667,20 @@ async fn drive_live_ws(
     recorder: Option<&LiveRecorder>,
 ) -> anyhow::Result<LiveDriveSummary> {
     let started = Instant::now();
-    let deadline = tokio::time::Instant::now() + duration;
     let mut summary = LiveDriveSummary::default();
     let mut conn_id = 0;
     let mut reconnect_attempt = 0;
+    let mut shutdown_signal = Box::pin(wait_for_shutdown_signal());
 
-    while tokio::time::Instant::now() < deadline {
+    loop {
+        if lifetime.has_expired_by(tokio::time::Instant::now()) {
+            break;
+        }
         let outcome = drive_live_connection(
             ws_url,
             subscription_messages,
             conn_id,
-            deadline,
+            lifetime,
             started,
             refresh_interval,
             state,
@@ -641,11 +692,16 @@ async fn drive_live_ws(
             tui_state.as_deref_mut(),
             recorder,
             &mut summary,
+            &mut shutdown_signal,
         )
         .await?;
 
         match outcome {
-            ConnectionOutcome::DurationElapsed => break,
+            ConnectionOutcome::Stopped(
+                LiveStopReason::DurationElapsed
+                | LiveStopReason::OperatorQuit
+                | LiveStopReason::Signal,
+            ) => break,
             ConnectionOutcome::Reconnect {
                 conn_id: closed_conn_id,
                 gap_started_at_ns,
@@ -680,7 +736,11 @@ async fn drive_live_ws(
                 } else {
                     reconnect_attempt.saturating_add(1)
                 };
-                sleep_for_backoff_until_deadline(backoff, deadline).await;
+                tokio::select! {
+                    _ = lifetime.wait_for_expiry() => break,
+                    _ = shutdown_signal.as_mut() => break,
+                    _ = sleep(backoff) => {}
+                }
             }
         }
     }
@@ -702,7 +762,7 @@ async fn drive_live_connection(
     ws_url: &str,
     subscription_messages: &[String],
     conn_id: u64,
-    deadline: tokio::time::Instant,
+    lifetime: LiveRunLifetime,
     started: Instant,
     refresh_interval: Duration,
     state: &mut LiveMarketState,
@@ -714,25 +774,21 @@ async fn drive_live_connection(
     mut tui_state: Option<&mut WorkstationUiState>,
     recorder: Option<&LiveRecorder>,
     summary: &mut LiveDriveSummary,
+    shutdown_signal: &mut Pin<Box<impl Future<Output = LiveStopReason>>>,
 ) -> anyhow::Result<ConnectionOutcome> {
     let connect_started_ns = now_ns_u64()?;
-    let (ws, _) = match timeout_at(deadline, connect_async(ws_url)).await {
-        Ok(Ok(value)) => value,
-        Ok(Err(err)) => {
+    let (ws, _) = match tokio::select! {
+        _ = lifetime.wait_for_expiry() => return Ok(ConnectionOutcome::Stopped(LiveStopReason::DurationElapsed)),
+        reason = shutdown_signal.as_mut() => return Ok(ConnectionOutcome::Stopped(reason)),
+        result = connect_async(ws_url) => result,
+    } {
+        Ok(value) => value,
+        Err(err) => {
             return Ok(ConnectionOutcome::Reconnect {
                 conn_id,
                 gap_started_at_ns: connect_started_ns,
                 gap_ended_at_ns: now_ns_u64()?,
                 reason: format!("connect Hyperliquid WebSocket: {err}"),
-                received_any_message: false,
-            });
-        }
-        Err(_) => {
-            return Ok(ConnectionOutcome::Reconnect {
-                conn_id,
-                gap_started_at_ns: connect_started_ns,
-                gap_ended_at_ns: now_ns_u64()?,
-                reason: "connect Hyperliquid WebSocket timed out before run deadline".to_owned(),
                 received_any_message: false,
             });
         }
@@ -762,9 +818,13 @@ async fn drive_live_connection(
 
     loop {
         tokio::select! {
-            _ = sleep_until(deadline) => {
+            _ = lifetime.wait_for_expiry() => {
                 let _ = write.send(Message::Close(None)).await;
-                return Ok(ConnectionOutcome::DurationElapsed);
+                return Ok(ConnectionOutcome::Stopped(LiveStopReason::DurationElapsed));
+            }
+            reason = shutdown_signal.as_mut() => {
+                let _ = write.send(Message::Close(None)).await;
+                return Ok(ConnectionOutcome::Stopped(reason));
             }
             _ = progress.tick() => {
                 render_live_progress(LiveProgressContext {
@@ -792,7 +852,7 @@ async fn drive_live_connection(
                     }, tui_frame_sink.as_deref_mut())?;
                     if ui_state.quit_requested() {
                         let _ = write.send(Message::Close(None)).await;
-                        return Ok(ConnectionOutcome::DurationElapsed);
+                        return Ok(ConnectionOutcome::Stopped(LiveStopReason::OperatorQuit));
                     }
                 }
             }
@@ -1433,6 +1493,10 @@ fn key_to_workstation_action(
     key: KeyEvent,
     ui_state: &WorkstationUiState,
 ) -> Option<WorkstationAction> {
+    if key.code == KeyCode::Char('c') && key.modifiers.contains(KeyModifiers::CONTROL) {
+        return Some(WorkstationAction::Quit);
+    }
+
     if ui_state.command().is_some() {
         return match key.code {
             KeyCode::Enter => Some(WorkstationAction::SubmitCommand),
@@ -2766,14 +2830,27 @@ fn live_table_title(recording_active: bool) -> &'static str {
     }
 }
 
-async fn sleep_for_backoff_until_deadline(backoff: Duration, deadline: tokio::time::Instant) {
-    let now = tokio::time::Instant::now();
-    if now >= deadline {
-        return;
+async fn wait_for_shutdown_signal() -> LiveStopReason {
+    #[cfg(unix)]
+    {
+        let Ok(mut terminate) =
+            tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+        else {
+            let _ = tokio::signal::ctrl_c().await;
+            return LiveStopReason::Signal;
+        };
+
+        tokio::select! {
+            _ = tokio::signal::ctrl_c() => LiveStopReason::Signal,
+            _ = terminate.recv() => LiveStopReason::Signal,
+        }
     }
 
-    let wake_at = (now + backoff).min(deadline);
-    sleep_until(wake_at).await;
+    #[cfg(not(unix))]
+    {
+        let _ = tokio::signal::ctrl_c().await;
+        LiveStopReason::Signal
+    }
 }
 
 fn reconnect_backoff(attempt: u64) -> Duration {
@@ -2854,6 +2931,36 @@ mod tests {
     }
 
     #[test]
+    fn live_run_lifetime_zero_is_unbounded() {
+        let now = tokio::time::Instant::now();
+
+        assert_eq!(
+            LiveRunLifetime::from_duration_secs(0, now),
+            LiveRunLifetime::Unbounded
+        );
+    }
+
+    #[test]
+    fn live_run_lifetime_positive_duration_is_bounded() {
+        let now = tokio::time::Instant::now();
+
+        assert_eq!(
+            LiveRunLifetime::from_duration_secs(15, now),
+            LiveRunLifetime::Bounded(now + Duration::from_secs(15))
+        );
+    }
+
+    #[test]
+    fn live_run_lifetime_only_bounded_lifetimes_expire() {
+        let now = tokio::time::Instant::now();
+        let bounded = LiveRunLifetime::from_duration_secs(15, now);
+        let unbounded = LiveRunLifetime::from_duration_secs(0, now);
+
+        assert!(bounded.has_expired_by(now + Duration::from_secs(15)));
+        assert!(!unbounded.has_expired_by(now + Duration::from_secs(15)));
+    }
+
+    #[test]
     fn live_ratatui_viewport_uses_terminal_size_with_workstation_fallback() {
         assert_eq!(
             live_ratatui_viewport_from_size(Some((240, 64))),
@@ -2881,6 +2988,13 @@ mod tests {
     #[test]
     fn live_tui_control_keys_map_to_screen_actions() {
         let state = WorkstationUiState::default();
+        assert_eq!(
+            key_to_workstation_action(
+                KeyEvent::new(KeyCode::Char('c'), KeyModifiers::CONTROL),
+                &state
+            ),
+            Some(WorkstationAction::Quit)
+        );
         assert_eq!(
             key_to_workstation_action(
                 KeyEvent::new(KeyCode::Char('/'), KeyModifiers::NONE),
