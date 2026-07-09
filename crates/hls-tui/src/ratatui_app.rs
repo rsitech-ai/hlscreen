@@ -3871,6 +3871,8 @@ fn render_book(
                 content_height,
                 content_width,
                 model.ui_state.view(),
+                model.ui_state.pane_expanded()
+                    && model.ui_state.focused_pane() == WorkstationPane::Book,
             )
         },
     );
@@ -3888,6 +3890,7 @@ fn book_lines(
     content_height: usize,
     content_width: u16,
     view: WorkstationView,
+    expanded_book: bool,
 ) -> Vec<Line<'static>> {
     let bid_notional = notional(row.bid_px, row.bid_sz);
     let ask_notional = notional(row.ask_px, row.ask_sz);
@@ -4071,6 +4074,15 @@ fn book_lines(
             color_mode,
         ));
     }
+    if expanded_book && content_height >= 18 {
+        lines.extend(book_liquidity_wall_monitor_lines(
+            row,
+            quote_share,
+            bid_notional,
+            ask_notional,
+            color_mode,
+        ));
+    }
 
     lines.extend([
         Line::from("DEPTH CONSOLE | BBO depth proxy | BOOK proxy only | public top-book"),
@@ -4150,6 +4162,64 @@ fn book_depth_map_lines(
             format_optional(row.spread_bps, 1),
             format_usd_signed(row.bbo_ofi_proxy_30s)
         )),
+    ]
+}
+
+fn book_liquidity_wall_monitor_lines(
+    row: &FeatureSnapshot,
+    quote_share: Option<(f64, f64)>,
+    bid_notional: Option<f64>,
+    ask_notional: Option<f64>,
+    color_mode: RatatuiColorMode,
+) -> Vec<Line<'static>> {
+    let (bid_share, ask_share) = quote_share.unwrap_or((0.0, 0.0));
+    let skew = bid_share - ask_share;
+    let edge_bps = match (microprice(row), mid_price(row)) {
+        (Some(micro), Some(mid)) if mid.abs() > f64::EPSILON => {
+            Some(((micro - mid) / mid) * 10_000.0)
+        }
+        _ => None,
+    };
+
+    vec![
+        Line::from(vec![
+            Span::styled(
+                "LIQUIDITY WALL ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw("public BBO only | no L2 reconstruction | no orders"),
+        ]),
+        Line::from(vec![
+            Span::styled("bid share ", Style::default().fg(success(color_mode))),
+            Span::raw(format!(
+                "{} {} {}  ",
+                percent_label(bid_share),
+                depth_bar(bid_share, 12),
+                format_usd(bid_notional)
+            )),
+            Span::styled("ask share ", Style::default().fg(danger(color_mode))),
+            Span::raw(format!(
+                "{} {} {}",
+                percent_label(ask_share),
+                depth_bar(ask_share, 12),
+                format_usd(ask_notional)
+            )),
+        ]),
+        Line::from(vec![
+            Span::styled(
+                "wall skew ",
+                Style::default().fg(flow_color(skew, color_mode)),
+            ),
+            Span::raw(format!(
+                "{} spread {}bps | OFI {} | micro edge {}bps",
+                signed_meter(skew),
+                format_optional(row.spread_bps, 1),
+                format_usd_signed(row.bbo_ofi_proxy_30s),
+                format_signed(edge_bps, "")
+            )),
+        ]),
     ]
 }
 
