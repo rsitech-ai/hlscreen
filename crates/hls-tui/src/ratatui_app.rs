@@ -733,6 +733,7 @@ fn detail_lines(
     width: u16,
 ) -> Vec<Line<'static>> {
     let compact = width <= 72;
+    let tabs = detail_view_tabs_line(view, color_mode, compact);
     let heading = Line::from(vec![
         Span::styled(
             display_symbol(row).to_owned(),
@@ -751,6 +752,7 @@ fn detail_lines(
         WorkstationView::Overview => {
             let mut lines = vec![
                 heading,
+                tabs,
                 Line::from(format!(
                     "confidence {} {} | tradeability {} | resilience {}",
                     row.confidence.level.as_str(),
@@ -780,6 +782,7 @@ fn detail_lines(
         }
         WorkstationView::Flow => vec![
             heading,
+            tabs,
             Line::from("Flow tape"),
             Line::from(format!(
                 "signed flow 5s - | 30s {} | 1m -",
@@ -794,6 +797,7 @@ fn detail_lines(
         ],
         WorkstationView::Quality => vec![
             heading,
+            tabs,
             Line::from("Quality"),
             Line::from(format!(
                 "row age {} | staleness {:?} | confidence {} {}",
@@ -813,6 +817,7 @@ fn detail_lines(
         ],
         WorkstationView::Metadata => vec![
             heading,
+            tabs,
             Line::from("Metadata"),
             Line::from(format!(
                 "tags {} | cohort {} | listing {}",
@@ -832,7 +837,7 @@ fn detail_lines(
             )),
         ],
         WorkstationView::Explain => {
-            let mut lines = vec![heading, Line::from("Explain")];
+            let mut lines = vec![heading, tabs, Line::from("Explain")];
             lines.extend(factor_stack_lines(row, color_mode, compact));
             lines.extend([
                 Line::from(format!("why-ranked {}", why_tokens(row))),
@@ -841,6 +846,43 @@ fn detail_lines(
             lines
         }
     }
+}
+
+fn detail_view_tabs_line(
+    active: WorkstationView,
+    color_mode: RatatuiColorMode,
+    compact: bool,
+) -> Line<'static> {
+    let labels = [
+        (WorkstationView::Overview, "overview", "ov"),
+        (WorkstationView::Flow, "flow", "fl"),
+        (WorkstationView::Quality, "quality", "ql"),
+        (WorkstationView::Metadata, "metadata", "mt"),
+        (WorkstationView::Explain, "explain", "ex"),
+    ];
+    let mut spans = vec![Span::styled(
+        "VIEWS ",
+        Style::default()
+            .fg(accent(color_mode))
+            .add_modifier(Modifier::BOLD),
+    )];
+    for (index, (view, full, short)) in labels.iter().enumerate() {
+        if index > 0 {
+            spans.push(Span::raw(" "));
+        }
+        let label = if compact { *short } else { *full };
+        if *view == active {
+            spans.push(Span::styled(
+                format!("[{label}]"),
+                Style::default()
+                    .fg(warn(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ));
+        } else {
+            spans.push(Span::raw(label.to_owned()));
+        }
+    }
+    Line::from(spans)
 }
 
 fn liquidity_radar_lines(
