@@ -453,7 +453,13 @@ fn render_watchlist(
     let title = if rows.is_empty() {
         "WATCHLIST 0/0".to_owned()
     } else {
-        format!("WATCHLIST {}/{}", selected + 1, rows.len())
+        format!(
+            "WATCHLIST {}/{} VIEW {:02}-{:02}",
+            selected + 1,
+            rows.len(),
+            visible_range.start + 1,
+            visible_range.end
+        )
     };
     let table_rows = rows
         .iter()
