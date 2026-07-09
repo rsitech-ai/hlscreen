@@ -2480,6 +2480,11 @@ fn render_status_panel(
     color_mode: RatatuiColorMode,
 ) {
     let rows = screened_rows(model);
+    let ws_messages = health_metric(&model.health_status, "ws").unwrap_or(0);
+    let market_events = health_metric(&model.health_status, "events").unwrap_or(0);
+    let reconnects = health_metric(&model.health_status, "reconnects").unwrap_or(0);
+    let gaps = health_metric(&model.health_status, "gaps").unwrap_or(0);
+    let ingest_ratio = (market_events as f64 / 500.0).clamp(0.0, 1.0);
     let lines = vec![
         Line::from(vec![
             Span::styled(
@@ -2497,9 +2502,25 @@ fn render_status_panel(
                     .add_modifier(Modifier::BOLD),
             ),
             Span::raw(model.recorder_status.clone()),
-            Span::raw(format!(" | terminal color {}", color_mode.label())),
+            Span::raw(format!(
+                " | terminal color {} | No wallet",
+                color_mode.label()
+            )),
         ]),
         Line::from(format!("health {}", model.health_status)),
+        Line::from(vec![
+            Span::styled(
+                "LIVE OPS ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(format!(
+                "ws {ws_messages} events {market_events} reconnects {reconnects} gaps {gaps} "
+            )),
+            Span::styled("ingest ", Style::default().fg(success(color_mode))),
+            Span::raw(depth_bar(ingest_ratio, 6)),
+        ]),
         Line::from(format!(
             "view {} | pane {} | palette {} | --color always",
             model.ui_state.view().label(),
@@ -2516,12 +2537,9 @@ fn render_status_panel(
             Span::raw("1-6 focus | / filter | p preset | s sort | t chart"),
         ]),
         Line::from(format!(
-            "active {} | space pause | ? help | q quit",
+            "active {} | space pause | read-only safety",
             mode_label(&model.request, rows.len()),
         )),
-        Line::from(
-            "read-only safety: No wallet, no private streams, no order routes; heuristics only.",
-        ),
     ];
     frame.render_widget(
         Paragraph::new(lines)
@@ -2535,6 +2553,14 @@ fn render_status_panel(
             .style(Style::default().fg(text(color_mode))),
         area,
     );
+}
+
+fn health_metric(health_status: &str, key: &str) -> Option<u64> {
+    let prefix = format!("{key}=");
+    health_status.split_whitespace().find_map(|part| {
+        part.strip_prefix(&prefix)
+            .and_then(|value| value.parse::<u64>().ok())
+    })
 }
 
 fn pause_label(model: &RatatuiFrameModel) -> &'static str {
