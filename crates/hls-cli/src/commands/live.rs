@@ -6,7 +6,7 @@ use std::{
     path::{Path, PathBuf},
     pin::Pin,
     sync::{
-        atomic::{AtomicBool, Ordering},
+        atomic::{AtomicU8, Ordering},
         mpsc::{self, Receiver, SyncSender, TrySendError},
     },
     thread::{self, JoinHandle},
@@ -84,7 +84,293 @@ const TUI_KEY_POLL_MS: u64 = 100;
 const TUI_PREFERENCES_FILE: &str = "tui-preferences.toml";
 const MAX_DEFERRED_LIVE_DIAGNOSTICS: usize = 8;
 
-static LIVE_TUI_ACTIVE: AtomicBool = AtomicBool::new(false);
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[repr(u8)]
+enum LiveTuiSessionPhase {
+    Inactive = 0,
+    Activating = 1,
+    Active = 2,
+    ActivationIntervened = 3,
+    ActiveIntervened = 4,
+    RestoringActive = 5,
+    RestoringActivation = 6,
+    CleaningActivation = 7,
+}
+
+impl LiveTuiSessionPhase {
+    fn from_raw(value: u8) -> Self {
+        match value {
+            0 => Self::Inactive,
+            1 => Self::Activating,
+            2 => Self::Active,
+            3 => Self::ActivationIntervened,
+            4 => Self::ActiveIntervened,
+            5 => Self::RestoringActive,
+            6 => Self::RestoringActivation,
+            7 => Self::CleaningActivation,
+            _ => unreachable!("invalid live TUI session phase {value}"),
+        }
+    }
+
+    fn label(self) -> &'static str {
+        match self {
+            Self::Inactive => "inactive",
+            Self::Activating => "activation in progress",
+            Self::Active => "active",
+            Self::ActivationIntervened => "activation interrupted by panic restoration",
+            Self::ActiveIntervened => "active session interrupted by panic restoration",
+            Self::RestoringActive => "active-session restoration in progress",
+            Self::RestoringActivation => "activation restoration in progress",
+            Self::CleaningActivation => "activation cleanup in progress",
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+enum LiveTuiInterventionClaim {
+    Activation,
+    Active,
+}
+
+#[derive(Clone, Copy)]
+struct LiveTuiCleanupClaim {
+    restoration_required: bool,
+}
+
+struct LiveTuiSessionProtocol {
+    phase: AtomicU8,
+}
+
+impl LiveTuiSessionProtocol {
+    const fn new() -> Self {
+        Self {
+            phase: AtomicU8::new(LiveTuiSessionPhase::Inactive as u8),
+        }
+    }
+
+    fn phase(&self) -> LiveTuiSessionPhase {
+        LiveTuiSessionPhase::from_raw(self.phase.load(Ordering::Acquire))
+    }
+
+    fn transition(&self, current: LiveTuiSessionPhase, next: LiveTuiSessionPhase) -> bool {
+        self.phase
+            .compare_exchange(
+                current as u8,
+                next as u8,
+                Ordering::AcqRel,
+                Ordering::Acquire,
+            )
+            .is_ok()
+    }
+
+    fn reserve_activation(&self) -> Result<(), LiveTuiSessionPhase> {
+        self.phase
+            .compare_exchange(
+                LiveTuiSessionPhase::Inactive as u8,
+                LiveTuiSessionPhase::Activating as u8,
+                Ordering::AcqRel,
+                Ordering::Acquire,
+            )
+            .map(|_| ())
+            .map_err(LiveTuiSessionPhase::from_raw)
+    }
+
+    fn complete_activation(&self) -> Result<(), LiveTuiSessionPhase> {
+        self.phase
+            .compare_exchange(
+                LiveTuiSessionPhase::Activating as u8,
+                LiveTuiSessionPhase::Active as u8,
+                Ordering::AcqRel,
+                Ordering::Acquire,
+            )
+            .map_err(LiveTuiSessionPhase::from_raw)?;
+
+        match self.phase() {
+            LiveTuiSessionPhase::Active => Ok(()),
+            phase => Err(phase),
+        }
+    }
+
+    // Restoring phases are exclusive claims, so a delayed restorer cannot touch a later session.
+    fn claim_intervention(&self) -> Option<LiveTuiInterventionClaim> {
+        loop {
+            let phase = self.phase();
+            let (restoring, claim) = match phase {
+                LiveTuiSessionPhase::Inactive => return None,
+                LiveTuiSessionPhase::Activating | LiveTuiSessionPhase::ActivationIntervened => (
+                    LiveTuiSessionPhase::RestoringActivation,
+                    LiveTuiInterventionClaim::Activation,
+                ),
+                LiveTuiSessionPhase::Active | LiveTuiSessionPhase::ActiveIntervened => (
+                    LiveTuiSessionPhase::RestoringActive,
+                    LiveTuiInterventionClaim::Active,
+                ),
+                LiveTuiSessionPhase::RestoringActive
+                | LiveTuiSessionPhase::RestoringActivation
+                | LiveTuiSessionPhase::CleaningActivation => {
+                    std::hint::spin_loop();
+                    continue;
+                }
+            };
+            if self.transition(phase, restoring) {
+                return Some(claim);
+            }
+        }
+    }
+
+    fn finish_intervention(&self, claim: LiveTuiInterventionClaim) {
+        let phase = match claim {
+            LiveTuiInterventionClaim::Activation => LiveTuiSessionPhase::ActivationIntervened,
+            LiveTuiInterventionClaim::Active => LiveTuiSessionPhase::ActiveIntervened,
+        };
+        self.phase.store(phase as u8, Ordering::Release);
+    }
+
+    fn claim_guard_cleanup(&self, owner_panicking: bool) -> Option<LiveTuiCleanupClaim> {
+        loop {
+            let phase = self.phase();
+            let restoration_required = match phase {
+                LiveTuiSessionPhase::Inactive => return None,
+                LiveTuiSessionPhase::Active => true,
+                LiveTuiSessionPhase::ActiveIntervened => !owner_panicking,
+                LiveTuiSessionPhase::RestoringActive
+                | LiveTuiSessionPhase::RestoringActivation
+                | LiveTuiSessionPhase::CleaningActivation => {
+                    std::hint::spin_loop();
+                    continue;
+                }
+                LiveTuiSessionPhase::Activating | LiveTuiSessionPhase::ActivationIntervened => {
+                    return None;
+                }
+            };
+            if self.transition(phase, LiveTuiSessionPhase::RestoringActive) {
+                return Some(LiveTuiCleanupClaim {
+                    restoration_required,
+                });
+            }
+        }
+    }
+
+    fn finish_guard_cleanup(&self) {
+        self.phase
+            .store(LiveTuiSessionPhase::Inactive as u8, Ordering::Release);
+    }
+
+    fn claim_activation_cleanup(&self, owner_panicking: bool) -> Option<LiveTuiCleanupClaim> {
+        loop {
+            let phase = self.phase();
+            let restoration_required = match phase {
+                LiveTuiSessionPhase::Inactive => return None,
+                LiveTuiSessionPhase::Activating | LiveTuiSessionPhase::Active => true,
+                LiveTuiSessionPhase::ActivationIntervened
+                | LiveTuiSessionPhase::ActiveIntervened => !owner_panicking,
+                LiveTuiSessionPhase::RestoringActive
+                | LiveTuiSessionPhase::RestoringActivation
+                | LiveTuiSessionPhase::CleaningActivation => {
+                    std::hint::spin_loop();
+                    continue;
+                }
+            };
+            if self.transition(phase, LiveTuiSessionPhase::CleaningActivation) {
+                return Some(LiveTuiCleanupClaim {
+                    restoration_required,
+                });
+            }
+        }
+    }
+
+    fn finish_activation_cleanup(&self) {
+        self.phase
+            .store(LiveTuiSessionPhase::Inactive as u8, Ordering::Release);
+    }
+}
+
+fn intervene_tui_session_once(protocol: &LiveTuiSessionProtocol, restore: impl FnOnce()) -> bool {
+    let Some(claim) = protocol.claim_intervention() else {
+        return false;
+    };
+    restore();
+    protocol.finish_intervention(claim);
+    true
+}
+
+fn cleanup_tui_guard_once(
+    protocol: &LiveTuiSessionProtocol,
+    owner_panicking: bool,
+    restore: impl FnOnce(),
+) -> bool {
+    let Some(claim) = protocol.claim_guard_cleanup(owner_panicking) else {
+        return false;
+    };
+    if claim.restoration_required {
+        restore();
+    }
+    protocol.finish_guard_cleanup();
+    claim.restoration_required
+}
+
+fn cleanup_tui_activation_once(
+    protocol: &LiveTuiSessionProtocol,
+    owner_panicking: bool,
+    restore: impl FnOnce(),
+) -> bool {
+    let Some(claim) = protocol.claim_activation_cleanup(owner_panicking) else {
+        return false;
+    };
+    if claim.restoration_required {
+        restore();
+    }
+    protocol.finish_activation_cleanup();
+    claim.restoration_required
+}
+
+struct LiveTuiActivationReservation<'a> {
+    protocol: &'a LiveTuiSessionProtocol,
+    finished: bool,
+}
+
+impl<'a> LiveTuiActivationReservation<'a> {
+    fn reserve(protocol: &'a LiveTuiSessionProtocol) -> Result<Self, LiveTuiSessionPhase> {
+        protocol.reserve_activation()?;
+        Ok(Self {
+            protocol,
+            finished: false,
+        })
+    }
+
+    fn cancel(&mut self) {
+        self.cleanup(false);
+    }
+
+    fn complete(mut self) -> Result<(), LiveTuiSessionPhase> {
+        match self.protocol.complete_activation() {
+            Ok(()) => {
+                self.finished = true;
+                Ok(())
+            }
+            Err(phase) => {
+                self.cleanup(false);
+                Err(phase)
+            }
+        }
+    }
+
+    fn cleanup(&mut self, owner_panicking: bool) {
+        if self.finished {
+            return;
+        }
+        cleanup_tui_activation_once(self.protocol, owner_panicking, restore_live_tui_terminal);
+        self.finished = true;
+    }
+}
+
+impl Drop for LiveTuiActivationReservation<'_> {
+    fn drop(&mut self) {
+        self.cleanup(thread::panicking());
+    }
+}
+
+static LIVE_TUI_SESSION: LiveTuiSessionProtocol = LiveTuiSessionProtocol::new();
 
 #[derive(Default)]
 struct LiveDiagnostics {
@@ -3230,14 +3516,6 @@ fn current_screened_row_count(
         .len())
 }
 
-fn restore_tui_once(active: &AtomicBool, restore: impl FnOnce()) -> bool {
-    if !active.swap(false, Ordering::AcqRel) {
-        return false;
-    }
-    restore();
-    true
-}
-
 fn restore_live_tui_terminal() {
     let mut stderr = io::stderr();
     let _ = execute!(stderr, DisableMouseCapture);
@@ -3247,7 +3525,7 @@ fn restore_live_tui_terminal() {
 }
 
 pub(crate) fn restore_active_tui_after_panic() {
-    restore_tui_once(&LIVE_TUI_ACTIVE, restore_live_tui_terminal);
+    intervene_tui_session_once(&LIVE_TUI_SESSION, restore_live_tui_terminal);
 }
 
 struct LiveTuiGuard {
@@ -3259,12 +3537,13 @@ impl LiveTuiGuard {
         if !enabled {
             return Ok(Self { enabled: false });
         }
-        if LIVE_TUI_ACTIVE
-            .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
-            .is_err()
-        {
-            bail!("a live TUI terminal session is already active");
-        }
+        let mut reservation = match LiveTuiActivationReservation::reserve(&LIVE_TUI_SESSION) {
+            Ok(reservation) => reservation,
+            Err(phase) => bail!(
+                "cannot activate the live TUI while its terminal lifecycle is {}; retry after restoration completes",
+                phase.label()
+            ),
+        };
 
         let activation = (|| -> anyhow::Result<()> {
             enable_raw_mode()?;
@@ -3275,8 +3554,14 @@ impl LiveTuiGuard {
             Ok(())
         })();
         if let Err(err) = activation {
-            restore_active_tui_after_panic();
+            reservation.cancel();
             return Err(err);
+        }
+        if let Err(phase) = reservation.complete() {
+            bail!(
+                "live TUI activation was interrupted by panic restoration while the lifecycle was {}; terminal state was restored, so retry the command",
+                phase.label()
+            );
         }
         Ok(Self { enabled: true })
     }
@@ -3285,7 +3570,11 @@ impl LiveTuiGuard {
 impl Drop for LiveTuiGuard {
     fn drop(&mut self) {
         if self.enabled {
-            restore_active_tui_after_panic();
+            cleanup_tui_guard_once(
+                &LIVE_TUI_SESSION,
+                thread::panicking(),
+                restore_live_tui_terminal,
+            );
         }
     }
 }
@@ -3504,16 +3793,87 @@ mod tests {
 
     #[test]
     fn live_tui_restore_is_idempotent() {
-        let active = std::sync::atomic::AtomicBool::new(true);
+        let protocol = LiveTuiSessionProtocol::new();
         let restore_count = std::cell::Cell::new(0);
 
-        assert!(restore_tui_once(&active, || {
+        protocol
+            .reserve_activation()
+            .expect("activation reservation succeeds");
+        protocol
+            .complete_activation()
+            .expect("activation completes");
+        assert!(cleanup_tui_guard_once(&protocol, false, || {
             restore_count.set(restore_count.get() + 1);
         }));
-        assert!(!restore_tui_once(&active, || {
+        assert!(!cleanup_tui_guard_once(&protocol, false, || {
             restore_count.set(restore_count.get() + 1);
         }));
         assert_eq!(restore_count.get(), 1);
+    }
+
+    #[test]
+    fn panic_hook_intervention_during_activation_prevents_active_guard() {
+        let protocol = LiveTuiSessionProtocol::new();
+        let restore_count = std::cell::Cell::new(0);
+
+        protocol
+            .reserve_activation()
+            .expect("activation reservation succeeds");
+        assert!(intervene_tui_session_once(&protocol, || {
+            restore_count.set(restore_count.get() + 1);
+        }));
+        assert_eq!(
+            protocol.complete_activation(),
+            Err(LiveTuiSessionPhase::ActivationIntervened)
+        );
+
+        assert!(cleanup_tui_activation_once(&protocol, false, || {
+            restore_count.set(restore_count.get() + 1);
+        }));
+        assert_eq!(restore_count.get(), 2);
+        assert_eq!(protocol.phase(), LiveTuiSessionPhase::Inactive);
+    }
+
+    #[test]
+    fn activation_thread_panic_cleanup_reuses_hook_restoration() {
+        let protocol = LiveTuiSessionProtocol::new();
+        let restore_count = std::cell::Cell::new(0);
+
+        protocol
+            .reserve_activation()
+            .expect("activation reservation succeeds");
+        assert!(intervene_tui_session_once(&protocol, || {
+            restore_count.set(restore_count.get() + 1);
+        }));
+        assert!(!cleanup_tui_activation_once(&protocol, true, || {
+            restore_count.set(restore_count.get() + 1);
+        }));
+
+        assert_eq!(restore_count.get(), 1);
+        assert_eq!(protocol.phase(), LiveTuiSessionPhase::Inactive);
+    }
+
+    #[test]
+    fn active_session_intervention_remains_owned_until_guard_cleanup() {
+        let protocol = LiveTuiSessionProtocol::new();
+        let restore_count = std::cell::Cell::new(0);
+
+        protocol
+            .reserve_activation()
+            .expect("activation reservation succeeds");
+        protocol
+            .complete_activation()
+            .expect("activation completes");
+        assert!(intervene_tui_session_once(&protocol, || {
+            restore_count.set(restore_count.get() + 1);
+        }));
+        assert_eq!(protocol.phase(), LiveTuiSessionPhase::ActiveIntervened);
+
+        assert!(cleanup_tui_guard_once(&protocol, false, || {
+            restore_count.set(restore_count.get() + 1);
+        }));
+        assert_eq!(restore_count.get(), 2);
+        assert_eq!(protocol.phase(), LiveTuiSessionPhase::Inactive);
     }
 
     #[test]
