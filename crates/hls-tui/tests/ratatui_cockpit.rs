@@ -1059,6 +1059,11 @@ fn cockpit_chart_renders_selected_pair_edge_hud() {
     assert!(rendered.contains("spr 57.1bps"));
     assert!(rendered.contains("risk unknown"));
     assert!(rendered.contains("LIQ"));
+    assert!(rendered.contains("REGIME"));
+    assert!(rendered.contains("MOMENTUM"));
+    assert!(rendered.contains("MICRO"));
+    assert!(rendered.contains("spread gate wide"));
+    assert!(rendered.contains("no execution"));
     assert!(rendered.contains("flow -$35"));
     assert!(rendered.contains("depth $245"));
     assert!(rendered.contains("imb -0.15"));
