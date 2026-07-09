@@ -389,6 +389,11 @@ fn detail_panel_renders_interactive_view_tab_rail() {
 
     assert!(rendered.contains("VIEWS overview [flow] quality metadata explain"));
     assert!(rendered.contains("Flow tape"));
+    assert!(rendered.contains("FLOW LADDER"));
+    assert!(rendered.contains("pressure"));
+    assert!(rendered.contains("imbalance"));
+    assert!(rendered.contains("friction spr"));
+    assert!(rendered.contains("Public BBO/trade context only"));
 }
 
 #[test]
