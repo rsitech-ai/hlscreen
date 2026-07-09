@@ -1964,6 +1964,44 @@ fn expanded_detail_renders_instrument_dossier() {
 }
 
 #[test]
+fn expanded_detail_renders_selected_pair_route_deck() {
+    let snapshots = fixture_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Detail),
+        snapshots.len(),
+    );
+    state.apply(WorkstationAction::TogglePaneZoom, snapshots.len());
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    );
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 190,
+            height: 54,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders selected-pair route deck");
+
+    assert!(rendered.contains("EXPANDED detail"));
+    assert!(rendered.contains("PAIR ROUTE DECK"));
+    assert!(rendered.contains("HYPE/USDC operator routes"));
+    assert!(rendered.contains("tab views"));
+    assert!(rendered.contains("3 chart"));
+    assert!(rendered.contains("4 book"));
+    assert!(rendered.contains("5 tape"));
+    assert!(rendered.contains("6 status"));
+    assert!(rendered.contains("read-only cockpit"));
+    assert!(rendered.contains("no wallet/order route"));
+}
+
+#[test]
 fn detail_explain_view_renders_why_ranked_deck() {
     let snapshots = fixture_snapshots();
     let mut state = WorkstationUiState::default();
