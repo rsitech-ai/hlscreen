@@ -1476,7 +1476,7 @@ fn render_command_palette(
     let Some(command) = model.ui_state.command() else {
         return;
     };
-    let popup = centered_rect(74, 24, area);
+    let popup = centered_rect(74, 34, area);
     frame.render_widget(Clear, popup);
     frame.render_widget(
         Paragraph::new(command_palette_lines(command, model))
@@ -1491,12 +1491,21 @@ fn command_palette_lines(
     command: &WorkstationCommand,
     model: &RatatuiFrameModel,
 ) -> Vec<Line<'static>> {
+    let target = command.target().label();
     let input = if command.input().is_empty() {
         "<empty>"
     } else {
         command.input()
     };
     let mut lines = vec![
+        Line::from("COMMAND CENTER"),
+        Line::from(format!("TARGET {target} | INPUT {input}")),
+        Line::from(format!(
+            "SCOPE read-only screened rows {} | view {} | pane {}",
+            screened_rows(model).len(),
+            model.ui_state.view().label(),
+            model.ui_state.focused_pane().label()
+        )),
         Line::from(format!("{} > {input}", command.prompt())),
         Line::from(match command.target().label() {
             "filter" => "Enter apply filter | Esc cancel | empty clears custom filter",
@@ -1504,11 +1513,23 @@ fn command_palette_lines(
             "sort" => "Enter apply sort | Esc cancel | empty clears custom sort",
             _ => "Enter apply | Esc cancel",
         }),
+        Line::from("EXAMPLES"),
+        Line::from(command_examples_line(target)),
+        Line::from("SAFETY no orders | no wallet | public market data only"),
     ];
     if let Some(error) = model.ui_state.command_error() {
         lines.push(Line::from(format!("error: {error}")));
     }
     lines
+}
+
+fn command_examples_line(target: &str) -> &'static str {
+    match target {
+        "filter" => "filter: spread_bps < 5 | abs(ret_1m) > 0.001 | confidence >= 70",
+        "preset" => "preset: tight | resilient | metadata_partial | clear empty",
+        "sort" => "sort: score desc | spread_bps asc | signed_flow desc",
+        _ => "filter: spread_bps < 5 | preset: tight | sort: score desc",
+    }
 }
 
 fn compact_ui_mode_label(state: &WorkstationUiState) -> String {
