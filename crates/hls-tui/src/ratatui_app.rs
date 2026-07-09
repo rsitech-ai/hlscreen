@@ -3667,8 +3667,8 @@ fn market_status_bar_line(
 ) -> Line<'static> {
     let mut spans = vec![
         Span::raw(format!(
-            " {} | {} | ",
-            model.health_status,
+            " {} | {} | No wallet | ",
+            compact_health_label(&model.health_status),
             pause_label(model),
         )),
         Span::styled(
@@ -3680,19 +3680,70 @@ fn market_status_bar_line(
     ];
     spans.extend(market_ticker_spans(model, color_mode));
     spans.extend([
-        Span::raw(format!(
-            " | ACTION STRIP {} | No wallet | ",
-            focused_pane_key_label(model.ui_state.focused_pane(), false),
-        )),
+        Span::raw(" | "),
         Span::styled(
             format!("{} | ", operational_quality_label(model, false)),
             Style::default()
                 .fg(warn(color_mode))
                 .add_modifier(Modifier::BOLD),
         ),
-        Span::raw("read-only public tape "),
     ]);
+    spans.extend(risk_strip_spans(model, color_mode));
+    spans.extend([Span::raw(" | ACTION STRIP | ")]);
     Line::from(spans)
+}
+
+fn risk_strip_spans(model: &RatatuiFrameModel, color_mode: RatatuiColorMode) -> Vec<Span<'static>> {
+    let rows = screened_rows(model);
+    if rows.is_empty() {
+        return vec![
+            Span::raw(" | "),
+            Span::styled(
+                "RISK STRIP ",
+                Style::default()
+                    .fg(warn(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw("no rows"),
+        ];
+    }
+
+    let degraded = rows
+        .iter()
+        .filter(|row| row.confidence.score < 70 || row.staleness_state != StalenessState::Fresh)
+        .count();
+    let net_flow = rows
+        .iter()
+        .filter_map(|row| row.signed_notional_flow_30s)
+        .filter(|value| value.is_finite())
+        .sum::<f64>();
+    let avg_confidence = rows
+        .iter()
+        .map(|row| row.confidence.score as u64)
+        .sum::<u64>() as f64
+        / rows.len() as f64;
+    let pressure_style = Style::default()
+        .fg(flow_color(net_flow, color_mode))
+        .add_modifier(Modifier::BOLD);
+
+    vec![
+        Span::raw(" | "),
+        Span::styled(
+            "RISK STRIP ",
+            Style::default()
+                .fg(warn(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw(format!(
+            "conf{:.0} degraded{:02} ",
+            avg_confidence,
+            degraded.min(99)
+        )),
+        Span::styled(
+            format!("net flow {}", format_usd_signed(Some(net_flow))),
+            pressure_style,
+        ),
+    ]
 }
 
 fn focused_pane_key_label(pane: WorkstationPane, compact: bool) -> &'static str {
