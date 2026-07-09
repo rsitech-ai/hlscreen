@@ -420,8 +420,7 @@ fn micro_cockpit_uses_focused_pane_on_very_short_terminals() {
     assert!(rendered.contains("pane chart"));
     assert!(rendered.contains("read-only"));
     assert!(rendered.contains("CMD g / p s t d z sp ? q"));
-    assert!(rendered.contains("1-6 focus"));
-    assert!(rendered.contains("z zoom"));
+    assert!(rendered.contains("PANES 1W 2D 3C 4B 5T 6S"));
     assert!(rendered.contains("CANDLES"));
 }
 
