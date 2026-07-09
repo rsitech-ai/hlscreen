@@ -309,6 +309,12 @@ fn narrow_cockpit_collapses_to_watchlist_and_detail_without_tape() {
 
     assert!(rendered.contains("WATCHLIST"));
     assert!(rendered.contains("DETAIL"));
+    assert!(rendered.contains("v:overview p:watchlist d:balanced c:15m"));
+    assert!(rendered.contains("j/k 1-6 tab / p s t ? q"));
+    assert!(rendered.contains("INT rows"));
+    assert!(rendered.contains(" dn "));
+    assert!(rendered.contains(" tr "));
+    assert!(rendered.contains(" dp "));
     assert!(rendered.contains("HYPE/USDC"));
     assert!(!rendered.contains("TAPE"));
 }
