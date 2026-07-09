@@ -2761,6 +2761,8 @@ fn render_chart(
     )];
     let show_order_pressure = show_chart_order_pressure(area);
     let show_crosshair_context = show_chart_crosshair_context(area);
+    let show_chart_intel =
+        model.ui_state.pane_expanded() && model.ui_state.focused_pane() == WorkstationPane::Chart;
     chart_lines.extend(selected_pair_edge_hud_lines(row, color_mode));
     if show_order_pressure {
         chart_lines.extend(selected_pair_order_pressure_lines(row, color_mode));
@@ -2771,6 +2773,14 @@ fn render_chart(
     let show_trade_markers = show_prints_strip && !chart_trades.is_empty();
     if show_trade_markers {
         chart_lines.push(chart_trade_marker_line(&candles, &chart_trades, color_mode));
+    }
+    if show_chart_intel {
+        chart_lines.extend(chart_intelligence_deck_lines(
+            row,
+            &candles,
+            &chart_trades,
+            color_mode,
+        ));
     }
     chart_lines.push(chart_move_summary_line(&candles, color_mode));
     chart_lines.push(chart_candle_hud_line(latest, color_mode));
@@ -2787,7 +2797,8 @@ fn render_chart(
         + u16::from(show_prints_strip) * 3
         + u16::from(show_crosshair_context) * 2
         + u16::from(show_profile_rail)
-        + u16::from(show_trade_markers);
+        + u16::from(show_trade_markers)
+        + u16::from(show_chart_intel) * 3;
     chart_lines.extend(candle_chart_lines(
         &candles,
         area.height.saturating_sub(chart_overhead) as usize,
@@ -3113,6 +3124,92 @@ fn chart_trade_marker_line(
         format_usd_signed(Some(net_notional))
     )));
     Line::from(spans)
+}
+
+fn chart_intelligence_deck_lines(
+    row: &FeatureSnapshot,
+    candles: &[&CandleEvent],
+    trades: &[&TradeEvent],
+    color_mode: RatatuiColorMode,
+) -> Vec<Line<'static>> {
+    let Some(first) = candles.first().copied() else {
+        return Vec::new();
+    };
+    let latest = candles.last().copied().unwrap_or(first);
+    let high = candles
+        .iter()
+        .map(|candle| candle.high)
+        .fold(f64::NEG_INFINITY, f64::max);
+    let low = candles
+        .iter()
+        .map(|candle| candle.low)
+        .fold(f64::INFINITY, f64::min);
+    let trend_pct = if first.open.abs() < f64::EPSILON {
+        0.0
+    } else {
+        ((latest.close - first.open) / first.open) * 100.0
+    };
+    let range_pos = if (high - low).abs() < f64::EPSILON {
+        0.5
+    } else {
+        ((latest.close - low) / (high - low)).clamp(0.0, 1.0)
+    };
+    let total_volume = candles
+        .iter()
+        .map(|candle| candle.volume_base.max(0.0))
+        .sum::<f64>();
+    let avg_volume = if candles.is_empty() {
+        0.0
+    } else {
+        total_volume / candles.len() as f64
+    };
+    let latest_volume = latest.volume_base.max(0.0);
+    let volume_pulse = if avg_volume > 0.0 {
+        latest_volume / avg_volume
+    } else {
+        0.0
+    };
+    let print_notional = trades
+        .iter()
+        .map(|trade| trade.notional.max(0.0))
+        .sum::<f64>();
+    let trend_style = if trend_pct >= 0.0 {
+        Style::default().fg(success(color_mode))
+    } else {
+        Style::default().fg(danger(color_mode))
+    };
+
+    vec![
+        Line::from(vec![
+            Span::styled(
+                "CHART INTEL ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(format!("trend {trend_pct:+.2}% "), trend_style),
+            Span::raw(format!(
+                "range pos {} {} ",
+                percent_label(range_pos),
+                depth_bar(range_pos, 10)
+            )),
+            Span::styled(
+                format!("vol pulse {volume_pulse:.2}x"),
+                Style::default().fg(warn(color_mode)),
+            ),
+        ]),
+        Line::from(vec![
+            Span::styled("market tape ", Style::default().fg(accent(color_mode))),
+            Span::raw(format!(
+                "prints {} notional {} | ret1m {} | rv5m {}",
+                trades.len(),
+                format_usd(Some(print_notional)),
+                format_signed(row.ret_1m.map(|value| value * 100.0), "%"),
+                format_optional(row.rv_5m, 2)
+            )),
+        ]),
+        Line::from("public candles + prints only | no orders | no fills | read-only lens"),
+    ]
 }
 
 fn chart_session_strip_lines(
