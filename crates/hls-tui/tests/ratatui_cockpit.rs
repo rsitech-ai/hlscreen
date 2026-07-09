@@ -1036,6 +1036,47 @@ fn expanded_detail_renders_quote_terminal_deck() {
 }
 
 #[test]
+fn expanded_detail_renders_instrument_dossier() {
+    let snapshots = fixture_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(
+        WorkstationAction::FocusPane(WorkstationPane::Detail),
+        snapshots.len(),
+    );
+    state.apply(WorkstationAction::TogglePaneZoom, snapshots.len());
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    );
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 190,
+            height: 52,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders expanded instrument dossier");
+
+    assert!(rendered.contains("EXPANDED detail"));
+    assert!(rendered.contains("INSTRUMENT DOSSIER"));
+    assert!(rendered.contains("public metadata"));
+    assert!(rendered.contains("cohort"));
+    assert!(rendered.contains("tags"));
+    assert!(rendered.contains("listing"));
+    assert!(rendered.contains("seeded"));
+    assert!(rendered.contains("source"));
+    assert!(rendered.contains("feed id"));
+    assert!(rendered.contains("confidence 100"));
+    assert!(rendered.contains("freshness fresh"));
+    assert!(rendered.contains("no wallet"));
+    assert!(rendered.contains("no orders"));
+}
+
+#[test]
 fn detail_explain_view_renders_why_ranked_deck() {
     let snapshots = fixture_snapshots();
     let mut state = WorkstationUiState::default();
