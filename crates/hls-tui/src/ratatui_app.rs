@@ -801,9 +801,14 @@ fn desk_tab_rail_line(
         state.density().label(),
         pane_zoom_action_label(state)
     )));
-    if width >= 220 {
+    if width >= 240 {
         spans.push(Span::raw(format!(
             " | visible panes {visible_panes} | hidden panes {hidden_panes}"
+        )));
+    } else if width >= 180 {
+        let (visible_panes, hidden_panes) = compact_layout_visibility_labels(width);
+        spans.push(Span::raw(format!(
+            " | visible {visible_panes} | hidden {hidden_panes}"
         )));
     }
     Line::from(spans)
@@ -864,6 +869,16 @@ fn layout_visibility_labels(width: u16) -> (&'static str, &'static str) {
         ("watchlist detail chart book tape", "status drilldown")
     } else {
         ("watchlist detail chart book tape status", "none")
+    }
+}
+
+fn compact_layout_visibility_labels(width: u16) -> (&'static str, &'static str) {
+    if width < 90 {
+        ("watch/detail", "chart/book/tape/status")
+    } else if width < 132 {
+        ("watch/detail/chart/book/tape", "status")
+    } else {
+        ("watch/detail/chart/book/tape/status", "none")
     }
 }
 
@@ -7361,6 +7376,11 @@ fn action_status_bar_line(
             "j/k ent tab g z {} d sp / p s t ? q | ",
             pane_zoom_action_label(state)
         )
+    } else if width < 240 {
+        format!(
+            "j/k row ent tab view g symbol z {} d dens sp pause / p s t ? q | ",
+            pane_zoom_action_label(state)
+        )
     } else {
         format!(
             "j/k row ent detail tab view g symbol z {} d density space pause / filter p preset s sort t win ? help q quit | ",
@@ -7390,12 +7410,16 @@ fn action_status_bar_line(
         Span::raw("--color always | "),
     ];
     if width >= 220 {
-        spans.extend(neon_state_spans(model, color_mode));
+        spans.extend(neon_state_spans(model, color_mode, width));
     }
     Line::from(spans)
 }
 
-fn neon_state_spans(model: &RatatuiFrameModel, color_mode: RatatuiColorMode) -> Vec<Span<'static>> {
+fn neon_state_spans(
+    model: &RatatuiFrameModel,
+    color_mode: RatatuiColorMode,
+    width: u16,
+) -> Vec<Span<'static>> {
     let rows = screened_rows(model);
     let up = rows
         .iter()
@@ -7406,6 +7430,29 @@ fn neon_state_spans(model: &RatatuiFrameModel, color_mode: RatatuiColorMode) -> 
         .filter(|row| row.ret_1m.is_some_and(|value| value < 0.0))
         .count();
     let regime = market_regime_label(up, down);
+    if width < 240 {
+        return vec![
+            Span::styled(
+                "NEON ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(
+                format!("{regime} "),
+                Style::default()
+                    .fg(market_regime_color(up, down, color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(format!(
+                "RO heat {} breadth {:02}/{:02}",
+                market_heat_bar(up, down),
+                up.min(99),
+                down.min(99)
+            )),
+        ];
+    }
+
     vec![
         Span::styled(
             "NEON STATE ",
