@@ -642,13 +642,13 @@ fn desk_tab_rail_line(
                     .add_modifier(Modifier::BOLD),
             ),
             Span::styled(
-                "LAYOUT DIRECTOR ",
+                "CMD ",
                 Style::default()
                     .fg(warn(color_mode))
                     .add_modifier(Modifier::BOLD),
             ),
             Span::raw(format!(
-                "visible panes {visible_panes} | hidden panes {hidden_panes} | EXEC GUARD read-only"
+                "g / p s t d z sp ? q | visible panes {visible_panes} | hidden panes {hidden_panes}"
             )),
         ]);
     }
@@ -683,21 +683,12 @@ fn desk_tab_rail_line(
             spans.push(Span::raw(tab_label.to_owned()));
         }
     }
-    if compact {
-        spans.push(Span::raw(format!(
-            " | v {} | d {} | z {} | read-only",
-            state.view().label(),
-            state.density().label(),
-            pane_zoom_action_label(state)
-        )));
-    } else {
-        spans.push(Span::raw(format!(
-            " | view {} | density {} | z {} | EXEC GUARD read-only",
-            state.view().label(),
-            state.density().label(),
-            pane_zoom_action_label(state)
-        )));
-    }
+    spans.push(Span::raw(format!(
+        " | CMD g / p s t d z sp ? q | view {} | density {} | z {} | EXEC GUARD read-only",
+        state.view().label(),
+        state.density().label(),
+        pane_zoom_action_label(state)
+    )));
     if width >= 220 {
         spans.push(Span::raw(format!(
             " | visible panes {visible_panes} | hidden panes {hidden_panes}"

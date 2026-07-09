@@ -196,6 +196,7 @@ TTY mouse controls for terminals with mouse reporting enabled:
 - Click the already-active pane rail/tab: expands or collapses that pane, matching `z`.
 - Click detail view tabs, chart window tabs, or header command controls: activates the visible read-only display control.
 - On ultra-wide terminals, click the top `CMD DOCK` for pane focus, symbol jump, filter, preset, sort, chart window, density, zoom, pause, help, and quit.
+- On medium and standard-wide terminals, click the header `CMD g / p s t d z sp ? q` rail for symbol jump, filter, preset, sort, timeframe, density, zoom, pause, help, and quit.
 - Click the bottom `ACTION STRIP` in wide/medium terminals: activates visible controls such as symbol jump, density, pause, filter, preset, sort, chart window, help, and quit.
 - On narrow terminals, the compact `/pstdzsp h? q` rail is clickable: filter, preset, sort, timeframe, density, zoom, pause, health/status, help, and quit.
 
