@@ -452,6 +452,41 @@ fn detail_panel_renders_score_factor_stack() {
 }
 
 #[test]
+fn detail_explain_view_renders_why_ranked_deck() {
+    let snapshots = fixture_snapshots();
+    let mut state = WorkstationUiState::default();
+    for _ in 0..4 {
+        state.apply(WorkstationAction::NextView, snapshots.len());
+    }
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    );
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 180,
+            height: 48,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("renders why-ranked deck");
+
+    assert!(rendered.contains("WHY RANKED"));
+    assert!(rendered.contains("score explanation"));
+    assert!(rendered.contains("SCORE adjusted"));
+    assert!(rendered.contains("raw"));
+    assert!(rendered.contains("confidence penalty"));
+    assert!(rendered.contains("COMPONENTS"));
+    assert!(rendered.contains("unavailable evidence"));
+    assert!(rendered.contains("BBO/top-of-book proxy only"));
+    assert!(rendered.contains("screen heuristic, not advice"));
+}
+
+#[test]
 fn detail_panel_renders_liquidity_radar() {
     let model = RatatuiFrameModel::new(
         fixture_snapshots(),
