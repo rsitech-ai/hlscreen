@@ -807,7 +807,7 @@ fn render_watchlist(
         !compact && !quality_view && !explain_view && area.width >= 72 && !model.candles.is_empty();
     let show_row_router = !compact && area.width >= 72 && area.height >= 18 && !rows.is_empty();
     let row_router_height = if expanded_watchlist {
-        8
+        11
     } else if area.height >= 20 {
         5
     } else {
@@ -1244,8 +1244,125 @@ fn watchlist_row_router_lines(
     lines.extend(watchlist_scanner_rail_lines(rows, color_mode));
     if expanded {
         lines.extend(watchlist_heatmap_deck_lines(rows, color_mode));
+        lines.extend(watchlist_command_center_lines(row, rows, color_mode));
     }
     lines
+}
+
+fn watchlist_command_center_lines(
+    selected: &FeatureSnapshot,
+    rows: &[FeatureSnapshot],
+    color_mode: RatatuiColorMode,
+) -> Vec<Line<'static>> {
+    if rows.is_empty() {
+        return Vec::new();
+    }
+    let tradeable = rows
+        .iter()
+        .filter(|row| matches!(row.tradeability_state, TradeabilityState::Tradeable))
+        .count();
+    let degraded = rows
+        .iter()
+        .filter(|row| row.confidence.score < 70 || row.staleness_state != StalenessState::Fresh)
+        .count();
+    let move_leader = rows
+        .iter()
+        .filter_map(|row| {
+            row.ret_1m
+                .filter(|value| value.is_finite())
+                .map(|value| (row, value))
+        })
+        .max_by(|(_, left), (_, right)| {
+            left.abs()
+                .partial_cmp(&right.abs())
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
+    let flow_leader = rows
+        .iter()
+        .filter_map(|row| {
+            row.signed_notional_flow_30s
+                .filter(|value| value.is_finite())
+                .map(|value| (row, value))
+        })
+        .max_by(|(_, left), (_, right)| {
+            left.abs()
+                .partial_cmp(&right.abs())
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
+    let depth_leader = rows
+        .iter()
+        .filter_map(|row| {
+            row.tob_depth_usd
+                .filter(|value| value.is_finite())
+                .map(|value| (row, value))
+        })
+        .max_by(|(_, left), (_, right)| {
+            left.partial_cmp(right).unwrap_or(std::cmp::Ordering::Equal)
+        });
+
+    let mut leader_spans = vec![
+        Span::styled("leaders ", Style::default().fg(accent(color_mode))),
+        Span::raw("mover "),
+    ];
+    if let Some((row, _)) = move_leader {
+        leader_spans.push(Span::styled(
+            format!("{} {} ", display_symbol(row), trend_label(row.ret_1m)),
+            market_row_style(row, color_mode).add_modifier(Modifier::BOLD),
+        ));
+    } else {
+        leader_spans.push(Span::raw("- ".to_owned()));
+    }
+    leader_spans.push(Span::raw("| flow "));
+    if let Some((row, _)) = flow_leader {
+        leader_spans.push(Span::styled(
+            format!(
+                "{} {} ",
+                display_symbol(row),
+                format_usd_signed(row.signed_notional_flow_30s)
+            ),
+            Style::default()
+                .fg(flow_color(
+                    row.signed_notional_flow_30s.unwrap_or_default(),
+                    color_mode,
+                ))
+                .add_modifier(Modifier::BOLD),
+        ));
+    } else {
+        leader_spans.push(Span::raw("- ".to_owned()));
+    }
+    leader_spans.push(Span::raw("| depth "));
+    if let Some((row, depth)) = depth_leader {
+        leader_spans.push(Span::styled(
+            format!("{} {}", display_symbol(row), format_usd(Some(depth))),
+            Style::default()
+                .fg(success(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ));
+    } else {
+        leader_spans.push(Span::raw("-".to_owned()));
+    }
+
+    vec![
+        Line::from(vec![
+            Span::styled(
+                "WATCHLIST COMMAND CENTER ",
+                Style::default()
+                    .fg(accent(color_mode))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(format!(
+                "selected {} | visible {:02} | tradeable {:02} degraded {:02}",
+                display_symbol(selected),
+                rows.len().min(99),
+                tradeable.min(99),
+                degraded.min(99)
+            )),
+        ]),
+        Line::from(leader_spans),
+        Line::from(
+            "hotkeys j/k ent tab / filter p preset s sort | read-only scanner | no wallet | no orders",
+        ),
+    ]
 }
 
 fn watchlist_heatmap_deck_lines(
