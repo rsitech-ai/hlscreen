@@ -36,6 +36,7 @@ hls-server = { path = "crates/hls-server" }
 hls-store = { path = "crates/hls-store" }
 hls-tui = { path = "crates/hls-tui" }
 predicates = "3.1"
+portable-pty = "0.9"
 ratatui = "0.29"
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 rusqlite = { version = "0.32", features = ["bundled"] }
