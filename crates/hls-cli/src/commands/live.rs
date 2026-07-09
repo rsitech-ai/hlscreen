@@ -746,7 +746,104 @@ enum ConnectionOutcome {
 enum WsReadEvent {
     Text(String),
     Control,
+    Reply(Message),
     Reconnect(String),
+}
+
+#[derive(Debug, Eq, PartialEq)]
+enum CancellableSendOutcome<T> {
+    Sent(T),
+    Stopped(LiveStopReason),
+}
+
+async fn cancellable_send<SendFuture, StopFuture>(
+    send_future: SendFuture,
+    stop_future: StopFuture,
+) -> anyhow::Result<CancellableSendOutcome<SendFuture::Output>>
+where
+    SendFuture: Future,
+    StopFuture: Future<Output = anyhow::Result<LiveStopReason>>,
+{
+    tokio::pin!(send_future);
+    tokio::pin!(stop_future);
+
+    tokio::select! {
+        output = &mut send_future => Ok(CancellableSendOutcome::Sent(output)),
+        stop_reason = &mut stop_future => stop_reason.map(CancellableSendOutcome::Stopped),
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+async fn wait_for_live_stop(
+    lifetime: LiveRunLifetime,
+    shutdown_signal: &mut Pin<Box<impl Future<Output = anyhow::Result<LiveStopReason>>>>,
+    keyboard_interactive: bool,
+    mut tui_state: Option<&mut WorkstationUiState>,
+    state: &LiveMarketState,
+    screen_request: &mut ScreenRequest,
+    metadata: &[MetadataEnrichment],
+    color_mode: RatatuiColorMode,
+    started: Instant,
+    summary: &LiveDriveSummary,
+    mut tui_frame_sink: Option<&mut LiveTuiRenderer>,
+) -> anyhow::Result<LiveStopReason> {
+    let mut ui_events = interval(Duration::from_millis(TUI_KEY_POLL_MS));
+
+    loop {
+        tokio::select! {
+            _ = lifetime.wait_for_expiry() => return Ok(LiveStopReason::DurationElapsed),
+            result = shutdown_signal.as_mut() => return result,
+            _ = ui_events.tick(), if keyboard_interactive => {
+                if let Some(stop_reason) = poll_live_tui_actions(
+                    tui_state.as_deref_mut(),
+                    state,
+                    screen_request,
+                    metadata,
+                    color_mode,
+                    started,
+                    summary,
+                    tui_frame_sink.as_deref_mut(),
+                )? {
+                    return Ok(stop_reason);
+                }
+            }
+        }
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+async fn send_live_message<S>(
+    write: &mut S,
+    message: Message,
+    lifetime: LiveRunLifetime,
+    shutdown_signal: &mut Pin<Box<impl Future<Output = anyhow::Result<LiveStopReason>>>>,
+    keyboard_interactive: bool,
+    tui_state: Option<&mut WorkstationUiState>,
+    state: &LiveMarketState,
+    screen_request: &mut ScreenRequest,
+    metadata: &[MetadataEnrichment],
+    color_mode: RatatuiColorMode,
+    started: Instant,
+    summary: &LiveDriveSummary,
+    tui_frame_sink: Option<&mut LiveTuiRenderer>,
+) -> anyhow::Result<CancellableSendOutcome<Result<(), S::Error>>>
+where
+    S: futures_util::Sink<Message> + Unpin,
+{
+    let stop_future = wait_for_live_stop(
+        lifetime,
+        shutdown_signal,
+        keyboard_interactive,
+        tui_state,
+        state,
+        screen_request,
+        metadata,
+        color_mode,
+        started,
+        summary,
+        tui_frame_sink,
+    );
+    cancellable_send(write.send(message), stop_future).await
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -940,41 +1037,36 @@ async fn drive_live_connection(
     let (mut write, mut read) = ws.split();
 
     for message in subscription_messages {
-        let send = write.send(Message::Text(message.clone().into()));
-        tokio::pin!(send);
-        let send_result = loop {
-            tokio::select! {
-                _ = lifetime.wait_for_expiry() => {
-                    return Ok(ConnectionOutcome::Stopped(LiveStopReason::DurationElapsed));
-                }
-                result = shutdown_signal.as_mut() => {
-                    return result.map(ConnectionOutcome::Stopped);
-                }
-                _ = ui_events.tick(), if keyboard_interactive => {
-                    if let Some(stop_reason) = poll_live_tui_actions(
-                        tui_state.as_deref_mut(),
-                        state,
-                        screen_request,
-                        metadata,
-                        color_mode,
-                        started,
-                        summary,
-                        tui_frame_sink.as_deref_mut(),
-                    )? {
-                        return Ok(ConnectionOutcome::Stopped(stop_reason));
-                    }
-                }
-                result = &mut send => break result,
+        match send_live_message(
+            &mut write,
+            Message::Text(message.clone().into()),
+            lifetime,
+            shutdown_signal,
+            keyboard_interactive,
+            tui_state.as_deref_mut(),
+            state,
+            screen_request,
+            metadata,
+            color_mode,
+            started,
+            summary,
+            tui_frame_sink.as_deref_mut(),
+        )
+        .await?
+        {
+            CancellableSendOutcome::Sent(Ok(())) => {}
+            CancellableSendOutcome::Sent(Err(err)) => {
+                return Ok(ConnectionOutcome::Reconnect {
+                    conn_id,
+                    gap_started_at_ns: connect_started_ns,
+                    gap_ended_at_ns: now_ns_u64()?,
+                    reason: format!("send subscription: {err}"),
+                    received_any_message: false,
+                });
             }
-        };
-        if let Err(err) = send_result {
-            return Ok(ConnectionOutcome::Reconnect {
-                conn_id,
-                gap_started_at_ns: connect_started_ns,
-                gap_ended_at_ns: now_ns_u64()?,
-                reason: format!("send subscription: {err}"),
-                received_any_message: false,
-            });
+            CancellableSendOutcome::Stopped(stop_reason) => {
+                return Ok(ConnectionOutcome::Stopped(stop_reason));
+            }
         }
     }
 
@@ -1021,14 +1113,34 @@ async fn drive_live_connection(
                 }
             }
             _ = heartbeat.tick() => {
-                if let Err(err) = write.send(Message::Text(ping_message().to_owned().into())).await {
-                    return Ok(ConnectionOutcome::Reconnect {
-                        conn_id,
-                        gap_started_at_ns: last_message_recv_ns.unwrap_or(connect_started_ns),
-                        gap_ended_at_ns: now_ns_u64()?,
-                        reason: format!("send heartbeat ping: {err}"),
-                        received_any_message,
-                    });
+                match send_live_message(
+                    &mut write,
+                    Message::Text(ping_message().to_owned().into()),
+                    lifetime,
+                    shutdown_signal,
+                    keyboard_interactive,
+                    tui_state.as_deref_mut(),
+                    state,
+                    screen_request,
+                    metadata,
+                    color_mode,
+                    started,
+                    summary,
+                    tui_frame_sink.as_deref_mut(),
+                ).await? {
+                    CancellableSendOutcome::Sent(Ok(())) => {}
+                    CancellableSendOutcome::Sent(Err(err)) => {
+                        return Ok(ConnectionOutcome::Reconnect {
+                            conn_id,
+                            gap_started_at_ns: last_message_recv_ns.unwrap_or(connect_started_ns),
+                            gap_ended_at_ns: now_ns_u64()?,
+                            reason: format!("send heartbeat ping: {err}"),
+                            received_any_message,
+                        });
+                    }
+                    CancellableSendOutcome::Stopped(stop_reason) => {
+                        return Ok(ConnectionOutcome::Stopped(stop_reason));
+                    }
                 }
             }
             next = read.next() => {
@@ -1056,7 +1168,7 @@ async fn drive_live_connection(
                 };
                 received_any_message = true;
                 last_message_recv_ns = Some(recv_ts_ns);
-                match ws_message_text(message, &mut write).await? {
+                match ws_message_text(message)? {
                     WsReadEvent::Text(line) => {
                     summary.ws_messages += 1;
                     if let Some(recorder) = recorder {
@@ -1075,6 +1187,33 @@ async fn drive_live_connection(
                     }
                     }
                     WsReadEvent::Control => {}
+                    WsReadEvent::Reply(reply) => {
+                        match send_live_message(
+                            &mut write,
+                            reply,
+                            lifetime,
+                            shutdown_signal,
+                            keyboard_interactive,
+                            tui_state.as_deref_mut(),
+                            state,
+                            screen_request,
+                            metadata,
+                            color_mode,
+                            started,
+                            summary,
+                            tui_frame_sink.as_deref_mut(),
+                        ).await? {
+                            CancellableSendOutcome::Sent(Ok(())) => {}
+                            CancellableSendOutcome::Sent(Err(err)) => {
+                                return Err(HlsError::External(format!(
+                                    "send WebSocket pong: {err}"
+                                )).into());
+                            }
+                            CancellableSendOutcome::Stopped(stop_reason) => {
+                                return Ok(ConnectionOutcome::Stopped(stop_reason));
+                            }
+                        }
+                    }
                     WsReadEvent::Reconnect(reason) => {
                         return Ok(ConnectionOutcome::Reconnect {
                             conn_id,
@@ -1090,11 +1229,7 @@ async fn drive_live_connection(
     }
 }
 
-async fn ws_message_text<S>(message: Message, write: &mut S) -> HlsResult<WsReadEvent>
-where
-    S: futures_util::Sink<Message> + Unpin,
-    <S as futures_util::Sink<Message>>::Error: std::fmt::Display,
-{
+fn ws_message_text(message: Message) -> HlsResult<WsReadEvent> {
     match message {
         Message::Text(text) => Ok(WsReadEvent::Text(text.to_string())),
         Message::Binary(bytes) => String::from_utf8(bytes.to_vec())
@@ -1102,13 +1237,7 @@ where
             .map_err(|err| {
                 HlsError::Parse(format!("binary WebSocket message was not UTF-8: {err}"))
             }),
-        Message::Ping(payload) => {
-            write
-                .send(Message::Pong(payload))
-                .await
-                .map_err(|err| HlsError::External(format!("send WebSocket pong: {err}")))?;
-            Ok(WsReadEvent::Control)
-        }
+        Message::Ping(payload) => Ok(WsReadEvent::Reply(Message::Pong(payload))),
         Message::Pong(_) | Message::Frame(_) => Ok(WsReadEvent::Control),
         Message::Close(frame) => Ok(WsReadEvent::Reconnect(format!(
             "Hyperliquid WebSocket closed: {frame:?}"
@@ -3301,6 +3430,46 @@ mod tests {
         assert_eq!(
             operator_stop_reason(&state),
             Some(LiveStopReason::OperatorQuit)
+        );
+    }
+
+    #[tokio::test]
+    async fn cancellable_send_stop_wins_over_pending_write() {
+        for key in [
+            KeyEvent::new(KeyCode::Char('q'), KeyModifiers::NONE),
+            KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE),
+            KeyEvent::new(KeyCode::Char('c'), KeyModifiers::CONTROL),
+        ] {
+            let mut state = WorkstationUiState::default();
+            let action = key_to_workstation_action(key, &state).expect("key maps to an action");
+            state.apply(action, 1);
+            let stop_reason = operator_stop_reason(&state).expect("key requests operator stop");
+            let send = pending::<Result<(), &'static str>>();
+            let stop = std::future::ready(Ok(stop_reason));
+
+            let outcome =
+                tokio::time::timeout(Duration::from_millis(100), cancellable_send(send, stop))
+                    .await
+                    .expect("operator stop must not wait for a pending write")
+                    .expect("stop future succeeds");
+
+            assert_eq!(
+                outcome,
+                CancellableSendOutcome::Stopped(LiveStopReason::OperatorQuit)
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn cancellable_send_preserves_completed_write_result() {
+        let send = std::future::ready(Err::<(), _>("write failed"));
+        let stop = pending::<anyhow::Result<LiveStopReason>>();
+
+        assert_eq!(
+            cancellable_send(send, stop)
+                .await
+                .expect("selection succeeds"),
+            CancellableSendOutcome::Sent(Err("write failed"))
         );
     }
 
