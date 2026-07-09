@@ -517,7 +517,7 @@ fn render_header(
     ];
     let mut text = vec![Line::from(status_spans)];
     if viewport.width >= 220 {
-        text.push(top_command_strip_line(color_mode));
+        text.push(top_command_strip_line(model, color_mode));
     }
     if !narrow {
         text.push(desk_tab_rail_line(
@@ -549,22 +549,46 @@ fn render_header(
     );
 }
 
-fn top_command_strip_line(color_mode: RatatuiColorMode) -> Line<'static> {
+fn top_command_strip_line(
+    model: &RatatuiFrameModel,
+    color_mode: RatatuiColorMode,
+) -> Line<'static> {
     Line::from(vec![
         Span::styled(
-            "TOP BAR ",
+            "CMD DOCK ",
             Style::default()
                 .fg(accent(color_mode))
                 .add_modifier(Modifier::BOLD),
         ),
         Span::styled(
-            "DESK NAV ",
+            "NAV ",
             Style::default()
                 .fg(warn(color_mode))
                 .add_modifier(Modifier::BOLD),
         ),
-        Span::raw(
-            "[w/1] WATCH  [i/2] DETAIL  [c/3] CHART  [b/4] BOOK  [r/5] TAPE  [o/6] OPS  SEARCH [/]  HELP [?]  QUIT [q]  EXEC GUARD read-only proxy",
+        Span::raw("[w/1]WATCH  [i/2]DETAIL  [c/3]CHART  [b/4]BOOK  [r/5]TAPE  [o/6]OPS  "),
+        Span::styled(
+            "| OPS ",
+            Style::default()
+                .fg(accent(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw(format!(
+            "g SYMBOL  / FILTER  p PRESET  s SORT  t WIN:{}  d DEN:{}  z {}  sp {}  ? HELP  q QUIT  ",
+            model.ui_state.chart_window().label(),
+            model.ui_state.density().label(),
+            pane_zoom_action_label(&model.ui_state),
+            if model.ui_state.paused() {
+                "paused"
+            } else {
+                "live"
+            },
+        )),
+        Span::styled(
+            "EXEC GUARD read-only",
+            Style::default()
+                .fg(success(color_mode))
+                .add_modifier(Modifier::BOLD),
         ),
     ])
 }
