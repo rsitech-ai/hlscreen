@@ -3196,6 +3196,7 @@ fn cockpit_chart_renders_interactive_window_tab_rail() {
     )
     .expect("renders chart with window tabs");
 
+    assert!(rendered.contains("TIMEFRAME RAIL"));
     assert!(rendered.contains("WINDOWS 1m 5m 15m [30m] 60m"));
     assert!(rendered.contains("chart:30m"));
 }
