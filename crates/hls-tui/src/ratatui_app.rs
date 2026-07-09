@@ -957,33 +957,11 @@ fn detail_lines(
 ) -> Vec<Line<'static>> {
     let compact = force_compact || width <= 72;
     let tabs = detail_view_tabs_line(view, color_mode, compact);
-    let heading = Line::from(vec![
-        Span::styled(
-            display_symbol(row).to_owned(),
-            Style::default()
-                .fg(accent(color_mode))
-                .add_modifier(Modifier::BOLD),
-        ),
-        Span::raw(format!(
-            "  px {}  spread {} bps",
-            format_price(row.price),
-            format_optional(row.spread_bps, 1)
-        )),
-    ]);
+    let heading = detail_heading_line(row, color_mode, compact);
 
     match view {
         WorkstationView::Overview => {
-            let mut lines = vec![
-                heading,
-                tabs,
-                Line::from(format!(
-                    "confidence {} {} | tradeability {} | resilience {}",
-                    row.confidence.level.as_str(),
-                    row.confidence.score,
-                    row.tradeability_state.as_str(),
-                    row.resilience_state.as_str()
-                )),
-            ];
+            let mut lines = vec![heading, tabs, quote_strip_line(row, color_mode)];
             if compact {
                 lines.insert(2, selected_bbo_line(row, color_mode));
             }
@@ -1107,6 +1085,58 @@ fn detail_lines(
             ]);
             lines
         }
+    }
+}
+
+fn detail_heading_line(
+    row: &FeatureSnapshot,
+    color_mode: RatatuiColorMode,
+    compact: bool,
+) -> Line<'static> {
+    let mut spans = vec![
+        Span::styled(
+            display_symbol(row).to_owned(),
+            Style::default()
+                .fg(accent(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw(format!(
+            "  px {}  spread {} bps",
+            format_price(row.price),
+            format_optional(row.spread_bps, 1)
+        )),
+    ];
+    if !compact {
+        spans.push(Span::raw(format!(
+            "  confidence {} {}",
+            row.confidence.level.as_str(),
+            row.confidence.score
+        )));
+    }
+    Line::from(spans)
+}
+
+fn quote_strip_line(row: &FeatureSnapshot, color_mode: RatatuiColorMode) -> Line<'static> {
+    Line::from(vec![
+        Span::styled(
+            "QUOTE STRIP ",
+            Style::default()
+                .fg(accent(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::styled("bid ", Style::default().fg(success(color_mode))),
+        Span::raw(format!("{}  ", format_price(row.bid_px))),
+        Span::styled("ask ", Style::default().fg(danger(color_mode))),
+        Span::raw(format!("{}  ", format_price(row.ask_px))),
+        Span::raw(format!("mid {}  ", format_price(mid_price(row)))),
+        Span::raw("read-only quote"),
+    ])
+}
+
+fn mid_price(row: &FeatureSnapshot) -> Option<f64> {
+    match (row.bid_px, row.ask_px) {
+        (Some(bid), Some(ask)) if bid.is_finite() && ask.is_finite() => Some((bid + ask) / 2.0),
+        _ => row.price,
     }
 }
 
