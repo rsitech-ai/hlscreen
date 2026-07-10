@@ -259,7 +259,6 @@ async fn publish_network_live_api(
         RollingRateLimiter::new(SERVER_CONNECTION_RATE_BUDGET, WS_OUTBOUND_RATE_WINDOW);
 
     while tokio::time::Instant::now() < deadline {
-        let connected_at_ms = now_ms_i64()?;
         let market_events_before_connection = summary.market_events;
         match drive_server_live_connection(
             args,
@@ -269,7 +268,6 @@ async fn publish_network_live_api(
             &metadata,
             fee_profile,
             deadline,
-            connected_at_ms,
             &mut summary,
             &mut outbound_rate_limiter,
             &mut connection_rate_limiter,
@@ -339,7 +337,6 @@ async fn drive_server_live_connection(
     metadata: &[hls_core::metadata::MetadataEnrichment],
     fee_profile: Option<&hls_core::fees::FeeProfile>,
     deadline: tokio::time::Instant,
-    connected_at_ms: i64,
     summary: &mut ServerLiveSummary,
     outbound_rate_limiter: &mut RollingMessageRateLimiter,
     connection_rate_limiter: &mut RollingRateLimiter,
@@ -374,6 +371,7 @@ async fn drive_server_live_connection(
         return Ok(());
     };
     let (ws, _) = connected.with_context(|| format!("connect {}", args.ws_url))?;
+    let connected_at_ms = now_ms_i64()?;
     let (mut write, mut read) = ws.split();
     for message in subscription_messages {
         if !send_rate_limited(
@@ -926,7 +924,6 @@ mod tests {
             &[],
             None,
             tokio::time::Instant::now() + Duration::from_secs(2),
-            now_ms_i64().expect("connected time"),
             &mut summary,
             &mut outbound_rate_limiter,
             &mut connection_rate_limiter,
