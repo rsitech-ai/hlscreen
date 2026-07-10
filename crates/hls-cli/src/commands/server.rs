@@ -257,6 +257,7 @@ async fn publish_network_live_api(
 
     while tokio::time::Instant::now() < deadline {
         let connected_at_ms = now_ms_i64()?;
+        let market_events_before_connection = summary.market_events;
         match drive_server_live_connection(
             args,
             &subscription_messages,
@@ -275,8 +276,12 @@ async fn publish_network_live_api(
             Err(error) => {
                 summary.reconnects = summary.reconnects.saturating_add(1);
                 summary.data_gaps = summary.data_gaps.saturating_add(1);
-                let backoff_ms = reconnect_policy.backoff_ms(reconnect_attempt);
-                reconnect_attempt = reconnect_attempt.saturating_add(1);
+                let recovered_market_data = summary.market_events > market_events_before_connection;
+                let backoff_ms = next_server_reconnect_backoff(
+                    reconnect_policy,
+                    &mut reconnect_attempt,
+                    recovered_market_data,
+                );
                 summary.last_reconnect_backoff_ms = Some(backoff_ms);
                 eprintln!(
                     "live API reconnect: reason={} reconnects={} data_gaps={} backoff_ms={}",
@@ -306,6 +311,19 @@ async fn publish_network_live_api(
     }
 
     Ok(summary)
+}
+
+fn next_server_reconnect_backoff(
+    policy: ReconnectPolicy,
+    attempt: &mut u64,
+    recovered_market_data: bool,
+) -> u64 {
+    if recovered_market_data {
+        *attempt = 0;
+    }
+    let backoff_ms = policy.backoff_ms(*attempt);
+    *attempt = attempt.saturating_add(1);
+    backoff_ms
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -981,6 +999,33 @@ mod tests {
         assert!(
             observed.iter().take(6).sum::<u64>() >= 60_000,
             "six reconnect delays must span at least one minute"
+        );
+    }
+
+    #[test]
+    fn server_reconnect_backoff_restarts_after_market_data_recovery() {
+        let policy = ReconnectPolicy {
+            initial_backoff_ms: SERVER_RECONNECT_INITIAL_BACKOFF_MS,
+            max_backoff_ms: SERVER_RECONNECT_MAX_BACKOFF_MS,
+            multiplier: 2,
+        };
+        let mut attempt = 0;
+
+        assert_eq!(
+            next_server_reconnect_backoff(policy, &mut attempt, false),
+            1_000
+        );
+        assert_eq!(
+            next_server_reconnect_backoff(policy, &mut attempt, false),
+            2_000
+        );
+        assert_eq!(
+            next_server_reconnect_backoff(policy, &mut attempt, true),
+            1_000
+        );
+        assert_eq!(
+            next_server_reconnect_backoff(policy, &mut attempt, false),
+            2_000
         );
     }
 
