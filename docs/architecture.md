@@ -77,7 +77,7 @@ sequenceDiagram
 
     CLI->>REST: Load public spot universe and metadata
     CLI->>CLI: Build tiered plan under IP-wide subscription limits
-    CLI->>WS: Subscribe to allMids and per-symbol public streams
+    CLI->>WS: Rate-limit subscriptions under the rolling outbound budget
     CLI->>WS: Send heartbeat ping during run
     WS-->>CLI: Public frames and control messages
     CLI->>REC: Queue raw frame and normalized events
@@ -89,12 +89,13 @@ sequenceDiagram
 
 Runtime rules:
 
-- All-symbol mode budgets subscriptions before connecting. On 2026-07-10 the public spot universe had `309` symbols. One global `allMids` subscription plus per-symbol `trades`, `bbo`, and `activeAssetCtx` streams produce `928` subscriptions, below the configured `980` headroom and official `1,000` IP-wide limit. If that richer plan no longer fits, the runtime first falls back to global mids plus per-symbol contexts, then to the one global mids stream; reduced plans expose lower confidence rather than inventing unavailable data.
+- All-symbol mode discovers the public universe at startup and budgets subscriptions before connecting. On the 2026-07-10 audit the universe had `310` symbols. The TUI plan used one global `allMids` subscription plus per-symbol `trades`, `bbo`, and `activeAssetCtx` streams for `931` subscriptions; the live API plan used the three per-symbol streams for `930`. Both remain below the configured `980` headroom and official `1,000` IP-wide limit. If the richer TUI plan no longer fits, the runtime first falls back to global mids plus per-symbol contexts, then to the one global mids stream; reduced plans expose lower confidence rather than inventing unavailable data.
 - Disk writes are off the WebSocket read loop through a bounded worker queue. Backpressure fails closed instead of silently dropping data.
-- Reconnects resubscribe through a rolling 60-second outbound-message limiter and record explicit data gaps. Automatic REST backfill after reconnect is not implemented.
+- Reconnects resubscribe through a process-wide rolling 60-second outbound-message limiter with a `1,900` message budget, leaving headroom below Hyperliquid's `2,000` outbound-message limit. The live API also limits connection attempts to 29 per rolling 60 seconds, below the official 30-connection ceiling. Reconnect delay grows from one second to a 30-second cap, resets after real market-data recovery, and every gap remains explicit. Automatic REST backfill after reconnect is not implemented.
 - An inbound inactivity watchdog reconnects a socket that remains open without delivering a market-data event for 60 seconds; acknowledgements and pong/control frames do not mask a stalled feed.
 - Trade history is bounded to one hour and 100,000 events per symbol; quote/candle histories have smaller fixed caps. Out-of-order events are retained chronologically without regressing current displayed state.
 - Ratatui uses one persistent terminal with differential draws and skip-on-missed-tick timers. Display payloads retain only the latest 64 candles/trades per symbol, independent of the larger analytical state. Display pause freezes rows, candles, and prints while ingestion, recording, health, and navigation continue.
+- Bounded live API runs apply their duration deadline to WebSocket connection, outbound writes, rate-limit waits, and the read loop. The loopback HTTP preview limits concurrent connections, times out incomplete request headers, rejects oversized headers, and aborts connection tasks during shutdown.
 - The TUI renders `p95 row age`, which is row freshness, not a compute-latency SLA.
 
 ## Replay And Screening Flow
