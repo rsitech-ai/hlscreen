@@ -26,6 +26,13 @@ pub(crate) struct WsBbo {
 }
 
 #[derive(Debug, Deserialize)]
+pub(crate) struct WsBook {
+    pub coin: String,
+    pub time: i64,
+    pub levels: [Vec<WsLevel>; 2],
+}
+
+#[derive(Debug, Deserialize)]
 pub(crate) struct WsLevel {
     pub px: String,
     pub sz: String,

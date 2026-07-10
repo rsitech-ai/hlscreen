@@ -2,14 +2,19 @@ use std::collections::HashSet;
 
 use hls_core::{
     confidence::{ConfidenceReason, DataConfidenceSnapshot},
+    fees::FeeProfile,
     market_state::{FeatureSnapshot, LiveMarketState, StalenessState, SymbolMarketState},
     score::{ScoreBreakdown, ScoreComponent, ScoreComponentKind},
 };
 
 use crate::{
     formulas::{bounded_score, spread_bps, tob_depth_usd, tob_imbalance},
+    metrics::microstructure_metric_snapshots,
     resilience::liquidity_resilience_metrics,
-    tradeability::{TradeabilityInput, classify_tradeability},
+    tradeability::{
+        FeeAwareTradeabilityInput, TradeabilityInput, classify_fee_aware_tradeability,
+        classify_tradeability,
+    },
     windows::{
         latest_candle_trade_count_z, latest_candle_volume_z, window_realized_volatility_since,
         window_return_since,
@@ -23,6 +28,7 @@ const ONE_HOUR_MS: u64 = 60 * ONE_MINUTE_MS;
 #[derive(Clone, Debug)]
 pub struct FeatureEngine {
     stale_after_ms: i64,
+    fee_profile: Option<FeeProfile>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -59,11 +65,17 @@ impl Default for FeatureEngine {
     fn default() -> Self {
         Self {
             stale_after_ms: 10_000,
+            fee_profile: None,
         }
     }
 }
 
 impl FeatureEngine {
+    pub fn with_fee_profile(mut self, fee_profile: FeeProfile) -> Self {
+        self.fee_profile = Some(fee_profile);
+        self
+    }
+
     pub fn snapshots(&self, state: &LiveMarketState, now_ms: i64) -> Vec<FeatureSnapshot> {
         self.snapshots_with_confidence_inputs(state, now_ms, &ConfidenceInputs::default())
     }
@@ -150,6 +162,13 @@ impl FeatureEngine {
             staleness_state: staleness_state.clone(),
             resilience_state: resilience.resilience_state,
         });
+        let fee_aware_tradeability = self.fee_profile.as_ref().and_then(|profile| {
+            classify_fee_aware_tradeability(FeeAwareTradeabilityInput {
+                spread_bps,
+                base_state: tradeability_state,
+                profile,
+            })
+        });
         let score_breakdown = score_breakdown(ScoreBreakdownInput {
             symbol: &state.hl_coin,
             confidence_score: confidence.score,
@@ -162,6 +181,12 @@ impl FeatureEngine {
             return_window: ret_5m.or(ret_1m).or(ret_1h),
             rv_1m,
         });
+        let microstructure_metrics = microstructure_metric_snapshots(
+            state,
+            now_ms,
+            resilience.bbo_ofi_proxy_30s,
+            resilience.adverse_selection_proxy,
+        );
 
         FeatureSnapshot {
             symbol: state.hl_coin.clone(),
@@ -179,9 +204,11 @@ impl FeatureEngine {
             spread_recovery_ms: resilience.spread_recovery_ms,
             resilience_state: resilience.resilience_state,
             tradeability_state,
+            fee_aware_tradeability,
             adverse_selection_proxy: resilience.adverse_selection_proxy,
             signed_notional_flow_30s: resilience.signed_notional_flow_30s,
             bbo_ofi_proxy_30s: resilience.bbo_ofi_proxy_30s,
+            microstructure_metrics,
             tob_depth_usd,
             tob_imbalance,
             ret_1m,
