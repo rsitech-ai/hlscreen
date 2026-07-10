@@ -333,6 +333,51 @@ fn parquet_export_rejects_missing_run_and_existing_destination_without_writing()
     );
 }
 
+#[test]
+fn all_dataset_export_rolls_back_events_when_feature_preflight_rejects_unclean_run() {
+    use hls_store::parquet::export_all_to_parquet;
+
+    let temp = tempfile::tempdir().expect("temp dir");
+    let run_id = "unclean-all-export";
+    let relative = format!("normalized/events/run={run_id}/part-000000.ndjson");
+    let source = temp.path().join(&relative);
+    fs::create_dir_all(source.parent().expect("source parent")).expect("source parent");
+    fs::write(
+        &source,
+        include_str!("../../../tests/fixtures/microstructure/parquet_parity_events.ndjson"),
+    )
+    .expect("write source");
+    let registry = MetadataRegistry::open(temp.path().join("hls.sqlite")).expect("registry");
+    registry
+        .insert_run(&RecordingRun::new(run_id, 1, false, true))
+        .expect("run metadata");
+    register_normalized_part(
+        &registry,
+        run_id,
+        &relative,
+        fixture_lines_count(),
+        fs::metadata(&source).expect("source metadata").len(),
+    );
+
+    export_all_to_parquet(temp.path(), run_id)
+        .expect_err("unclean run must reject the complete export set");
+
+    let files = registry.list_files(run_id).expect("registered files");
+    assert!(
+        !files
+            .iter()
+            .any(|file| file.event_type.ends_with("parquet"))
+    );
+    for path in [
+        format!("parquet/events/run={run_id}/part-000000.parquet"),
+        format!("parquet/events/run={run_id}/schema.json"),
+        format!("parquet/features/run={run_id}/part-000000.parquet"),
+        format!("parquet/features/run={run_id}/schema.json"),
+    ] {
+        assert!(!temp.path().join(path).exists());
+    }
+}
+
 fn fixture_lines_count() -> usize {
     include_str!("../../../tests/fixtures/microstructure/parquet_parity_events.ndjson")
         .lines()

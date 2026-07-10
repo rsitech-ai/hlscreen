@@ -164,6 +164,9 @@ falling back to JSONL.
 The run and all JSONL inputs must already be registered. Existing Parquet or
 schema evidence is never replaced; a failed export removes files created by
 that failed attempt instead of registering orphan evidence.
+`--dataset all` prepares both event and feature datasets before registering
+either one, then commits both registry rows in one SQLite transaction. A
+failure therefore leaves neither dataset partially committed.
 
 ## Parquet Feature/Confidence Export
 
