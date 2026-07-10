@@ -114,10 +114,12 @@ Use this checklist for a local production-style deployment:
 1. Build and test:
 
    ```bash
-   cargo fmt --check
-   cargo clippy --workspace --all-targets --all-features -- -D warnings
-   cargo test --workspace --all-features
-   cargo build --release --workspace --all-features
+   cargo fmt --all -- --check
+   cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+   cargo test --workspace --all-features --locked
+   cargo build --release --workspace --all-features --locked
+   RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps --locked
+   cargo audit --deny warnings
    scripts/check-release-packaging.sh
    ```
 

@@ -114,6 +114,17 @@ impl RatatuiFrameModel {
         self.trades = trades;
         self
     }
+
+    pub fn ui_paused(&self) -> bool {
+        self.ui_state.paused()
+    }
+
+    pub fn with_market_presentation_from(mut self, source: &Self) -> Self {
+        self.rows.clone_from(&source.rows);
+        self.candles.clone_from(&source.candles);
+        self.trades.clone_from(&source.trades);
+        self
+    }
 }
 
 pub fn render_ratatui_snapshot_for_test(

@@ -12,21 +12,21 @@ It is built for operators and researchers who want a local-first way to inspect 
 
 Current state: read-only live-data release candidate for local deployment. The codebase is production-ready for bounded public Hyperliquid spot recording, replay, screening, deterministic terminal rendering, health checks, and local release packaging dry runs. It is not a trading bot, hosted service, or capital-touching execution system.
 
-Latest live validation: the 2026-07-08 production-readiness pass captured the full public spot universe with `308` symbols, `924` public WebSocket subscriptions, `99,162` raw WebSocket messages, `106,980` normalized events, clean shutdown, `0` reconnects, and `0` data gaps. See [Production readiness](docs/production-readiness.md) and the [dated validation report](docs/reports/2026-07-08-production-readiness-live-refresh.md).
+Latest live validation: the 2026-07-10 release audit completed a top-10 session with `40` subscriptions, `204` WebSocket messages, `456` market events, and high confidence for all 10 rows. A separate all-symbol session covered `309` spot markets through `928` subscriptions and processed `2,013` messages / `7,267` events. Both runs stopped cleanly with `0` reconnects and `0` data gaps. See the [dated release audit](docs/reports/2026-07-10-end-to-end-release-audit.md).
 
 Implemented today:
 
 - Public Hyperliquid REST metadata parsing for `spotMeta` and `spotMetaAndAssetCtxs`.
 - Public WebSocket parsing for trades, BBO, all-mids, active asset context, and candles, with deterministic fixtures kept for tests.
-- Bounded public WebSocket live screen with duration-based shutdown, heartbeat pings, reconnect/resubscribe, optional raw/normalized recording, and all-symbol subscription budgeting.
+- Bounded public WebSocket live screen with duration-based shutdown, heartbeat pings, inbound inactivity detection, rate-limited reconnect/resubscribe, optional raw/normalized recording, and all-symbol subscription budgeting.
 - Bounded live recording through a fail-closed writer queue so disk I/O does not silently drop or stall market-data ingestion.
-- Adaptive Ratatui live cockpit for TTY sessions and `--tui` smoke captures, with watchlist, detail, market internals rail, real 1m OHLC/volume chart, book, tape, status bar, color, persisted display preferences, visible wide/medium/narrow layout profile, resize-aware layouts, keyboard pane zoom, mouse pane focus, and command-palette editing for filters, presets, and sort order.
+- Adaptive Ratatui live cockpit for TTY sessions and `--tui` smoke captures, with differential rendering, non-bursting refresh timers, a true display-only pause, watchlist, detail, market internals rail, real 1m OHLC/volume chart, book, tape, status bar, color, persisted display preferences, visible wide/medium/narrow layout profiles, resize-aware layouts, keyboard pane zoom, mouse pane focus, and command-palette editing for filters, presets, and sort order.
 - Wide Ratatui headers include a selected-pair quote rail with bid/ask share, spread, top-book depth, flow, and an explicit public-BBO read-only marker.
 - Deterministic non-TTY terminal rendering for market rows, scan KPIs, selected-pair microstructure detail, read-only safety state, operations health, and keyboard command rail.
 - Confidence-aware feature snapshots and TUI rows for fresh, sparse, duplicate, and explicit gap/parser/backlog quality inputs.
 - Persisted confidence baselines plus `hls replay --verify-parity` drift detection for local replay checks.
 - Deterministic score breakdowns, screen-rule score fields, and `hls explain` why-ranked output for replayed or fixture-backed rows.
-- Compressed raw public message recording, normalized replay JSONL, and local SQLite metadata.
+- Compressed raw public message recording, normalized replay JSONL, and local SQLite metadata with unique, path-safe run IDs and registry-path validation.
 - Deterministic screening DSL and built-in screen presets.
 - Health snapshots, reconnect simulation, TUI health rendering, and read-only local API helpers.
 - Deterministic public fixture benchmark packs through `hls bench`.
@@ -113,15 +113,15 @@ Requirements:
 Build:
 
 ```bash
-cargo build --workspace --all-features
+cargo build --workspace --all-features --locked
 ```
 
 Run the local validation gate:
 
 ```bash
-cargo fmt --check
-cargo clippy --workspace --all-targets --all-features -- -D warnings
-cargo test --workspace --all-features
+cargo fmt --all -- --check
+cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+cargo test --workspace --all-features --locked
 ```
 
 Initialize a local data directory:
@@ -217,7 +217,7 @@ TTY keyboard controls for the Ratatui `hls tui` / `hls live --tui` cockpit:
 - `z`: expand/collapse the focused pane while keeping the header, controls, and read-only status visible.
 - `d`: cycle row density.
 - `?` or `F1`: show/hide help.
-- `Space`: toggle paused UI state while ingestion remains read-only public data.
+- `Space`: freeze/unfreeze displayed rows, candles, and public prints while ingestion, recording, navigation, and health counters continue.
 - `q` or `Esc`: cleanly stop the live run.
 
 TTY mouse controls for terminals with mouse reporting enabled:
@@ -245,7 +245,7 @@ action strip, such as `VISUAL ansi-neon active` or `VISUAL plain fallback`, so
 screenshots make color mode drift obvious without crowding narrow terminals.
 The legacy `HLS_FORCE_COLOR=1`, `CLICOLOR_FORCE=1`, and `FORCE_COLOR=1`
 environment overrides still force color in `auto`; `NO_COLOR=1` or `TERM=dumb`
-still disables color in `auto`.
+still disables color in `auto`. Explicit `--color always` overrides `NO_COLOR`.
 
 The interactive renderer owns stderr while the alternate screen is active;
 stdin and stderr must both remain attached to a TTY for the default unbounded
@@ -365,6 +365,11 @@ Local recording writes under the configured data directory:
 
 These files are local artifacts and should not be committed.
 
+Run IDs are unique recording identities, not paths. They may contain ASCII
+letters, numbers, `.`, `-`, and `_`, are limited to 128 bytes, and cannot be
+reused in the same data directory. Replay rejects registry file paths that are
+absolute or contain parent-directory traversal.
+
 See [docs/data-format.md](docs/data-format.md) and [docs/PRIVACY.md](docs/PRIVACY.md).
 
 ## Screening Rules
@@ -395,6 +400,7 @@ Examples are in [examples/screen-rules.md](examples/screen-rules.md).
 - [Live production hardening report](docs/reports/2026-07-08-live-production-hardening.md)
 - [Live smoke report](docs/reports/2026-07-08-live-smoke.md)
 - [Pre-merge audit](docs/reports/2026-07-08-pre-merge-audit.md)
+- [2026-07-10 end-to-end release audit](docs/reports/2026-07-10-end-to-end-release-audit.md)
 
 ## Contributing
 
@@ -403,10 +409,10 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a PR.
 The short version:
 
 ```bash
-cargo fmt --check
-cargo clippy --workspace --all-targets --all-features -- -D warnings
-cargo test --workspace --all-features
-cargo build --workspace --all-features
+cargo fmt --all -- --check
+cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+cargo test --workspace --all-features --locked
+cargo build --workspace --all-features --locked
 git diff --check
 ```
 
