@@ -2,7 +2,7 @@ use std::{fs, net::SocketAddr, path::PathBuf, time::Duration};
 
 use anyhow::{Context, bail};
 use clap::Args;
-use futures_util::{SinkExt, StreamExt};
+use futures_util::{Sink, SinkExt, StreamExt};
 use hls_core::{
     HlsError,
     health::{
@@ -15,6 +15,7 @@ use hls_core::{
 use hls_hyperliquid::{
     rest::{HyperliquidRestClient, SpotMarketContext, select_universe},
     ws::{
+        connection::ReconnectPolicy,
         parser::{parse_ws_message, parse_ws_ndjson},
         subscriptions::{StreamKind, SubscriptionPlan, ping_message},
     },
@@ -32,6 +33,7 @@ use crate::commands::{
     health::simulated_health,
     metadata::{attach_metadata, load_metadata_enrichments},
     record::parse_symbols,
+    ws_rate_limit::{RollingMessageRateLimiter, RollingRateLimiter, WS_OUTBOUND_RATE_WINDOW},
 };
 
 const DEFAULT_WS_URL: &str = "wss://api.hyperliquid.xyz/ws";
@@ -39,6 +41,9 @@ const DEFAULT_LIVE_DURATION_SECS: u64 = 60;
 const DEFAULT_REFRESH_SECS: u64 = 5;
 const DEFAULT_MAX_SUBSCRIPTIONS: usize = 980;
 const LIVE_API_PUBLISH_INTERVAL_MS: u64 = 250;
+const SERVER_RECONNECT_INITIAL_BACKOFF_MS: u64 = 1_000;
+const SERVER_RECONNECT_MAX_BACKOFF_MS: u64 = 30_000;
+const SERVER_CONNECTION_RATE_BUDGET: usize = 29;
 
 #[derive(Debug, Args)]
 pub struct ServerArgs {
@@ -204,10 +209,12 @@ fn publish_fixture_live_api(
         &metadata,
         fee_profile,
         ServerHealthStats {
+            connection_state: ConnectionState::Connected,
             subscriptions: summary.subscriptions,
             last_message_age_ms: Some(0),
             reconnects: 0,
             data_gaps: 0,
+            last_reconnect_backoff_ms: None,
             rows_written: summary.market_events,
         },
         &mut summary,
@@ -241,9 +248,18 @@ async fn publish_network_live_api(
         ..ServerLiveSummary::default()
     };
     let deadline = tokio::time::Instant::now() + Duration::from_secs(args.duration_secs);
+    let reconnect_policy = ReconnectPolicy {
+        initial_backoff_ms: SERVER_RECONNECT_INITIAL_BACKOFF_MS,
+        max_backoff_ms: SERVER_RECONNECT_MAX_BACKOFF_MS,
+        multiplier: 2,
+    };
+    let mut reconnect_attempt = 0;
+    let mut outbound_rate_limiter = RollingMessageRateLimiter::default();
+    let mut connection_rate_limiter =
+        RollingRateLimiter::new(SERVER_CONNECTION_RATE_BUDGET, WS_OUTBOUND_RATE_WINDOW);
 
     while tokio::time::Instant::now() < deadline {
-        let connected_at_ms = now_ms_i64()?;
+        let market_events_before_connection = summary.market_events;
         match drive_server_live_connection(
             args,
             &subscription_messages,
@@ -252,8 +268,9 @@ async fn publish_network_live_api(
             &metadata,
             fee_profile,
             deadline,
-            connected_at_ms,
             &mut summary,
+            &mut outbound_rate_limiter,
+            &mut connection_rate_limiter,
         )
         .await
         {
@@ -261,9 +278,16 @@ async fn publish_network_live_api(
             Err(error) => {
                 summary.reconnects = summary.reconnects.saturating_add(1);
                 summary.data_gaps = summary.data_gaps.saturating_add(1);
+                let recovered_market_data = summary.market_events > market_events_before_connection;
+                let backoff_ms = next_server_reconnect_backoff(
+                    reconnect_policy,
+                    &mut reconnect_attempt,
+                    recovered_market_data,
+                );
+                summary.last_reconnect_backoff_ms = Some(backoff_ms);
                 eprintln!(
-                    "live API reconnect: reason={} reconnects={} data_gaps={}",
-                    error, summary.reconnects, summary.data_gaps
+                    "live API reconnect: reason={} reconnects={} data_gaps={} backoff_ms={}",
+                    error, summary.reconnects, summary.data_gaps, backoff_ms
                 );
                 publish_api_snapshot(
                     shared,
@@ -271,20 +295,37 @@ async fn publish_network_live_api(
                     &metadata,
                     fee_profile,
                     ServerHealthStats {
+                        connection_state: ConnectionState::Reconnecting,
                         subscriptions: summary.subscriptions,
                         last_message_age_ms: None,
                         reconnects: summary.reconnects,
                         data_gaps: summary.data_gaps,
+                        last_reconnect_backoff_ms: summary.last_reconnect_backoff_ms,
                         rows_written: summary.market_events,
                     },
                     &mut summary,
                 )?;
-                tokio::time::sleep(Duration::from_secs(1)).await;
+                if !sleep_before_deadline(Duration::from_millis(backoff_ms), deadline).await {
+                    break;
+                }
             }
         }
     }
 
     Ok(summary)
+}
+
+fn next_server_reconnect_backoff(
+    policy: ReconnectPolicy,
+    attempt: &mut u64,
+    recovered_market_data: bool,
+) -> u64 {
+    if recovered_market_data {
+        *attempt = 0;
+    }
+    let backoff_ms = policy.backoff_ms(*attempt);
+    *attempt = attempt.saturating_add(1);
+    backoff_ms
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -296,18 +337,63 @@ async fn drive_server_live_connection(
     metadata: &[hls_core::metadata::MetadataEnrichment],
     fee_profile: Option<&hls_core::fees::FeeProfile>,
     deadline: tokio::time::Instant,
-    connected_at_ms: i64,
     summary: &mut ServerLiveSummary,
+    outbound_rate_limiter: &mut RollingMessageRateLimiter,
+    connection_rate_limiter: &mut RollingRateLimiter,
 ) -> anyhow::Result<()> {
-    let (ws, _) = connect_async(&args.ws_url)
-        .await
-        .with_context(|| format!("connect {}", args.ws_url))?;
+    if !wait_for_rate_limit_slot(connection_rate_limiter, deadline).await {
+        publish_final_api_snapshot(
+            shared,
+            state,
+            metadata,
+            fee_profile,
+            summary,
+            None,
+            ConnectionState::Connecting,
+        )?;
+        return Ok(());
+    }
+    connection_rate_limiter.record(tokio::time::Instant::now());
+    let connected = tokio::select! {
+        connected = connect_async(&args.ws_url) => Some(connected),
+        _ = tokio::time::sleep_until(deadline) => None,
+    };
+    let Some(connected) = connected else {
+        publish_final_api_snapshot(
+            shared,
+            state,
+            metadata,
+            fee_profile,
+            summary,
+            None,
+            ConnectionState::Connecting,
+        )?;
+        return Ok(());
+    };
+    let (ws, _) = connected.with_context(|| format!("connect {}", args.ws_url))?;
+    let connected_at_ms = now_ms_i64()?;
     let (mut write, mut read) = ws.split();
     for message in subscription_messages {
-        write
-            .send(Message::Text(message.clone().into()))
-            .await
-            .context("send live API subscription")?;
+        if !send_rate_limited(
+            &mut write,
+            Message::Text(message.clone().into()),
+            outbound_rate_limiter,
+            deadline,
+            "send live API subscription",
+        )
+        .await?
+        {
+            publish_final_api_snapshot(
+                shared,
+                state,
+                metadata,
+                fee_profile,
+                summary,
+                None,
+                ConnectionState::Connected,
+            )?;
+            return Ok(());
+        }
     }
 
     let mut heartbeat = interval(Duration::from_secs(20));
@@ -329,10 +415,12 @@ async fn drive_server_live_connection(
                     metadata,
                     fee_profile,
                     ServerHealthStats {
+                        connection_state: ConnectionState::Connected,
                         subscriptions: summary.subscriptions,
                         last_message_age_ms: age,
                         reconnects: summary.reconnects,
                         data_gaps: summary.data_gaps,
+                        last_reconnect_backoff_ms: summary.last_reconnect_backoff_ms,
                         rows_written: summary.market_events,
                     },
                     summary,
@@ -340,10 +428,24 @@ async fn drive_server_live_connection(
                 return Ok(());
             },
             _ = heartbeat.tick() => {
-                write
-                    .send(Message::Text(ping_message().to_owned().into()))
-                    .await
-                    .context("send live API heartbeat")?;
+                if !send_rate_limited(
+                    &mut write,
+                    Message::Text(ping_message().to_owned().into()),
+                    outbound_rate_limiter,
+                    deadline,
+                    "send live API heartbeat",
+                ).await? {
+                    publish_final_api_snapshot(
+                        shared,
+                        state,
+                        metadata,
+                        fee_profile,
+                        summary,
+                        last_message_at_ms,
+                        ConnectionState::Connected,
+                    )?;
+                    return Ok(());
+                }
             }
             _ = refresh.tick() => {
                 let age = last_message_at_ms.and_then(|last| message_age_ms(last).ok());
@@ -353,10 +455,12 @@ async fn drive_server_live_connection(
                     metadata,
                     fee_profile,
                     ServerHealthStats {
+                        connection_state: ConnectionState::Connected,
                         subscriptions: summary.subscriptions,
                         last_message_age_ms: age,
                         reconnects: summary.reconnects,
                         data_gaps: summary.data_gaps,
+                        last_reconnect_backoff_ms: summary.last_reconnect_backoff_ms,
                         rows_written: summary.market_events,
                     },
                     summary,
@@ -371,10 +475,12 @@ async fn drive_server_live_connection(
                     metadata,
                     fee_profile,
                     ServerHealthStats {
+                        connection_state: ConnectionState::Connected,
                         subscriptions: summary.subscriptions,
                         last_message_age_ms: age,
                         reconnects: summary.reconnects,
                         data_gaps: summary.data_gaps,
+                        last_reconnect_backoff_ms: summary.last_reconnect_backoff_ms,
                         rows_written: summary.market_events,
                     },
                     summary,
@@ -398,7 +504,24 @@ async fn drive_server_live_connection(
                         last_message_at_ms = Some(now_ms_i64()?);
                     }
                     Message::Ping(payload) => {
-                        write.send(Message::Pong(payload)).await.context("send live API pong")?;
+                        if !send_rate_limited(
+                            &mut write,
+                            Message::Pong(payload),
+                            outbound_rate_limiter,
+                            deadline,
+                            "send live API pong",
+                        ).await? {
+                            publish_final_api_snapshot(
+                                shared,
+                                state,
+                                metadata,
+                                fee_profile,
+                                summary,
+                                last_message_at_ms,
+                                ConnectionState::Connected,
+                            )?;
+                            return Ok(());
+                        }
                     }
                     Message::Close(frame) => bail!("Hyperliquid WebSocket closed: {frame:?}"),
                     Message::Pong(_) | Message::Frame(_) => {}
@@ -406,6 +529,76 @@ async fn drive_server_live_connection(
             }
         }
     }
+}
+
+async fn send_rate_limited<S>(
+    sink: &mut S,
+    message: Message,
+    limiter: &mut RollingMessageRateLimiter,
+    deadline: tokio::time::Instant,
+    context: &'static str,
+) -> anyhow::Result<bool>
+where
+    S: Sink<Message, Error = tokio_tungstenite::tungstenite::Error> + Unpin,
+{
+    if !wait_for_rate_limit_slot(limiter, deadline).await {
+        return Ok(false);
+    }
+    tokio::select! {
+        result = sink.send(message) => result.context(context)?,
+        _ = tokio::time::sleep_until(deadline) => return Ok(false),
+    }
+    limiter.record(tokio::time::Instant::now());
+    Ok(true)
+}
+
+async fn wait_for_rate_limit_slot(
+    limiter: &mut RollingRateLimiter,
+    deadline: tokio::time::Instant,
+) -> bool {
+    let now = tokio::time::Instant::now();
+    let Some(available_at) = limiter.next_available_at(now) else {
+        return true;
+    };
+    tokio::select! {
+        _ = tokio::time::sleep_until(available_at) => true,
+        _ = tokio::time::sleep_until(deadline) => false,
+    }
+}
+
+async fn sleep_before_deadline(duration: Duration, deadline: tokio::time::Instant) -> bool {
+    tokio::select! {
+        _ = tokio::time::sleep(duration) => true,
+        _ = tokio::time::sleep_until(deadline) => false,
+    }
+}
+
+fn publish_final_api_snapshot(
+    shared: &SharedApiState,
+    state: &LiveMarketState,
+    metadata: &[hls_core::metadata::MetadataEnrichment],
+    fee_profile: Option<&hls_core::fees::FeeProfile>,
+    summary: &mut ServerLiveSummary,
+    last_message_at_ms: Option<i64>,
+    connection_state: ConnectionState,
+) -> anyhow::Result<()> {
+    let age = last_message_at_ms.and_then(|last| message_age_ms(last).ok());
+    publish_api_snapshot(
+        shared,
+        state,
+        metadata,
+        fee_profile,
+        ServerHealthStats {
+            connection_state,
+            subscriptions: summary.subscriptions,
+            last_message_age_ms: age,
+            reconnects: summary.reconnects,
+            data_gaps: summary.data_gaps,
+            last_reconnect_backoff_ms: summary.last_reconnect_backoff_ms,
+            rows_written: summary.market_events,
+        },
+        summary,
+    )
 }
 
 fn live_api_publish_interval() -> tokio::time::Interval {
@@ -455,14 +648,17 @@ struct ServerLiveSummary {
     reconnects: u64,
     data_gaps: u64,
     api_publishes: u64,
+    last_reconnect_backoff_ms: Option<u64>,
 }
 
 #[derive(Clone, Copy, Debug)]
 struct ServerHealthStats {
+    connection_state: ConnectionState,
     subscriptions: usize,
     last_message_age_ms: Option<u64>,
     reconnects: u64,
     data_gaps: u64,
+    last_reconnect_backoff_ms: Option<u64>,
     rows_written: u64,
 }
 
@@ -471,15 +667,11 @@ impl ServerHealthStats {
         HealthInputs {
             safety: ReadOnlySafety::read_only(),
             connection: ConnectionHealth {
-                state: if self.data_gaps > 0 {
-                    ConnectionState::Reconnecting
-                } else {
-                    ConnectionState::Connected
-                },
+                state: self.connection_state,
                 connected_at_ms: None,
                 last_message_at_ms: None,
                 reconnect_count: self.reconnects,
-                last_reconnect_backoff_ms: None,
+                last_reconnect_backoff_ms: self.last_reconnect_backoff_ms,
                 gap_count: self.data_gaps,
             },
             subscription_count: self.subscriptions as u64,
@@ -716,6 +908,9 @@ mod tests {
             subscriptions: 1,
             ..ServerLiveSummary::default()
         };
+        let mut outbound_rate_limiter = RollingMessageRateLimiter::default();
+        let mut connection_rate_limiter =
+            RollingRateLimiter::new(SERVER_CONNECTION_RATE_BUDGET, WS_OUTBOUND_RATE_WINDOW);
 
         drive_server_live_connection(
             &args,
@@ -729,8 +924,9 @@ mod tests {
             &[],
             None,
             tokio::time::Instant::now() + Duration::from_secs(2),
-            now_ms_i64().expect("connected time"),
             &mut summary,
+            &mut outbound_rate_limiter,
+            &mut connection_rate_limiter,
         )
         .await
         .expect("bounded live connection");
@@ -757,5 +953,146 @@ mod tests {
             live_api_publish_interval().missed_tick_behavior(),
             MissedTickBehavior::Skip
         );
+    }
+
+    #[tokio::test]
+    async fn outbound_messages_wait_for_the_rolling_rate_window() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.expect("listener");
+        let address = listener.local_addr().expect("listener address");
+        let peer = tokio::spawn(async move {
+            let (stream, _) = listener.accept().await.expect("accept");
+            let mut websocket = accept_async(stream).await.expect("websocket accept");
+            websocket
+                .next()
+                .await
+                .expect("first message")
+                .expect("first");
+            let first = tokio::time::Instant::now();
+            websocket
+                .next()
+                .await
+                .expect("second message")
+                .expect("second");
+            tokio::time::Instant::now().saturating_duration_since(first)
+        });
+        let (websocket, _) = connect_async(format!("ws://{address}"))
+            .await
+            .expect("connect");
+        let (mut write, _) = websocket.split();
+        let window = Duration::from_millis(100);
+        let mut limiter = RollingMessageRateLimiter::new(1, window);
+        let deadline = tokio::time::Instant::now() + Duration::from_secs(1);
+
+        assert!(
+            send_rate_limited(
+                &mut write,
+                Message::Text("first".into()),
+                &mut limiter,
+                deadline,
+                "send first",
+            )
+            .await
+            .expect("first send")
+        );
+        assert!(
+            send_rate_limited(
+                &mut write,
+                Message::Text("second".into()),
+                &mut limiter,
+                deadline,
+                "send second",
+            )
+            .await
+            .expect("second send")
+        );
+
+        assert!(peer.await.expect("peer task") >= window);
+    }
+
+    #[test]
+    fn server_reconnect_backoff_caps_at_thirty_seconds() {
+        let policy = ReconnectPolicy {
+            initial_backoff_ms: SERVER_RECONNECT_INITIAL_BACKOFF_MS,
+            max_backoff_ms: SERVER_RECONNECT_MAX_BACKOFF_MS,
+            multiplier: 2,
+        };
+        let observed = (0..7)
+            .map(|attempt| policy.backoff_ms(attempt))
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            observed,
+            vec![1_000, 2_000, 4_000, 8_000, 16_000, 30_000, 30_000]
+        );
+        assert!(
+            observed.iter().take(6).sum::<u64>() >= 60_000,
+            "six reconnect delays must span at least one minute"
+        );
+    }
+
+    #[test]
+    fn server_reconnect_backoff_restarts_after_market_data_recovery() {
+        let policy = ReconnectPolicy {
+            initial_backoff_ms: SERVER_RECONNECT_INITIAL_BACKOFF_MS,
+            max_backoff_ms: SERVER_RECONNECT_MAX_BACKOFF_MS,
+            multiplier: 2,
+        };
+        let mut attempt = 0;
+
+        assert_eq!(
+            next_server_reconnect_backoff(policy, &mut attempt, false),
+            1_000
+        );
+        assert_eq!(
+            next_server_reconnect_backoff(policy, &mut attempt, false),
+            2_000
+        );
+        assert_eq!(
+            next_server_reconnect_backoff(policy, &mut attempt, true),
+            1_000
+        );
+        assert_eq!(
+            next_server_reconnect_backoff(policy, &mut attempt, false),
+            2_000
+        );
+    }
+
+    #[test]
+    fn server_connection_attempts_keep_headroom_below_the_official_rate_limit() {
+        let started = tokio::time::Instant::now();
+        let mut limiter =
+            RollingRateLimiter::new(SERVER_CONNECTION_RATE_BUDGET, WS_OUTBOUND_RATE_WINDOW);
+
+        for _ in 0..SERVER_CONNECTION_RATE_BUDGET {
+            assert_eq!(limiter.next_available_at(started), None);
+            limiter.record(started);
+        }
+        assert_eq!(
+            limiter.next_available_at(started + Duration::from_secs(1)),
+            Some(started + WS_OUTBOUND_RATE_WINDOW)
+        );
+        assert_eq!(
+            limiter.next_available_at(started + WS_OUTBOUND_RATE_WINDOW),
+            None
+        );
+    }
+
+    #[test]
+    fn recovered_connection_preserves_gap_evidence_without_staying_reconnecting() {
+        let snapshot = ServerHealthStats {
+            connection_state: ConnectionState::Connected,
+            subscriptions: 10,
+            last_message_age_ms: Some(5),
+            reconnects: 1,
+            data_gaps: 1,
+            last_reconnect_backoff_ms: Some(1_000),
+            rows_written: 100,
+        }
+        .snapshot();
+
+        assert_eq!(snapshot.connections[0].state, ConnectionState::Connected);
+        assert_eq!(snapshot.connections[0].gap_count, 1);
+        assert_eq!(snapshot.gap_count, 1);
+        assert_eq!(snapshot.reconnect_count, 1);
     }
 }

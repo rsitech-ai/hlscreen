@@ -10,7 +10,11 @@ use hls_server::{
     ApiState, SharedApiState, handle_get, serve_shared_until_shutdown, serve_until_shutdown,
 };
 use serde_json::Value;
-use tokio::{net::TcpListener, sync::oneshot};
+use tokio::{
+    io::{AsyncReadExt, AsyncWriteExt},
+    net::{TcpListener, TcpStream},
+    sync::oneshot,
+};
 
 #[test]
 fn health_endpoint_returns_read_only_status_without_action_surfaces() {
@@ -77,6 +81,37 @@ fn encoded_symbol_paths_round_trip_and_malformed_queries_return_400() {
     let response = handle_get("/symbol/%FF", "", &state).expect("bad path response");
     assert_eq!(response.status_code, 400);
     assert!(response.body.contains("invalid UTF-8"));
+}
+
+#[test]
+fn symbol_detail_accepts_display_pair_hyphen_pair_and_feed_identifier() {
+    let mut market = row("@107", 35.0);
+    market.metadata = Some(hls_core::metadata::MetadataEnrichment {
+        symbol: "@107".to_owned(),
+        display_name: "HYPE/USDC".to_owned(),
+        feed_identifier: "@107".to_owned(),
+        spot_index: 107,
+        base_token_index: 150,
+        quote_token_index: 0,
+        metadata_source: "spotMetaAndAssetCtxs".to_owned(),
+        metadata_fetched_at_ms: 1_710_000_000_000,
+        deployer: None,
+        deploy_time_ms: None,
+        listing_age_ms: None,
+        seeded_usdc: None,
+        circulating_supply: None,
+        max_supply: None,
+        cohort_tags: Vec::new(),
+        unknown_fields: Vec::new(),
+    });
+    let state = ApiState::new(HealthInputs::healthy_fixture().snapshot(), vec![market]);
+
+    for path in ["/symbol/HYPE%2FUSDC", "/symbol/hype-usdc", "/symbol/%40107"] {
+        let response = handle_get(path, "", &state).expect("symbol response");
+        assert_eq!(response.status_code, 200, "selector path {path}");
+        assert!(response.body.contains("HYPE/USDC"));
+        assert!(response.body.contains("@107"));
+    }
 }
 
 #[tokio::test]
@@ -203,6 +238,51 @@ async fn running_server_serves_replaced_market_state_without_restart() {
     assert_eq!(health["status"], "degraded");
     assert_eq!(health["writer_backlog"], 250);
 
+    shutdown_tx.send(()).expect("send shutdown");
+    server
+        .await
+        .expect("server task")
+        .expect("server exits cleanly");
+}
+
+#[tokio::test]
+async fn running_server_rejects_oversized_request_headers() {
+    let listener = TcpListener::bind("127.0.0.1:0")
+        .await
+        .expect("bind loopback listener");
+    let address = listener.local_addr().expect("listener address");
+    let (shutdown_tx, shutdown_rx) = oneshot::channel();
+    let server = tokio::spawn(serve_until_shutdown(
+        listener,
+        ApiState::new(HealthInputs::healthy_fixture().snapshot(), rows()),
+        async move {
+            let _ = shutdown_rx.await;
+        },
+    ));
+    let mut stream = TcpStream::connect(address).await.expect("connect");
+    let oversized = format!(
+        "GET /health HTTP/1.1\r\nX-Oversized: {}\r\n\r\n",
+        "a".repeat(17 * 1024)
+    );
+    stream
+        .write_all(oversized.as_bytes())
+        .await
+        .expect("write oversized request");
+    let mut response = Vec::new();
+    let read_result = stream.read_to_end(&mut response).await;
+    assert!(
+        read_result.is_ok()
+            || read_result
+                .as_ref()
+                .is_err_and(|error| error.kind() == std::io::ErrorKind::ConnectionReset),
+        "oversized request should be rejected cleanly or by connection reset: {read_result:?}"
+    );
+    let response = String::from_utf8(response).expect("UTF-8 response");
+    assert!(!response.starts_with("HTTP/1.1 200"));
+    if !response.is_empty() {
+        assert!(response.starts_with("HTTP/1.1 400 Bad Request"));
+        assert!(response.contains("request header too large"));
+    }
     shutdown_tx.send(()).expect("send shutdown");
     server
         .await
