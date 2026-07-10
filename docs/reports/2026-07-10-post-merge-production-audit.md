@@ -39,7 +39,9 @@ Timer behavior was checked against Tokio's documented missed-tick semantics:
    could exceed both official outbound-message and connection-rate limits.
    The TUI and server now share a rolling 1,900-message/60-second limiter; the
    server counts subscriptions, heartbeats, and pongs and uses exponential
-   reconnect delay capped at 30 seconds.
+   reconnect delay capped at 30 seconds. The delay sequence resets after a
+   connection resumes actual market events, so independent outages start at
+   one second instead of inheriting stale backoff state.
 2. A bounded live API run could outlive `--duration-secs` while connecting or
    writing. Connection establishment, outbound writes, rate-limit waits, and
    reconnect sleeps now all observe the monotonic run deadline.
