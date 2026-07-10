@@ -90,6 +90,13 @@ result is therefore recorded as `partially_repaired` with
 keeps the reconnect-gap confidence penalty. Empty responses remain `unrepaired`
 with `confidence_impact = degraded`.
 
+The backfill file row and attempt row are committed in one SQLite transaction.
+The candidate evidence file is created without replacement and remains pending
+until that transaction commits; any write or registry failure removes the
+unregistered candidate file. This prevents a failed attempt from leaving a
+partial registry claim or an orphaned final artifact during normal error
+handling.
+
 Full trade/BBO reconstruction remains planned work.
 
 ## Public Backfill Source Boundary
