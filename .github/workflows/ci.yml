@@ -86,9 +86,9 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-          key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
+          key: cargo-registry-v1-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
           restore-keys: |
-            cargo-${{ runner.os }}-
+            cargo-registry-v1-${{ runner.os }}-
 
       - name: Format
         run: cargo fmt --all -- --check
