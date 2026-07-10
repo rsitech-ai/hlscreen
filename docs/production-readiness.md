@@ -122,9 +122,13 @@ Use this checklist for bounded local validation:
    cargo test --workspace --all-features --locked
    cargo build --release --workspace --all-features --locked
    RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps --locked
-   cargo audit --deny warnings
+   cargo audit --deny warnings --ignore RUSTSEC-2024-0436
    scripts/check-release-packaging.sh
    ```
+
+   The single ignored advisory is the unmaintained `paste` proc-macro pulled
+   transitively by Apache Parquet 59.1.0. It is not a vulnerability exception;
+   all vulnerabilities and all other dependency warnings remain denied.
 
 2. Create a local data directory outside the repo:
 

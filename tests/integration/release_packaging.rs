@@ -116,3 +116,18 @@ fn release_docs_and_roadmap_separate_local_proof_from_publication() {
         roadmap.contains("Validate supervisor templates before describing them as deployment support")
     );
 }
+
+#[test]
+fn rustsec_gate_keeps_one_documented_transitive_warning_exception() {
+    let expected = "cargo audit --deny warnings --ignore RUSTSEC-2024-0436";
+    let workflow = read(".github/workflows/ci.yml");
+    let releasing = read("docs/RELEASING.md");
+    let readiness = read("docs/production-readiness.md");
+
+    assert!(workflow.contains(expected));
+    assert!(releasing.contains(expected));
+    assert!(readiness.contains(expected));
+    assert!(workflow.contains("Apache Parquet 59.1.0"));
+    assert!(releasing.contains("all other warnings remain denied"));
+    assert!(readiness.contains("all other dependency warnings remain denied"));
+}
