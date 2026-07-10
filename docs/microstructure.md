@@ -18,7 +18,9 @@ User-story implementations build on these contracts. Confidence computation and
 replay parity are implemented for US1. Liquidity resilience and tradeability
 analytics are implemented for US2. Why-ranked score explanations are
 implemented for US3. Public metadata enrichment is implemented for US4. Metrics
-output and extension execution are implemented in later tasks.
+output and bounded standalone CLI row-annotation extension execution are
+implemented. Live extension integration, broader plugin discovery, TUI panel
+plugins, and score/health annotation execution remain later tasks.
 
 ### Data Confidence
 

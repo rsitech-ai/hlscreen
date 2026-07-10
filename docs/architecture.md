@@ -12,7 +12,7 @@ flowchart LR
     HLWS["Hyperliquid public WebSocket"]
     Adapter["hls-hyperliquid\nREST/WS parser + connection"]
     Live["hls-cli live/tui\nbounded or operator-stopped runtime"]
-    Recorder["hls-store\nraw zstd + normalized JSONL + SQLite"]
+    Recorder["hls-store\nraw zstd + JSONL + SQLite + analytical Parquet"]
     State["hls-core LiveMarketState\nsymbols, health, confidence"]
     Features["hls-features\nrolling windows + microstructure proxies"]
     Screen["hls-screen\nDSL + presets + sorting"]
@@ -135,27 +135,30 @@ Replay rules:
 - `hls tui`: adaptive full-screen live workstation, unbounded until operator stop by default.
 - `hls record`: deterministic fixture recording path.
 - `hls replay`: replay normalized local captures and verify parity.
+- `hls export-parquet`: export normalized events or replayed feature snapshots.
+- `hls alerts`: evaluate local playbooks and inspect local alert history.
+- `hls analog`: search replay-backed local historical analogs.
+- `hls extension`: run bounded standalone read-only row annotations.
 - `hls screen`: filter/sort feature snapshots with presets or custom DSL.
 - `hls explain`: show why-ranked score components for one row.
 - `hls bench`: run deterministic public fixture benchmark packs.
-- `hls server --print-health`: print read-only API preview JSON.
+- `hls server`: serve loopback-only read-only API state; `--live` is bounded.
 
 ## Production-Readiness Boundary
 
-Production-ready today means:
+Implemented for bounded local use:
 
-- Run locally or in a supervised environment as a read-only public-data process.
+- Run locally as a bounded read-only public-data process.
 - Capture raw and normalized public data for replay.
-- Fail closed on writer backpressure, invalid configs, parser-private channels, invalid DSL, missing fixtures, unsupported Parquet output, and replay parity drift.
+- Fail closed on writer backpressure, invalid configs, parser-private channels, invalid DSL, missing fixtures, invalid Parquet/schema inputs, and replay parity drift.
 - Emit deterministic non-TTY output, a full adaptive Ratatui workstation, and low-cardinality health metrics.
 
 Not production-ready today:
 
-- Unbounded daemon/service mode.
-- Hosted web API.
+- Supported authenticated/supervised service lifecycle and hosted multi-user API.
 - Public release binaries from a proven `v*` tag.
-- Public REST backfill after reconnect.
-- True Parquet output.
+- Automatic live invocation of coarse public candle backfill after reconnect; trade/BBO reconstruction remains unavailable.
+- Canonical Parquet-native recording; current Parquet datasets are post-record analytical exports.
 - Extended all-symbol soak evidence after each material exchange-limit or runtime change.
 - Any live trading, wallet, private stream, or order execution behavior.
 

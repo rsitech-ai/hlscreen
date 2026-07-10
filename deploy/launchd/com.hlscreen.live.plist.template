@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.hlscreen.live</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/YOUR_USER/.local/bin/hls</string>
+    <string>server</string>
+    <string>--live</string>
+    <string>--all-symbols</string>
+    <string>--duration-secs</string>
+    <string>86400</string>
+    <string>--refresh-secs</string>
+    <string>30</string>
+    <string>--bind</string>
+    <string>127.0.0.1:8787</string>
+  </array>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>HLS_DATA_DIR</key>
+    <string>/Users/YOUR_USER/Library/Application Support/hlscreen</string>
+  </dict>
+
+  <key>KeepAlive</key>
+  <true/>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>StandardOutPath</key>
+  <string>/Users/YOUR_USER/Library/Logs/hlscreen-live.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/YOUR_USER/Library/Logs/hlscreen-live.err.log</string>
+  <key>WorkingDirectory</key>
+  <string>/Users/YOUR_USER</string>
+</dict>
+</plist>

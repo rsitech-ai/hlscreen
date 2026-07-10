@@ -1,51 +1,63 @@
 # Roadmap
 
-`hlscreen` is intentionally scoped as read-only market-data infrastructure.
+`hlscreen` is intentionally scoped as read-only public market-data
+infrastructure. The roadmap separates implemented local capabilities from
+production operations and public-release proof.
 
 ## Current V1
 
-- Public REST metadata parsing.
-- Fixture-backed public WebSocket parsing.
-- Bounded public WebSocket live mode with heartbeat pings, reconnect/resubscribe, duration-based shutdown, optional raw/normalized recording, and fail-closed writer backpressure.
-- Local compressed raw recording.
-- Normalized replay JSONL.
-- SQLite metadata registry.
-- Feature snapshots and screening DSL.
-- Adaptive full-screen Ratatui workstation with keyboard/mouse pane navigation,
-  command editing, resize-aware layouts, true display pause, and deterministic
-  non-TTY rendering.
-- Health snapshots and read-only local API helpers.
-- Deterministic public fixture benchmark packs.
-- Low-cardinality metrics snapshots with Prometheus text output.
-- Read-only extension manifest contracts.
-- Draft cargo-dist packaging config and tag-gated packaging workflow.
+- Public Hyperliquid REST metadata and candle-snapshot adapters.
+- Public WebSocket parsing for trades, BBO, selected-symbol L2, all-mids,
+  active asset context, and candles.
+- Bounded live mode with heartbeat, reconnect/resubscribe, explicit data gaps,
+  fail-closed recording backpressure, and all-symbol subscription budgeting.
+- Compressed raw capture, normalized JSONL, SQLite metadata, candle cache, and
+  schema-versioned analytical Parquet export/replay.
+- Deterministic replay, confidence parity, feature calculations, screening DSL,
+  fee-profile assumptions, research metric/proxy labels, and local analog search.
+- Adaptive Ratatui workstation with PTY cleanup tests, keyboard/mouse navigation,
+  resize-aware layouts, persisted display preferences, and deterministic captures.
+- Local-only alert playbooks, evaluation, cooldown suppression, and JSONL history.
+- Read-only localhost HTTP routes, including an operator-terminated static loop
+  and a bounded live-data preview. These are not a supported production service.
+- Read-only Wasm extension contracts that deny network, filesystem, private-data,
+  and trading permissions.
+- Draft cargo-dist packaging and local archive/checksum smoke tests.
+
+## Release Status
+
+**Draft/local proof only.** Source builds, local archives, checksums, unpacked
+binary smoke tests, and tag-gated workflow configuration exist. There is no reviewed `v*` release artifact publication, so public binary installation is not yet claimed.
 
 ## Next Candidate Slices
 
-1. Public data backfill after reconnect.
-   - Gap-aware public REST backfill where docs provide a matching info request.
-   - Feature-window invalidation until enough fresh post-gap data arrives.
-2. True Parquet writer.
-   - Stable schemas.
-   - Local replay compatibility.
-   - Optional DuckDB query examples.
-3. Long-running localhost API.
-   - Bind to localhost only by default.
-   - Read-only routes only.
-   - Health and screen endpoints backed by live/replay state.
-4. Longer-running market-data resilience.
-   - Fresh all-symbol soak evidence after material runtime changes.
-   - Bounded memory and render-latency telemetry under sustained high-volume feeds.
-   - Deterministic local WebSocket fault injection for inactivity and reconnect storms.
-5. First public release.
-   - Run `dist plan` and `dist build` with the pinned cargo-dist version.
-   - Review the first `v*` tag packaging workflow output.
-   - Publish checksums and installation docs after the tag run is proven.
+1. Reconnect recovery integration.
+   - Invoke the coarse public candle adapter automatically after recorded gaps.
+   - Keep missing trades/BBO unrepaired and preserve degraded confidence.
+   - Add fault-injected reconnect acceptance evidence.
+2. Production service lifecycle.
+   - Define supported configuration, persistence/recovery, authentication,
+     resource limits, graceful restart, upgrade, rollback, and incident handling.
+   - Validate supervisor templates before describing them as deployment support.
+3. Alert operations.
+   - Add explicit scheduling, delivery, deduplication, ownership, retention, and
+     escalation semantics without introducing exchange actions.
+4. Evidence quality.
+   - Validate canonical metric definitions against research references and data
+     sufficiency requirements.
+   - Add private fee-tier and realized-fill modeling only behind an explicit new
+     trust boundary; keep v1 public/read-only.
+   - Replace file-backed analog search with an indexed service only when scale
+     evidence requires it.
+5. Release and soak proof.
+   - Run multi-hour and multi-day supervised public-data soaks with CPU, memory,
+     latency, reconnect, gap, and replay-parity evidence.
+   - Review a `v*` tag workflow, artifacts, checksums, clean-runner installation,
+     and release notes before checking publication boxes.
 
 ## Explicitly Out Of Scope
 
-- Trading execution.
-- Wallet integration.
-- Private account streams.
+- Trading execution or automated strategy recommendations.
+- Wallet integration, signing, or order endpoints.
 - Profitability claims.
-- Automated strategy recommendations.
+- Silent fallback from live data to fixtures or mocks.

@@ -4,6 +4,7 @@ Start with the public README, then use these files for deeper implementation and
 
 - [Architecture](architecture.md)
 - [Production readiness](production-readiness.md)
+- [Deployment](deployment.md)
 - [Data format](data-format.md)
 - [Feature definitions](feature-definitions.md)
 - [Privacy](PRIVACY.md)
