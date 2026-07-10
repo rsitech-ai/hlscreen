@@ -4,19 +4,21 @@ pub(crate) const WS_OUTBOUND_RATE_WINDOW: Duration = Duration::from_secs(60);
 pub(crate) const WS_OUTBOUND_RATE_BUDGET: usize = 1_900;
 
 #[derive(Debug)]
-pub(crate) struct RollingMessageRateLimiter {
+pub(crate) struct RollingRateLimiter {
     budget: usize,
     window: Duration,
     sent_at: VecDeque<tokio::time::Instant>,
 }
 
-impl Default for RollingMessageRateLimiter {
+pub(crate) type RollingMessageRateLimiter = RollingRateLimiter;
+
+impl Default for RollingRateLimiter {
     fn default() -> Self {
         Self::new(WS_OUTBOUND_RATE_BUDGET, WS_OUTBOUND_RATE_WINDOW)
     }
 }
 
-impl RollingMessageRateLimiter {
+impl RollingRateLimiter {
     pub(crate) fn new(budget: usize, window: Duration) -> Self {
         assert!(budget > 0, "outbound message budget must be positive");
         assert!(!window.is_zero(), "outbound rate window must be positive");

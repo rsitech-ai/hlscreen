@@ -17,8 +17,10 @@ cadence; the final state is also published at shutdown.
 
 The preview also keeps all outbound WebSocket messages under a rolling
 `1,900`-per-60-second budget, applies exponential reconnect delay from one
-second to a 30-second cap, and includes connection establishment, outbound
-writes, and rate-limit waits in the bounded duration. The loopback HTTP listener
+second to a 30-second cap, and limits connection attempts to 29 per rolling 60
+seconds even when a data-bearing socket repeatedly flaps. Connection
+establishment, outbound writes, and both rate-limit waits are included in the
+bounded duration. The loopback HTTP listener
 allows at most 64 concurrent connection tasks, limits request headers to 16
 KiB, times out incomplete headers after five seconds, and aborts outstanding
 connection tasks on shutdown. These are local resource and lifecycle guards;
