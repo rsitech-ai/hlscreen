@@ -122,7 +122,7 @@ A new user or contributor can install the tool quickly, verify it, inspect metri
 - **FR-014**: The system MUST avoid high-cardinality metric labels such as symbol on broad histograms; symbol-level detail belongs in TUI detail panes, logs, or top-N offender summaries.
 - **FR-015**: The system MUST provide canonical benchmark/replay fixtures that validate output parity, confidence behavior, and performance budgets.
 - **FR-016**: The system MUST document metric formulas, validity conditions, confidence caveats, replay semantics, and known biases in user-facing docs.
-- **FR-017**: The system MUST include release packaging tasks for GitHub Releases and macOS/Linux binary distribution, with Homebrew support planned or documented.
+- **FR-017**: The system MUST include release packaging tasks for reviewed release artifacts and supported desktop binary targets.
 - **FR-018**: The system MUST define a read-only extension/plugin contract before enabling third-party features or panels.
 - **FR-019**: Any extension/plugin surface MUST be read-only and MUST NOT receive network, filesystem, credential, private account, or state-mutation capabilities by default.
 - **FR-020**: The system MUST provide a clean quickstart path that gets a new user from install/build to live screen and health verification in under five minutes on supported platforms.

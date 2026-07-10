@@ -32,7 +32,9 @@ US2 writes normalized replay events as deterministic JSONL:
 normalized/events/run=<run-id>/part-000000.ndjson
 ```
 
-Each line is a serialized `MarketEvent`. This is the replay source used by `hls replay`.
+Each line is a serialized `MarketEvent`. This is the canonical replay source
+used by `hls replay` unless an operator explicitly selects exported
+normalized-event Parquet with `--input parquet`.
 
 `run-id` values are unique recording identities. They are limited to 128 ASCII
 bytes and the characters `A-Z`, `a-z`, `0-9`, `.`, `-`, and `_`; path
@@ -47,13 +49,194 @@ The local SQLite registry lives at:
 hls.sqlite
 ```
 
-It tracks `runs`, `files`, `symbols`, `data_gaps`, and
-`confidence_snapshots`. Confidence snapshots are keyed by recording run, replay
-timestamp, and symbol so `hls replay --verify-parity` can compare recomputed
-data-quality state against a persisted local baseline. The registry is
-local-only and stores no secrets.
+It tracks `runs`, `files`, `symbols`, `data_gaps`, `backfill_attempts`,
+`confidence_snapshots`, and the schema-versioned `public_candle_cache` used by
+`hls tui`. Cached candles are keyed by `(symbol, interval, open_ts_ms)` and
+retain receive timestamp, `websocket`/`rest_bootstrap` provenance, and
+`open`/`closed` completion state. Receive-older updates cannot replace newer
+rows. Confidence snapshots are keyed
+by recording run, replay timestamp, and symbol so `hls replay --verify-parity`
+can compare recomputed data-quality state against a persisted local baseline.
+The registry is local-only and stores no secrets. A symlinked cache database is
+rejected rather than followed.
 
-True Parquet output is not implemented in the current slice. The CLI rejects `--parquet` and asks for `--normalized` until the Parquet writer is added.
+## Backfill Attempt Metadata
+
+Detected data gaps are recorded in `data_gaps`. Public repair attempts are
+recorded separately in `backfill_attempts` so detection provenance does not get
+mixed with repair provenance.
+
+`backfill_attempts` stores:
+
+| Column | Notes |
+| --- | --- |
+| `attempt_id` | Unique append-only identifier for one attempt. |
+| `run_id` | Recording run that observed the gap. |
+| `gap_id` | Gap being repaired or inspected. |
+| `source` | Public source used for the attempt, such as a REST trade or quote endpoint. |
+| `requested_start_ns` / `requested_end_ns` | Requested public-data repair window. |
+| `attempted_at_ms` | Local attempt timestamp. |
+| `status` | `repaired`, `partially_repaired`, or `unrepaired`. |
+| `rows_written` | Number of recovered rows written by that attempt. |
+| `confidence_impact` | `restored`, `partial`, or `degraded`. |
+| `notes` | Optional operator/debug note. |
+
+`hls-store::backfill` can run a public candle source over recorded gaps.
+Automatic invocation from `hls live --record` is not wired yet. Returned candles
+are appended to a normalized JSONL evidence file,
+but they cannot reconstruct missing trades or BBO updates. Any non-empty candle
+result is therefore recorded as `partially_repaired` with
+`confidence_impact = partial`; the original gap stays unrecovered and replay
+keeps the reconnect-gap confidence penalty. Empty responses remain `unrepaired`
+with `confidence_impact = degraded`.
+
+Full trade/BBO reconstruction remains planned work.
+
+## Public Backfill Source Boundary
+
+The current public source adapter covers Hyperliquid `candleSnapshot` responses
+for coarse historical candle coverage evidence. It parses documented public candle
+fields into local `CandleEvent` rows and accepts empty public responses as valid
+unrepaired-attempt input.
+
+This does not reconstruct missing WebSocket trades or top-of-book updates.
+Hyperliquid's public `l2Book` endpoint is a current snapshot, not historical
+BBO replay, and user fill endpoints require account addresses and are outside
+the read-only public-data boundary. Live closeout integration and richer repair
+sources remain future work.
+
+## Parquet Event Export
+
+`hlscreen` can export normalized event JSONL into an analytical Parquet file:
+
+```text
+parquet/events/run=<run-id>/part-000000.parquet
+```
+
+The initial Parquet schema is `hls_normalized_events_v1`:
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `row_index` | `INT64` | Zero-based row order from the normalized event stream. |
+| `event_type` | `BINARY UTF8` | One of `trade`, `top_of_book`, `asset_context`, `all_mids`, or `candle`. |
+| `recv_ts_ns` | `INT64` | Local receive timestamp from the normalized event. |
+| `hl_coin` | optional `BINARY UTF8` | Hyperliquid feed identifier when the event is symbol-scoped; null for all-market mids. |
+| `event_json` | `BINARY UTF8` | Full serialized `MarketEvent` for lossless first-slice parity with JSONL. |
+
+Export existing normalized events:
+
+```bash
+./target/debug/hls export-parquet --data-dir "$tmpdir" --run-id smoke --dataset events
+```
+
+`hls record --parquet` and `hls live --record --parquet` imply normalized capture and export this Parquet file after the bounded recording closes cleanly. Raw compressed capture and normalized JSONL remain the canonical recording formats, but exported normalized-event Parquet can be replayed explicitly:
+
+```bash
+./target/debug/hls replay --data-dir "$tmpdir" --run-id smoke --input parquet
+./target/debug/hls replay --data-dir "$tmpdir" --run-id smoke --input parquet --verify-parity
+```
+
+Each normalized-event Parquet dataset also writes a machine-readable schema
+manifest:
+
+```text
+parquet/events/run=<run-id>/schema.json
+```
+
+Current manifest shape:
+
+```json
+{
+  "manifest_version": 1,
+  "normalized_event_schema_version": 1,
+  "sqlite_schema_version": 1,
+  "parquet_event_schema_version": 1
+}
+```
+
+`hls-store` validates this manifest fail-closed. Unsupported manifest,
+normalized-event, SQLite, or Parquet event versions return an actionable
+unsupported-version error instead of guessing a migration.
+`hls replay --input parquet` also requires this manifest; if the manifest or
+registered `normalized_parquet` file is missing, replay fails instead of
+falling back to JSONL.
+
+## Parquet Feature/Confidence Export
+
+`hlscreen` can also replay a normalized run and export the resulting
+`FeatureSnapshot` rows with embedded data-confidence state:
+
+```text
+parquet/features/run=<run-id>/part-000000.parquet
+```
+
+Export feature/confidence rows:
+
+```bash
+./target/debug/hls export-parquet --data-dir "$tmpdir" --run-id smoke --dataset features
+```
+
+Export both normalized events and feature/confidence rows:
+
+```bash
+./target/debug/hls export-parquet --data-dir "$tmpdir" --run-id smoke --dataset all
+```
+
+The first feature schema is `hls_feature_snapshots_v1`:
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `row_index` | `INT64` | Zero-based row order from the replayed snapshot set. |
+| `snapshot_ts_ms` | `INT64` | Replay snapshot timestamp used for all rows in the export. |
+| `symbol` | `BINARY UTF8` | Hyperliquid feed identifier for the feature row. |
+| `confidence_score` | `INT64` | Data confidence score from `0` to `100`. |
+| `confidence_level` | `BINARY UTF8` | `high`, `medium`, `low`, or `untrusted`. |
+| `confidence_reasons_json` | `BINARY UTF8` | JSON array of confidence reason codes. |
+| `price`, `mid_px`, `spread_bps`, `tob_depth_usd`, `tob_imbalance` | optional `DOUBLE` | Common analytical feature columns. |
+| `liquidity_score`, `momentum_score`, `mean_reversion_score` | `DOUBLE` | Screening scores from the feature engine. |
+| `tradeability_state` | `BINARY UTF8` | Public-data tradeability state. |
+| `resilience_state` | `BINARY UTF8` | Liquidity resilience state. |
+| `snapshot_json` | `BINARY UTF8` | Full serialized `FeatureSnapshot` for parity/debugging. |
+
+Each feature dataset writes:
+
+```text
+parquet/features/run=<run-id>/schema.json
+```
+
+Current feature manifest shape:
+
+```json
+{
+  "manifest_version": 1,
+  "normalized_event_schema_version": 1,
+  "sqlite_schema_version": 1,
+  "parquet_feature_schema_version": 1
+}
+```
+
+DuckDB smoke:
+
+```bash
+duckdb -c "select event_type, count(*) from read_parquet('$tmpdir/parquet/events/run=smoke/*.parquet') group by event_type order by event_type;"
+duckdb -c "select symbol, confidence_level, spread_bps from read_parquet('$tmpdir/parquet/features/run=smoke/*.parquet') order by symbol;"
+```
+
+If the standalone DuckDB CLI is not installed, the same validation can run
+through Python DuckDB:
+
+```bash
+python3 - <<'PY'
+import duckdb
+print(duckdb.sql("select event_type, count(*) from read_parquet('/tmp/hlscreen-run/parquet/events/run=smoke/*.parquet') group by event_type order by event_type").fetchall())
+print(duckdb.sql("select symbol, confidence_level, spread_bps from read_parquet('/tmp/hlscreen-run/parquet/features/run=smoke/*.parquet') order by symbol").fetchall())
+PY
+```
+
+Still planned: actual schema migrations when a v2 schema exists, tick-level
+trade/BBO reconstruction for gaps if a supported public source exists, and
+DuckDB validation in CI/release gates. Feature/confidence Parquet is an
+analytical export; normalized-event Parquet is the replayable dataset.
 
 ## Benchmark Manifest Format
 

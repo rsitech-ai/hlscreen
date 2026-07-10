@@ -10,3 +10,6 @@ HLS_REPO_ROOT="$repo_root" rustc \
   -o "$repo_root/target/release_packaging_test"
 
 HLS_REPO_ROOT="$repo_root" "$repo_root/target/release_packaging_test"
+
+"$repo_root/scripts/check-public-readiness.sh"
+"$repo_root/scripts/local-release-artifact-smoke.sh"
