@@ -131,3 +131,14 @@ fn rustsec_gate_keeps_one_documented_transitive_warning_exception() {
     assert!(releasing.contains("all other warnings remain denied"));
     assert!(readiness.contains("all other dependency warnings remain denied"));
 }
+
+#[test]
+fn workspace_ci_bounds_heavy_rust_build_disk_usage() {
+    let workflow = read(".github/workflows/ci.yml");
+
+    assert!(workflow.contains("CARGO_INCREMENTAL: 0"));
+    assert!(workflow.contains("CARGO_PROFILE_DEV_DEBUG: 0"));
+    assert!(workflow.contains("CARGO_PROFILE_TEST_DEBUG: 0"));
+    assert!(workflow.contains("- name: Cache cargo registry"));
+    assert!(!workflow.contains("- name: Cache cargo registry and build outputs\n        uses: actions/cache@v5\n        with:\n          path: |\n            ~/.cargo/registry\n            ~/.cargo/git\n            target\n          key: cargo-${{ runner.os }}-"));
+}

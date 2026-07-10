@@ -68,6 +68,10 @@ jobs:
     name: Rust workspace
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      CARGO_INCREMENTAL: 0
+      CARGO_PROFILE_DEV_DEBUG: 0
+      CARGO_PROFILE_TEST_DEBUG: 0
 
     steps:
       - name: Checkout
@@ -76,13 +80,12 @@ jobs:
       - name: Install Rust toolchain
         run: rustup toolchain install 1.88 --profile minimal --component rustfmt --component clippy
 
-      - name: Cache cargo registry and build outputs
+      - name: Cache cargo registry
         uses: actions/cache@v5
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            target
           key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
           restore-keys: |
             cargo-${{ runner.os }}-
