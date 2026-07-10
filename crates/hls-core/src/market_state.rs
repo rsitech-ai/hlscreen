@@ -9,6 +9,8 @@ use crate::{HlsError, HlsResult};
 
 const MAX_BBO_EVENTS_PER_SYMBOL: usize = 256;
 const MAX_CANDLE_EVENTS_PER_SYMBOL: usize = 512;
+const MAX_TRADE_EVENTS_PER_SYMBOL: usize = 100_000;
+const TRADE_RETENTION_MS: i64 = 60 * 60 * 1_000;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum TradeSide {
@@ -232,6 +234,9 @@ pub struct FeatureSnapshot {
 pub struct LiveMarketState {
     symbols: HashSet<String>,
     states: HashMap<String, SymbolMarketState>,
+    trade_ids_by_symbol: HashMap<String, HashSet<String>>,
+    latest_asset_context_recv_ns: HashMap<String, u64>,
+    latest_all_mids_recv_ns: HashMap<String, u64>,
 }
 
 impl LiveMarketState {
@@ -242,7 +247,13 @@ impl LiveMarketState {
             .map(|symbol| (symbol.clone(), SymbolMarketState::new(symbol.clone())))
             .collect();
 
-        Self { symbols, states }
+        Self {
+            symbols,
+            states,
+            trade_ids_by_symbol: HashMap::new(),
+            latest_asset_context_recv_ns: HashMap::new(),
+            latest_all_mids_recv_ns: HashMap::new(),
+        }
     }
 
     pub fn apply(&mut self, event: MarketEvent) -> HlsResult<()> {
@@ -250,7 +261,17 @@ impl LiveMarketState {
             MarketEvent::AllMids(event) => {
                 let recv_ms = i64::try_from(event.recv_ts_ns / 1_000_000).unwrap_or(i64::MAX);
                 for (hl_coin, mid) in event.mids_by_hl_coin {
-                    if let Some(state) = self.states.get_mut(&hl_coin) {
+                    if !self.states.contains_key(&hl_coin) {
+                        continue;
+                    }
+                    let latest_recv_ns = self
+                        .latest_all_mids_recv_ns
+                        .entry(hl_coin.clone())
+                        .or_default();
+                    if event.recv_ts_ns >= *latest_recv_ns
+                        && let Some(state) = self.states.get_mut(&hl_coin)
+                    {
+                        *latest_recv_ns = event.recv_ts_ns;
                         state.mid_px = Some(mid);
                         if recv_ms > 0 {
                             state.last_update_ms =
@@ -260,13 +281,35 @@ impl LiveMarketState {
                 }
             }
             MarketEvent::Trade(event) => {
-                self.state_mut(&event.hl_coin)?.apply_trade(event);
+                let hl_coin = event.hl_coin.clone();
+                self.state_mut(&hl_coin)?;
+                let state = self.states.get_mut(&hl_coin).ok_or_else(|| {
+                    HlsError::Config(format!("state for symbol '{hl_coin}' was not initialized"))
+                })?;
+                let trade_ids = self.trade_ids_by_symbol.entry(hl_coin).or_default();
+                state.apply_trade(event, trade_ids);
             }
             MarketEvent::TopOfBook(event) => {
                 self.state_mut(&event.hl_coin)?.apply_top_of_book(event);
             }
             MarketEvent::AssetContext(event) => {
-                self.state_mut(&event.hl_coin)?.apply_asset_context(event);
+                let hl_coin = event.hl_coin.clone();
+                self.state_mut(&hl_coin)?;
+                let latest_recv_ns = self
+                    .latest_asset_context_recv_ns
+                    .entry(hl_coin.clone())
+                    .or_default();
+                if event.recv_ts_ns >= *latest_recv_ns {
+                    *latest_recv_ns = event.recv_ts_ns;
+                    self.states
+                        .get_mut(&hl_coin)
+                        .ok_or_else(|| {
+                            HlsError::Config(format!(
+                                "state for symbol '{hl_coin}' was not initialized"
+                            ))
+                        })?
+                        .apply_asset_context(event);
+                }
             }
             MarketEvent::Candle(event) => {
                 self.state_mut(&event.hl_coin)?.apply_candle(event);
@@ -341,32 +384,96 @@ impl SymbolMarketState {
         }
     }
 
-    fn apply_trade(&mut self, event: TradeEvent) {
-        if self
-            .trades
-            .iter()
-            .any(|trade| trade.unique_trade_id == event.unique_trade_id)
-        {
+    fn apply_trade(&mut self, event: TradeEvent, trade_ids: &mut HashSet<String>) {
+        self.rebuild_trade_ids_if_needed(trade_ids);
+        let latest_ts_ms = self
+            .last_trade_ts_ms
+            .unwrap_or(event.exchange_ts_ms)
+            .max(event.exchange_ts_ms);
+        let cutoff_ms = latest_ts_ms.saturating_sub(TRADE_RETENTION_MS);
+        self.prune_trades_before(cutoff_ms, trade_ids);
+
+        if event.exchange_ts_ms < cutoff_ms {
+            return;
+        }
+        if !trade_ids.insert(event.unique_trade_id.clone()) {
             self.duplicate_trade_count = self.duplicate_trade_count.saturating_add(1);
             return;
         }
 
-        self.last_update_ms = Some(event.exchange_ts_ms);
-        self.last_trade_ts_ms = Some(event.exchange_ts_ms);
-        self.last_trade_price = Some(event.price);
-        self.trades.push(event);
+        self.last_update_ms = Some(
+            self.last_update_ms
+                .unwrap_or(event.exchange_ts_ms)
+                .max(event.exchange_ts_ms),
+        );
+        if self
+            .last_trade_ts_ms
+            .is_none_or(|last_trade_ts_ms| event.exchange_ts_ms >= last_trade_ts_ms)
+        {
+            self.last_trade_ts_ms = Some(event.exchange_ts_ms);
+            self.last_trade_price = Some(event.price);
+        }
+
+        let insert_at = self
+            .trades
+            .partition_point(|trade| trade.exchange_ts_ms <= event.exchange_ts_ms);
+        self.trades.insert(insert_at, event);
+        self.enforce_trade_count_limit(trade_ids);
+    }
+
+    fn rebuild_trade_ids_if_needed(&self, trade_ids: &mut HashSet<String>) {
+        if trade_ids.len() != self.trades.len() {
+            trade_ids.clear();
+            trade_ids.extend(
+                self.trades
+                    .iter()
+                    .map(|trade| trade.unique_trade_id.clone()),
+            );
+        }
+    }
+
+    fn prune_trades_before(&mut self, cutoff_ms: i64, trade_ids: &mut HashSet<String>) {
+        let stale_count = self
+            .trades
+            .partition_point(|trade| trade.exchange_ts_ms < cutoff_ms);
+        for trade in self.trades.drain(..stale_count) {
+            trade_ids.remove(&trade.unique_trade_id);
+        }
+    }
+
+    fn enforce_trade_count_limit(&mut self, trade_ids: &mut HashSet<String>) {
+        let overflow = self
+            .trades
+            .len()
+            .saturating_sub(MAX_TRADE_EVENTS_PER_SYMBOL);
+        for trade in self.trades.drain(..overflow) {
+            trade_ids.remove(&trade.unique_trade_id);
+        }
     }
 
     fn apply_top_of_book(&mut self, event: TopOfBookEvent) {
-        self.last_update_ms = Some(event.exchange_ts_ms);
-        self.bid_px = event.bid_price;
-        self.bid_sz = event.bid_size;
-        self.ask_px = event.ask_price;
-        self.ask_sz = event.ask_size;
-        if let (Some(bid), Some(ask)) = (event.bid_price, event.ask_price) {
-            self.mid_px = Some((bid + ask) / 2.0);
+        let is_current = self
+            .bbo_events
+            .last()
+            .is_none_or(|latest| event.exchange_ts_ms >= latest.exchange_ts_ms);
+        self.last_update_ms = Some(
+            self.last_update_ms
+                .unwrap_or(event.exchange_ts_ms)
+                .max(event.exchange_ts_ms),
+        );
+        if is_current {
+            self.bid_px = event.bid_price;
+            self.bid_sz = event.bid_size;
+            self.ask_px = event.ask_price;
+            self.ask_sz = event.ask_size;
+            if let (Some(bid), Some(ask)) = (event.bid_price, event.ask_price) {
+                self.mid_px = Some((bid + ask) / 2.0);
+            }
         }
-        self.bbo_events.push(event);
+        let insert_at = self
+            .bbo_events
+            .partition_point(|quote| quote.exchange_ts_ms <= event.exchange_ts_ms);
+        self.bbo_events.insert(insert_at, event);
         if self.bbo_events.len() > MAX_BBO_EVENTS_PER_SYMBOL {
             let overflow = self.bbo_events.len() - MAX_BBO_EVENTS_PER_SYMBOL;
             self.bbo_events.drain(0..overflow);
@@ -403,5 +510,27 @@ impl SymbolMarketState {
             let overflow = self.candles.len() - MAX_CANDLE_EVENTS_PER_SYMBOL;
             self.candles.drain(0..overflow);
         }
+    }
+}
+
+#[cfg(test)]
+mod internal_tests {
+    use super::*;
+
+    #[test]
+    fn all_mids_does_not_track_symbols_outside_the_selected_universe() {
+        let mut state = LiveMarketState::new(["@107".to_owned()]);
+        let mids_by_hl_coin = (0..1_000)
+            .map(|index| (format!("unknown-{index}"), 1.0))
+            .collect();
+
+        state
+            .apply(MarketEvent::AllMids(AllMidsEvent {
+                recv_ts_ns: 1,
+                mids_by_hl_coin,
+            }))
+            .expect("unknown all-mids symbols are ignored");
+
+        assert!(state.latest_all_mids_recv_ns.is_empty());
     }
 }

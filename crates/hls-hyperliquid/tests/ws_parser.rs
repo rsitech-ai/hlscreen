@@ -128,6 +128,35 @@ fn parse_ws_message_ignores_control_channels() {
 }
 
 #[test]
+fn parse_ws_message_rejects_non_finite_market_numbers() {
+    for raw in [
+        r#"{"channel":"trades","data":[{"coin":"@107","side":"B","px":"NaN","sz":"2","time":1710000000000,"hash":"0xabc","tid":11}]}"#,
+        r#"{"channel":"activeAssetCtx","data":{"coin":"@107","ctx":{"dayNtlVlm":"Infinity","prevDayPx":"34.5","markPx":"35.5","midPx":"35.45"}}}"#,
+        r#"{"channel":"candle","data":{"t":1710000000000,"T":1710000059999,"s":"@107","i":"1m","o":"35.0","c":"35.2","h":"35.3","l":"34.9","v":"NaN","n":"42"}}"#,
+    ] {
+        let error = parse_ws_message(raw).expect_err("non-finite market data must be rejected");
+        assert!(error.to_string().contains("finite"), "{error}");
+    }
+}
+
+#[test]
+fn parse_ws_message_rejects_semantically_invalid_market_numbers() {
+    for raw in [
+        r#"{"channel":"trades","data":[{"coin":"@107","side":"B","px":"35","sz":"2","time":-1,"hash":"0xabc","tid":11}]}"#,
+        r#"{"channel":"bbo","data":{"coin":"@107","time":-1,"bbo":[{"px":"34.9","sz":"2","n":1},{"px":"35.1","sz":"3","n":1}]}}"#,
+        r#"{"channel":"activeAssetCtx","data":{"coin":"@107","ctx":{"dayNtlVlm":"-1","prevDayPx":"34.5","markPx":"35.5","midPx":"35.45"}}}"#,
+        r#"{"channel":"activeAssetCtx","data":{"coin":"@107","ctx":{"dayNtlVlm":"1","prevDayPx":"-34.5","markPx":"35.5","midPx":"35.45"}}}"#,
+        r#"{"channel":"candle","data":{"t":1710000000000,"T":1710000059999,"s":"@107","i":"1m","o":"35.0","c":"35.2","h":"35.3","l":"34.9","v":"-1","n":"42"}}"#,
+    ] {
+        let error = parse_ws_message(raw).expect_err("invalid market values must be rejected");
+        assert!(
+            error.to_string().contains("positive") || error.to_string().contains("non-negative"),
+            "{error}"
+        );
+    }
+}
+
+#[test]
 fn subscription_plan_counts_public_channels_and_preserves_headroom() {
     let plan = SubscriptionPlan::new(vec!["@107".to_owned(), "PURR/USDC".to_owned()])
         .with_streams([
@@ -145,6 +174,12 @@ fn subscription_plan_counts_public_channels_and_preserves_headroom() {
         .validate()
         .expect_err("budget violation is rejected");
     assert!(err.to_string().contains("subscription budget"));
+
+    let cap_bypass = SubscriptionPlan::new(vec!["@107".to_owned()]).with_max_subscriptions(1_001);
+    let err = cap_bypass
+        .validate()
+        .expect_err("caller cannot raise the official connection limit");
+    assert!(err.to_string().contains("official"));
 }
 
 #[test]
@@ -181,4 +216,23 @@ fn default_subscription_budget_covers_default_top_universe_with_headroom() {
 
     assert_eq!(too_many.subscription_count(), 984);
     assert!(too_many.validate().is_err());
+}
+
+#[test]
+fn global_all_mids_is_counted_once_for_large_universes() {
+    let symbols = (0..700).map(|index| format!("@{index}")).collect();
+    let plan = SubscriptionPlan::new(symbols)
+        .with_streams([StreamKind::AllMids, StreamKind::ActiveAssetCtx]);
+
+    assert_eq!(plan.subscription_count(), 701);
+    assert_eq!(plan.per_symbol_stream_count(), 1);
+    assert_eq!(plan.global_stream_count(), 1);
+    let messages = plan
+        .subscribe_messages()
+        .expect("large plan stays in budget");
+    assert_eq!(messages.len(), 701);
+    assert_eq!(
+        messages.first().map(String::as_str),
+        Some(r#"{"method":"subscribe","subscription":{"type":"allMids"}}"#)
+    );
 }

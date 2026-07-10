@@ -95,6 +95,45 @@ impl PtySession {
         duration_secs: Option<u64>,
         size: PtySize,
     ) -> Result<Self> {
+        Self::spawn_with_size_and_no_color_env(
+            binary,
+            fixture,
+            data_dir,
+            duration_secs,
+            size,
+            false,
+        )
+    }
+
+    fn spawn_with_no_color_env(
+        binary: &Path,
+        fixture: &Path,
+        data_dir: &Path,
+        duration_secs: Option<u64>,
+    ) -> Result<Self> {
+        Self::spawn_with_size_and_no_color_env(
+            binary,
+            fixture,
+            data_dir,
+            duration_secs,
+            PtySize {
+                rows: 40,
+                cols: 120,
+                pixel_width: 0,
+                pixel_height: 0,
+            },
+            true,
+        )
+    }
+
+    fn spawn_with_size_and_no_color_env(
+        binary: &Path,
+        fixture: &Path,
+        data_dir: &Path,
+        duration_secs: Option<u64>,
+        size: PtySize,
+        no_color_env: bool,
+    ) -> Result<Self> {
         let mut command = CommandBuilder::new("/bin/sh");
         command.arg("-c");
         command.arg(WRAPPER);
@@ -106,7 +145,11 @@ impl PtySession {
         command.env("TERM", "xterm-256color");
         command.env("COLORTERM", "truecolor");
         command.env("PATH", "/usr/bin:/bin");
-        command.env_remove("NO_COLOR");
+        if no_color_env {
+            command.env("NO_COLOR", "1");
+        } else {
+            command.env_remove("NO_COLOR");
+        }
         command.env_remove("FORCE_COLOR");
         command.env_remove("CLICOLOR_FORCE");
         command.env_remove("HLS_FORCE_COLOR");
@@ -407,6 +450,41 @@ impl Drop for PtySession {
         self.waiter_thread.take();
         self.reader_thread.take();
     }
+}
+
+#[test]
+fn explicit_color_overrides_inherited_no_color_in_a_real_pty() -> Result<()> {
+    let binary = assert_cmd::cargo::cargo_bin("hls");
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../tests/fixtures/hyperliquid/ws_mock_live.ndjson")
+        .canonicalize()
+        .context("canonical fixture path")?;
+    let data_dir = tempfile::tempdir()?;
+    let mut session =
+        PtySession::spawn_with_no_color_env(&binary, &fixture, data_dir.path(), Some(1))?;
+
+    session.wait_for("forced truecolor output", INITIAL_TIMEOUT, |bytes| {
+        contains(bytes, ALT_SCREEN_ENTER)
+            && contains(bytes, b"WATCHLIST")
+            && contains(bytes, TRUECOLOR_FOREGROUND)
+            && contains(bytes, TRUECOLOR_BACKGROUND)
+    })?;
+    session.wait_for("forced-color wrapper exit marker", EXIT_TIMEOUT, |bytes| {
+        contains(bytes, EXIT_MARKER)
+    })?;
+    let (transcript, status) = session.finish(EXIT_TIMEOUT)?;
+
+    ensure!(
+        status.success(),
+        "forced-color PTY child failed: {status:?}"
+    );
+    ensure!(marker_value(&transcript, "__HLS_EXIT_STATUS__=") == Some("0"));
+    assert_balanced_terminal_sequences(&transcript)?;
+    assert_stty_restored(&transcript)?;
+    ensure!(contains(&transcript, TRUECOLOR_FOREGROUND));
+    ensure!(contains(&transcript, TRUECOLOR_BACKGROUND));
+
+    Ok(())
 }
 
 #[test]

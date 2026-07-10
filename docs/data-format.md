@@ -34,6 +34,13 @@ normalized/events/run=<run-id>/part-000000.ndjson
 
 Each line is a serialized `MarketEvent`. This is the replay source used by `hls replay`.
 
+`run-id` values are unique recording identities. They are limited to 128 ASCII
+bytes and the characters `A-Z`, `a-z`, `0-9`, `.`, `-`, and `_`; path
+components and `.`/`..` are rejected before the data directory is created.
+Existing run IDs cannot be replaced. Registry file paths must remain relative
+normal paths beneath the configured data directory, and replay rejects
+absolute or parent-traversing entries.
+
 The local SQLite registry lives at:
 
 ```text
