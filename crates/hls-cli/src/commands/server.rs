@@ -34,6 +34,7 @@ const DEFAULT_WS_URL: &str = "wss://api.hyperliquid.xyz/ws";
 const DEFAULT_LIVE_DURATION_SECS: u64 = 60;
 const DEFAULT_REFRESH_SECS: u64 = 5;
 const DEFAULT_MAX_SUBSCRIPTIONS: usize = 980;
+const LIVE_API_PUBLISH_INTERVAL_MS: u64 = 250;
 
 #[derive(Debug, Args)]
 pub struct ServerArgs {
@@ -309,7 +310,10 @@ async fn drive_server_live_connection(
     heartbeat.tick().await;
     let mut refresh = interval(Duration::from_secs(args.refresh_secs.max(1)));
     refresh.tick().await;
+    let mut publish = interval(Duration::from_millis(LIVE_API_PUBLISH_INTERVAL_MS));
+    publish.tick().await;
     let mut last_message_at_ms = Some(connected_at_ms);
+    let mut dirty = false;
 
     loop {
         tokio::select! {
@@ -353,6 +357,25 @@ async fn drive_server_live_connection(
                     },
                     summary,
                 )?;
+                dirty = false;
+            }
+            _ = publish.tick(), if dirty => {
+                let age = last_message_at_ms.and_then(|last| message_age_ms(last).ok());
+                publish_api_snapshot(
+                    shared,
+                    state,
+                    metadata,
+                    fee_profile,
+                    ServerHealthStats {
+                        subscriptions: summary.subscriptions,
+                        last_message_age_ms: age,
+                        reconnects: summary.reconnects,
+                        data_gaps: summary.data_gaps,
+                        rows_written: summary.market_events,
+                    },
+                    summary,
+                )?;
+                dirty = false;
             }
             next = read.next() => {
                 let Some(next) = next else {
@@ -361,46 +384,14 @@ async fn drive_server_live_connection(
                 let message = next.context("read live API WebSocket message")?;
                 match message {
                     Message::Text(text) => {
-                        let changed = ingest_server_live_text(&text, state, summary)?;
+                        dirty |= ingest_server_live_text(&text, state, summary)?;
                         last_message_at_ms = Some(now_ms_i64()?);
-                        if changed {
-                            publish_api_snapshot(
-                                shared,
-                                state,
-                                metadata,
-                                fee_profile,
-                                ServerHealthStats {
-                                    subscriptions: summary.subscriptions,
-                                    last_message_age_ms: Some(0),
-                                    reconnects: summary.reconnects,
-                                    data_gaps: summary.data_gaps,
-                                    rows_written: summary.market_events,
-                                },
-                                summary,
-                            )?;
-                        }
                     }
                     Message::Binary(bytes) => {
                         let text = String::from_utf8(bytes.to_vec())
                             .map_err(|err| HlsError::Parse(format!("binary WebSocket message was not UTF-8: {err}")))?;
-                        let changed = ingest_server_live_text(&text, state, summary)?;
+                        dirty |= ingest_server_live_text(&text, state, summary)?;
                         last_message_at_ms = Some(now_ms_i64()?);
-                        if changed {
-                            publish_api_snapshot(
-                                shared,
-                                state,
-                                metadata,
-                                fee_profile,
-                                ServerHealthStats {
-                                    subscriptions: summary.subscriptions,
-                                    last_message_age_ms: Some(0),
-                                    reconnects: summary.reconnects,
-                                    data_gaps: summary.data_gaps,
-                                    rows_written: summary.market_events,
-                                },
-                                summary,
-                            )?;
-                        }
                     }
                     Message::Ping(payload) => {
                         write.send(Message::Pong(payload)).await.context("send live API pong")?;
@@ -439,6 +430,7 @@ fn publish_api_snapshot(
     let mut snapshots = feature_engine(fee_profile).snapshots(state, now_ms_i64()?);
     attach_metadata(&mut snapshots, metadata.to_vec());
     summary.rows = snapshots.len();
+    summary.api_publishes = summary.api_publishes.saturating_add(1);
     shared.replace(ApiState::new(health.snapshot(), snapshots))?;
     Ok(())
 }
@@ -452,6 +444,7 @@ struct ServerLiveSummary {
     rows: usize,
     reconnects: u64,
     data_gaps: u64,
+    api_publishes: u64,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -636,17 +629,17 @@ mod tests {
                 .await
                 .expect("subscription")
                 .expect("message");
-            websocket
-                .send(Message::Text(
-                    include_str!("../../../../tests/fixtures/hyperliquid/ws_mock_live.ndjson")
-                        .lines()
-                        .next()
-                        .expect("fixture trade")
-                        .to_owned()
-                        .into(),
-                ))
-                .await
-                .expect("send fixture event");
+            let trade = include_str!("../../../../tests/fixtures/hyperliquid/ws_mock_live.ndjson")
+                .lines()
+                .next()
+                .expect("fixture trade")
+                .to_owned();
+            for _ in 0..50 {
+                websocket
+                    .send(Message::Text(trade.clone().into()))
+                    .await
+                    .expect("send fixture event");
+            }
             tokio::time::sleep(Duration::from_secs(1)).await;
         });
         let args = ServerArgs {
@@ -733,6 +726,11 @@ mod tests {
 
         assert!(summary.market_events > 0);
         assert_eq!(summary.rows, 1, "deadline must publish the final state");
+        assert!(
+            summary.api_publishes <= 5,
+            "burst traffic must be coalesced instead of recomputing on every frame: {} publishes",
+            summary.api_publishes
+        );
         assert!(probe.await.expect("probe task").contains("@107"));
         let _ = shutdown_tx.send(());
         api_server

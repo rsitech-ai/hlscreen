@@ -10,6 +10,10 @@ inspection, but they do not provide the supported lifecycle, durable state,
 authentication, upgrade policy, or operational guarantees expected from a
 production service.
 
+The bounded live preview coalesces data-bearing WebSocket bursts into at most
+one full API snapshot recomputation every 250 ms. `--refresh-secs` remains the
+slower health refresh cadence; the final state is also published at shutdown.
+
 Experimental process-manager templates may exist in the repository while this
 work is developed. They are not an install path, release artifact, or evidence
 that unattended operation has been validated.
