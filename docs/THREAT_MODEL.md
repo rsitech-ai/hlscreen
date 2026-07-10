@@ -36,6 +36,8 @@
 | Malformed public payloads crash the tool | Typed parsing and error-returning parser tests |
 | Reconnect/replay duplicates inflate features | `unique_trade_id` idempotency |
 | Full-history windows create false freshness | Timestamp-bounded feature windows |
+| Crafted run IDs or registry paths escape the local data directory | Strict run-ID grammar, relative-path validation, symlink containment checks, and create-new writers |
+| Reusing a run or file identity overwrites prior evidence | Append-only SQLite inserts and create-new data files fail closed on collisions |
 | Invalid config appears safe | `hls doctor` fails closed on invalid existing config |
 | Local API path/query decoding bugs | UTF-8 percent decoding and JSON `400` responses |
 | Raw captures committed accidentally | `.gitignore` excludes `.hls/`, `data/`, compressed raw files, SQLite, and Parquet |

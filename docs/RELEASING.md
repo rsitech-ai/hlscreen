@@ -9,13 +9,15 @@ This project is pre-1.0. Use this checklist before tagging a public release.
    - No README, screenshot, or release note implies trading advice or profitability.
 2. Run validation.
    ```bash
-   cargo fmt --check
-   cargo clippy --workspace --all-targets --all-features -- -D warnings
-   cargo test --workspace --all-features
-   cargo build --release --workspace --all-features
+   cargo fmt --all -- --check
+   cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+   cargo test --workspace --all-features --locked
+   cargo build --release --workspace --all-features --locked
+   RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps --locked
+   cargo audit --deny warnings
    scripts/check-release-packaging.sh
    git diff --check
-   python3 scripts/generate-screenshots.py
+   python3 scripts/generate-screenshots.py --check
    ```
 3. Run fixture smokes.
    ```bash

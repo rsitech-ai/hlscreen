@@ -86,3 +86,14 @@ fn parses_public_token_details_numeric_strings_and_deploy_time() {
     assert_eq!(details.seeded_usdc, Some(1_250_000.0));
     assert_eq!(details.deploy_time_ms, Some(1_709_459_200_000));
 }
+
+#[test]
+fn token_details_reject_negative_supply_values() {
+    let error = parse_token_details(
+        "0x0000000000000000000000000000000000000150",
+        r#"{"maxSupply":"-1"}"#,
+    )
+    .expect_err("token supply cannot be negative");
+
+    assert!(error.to_string().contains("non-negative"));
+}

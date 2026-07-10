@@ -238,7 +238,7 @@ pub fn parse_spot_meta_and_asset_ctxs_with_details(
                 .and_then(|token_id| token_details.get(token_id));
             let circulating_supply = detail
                 .and_then(|detail| detail.circulating_supply)
-                .or(numeric_field(context, "circulatingSupply")?);
+                .or(numeric_field_non_negative(context, "circulatingSupply")?);
 
             Ok(SpotMarketContext {
                 metadata: MetadataEnrichment::from_public_input(MetadataEnrichmentInput {
@@ -262,10 +262,10 @@ pub fn parse_spot_meta_and_asset_ctxs_with_details(
                     now_ms,
                 }),
                 symbol,
-                day_ntl_vlm: numeric_field(context, "dayNtlVlm")?,
-                prev_day_px: numeric_field(context, "prevDayPx")?,
-                mark_px: numeric_field(context, "markPx")?,
-                mid_px: numeric_field(context, "midPx")?,
+                day_ntl_vlm: numeric_field_non_negative(context, "dayNtlVlm")?,
+                prev_day_px: numeric_field_positive(context, "prevDayPx")?,
+                mark_px: numeric_field_positive(context, "markPx")?,
+                mid_px: numeric_field_positive(context, "midPx")?,
                 circulating_supply,
             })
         })
@@ -455,9 +455,9 @@ fn parse_token_details_value(token_id: &str, value: &Value) -> HlsResult<PublicT
             ),
             _ => None,
         },
-        seeded_usdc: numeric_field(value, "seededUsdc")?,
-        max_supply: numeric_field(value, "maxSupply")?,
-        circulating_supply: numeric_field(value, "circulatingSupply")?,
+        seeded_usdc: numeric_field_non_negative(value, "seededUsdc")?,
+        max_supply: numeric_field_non_negative(value, "maxSupply")?,
+        circulating_supply: numeric_field_non_negative(value, "circulatingSupply")?,
     })
 }
 
@@ -466,7 +466,7 @@ fn numeric_field(value: &Value, field: &str) -> HlsResult<Option<f64>> {
         return Ok(None);
     };
 
-    match raw {
+    let parsed = match raw {
         Value::Null => Ok(None),
         Value::Number(number) => number
             .as_f64()
@@ -481,7 +481,34 @@ fn numeric_field(value: &Value, field: &str) -> HlsResult<Option<f64>> {
         other => Err(HlsError::Parse(format!(
             "field '{field}' must be a number or numeric string, got {other}"
         ))),
+    }?;
+
+    match parsed {
+        Some(value) if !value.is_finite() => {
+            Err(HlsError::Parse(format!("field '{field}' must be finite")))
+        }
+        _ => Ok(parsed),
     }
+}
+
+fn numeric_field_positive(value: &Value, field: &str) -> HlsResult<Option<f64>> {
+    let parsed = numeric_field(value, field)?;
+    if parsed.is_some_and(|value| value < 0.0) {
+        return Err(HlsError::Parse(format!(
+            "field '{field}' must be positive or a zero missing-value sentinel"
+        )));
+    }
+    Ok(parsed.filter(|value| *value > 0.0))
+}
+
+fn numeric_field_non_negative(value: &Value, field: &str) -> HlsResult<Option<f64>> {
+    let parsed = numeric_field(value, field)?;
+    if parsed.is_some_and(|value| value < 0.0) {
+        return Err(HlsError::Parse(format!(
+            "field '{field}' must be non-negative"
+        )));
+    }
+    Ok(parsed)
 }
 
 fn now_ms_i64() -> HlsResult<i64> {

@@ -309,7 +309,7 @@ fn live_renderer_uses_conservative_width_even_when_terminal_reports_wide() {
 
     assert!(table.contains("│ symbol"));
     assert!(table.contains("│ spr "));
-    assert!(table.contains("│ liq "));
+    assert!(table.contains("│ cost"));
     assert!(!table.contains("sprbp"));
     assert!(!table.contains("amihud"));
     for line in table.lines() {

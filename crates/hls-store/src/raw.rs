@@ -1,5 +1,5 @@
 use std::{
-    fs::{self, File},
+    fs::{self, File, OpenOptions},
     io::{BufRead, BufReader, Write},
     path::{Path, PathBuf},
 };
@@ -7,7 +7,10 @@ use std::{
 use hls_core::{HlsError, HlsResult};
 use serde::{Deserialize, Serialize};
 
-use crate::metadata::FileRegistryEntry;
+use crate::{
+    metadata::FileRegistryEntry,
+    paths::{prepare_data_file_path, validate_run_id},
+};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct RawMarketMessage {
@@ -57,11 +60,11 @@ impl RawWriter {
         max_uncompressed_bytes: usize,
     ) -> HlsResult<Self> {
         let data_dir = data_dir.as_ref().to_path_buf();
-        fs::create_dir_all(data_dir.join("raw/ws"))?;
-
+        let run_id = run_id.into();
+        validate_run_id(&run_id)?;
         Ok(Self {
             data_dir,
-            run_id: run_id.into(),
+            run_id,
             max_uncompressed_bytes: max_uncompressed_bytes.max(1),
             part: 0,
             current_rows: 0,
@@ -103,12 +106,11 @@ impl RawWriter {
         let Some(relative_path) = self.current_path.take() else {
             return Ok(());
         };
-        let full_path = self.data_dir.join(&relative_path);
-        if let Some(parent) = full_path.parent() {
-            fs::create_dir_all(parent)?;
-        }
-
-        let file = File::create(&full_path)?;
+        let full_path = prepare_data_file_path(&self.data_dir, &relative_path)?;
+        let file = OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&full_path)?;
         let mut encoder = zstd::stream::write::Encoder::new(file, 0)
             .map_err(|err| HlsError::External(format!("create zstd encoder: {err}")))?;
         for line in &self.current_lines {

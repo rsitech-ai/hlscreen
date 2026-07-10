@@ -10,6 +10,7 @@ use hls_hyperliquid::ws::parser::parse_ws_ndjson;
 use crate::{
     metadata::{FileRegistryEntry, MetadataRegistry, RecordingRun, SymbolRegistryEntry},
     normalized::NormalizedWriter,
+    paths::validate_run_id,
     raw::{RawMarketMessage, RawWriter},
 };
 
@@ -55,6 +56,7 @@ pub struct RecordSummary {
 }
 
 pub fn record_fixture_ndjson(raw_ndjson: &str, options: RecordOptions) -> HlsResult<RecordSummary> {
+    validate_run_id(&options.run_id)?;
     if !options.raw_enabled && !options.normalized_enabled {
         return Err(HlsError::Config(
             "recording requires --raw, --normalized, or both".to_owned(),
