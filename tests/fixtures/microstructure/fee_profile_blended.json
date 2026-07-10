@@ -1,0 +1,9 @@
+{
+  "name": "manual-blended-fee",
+  "maker_fee_hundredths_bps": 0,
+  "taker_fee_hundredths_bps": 2500,
+  "taker_fill_ratio_hundredths": 2500,
+  "slippage_buffer_hundredths_bps": 100,
+  "max_tradeable_round_trip_hundredths_bps": 6000,
+  "max_costly_round_trip_hundredths_bps": 8000
+}

@@ -11,15 +11,26 @@ use hls_core::{
 use hls_features::engine::{ConfidenceInputs, FeatureEngine};
 
 use crate::{
-    metadata::MetadataRegistry, normalized::read_normalized_events,
-    paths::resolve_registered_data_path,
+    metadata::{BackfillConfidenceImpact, MetadataRegistry},
+    normalized::read_normalized_events,
+    parquet::read_normalized_events_from_parquet,
+    paths::{resolve_registered_data_path, validate_run_id},
+    schema::StorageSchemaManifest,
 };
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum ReplayInputFormat {
+    #[default]
+    Jsonl,
+    Parquet,
+}
 
 #[derive(Clone, Debug)]
 pub struct ReplayOptions {
     pub data_dir: PathBuf,
     pub run_id: String,
     pub symbols: Vec<String>,
+    pub input_format: ReplayInputFormat,
 }
 
 impl ReplayOptions {
@@ -32,7 +43,13 @@ impl ReplayOptions {
             data_dir: data_dir.as_ref().to_path_buf(),
             run_id: run_id.into(),
             symbols,
+            input_format: ReplayInputFormat::Jsonl,
         }
+    }
+
+    pub fn with_input_format(mut self, input_format: ReplayInputFormat) -> Self {
+        self.input_format = input_format;
+        self
     }
 }
 
@@ -59,6 +76,7 @@ pub struct ReplayParityReport {
 }
 
 pub fn replay_run(options: ReplayOptions) -> HlsResult<ReplaySummary> {
+    validate_run_id(&options.run_id)?;
     let registry = MetadataRegistry::open(options.data_dir.join("hls.sqlite"))?;
     let Some(run) = registry.get_run(&options.run_id)? else {
         return Err(HlsError::Config(format!(
@@ -73,20 +91,13 @@ pub fn replay_run(options: ReplayOptions) -> HlsResult<ReplaySummary> {
         )));
     }
 
-    let files = registry.list_files(&options.run_id)?;
-    let mut events = Vec::new();
-    for file in files
-        .iter()
-        .filter(|file| file.event_type == "normalized_jsonl")
-    {
-        let path = resolve_registered_data_path(&options.data_dir, &file.path)?;
-        events.extend(read_normalized_events(path)?);
-    }
+    let events = read_replay_events(&options, &registry)?;
 
     if events.is_empty() {
         return Err(HlsError::Config(format!(
-            "recording run '{}' has no normalized events to replay",
-            options.run_id
+            "recording run '{}' has no {} normalized events to replay",
+            options.run_id,
+            replay_input_label(options.input_format)
         )));
     }
 
@@ -114,6 +125,48 @@ pub fn replay_run(options: ReplayOptions) -> HlsResult<ReplaySummary> {
         snapshot_ts_ms: now_ms,
         snapshots,
     })
+}
+
+fn read_replay_events(
+    options: &ReplayOptions,
+    registry: &MetadataRegistry,
+) -> HlsResult<Vec<MarketEvent>> {
+    let files = registry.list_files(&options.run_id)?;
+    let event_type = match options.input_format {
+        ReplayInputFormat::Jsonl => "normalized_jsonl",
+        ReplayInputFormat::Parquet => "normalized_parquet",
+    };
+
+    if options.input_format == ReplayInputFormat::Parquet {
+        let schema_path = format!("parquet/events/run={}/schema.json", options.run_id);
+        if !options.data_dir.join(&schema_path).exists() {
+            return Err(HlsError::Config(format!(
+                "recording run '{}' has no normalized-event Parquet schema manifest",
+                options.run_id
+            )));
+        }
+        let schema_path = resolve_registered_data_path(&options.data_dir, &schema_path)?;
+        StorageSchemaManifest::read_from_path(schema_path)?.validate_supported()?;
+    }
+
+    let mut events = Vec::new();
+    for file in files.iter().filter(|file| file.event_type == event_type) {
+        let path = resolve_registered_data_path(&options.data_dir, &file.path)?;
+        match options.input_format {
+            ReplayInputFormat::Jsonl => events.extend(read_normalized_events(path)?),
+            ReplayInputFormat::Parquet => {
+                events.extend(read_normalized_events_from_parquet(path)?);
+            }
+        }
+    }
+    Ok(events)
+}
+
+fn replay_input_label(input_format: ReplayInputFormat) -> &'static str {
+    match input_format {
+        ReplayInputFormat::Jsonl => "JSONL",
+        ReplayInputFormat::Parquet => "Parquet",
+    }
 }
 
 pub fn verify_or_insert_confidence_parity(
@@ -219,11 +272,25 @@ fn confidence_inputs_from_gaps(
 ) -> HlsResult<ConfidenceInputs> {
     let mut inputs = ConfidenceInputs::default();
     for gap in registry.list_gaps(run_id)? {
+        if gap.recovered || gap_has_restored_confidence(registry, run_id, &gap.gap_id)? {
+            continue;
+        }
         for symbol in gap.affected_symbols {
             inputs = inputs.with_gap_symbol(symbol);
         }
     }
     Ok(inputs)
+}
+
+fn gap_has_restored_confidence(
+    registry: &MetadataRegistry,
+    run_id: &str,
+    gap_id: &str,
+) -> HlsResult<bool> {
+    Ok(registry
+        .list_backfill_attempts_for_gap(run_id, gap_id)?
+        .into_iter()
+        .any(|attempt| attempt.confidence_impact == BackfillConfidenceImpact::Restored))
 }
 
 fn selected_symbols(events: &[MarketEvent]) -> Vec<String> {

@@ -1,0 +1,5 @@
+{"Trade":{"recv_ts_ns":1010000000,"exchange_ts_ms":1710000000000,"hl_coin":"@107","side":"Buy","price":35.0,"size":2.0,"notional":70.0,"hash":"0xabc","tid":11,"unique_trade_id":"@107:1710000000000:11"}}
+{"TopOfBook":{"recv_ts_ns":1010500000,"exchange_ts_ms":1710000000500,"hl_coin":"@107","bid_price":34.9,"bid_size":3.0,"bid_order_count":2,"ask_price":35.1,"ask_size":4.0,"ask_order_count":3}}
+{"AllMids":{"recv_ts_ns":1011000000,"mids_by_hl_coin":{"@107":35.0,"PURR/USDC":0.1248}}}
+{"AssetContext":{"recv_ts_ns":1011500000,"hl_coin":"@107","day_ntl_vlm":25000000.5,"prev_day_px":34.0,"mark_px":35.5,"mid_px":35.45,"circulating_supply":333000000.0}}
+{"Candle":{"recv_ts_ns":1012000000,"open_ts_ms":1710000000000,"close_ts_ms":1710000059999,"hl_coin":"@107","interval":"1m","open":34.5,"high":35.2,"low":34.4,"close":35.0,"volume_base":1200.0,"trade_count":42}}

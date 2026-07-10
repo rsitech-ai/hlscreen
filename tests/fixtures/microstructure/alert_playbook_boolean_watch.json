@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "id": "operator-boolean-watch",
+  "description": "Local read-only boolean grammar playbook.",
+  "rules": [
+    {
+      "id": "shock-or-wide-not-low-confidence",
+      "description": "Spread shock or wide spread while confidence is not low.",
+      "severity": "watch",
+      "condition": {
+        "type": "all",
+        "conditions": [
+          {
+            "type": "any",
+            "conditions": [
+              {
+                "type": "field_threshold",
+                "field": "spread_shock_bps",
+                "op": "gte",
+                "value": 250.0
+              },
+              {
+                "type": "field_threshold",
+                "field": "spread_bps",
+                "op": "gte",
+                "value": 300.0
+              }
+            ]
+          },
+          {
+            "type": "not",
+            "condition": {
+              "type": "field_threshold",
+              "field": "confidence_score",
+              "op": "lt",
+              "value": 50.0
+            }
+          }
+        ]
+      },
+      "cooldown_ms": 60000,
+      "source_interval_ms": 30000,
+      "action": "local_only"
+    }
+  ]
+}

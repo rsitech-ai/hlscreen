@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::confidence::DataConfidenceSnapshot;
 use crate::metadata::MetadataEnrichment;
+use crate::metrics::MicrostructureMetricSnapshot;
 use crate::score::ScoreBreakdown;
 use crate::{HlsError, HlsResult};
 
@@ -46,6 +47,22 @@ pub struct TopOfBookEvent {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OrderBookLevel {
+    pub price: f64,
+    pub size: f64,
+    pub order_count: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OrderBookEvent {
+    pub recv_ts_ns: u64,
+    pub exchange_ts_ms: i64,
+    pub hl_coin: String,
+    pub bids: Vec<OrderBookLevel>,
+    pub asks: Vec<OrderBookLevel>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct AssetContextEvent {
     pub recv_ts_ns: u64,
     pub hl_coin: String,
@@ -75,12 +92,68 @@ pub struct CandleEvent {
     pub close: f64,
     pub volume_base: f64,
     pub trade_count: u64,
+    #[serde(default)]
+    pub provenance: CandleProvenance,
+    #[serde(default)]
+    pub completion: CandleCompletion,
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CandleProvenance {
+    #[default]
+    WebSocket,
+    RestBootstrap,
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CandleCompletion {
+    #[default]
+    Open,
+    Closed,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CompositeCoverageState {
+    Healthy,
+    Partial,
+    Degraded,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CompositeVolumeSource {
+    ExactTrades,
+    CloseApproximation,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct CompositeCandle {
+    pub open_ts_ms: i64,
+    pub close_ts_ms: i64,
+    pub open: f64,
+    pub high: f64,
+    pub low: f64,
+    pub close: f64,
+    pub quote_volume: f64,
+    pub volume_source: CompositeVolumeSource,
+    pub contributing_symbols: usize,
+    pub requested_symbols: usize,
+    pub liquidity_weight_coverage: f64,
+    pub coverage_state: CompositeCoverageState,
+    pub advances: usize,
+    pub declines: usize,
+    pub unchanged: usize,
+    pub stale_symbols: usize,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum MarketEvent {
     Trade(TradeEvent),
     TopOfBook(TopOfBookEvent),
+    OrderBook(OrderBookEvent),
     AssetContext(AssetContextEvent),
     AllMids(AllMidsEvent),
     Candle(CandleEvent),
@@ -91,6 +164,7 @@ impl MarketEvent {
         match self {
             Self::Trade(event) => Some(&event.hl_coin),
             Self::TopOfBook(event) => Some(&event.hl_coin),
+            Self::OrderBook(event) => Some(&event.hl_coin),
             Self::AssetContext(event) => Some(&event.hl_coin),
             Self::AllMids(_) => None,
             Self::Candle(event) => Some(&event.hl_coin),
@@ -101,6 +175,7 @@ impl MarketEvent {
         match &mut self {
             Self::Trade(event) => event.recv_ts_ns = recv_ts_ns,
             Self::TopOfBook(event) => event.recv_ts_ns = recv_ts_ns,
+            Self::OrderBook(event) => event.recv_ts_ns = recv_ts_ns,
             Self::AssetContext(event) => event.recv_ts_ns = recv_ts_ns,
             Self::AllMids(event) => event.recv_ts_ns = recv_ts_ns,
             Self::Candle(event) => event.recv_ts_ns = recv_ts_ns,
@@ -112,6 +187,7 @@ impl MarketEvent {
         match self {
             Self::Trade(event) => event.recv_ts_ns,
             Self::TopOfBook(event) => event.recv_ts_ns,
+            Self::OrderBook(event) => event.recv_ts_ns,
             Self::AssetContext(event) => event.recv_ts_ns,
             Self::AllMids(event) => event.recv_ts_ns,
             Self::Candle(event) => event.recv_ts_ns,
@@ -170,6 +246,26 @@ impl TradeabilityState {
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct FeeAwareTradeabilitySnapshot {
+    pub profile_name: String,
+    pub state: TradeabilityState,
+    pub expected_round_trip_cost_bps: f64,
+    #[serde(default)]
+    pub maker_fee_bps: f64,
+    #[serde(default)]
+    pub taker_fee_bps: f64,
+    #[serde(default = "default_taker_fill_ratio")]
+    pub taker_fill_ratio: f64,
+    pub slippage_buffer_bps: f64,
+    pub max_tradeable_round_trip_bps: f64,
+    pub reason: String,
+}
+
+fn default_taker_fill_ratio() -> f64 {
+    1.0
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum AdverseSelectionProxy {
@@ -207,9 +303,12 @@ pub struct FeatureSnapshot {
     pub spread_recovery_ms: Option<i64>,
     pub resilience_state: LiquidityResilienceState,
     pub tradeability_state: TradeabilityState,
+    pub fee_aware_tradeability: Option<FeeAwareTradeabilitySnapshot>,
     pub adverse_selection_proxy: AdverseSelectionProxy,
     pub signed_notional_flow_30s: Option<f64>,
     pub bbo_ofi_proxy_30s: Option<f64>,
+    #[serde(default)]
+    pub microstructure_metrics: Vec<MicrostructureMetricSnapshot>,
     pub tob_depth_usd: Option<f64>,
     pub tob_imbalance: Option<f64>,
     pub ret_1m: Option<f64>,
@@ -292,6 +391,9 @@ impl LiveMarketState {
             MarketEvent::TopOfBook(event) => {
                 self.state_mut(&event.hl_coin)?.apply_top_of_book(event);
             }
+            MarketEvent::OrderBook(event) => {
+                self.state_mut(&event.hl_coin)?.apply_order_book(event);
+            }
             MarketEvent::AssetContext(event) => {
                 let hl_coin = event.hl_coin.clone();
                 self.state_mut(&hl_coin)?;
@@ -358,6 +460,7 @@ pub struct SymbolMarketState {
     pub candles: Vec<CandleEvent>,
     pub trades: Vec<TradeEvent>,
     pub bbo_events: Vec<TopOfBookEvent>,
+    pub order_book: Option<OrderBookEvent>,
     pub duplicate_trade_count: u64,
     pub last_update_ms: Option<i64>,
 }
@@ -379,6 +482,7 @@ impl SymbolMarketState {
             candles: Vec::new(),
             trades: Vec::new(),
             bbo_events: Vec::new(),
+            order_book: None,
             duplicate_trade_count: 0,
             last_update_ms: None,
         }
@@ -480,6 +584,23 @@ impl SymbolMarketState {
         }
     }
 
+    fn apply_order_book(&mut self, event: OrderBookEvent) {
+        if self
+            .order_book
+            .as_ref()
+            .is_some_and(|current| current.recv_ts_ns > event.recv_ts_ns)
+        {
+            return;
+        }
+
+        self.last_update_ms = Some(
+            self.last_update_ms
+                .unwrap_or(event.exchange_ts_ms)
+                .max(event.exchange_ts_ms),
+        );
+        self.order_book = Some(event);
+    }
+
     fn apply_asset_context(&mut self, event: AssetContextEvent) {
         let recv_ms = i64::try_from(event.recv_ts_ns / 1_000_000).unwrap_or(i64::MAX);
         self.day_ntl_vlm = event.day_ntl_vlm;
@@ -497,9 +618,17 @@ impl SymbolMarketState {
                 .unwrap_or(event.close_ts_ms)
                 .max(event.close_ts_ms),
         );
+        for candle in self.candles.iter_mut().filter(|candle| {
+            candle.interval == event.interval && candle.open_ts_ms < event.open_ts_ms
+        }) {
+            candle.completion = CandleCompletion::Closed;
+        }
         if let Some(existing) = self.candles.iter_mut().find(|candle| {
             candle.interval == event.interval && candle.open_ts_ms == event.open_ts_ms
         }) {
+            if existing.recv_ts_ns > event.recv_ts_ns {
+                return;
+            }
             *existing = event;
             return;
         }

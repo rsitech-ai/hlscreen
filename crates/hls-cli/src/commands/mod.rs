@@ -1,6 +1,11 @@
+pub mod alerts;
+pub mod analog;
 pub mod bench;
 pub mod doctor;
 pub mod explain;
+pub mod export_parquet;
+pub mod extension;
+pub(crate) mod fees;
 pub mod health;
 pub mod init;
 pub mod live;

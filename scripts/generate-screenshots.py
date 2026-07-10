@@ -110,6 +110,32 @@ def main(*, check: bool) -> None:
                 ],
             ),
             Screenshot(
+                filename="alert-history.svg",
+                title="Local alert evaluation and history",
+                commands=[
+                    [
+                        str(HLS),
+                        "alerts",
+                        "--symbol",
+                        "@107",
+                        "--fixture-file",
+                        "tests/fixtures/microstructure/thin_brittle_book.ndjson",
+                        "--playbook-file",
+                        "tests/fixtures/microstructure/alert_playbook_threshold_watch.json",
+                        "--alert-history-file",
+                        str(temp_dir / "alerts" / "history.jsonl"),
+                    ],
+                    [
+                        str(HLS),
+                        "alerts",
+                        "--history-file",
+                        str(temp_dir / "alerts" / "history.jsonl"),
+                        "--limit",
+                        "20",
+                    ]
+                ],
+            ),
+            Screenshot(
                 filename="why-ranked.svg",
                 title="Why ranked detail",
                 commands=[

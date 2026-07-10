@@ -3,7 +3,10 @@ use std::{fs, path::PathBuf};
 use anyhow::{Context, bail};
 use clap::Args;
 use hls_core::time::now_millis;
-use hls_store::recorder::{RecordOptions, record_fixture_ndjson};
+use hls_store::{
+    parquet::export_normalized_events_to_parquet,
+    recorder::{RecordOptions, record_fixture_ndjson},
+};
 
 #[derive(Debug, Args)]
 pub struct RecordArgs {
@@ -30,12 +33,6 @@ pub struct RecordArgs {
 }
 
 pub async fn run(args: RecordArgs) -> anyhow::Result<()> {
-    if args.parquet {
-        bail!(
-            "Parquet output is not implemented in this slice; use --normalized for replayable JSONL"
-        );
-    }
-
     let Some(fixture_file) = &args.fixture_file else {
         bail!(
             "network recording is not implemented in this slice; use --fixture-file for deterministic mock recording"
@@ -45,7 +42,8 @@ pub async fn run(args: RecordArgs) -> anyhow::Result<()> {
     let raw = fs::read_to_string(fixture_file)
         .with_context(|| format!("read {}", fixture_file.display()))?;
     let run_id = args.run_id.unwrap_or_else(default_run_id);
-    let (raw_enabled, normalized_enabled) = enabled_outputs(args.raw, args.normalized);
+    let (raw_enabled, normalized_enabled) =
+        enabled_outputs(args.raw, args.normalized || args.parquet);
     let options = RecordOptions::new(
         &args.data_dir,
         &run_id,
@@ -61,6 +59,13 @@ pub async fn run(args: RecordArgs) -> anyhow::Result<()> {
     println!("raw_files={}", summary.raw_files.len());
     println!("normalized_files={}", summary.normalized_files.len());
     println!("clean_shutdown={}", summary.clean_shutdown);
+    if args.parquet {
+        let parquet = export_normalized_events_to_parquet(&args.data_dir, &summary.run_id)
+            .with_context(|| format!("export '{}' to parquet", summary.run_id))?;
+        println!("parquet_file={}", parquet.path);
+        println!("parquet_rows={}", parquet.rows);
+        println!("parquet_bytes={}", parquet.bytes);
+    }
 
     Ok(())
 }

@@ -1,0 +1,37 @@
+{
+  "target": {
+    "symbol": "HYPE/USDC",
+    "snapshot_ts_ms": 1710000003000,
+    "spread_bps": 12.0,
+    "tob_imbalance": 0.42,
+    "signed_notional_flow_30s": 2100.0,
+    "bbo_ofi_proxy_30s": 1800.0,
+    "rv_5m": 0.70,
+    "liquidity_score": 72.0,
+    "momentum_score": 18.0
+  },
+  "candidates": [
+    {
+      "symbol": "PURR/USDC",
+      "snapshot_ts_ms": 1710000001000,
+      "spread_bps": 13.0,
+      "tob_imbalance": 0.40,
+      "signed_notional_flow_30s": 2050.0,
+      "bbo_ofi_proxy_30s": 1750.0,
+      "rv_5m": 0.72,
+      "liquidity_score": 71.0,
+      "momentum_score": 18.5
+    },
+    {
+      "symbol": "FAR/USDC",
+      "snapshot_ts_ms": 1710000002000,
+      "spread_bps": 180.0,
+      "tob_imbalance": -0.75,
+      "signed_notional_flow_30s": -9000.0,
+      "bbo_ofi_proxy_30s": -7500.0,
+      "rv_5m": 3.2,
+      "liquidity_score": 8.0,
+      "momentum_score": -40.0
+    }
+  ]
+}
