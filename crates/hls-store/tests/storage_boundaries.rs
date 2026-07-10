@@ -106,6 +106,40 @@ fn file_registry_rejects_entries_for_missing_runs() {
     assert!(registry.list_files("missing").expect("files").is_empty());
 }
 
+#[test]
+fn atomic_file_registration_rolls_back_every_entry_on_conflict() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let mut registry = MetadataRegistry::open(temp.path().join("hls.sqlite")).expect("registry");
+    registry
+        .insert_run(&RecordingRun::new("atomic-files", 1, false, true))
+        .expect("run insert");
+    let existing = FileRegistryEntry {
+        path: "parquet/events/run=atomic-files/existing.parquet".to_owned(),
+        event_type: "normalized_parquet".to_owned(),
+        symbol: None,
+        start_ts_ms: None,
+        end_ts_ms: None,
+        rows: 1,
+        bytes: 1,
+        created_at_ms: 1,
+        run_id: "atomic-files".to_owned(),
+    };
+    registry.insert_file(&existing).expect("existing file");
+    let fresh = FileRegistryEntry {
+        path: "parquet/features/run=atomic-files/fresh.parquet".to_owned(),
+        event_type: "feature_snapshot_parquet".to_owned(),
+        ..existing.clone()
+    };
+
+    registry
+        .insert_files_atomic(&[fresh.clone(), existing])
+        .expect_err("one conflict must roll back the whole file batch");
+
+    let files = registry.list_files("atomic-files").expect("files");
+    assert_eq!(files.len(), 1);
+    assert!(!files.iter().any(|file| file.path == fresh.path));
+}
+
 #[cfg(unix)]
 #[test]
 fn metadata_registry_rejects_symlinked_database_files() {

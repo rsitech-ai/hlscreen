@@ -63,6 +63,32 @@ pub fn export_normalized_events_to_parquet(
     run_id: &str,
 ) -> HlsResult<FileRegistryEntry> {
     let data_dir = data_dir.as_ref();
+    let prepared = prepare_normalized_events_export(data_dir, run_id)?;
+    let mut entries = commit_prepared_exports(data_dir, vec![prepared])?;
+    Ok(entries.remove(0))
+}
+
+pub fn export_feature_snapshots_to_parquet(
+    data_dir: impl AsRef<Path>,
+    run_id: &str,
+) -> HlsResult<FileRegistryEntry> {
+    let data_dir = data_dir.as_ref();
+    let prepared = prepare_feature_snapshots_export(data_dir, run_id)?;
+    let mut entries = commit_prepared_exports(data_dir, vec![prepared])?;
+    Ok(entries.remove(0))
+}
+
+pub fn export_all_to_parquet(
+    data_dir: impl AsRef<Path>,
+    run_id: &str,
+) -> HlsResult<Vec<FileRegistryEntry>> {
+    let data_dir = data_dir.as_ref();
+    let events = prepare_normalized_events_export(data_dir, run_id)?;
+    let features = prepare_feature_snapshots_export(data_dir, run_id)?;
+    commit_prepared_exports(data_dir, vec![events, features])
+}
+
+fn prepare_normalized_events_export(data_dir: &Path, run_id: &str) -> HlsResult<PreparedExport> {
     validate_run_id(run_id)?;
     let registry = MetadataRegistry::open(data_dir.join("hls.sqlite"))?;
     require_registered_run(&registry, run_id)?;
@@ -93,10 +119,11 @@ pub fn export_normalized_events_to_parquet(
 
     let pending_parquet = write_events_to_parquet_file(&events, &full_path)?;
     StorageSchemaManifest::current_for_normalized_events().write_to_path(&schema_path)?;
+    let pending_schema = PendingEvidenceFile::track(&schema_path);
 
-    let result = (|| {
-        let metadata = fs::metadata(&full_path)?;
-        let entry = FileRegistryEntry {
+    let metadata = fs::metadata(&full_path)?;
+    Ok(PreparedExport {
+        entry: FileRegistryEntry {
             path: relative_path,
             event_type: "normalized_parquet".to_owned(),
             symbol: None,
@@ -106,18 +133,13 @@ pub fn export_normalized_events_to_parquet(
             bytes: metadata.len(),
             created_at_ms: now_ms_i64()?,
             run_id: run_id.to_owned(),
-        };
-        registry.insert_file(&entry)?;
-        Ok(entry)
-    })();
-    finish_export(result, pending_parquet, &schema_path)
+        },
+        parquet: pending_parquet,
+        schema: pending_schema,
+    })
 }
 
-pub fn export_feature_snapshots_to_parquet(
-    data_dir: impl AsRef<Path>,
-    run_id: &str,
-) -> HlsResult<FileRegistryEntry> {
-    let data_dir = data_dir.as_ref();
+fn prepare_feature_snapshots_export(data_dir: &Path, run_id: &str) -> HlsResult<PreparedExport> {
     validate_run_id(run_id)?;
     let registry = MetadataRegistry::open(data_dir.join("hls.sqlite"))?;
     require_registered_run(&registry, run_id)?;
@@ -139,10 +161,11 @@ pub fn export_feature_snapshots_to_parquet(
         &full_path,
     )?;
     StorageSchemaManifest::current_for_feature_snapshots().write_to_path(&schema_path)?;
+    let pending_schema = PendingEvidenceFile::track(&schema_path);
 
-    let result = (|| {
-        let metadata = fs::metadata(&full_path)?;
-        let entry = FileRegistryEntry {
+    let metadata = fs::metadata(&full_path)?;
+    Ok(PreparedExport {
+        entry: FileRegistryEntry {
             path: relative_path,
             event_type: "feature_snapshot_parquet".to_owned(),
             symbol: None,
@@ -152,11 +175,10 @@ pub fn export_feature_snapshots_to_parquet(
             bytes: metadata.len(),
             created_at_ms: now_ms_i64()?,
             run_id: run_id.to_owned(),
-        };
-        registry.insert_file(&entry)?;
-        Ok(entry)
-    })();
-    finish_export(result, pending_parquet, &schema_path)
+        },
+        parquet: pending_parquet,
+        schema: pending_schema,
+    })
 }
 
 fn require_registered_run(registry: &MetadataRegistry, run_id: &str) -> HlsResult<()> {
@@ -189,27 +211,30 @@ fn reject_existing_export_paths(parquet_path: &Path, schema_path: &Path) -> HlsR
     Ok(())
 }
 
-fn finish_export(
-    result: HlsResult<FileRegistryEntry>,
-    pending_parquet: PendingEvidenceFile,
-    schema_path: &Path,
-) -> HlsResult<FileRegistryEntry> {
-    match result {
-        Ok(entry) => {
-            pending_parquet.commit();
-            Ok(entry)
-        }
-        Err(error) => {
-            let parquet_cleanup = pending_parquet.rollback();
-            let schema_cleanup = remove_if_present(schema_path);
-            if parquet_cleanup.is_ok() && schema_cleanup.is_ok() {
-                Err(error)
-            } else {
-                Err(HlsError::External(format!(
-                    "{error}; failed to fully roll back incomplete Parquet export"
-                )))
-            }
-        }
+fn commit_prepared_exports(
+    data_dir: &Path,
+    prepared: Vec<PreparedExport>,
+) -> HlsResult<Vec<FileRegistryEntry>> {
+    let entries = prepared
+        .iter()
+        .map(|export| export.entry.clone())
+        .collect::<Vec<_>>();
+    let mut registry = MetadataRegistry::open(data_dir.join("hls.sqlite"))?;
+    registry.insert_files_atomic(&entries)?;
+    Ok(prepared.into_iter().map(PreparedExport::commit).collect())
+}
+
+struct PreparedExport {
+    entry: FileRegistryEntry,
+    parquet: PendingEvidenceFile,
+    schema: PendingEvidenceFile,
+}
+
+impl PreparedExport {
+    fn commit(self) -> FileRegistryEntry {
+        self.parquet.commit();
+        self.schema.commit();
+        self.entry
     }
 }
 
@@ -230,13 +255,15 @@ impl PendingEvidenceFile {
         ))
     }
 
-    fn commit(mut self) {
-        self.committed = true;
+    fn track(path: &Path) -> Self {
+        Self {
+            path: path.to_owned(),
+            committed: false,
+        }
     }
 
-    fn rollback(mut self) -> std::io::Result<()> {
+    fn commit(mut self) {
         self.committed = true;
-        remove_if_present(&self.path)
     }
 }
 
@@ -245,14 +272,6 @@ impl Drop for PendingEvidenceFile {
         if !self.committed {
             let _ = fs::remove_file(&self.path);
         }
-    }
-}
-
-fn remove_if_present(path: &Path) -> std::io::Result<()> {
-    match fs::remove_file(path) {
-        Ok(()) => Ok(()),
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
-        Err(error) => Err(error),
     }
 }
 

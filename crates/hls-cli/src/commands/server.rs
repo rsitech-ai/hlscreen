@@ -361,14 +361,46 @@ async fn drive_server_live_connection(
                 let message = next.context("read live API WebSocket message")?;
                 match message {
                     Message::Text(text) => {
-                        ingest_server_live_text(&text, state, summary)?;
+                        let changed = ingest_server_live_text(&text, state, summary)?;
                         last_message_at_ms = Some(now_ms_i64()?);
+                        if changed {
+                            publish_api_snapshot(
+                                shared,
+                                state,
+                                metadata,
+                                fee_profile,
+                                ServerHealthStats {
+                                    subscriptions: summary.subscriptions,
+                                    last_message_age_ms: Some(0),
+                                    reconnects: summary.reconnects,
+                                    data_gaps: summary.data_gaps,
+                                    rows_written: summary.market_events,
+                                },
+                                summary,
+                            )?;
+                        }
                     }
                     Message::Binary(bytes) => {
                         let text = String::from_utf8(bytes.to_vec())
                             .map_err(|err| HlsError::Parse(format!("binary WebSocket message was not UTF-8: {err}")))?;
-                        ingest_server_live_text(&text, state, summary)?;
+                        let changed = ingest_server_live_text(&text, state, summary)?;
                         last_message_at_ms = Some(now_ms_i64()?);
+                        if changed {
+                            publish_api_snapshot(
+                                shared,
+                                state,
+                                metadata,
+                                fee_profile,
+                                ServerHealthStats {
+                                    subscriptions: summary.subscriptions,
+                                    last_message_age_ms: Some(0),
+                                    reconnects: summary.reconnects,
+                                    data_gaps: summary.data_gaps,
+                                    rows_written: summary.market_events,
+                                },
+                                summary,
+                            )?;
+                        }
                     }
                     Message::Ping(payload) => {
                         write.send(Message::Pong(payload)).await.context("send live API pong")?;
@@ -385,14 +417,15 @@ fn ingest_server_live_text(
     line: &str,
     state: &mut LiveMarketState,
     summary: &mut ServerLiveSummary,
-) -> anyhow::Result<()> {
+) -> anyhow::Result<bool> {
     summary.ws_messages = summary.ws_messages.saturating_add(1);
     let events = parse_ws_message(line)?;
+    let changed = !events.is_empty();
     summary.market_events = summary.market_events.saturating_add(events.len() as u64);
     for event in events {
         state.apply(event.with_recv_ts_ns(now_ns_u64()?))?;
     }
-    Ok(())
+    Ok(changed)
 }
 
 fn publish_api_snapshot(
@@ -588,6 +621,7 @@ fn now_ns_u64() -> anyhow::Result<u64> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
     use tokio_tungstenite::accept_async;
 
     #[tokio::test]
@@ -632,6 +666,46 @@ mod tests {
             simulate_health: None,
         };
         let shared = SharedApiState::new(ApiState::new(connecting_health().snapshot(), Vec::new()));
+        let api_listener = TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("API listener");
+        let api_address = api_listener.local_addr().expect("API address");
+        let (shutdown_tx, shutdown_rx) = oneshot::channel();
+        let api_server = tokio::spawn(serve_shared_until_shutdown(
+            api_listener,
+            shared.clone(),
+            async move {
+                let _ = shutdown_rx.await;
+            },
+        ));
+        let probe = tokio::spawn(async move {
+            let probe_deadline = tokio::time::Instant::now() + Duration::from_millis(600);
+            loop {
+                let mut stream = tokio::net::TcpStream::connect(api_address)
+                    .await
+                    .expect("connect API");
+                stream
+                    .write_all(
+                        b"GET /symbols HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n",
+                    )
+                    .await
+                    .expect("write request");
+                let mut response = Vec::new();
+                stream
+                    .read_to_end(&mut response)
+                    .await
+                    .expect("read response");
+                let response = String::from_utf8(response).expect("UTF-8 response");
+                if response.contains("@107") {
+                    return response;
+                }
+                assert!(
+                    tokio::time::Instant::now() < probe_deadline,
+                    "HTTP API did not expose the ingested row before the run deadline: {response}"
+                );
+                tokio::time::sleep(Duration::from_millis(20)).await;
+            }
+        });
         let mut state = LiveMarketState::new(["@107".to_owned()]);
         let mut summary = ServerLiveSummary {
             symbols: 1,
@@ -650,7 +724,7 @@ mod tests {
             &mut state,
             &[],
             None,
-            tokio::time::Instant::now() + Duration::from_millis(150),
+            tokio::time::Instant::now() + Duration::from_secs(1),
             now_ms_i64().expect("connected time"),
             &mut summary,
         )
@@ -659,9 +733,12 @@ mod tests {
 
         assert!(summary.market_events > 0);
         assert_eq!(summary.rows, 1, "deadline must publish the final state");
-        let snapshot = shared.snapshot().expect("API state");
-        let response = handle_get("/symbols", "", &snapshot).expect("symbols response");
-        assert!(response.body.contains("@107"));
+        assert!(probe.await.expect("probe task").contains("@107"));
+        let _ = shutdown_tx.send(());
+        api_server
+            .await
+            .expect("API server task")
+            .expect("API server result");
         peer.await.expect("peer task");
     }
 }

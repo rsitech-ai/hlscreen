@@ -252,14 +252,7 @@ impl MetadataRegistry {
     }
 
     pub fn insert_file(&self, file: &FileRegistryEntry) -> HlsResult<()> {
-        validate_run_id(&file.run_id)?;
-        validate_registered_data_path(&file.path)?;
-        if self.get_run(&file.run_id)?.is_none() {
-            return Err(HlsError::Config(format!(
-                "recording run '{}' was not found; file evidence cannot be registered without its run",
-                file.run_id
-            )));
-        }
+        self.validate_file_entry(file)?;
         self.conn
             .execute(
                 "INSERT INTO files (
@@ -278,6 +271,47 @@ impl MetadataRegistry {
                 ],
             )
             .map_err(sqlite_error)?;
+        Ok(())
+    }
+
+    pub fn insert_files_atomic(&mut self, files: &[FileRegistryEntry]) -> HlsResult<()> {
+        for file in files {
+            self.validate_file_entry(file)?;
+        }
+        let transaction = self.conn.transaction().map_err(sqlite_error)?;
+        for file in files {
+            transaction
+                .execute(
+                    "INSERT INTO files (
+                        path, event_type, symbol, start_ts_ms, end_ts_ms, rows, bytes, created_at_ms, run_id
+                    ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+                    params![
+                        file.path,
+                        file.event_type,
+                        file.symbol,
+                        file.start_ts_ms,
+                        file.end_ts_ms,
+                        file.rows,
+                        file.bytes,
+                        file.created_at_ms,
+                        file.run_id
+                    ],
+                )
+                .map_err(sqlite_error)?;
+        }
+        transaction.commit().map_err(sqlite_error)?;
+        Ok(())
+    }
+
+    fn validate_file_entry(&self, file: &FileRegistryEntry) -> HlsResult<()> {
+        validate_run_id(&file.run_id)?;
+        validate_registered_data_path(&file.path)?;
+        if self.get_run(&file.run_id)?.is_none() {
+            return Err(HlsError::Config(format!(
+                "recording run '{}' was not found; file evidence cannot be registered without its run",
+                file.run_id
+            )));
+        }
         Ok(())
     }
 
