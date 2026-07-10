@@ -20,7 +20,11 @@ use hls_hyperliquid::{
     },
 };
 use hls_server::{ApiState, SharedApiState, handle_get, serve_shared_until_shutdown};
-use tokio::{net::TcpListener, sync::oneshot, time::interval};
+use tokio::{
+    net::TcpListener,
+    sync::oneshot,
+    time::{MissedTickBehavior, interval},
+};
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 
 use crate::commands::{
@@ -310,7 +314,7 @@ async fn drive_server_live_connection(
     heartbeat.tick().await;
     let mut refresh = interval(Duration::from_secs(args.refresh_secs.max(1)));
     refresh.tick().await;
-    let mut publish = interval(Duration::from_millis(LIVE_API_PUBLISH_INTERVAL_MS));
+    let mut publish = live_api_publish_interval();
     publish.tick().await;
     let mut last_message_at_ms = Some(connected_at_ms);
     let mut dirty = false;
@@ -402,6 +406,12 @@ async fn drive_server_live_connection(
             }
         }
     }
+}
+
+fn live_api_publish_interval() -> tokio::time::Interval {
+    let mut publish = interval(Duration::from_millis(LIVE_API_PUBLISH_INTERVAL_MS));
+    publish.set_missed_tick_behavior(MissedTickBehavior::Skip);
+    publish
 }
 
 fn ingest_server_live_text(
@@ -618,7 +628,7 @@ mod tests {
     use tokio_tungstenite::accept_async;
 
     #[tokio::test]
-    async fn deadline_publishes_ingested_rows_before_long_refresh_interval() {
+    async fn idle_then_burst_is_coalesced_and_published_before_deadline() {
         let listener = TcpListener::bind("127.0.0.1:0").await.expect("listener");
         let address = listener.local_addr().expect("listener address");
         let peer = tokio::spawn(async move {
@@ -634,13 +644,14 @@ mod tests {
                 .next()
                 .expect("fixture trade")
                 .to_owned();
+            tokio::time::sleep(Duration::from_millis(750)).await;
             for _ in 0..50 {
                 websocket
                     .send(Message::Text(trade.clone().into()))
                     .await
                     .expect("send fixture event");
             }
-            tokio::time::sleep(Duration::from_secs(1)).await;
+            tokio::time::sleep(Duration::from_millis(1_250)).await;
         });
         let args = ServerArgs {
             bind: "127.0.0.1:0".to_owned(),
@@ -649,7 +660,7 @@ mod tests {
             symbols: Some("@107".to_owned()),
             top: 1,
             all_symbols: false,
-            duration_secs: 1,
+            duration_secs: 2,
             refresh_secs: 60,
             max_subscriptions: 10,
             ws_url: format!("ws://{address}"),
@@ -672,7 +683,7 @@ mod tests {
             },
         ));
         let probe = tokio::spawn(async move {
-            let probe_deadline = tokio::time::Instant::now() + Duration::from_millis(600);
+            let probe_deadline = tokio::time::Instant::now() + Duration::from_millis(1_400);
             loop {
                 let mut stream = tokio::net::TcpStream::connect(api_address)
                     .await
@@ -717,7 +728,7 @@ mod tests {
             &mut state,
             &[],
             None,
-            tokio::time::Instant::now() + Duration::from_secs(1),
+            tokio::time::Instant::now() + Duration::from_secs(2),
             now_ms_i64().expect("connected time"),
             &mut summary,
         )
@@ -727,8 +738,8 @@ mod tests {
         assert!(summary.market_events > 0);
         assert_eq!(summary.rows, 1, "deadline must publish the final state");
         assert!(
-            summary.api_publishes <= 5,
-            "burst traffic must be coalesced instead of recomputing on every frame: {} publishes",
+            summary.api_publishes <= 4,
+            "traffic after an idle period must be coalesced instead of consuming catch-up ticks: {} publishes",
             summary.api_publishes
         );
         assert!(probe.await.expect("probe task").contains("@107"));
@@ -738,5 +749,13 @@ mod tests {
             .expect("API server task")
             .expect("API server result");
         peer.await.expect("peer task");
+    }
+
+    #[tokio::test]
+    async fn live_api_publish_interval_skips_missed_ticks() {
+        assert_eq!(
+            live_api_publish_interval().missed_tick_behavior(),
+            MissedTickBehavior::Skip
+        );
     }
 }
