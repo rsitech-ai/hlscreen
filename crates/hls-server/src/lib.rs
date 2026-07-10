@@ -4,6 +4,7 @@ use std::{
     collections::BTreeMap,
     future::Future,
     sync::{Arc, RwLock},
+    time::Duration,
 };
 
 use hls_core::{HlsError, HlsResult, health::HealthSnapshot, market_state::FeatureSnapshot};
@@ -12,7 +13,14 @@ use serde_json::json;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::{TcpListener, TcpStream},
+    sync::Semaphore,
+    task::JoinSet,
+    time::timeout,
 };
+
+const MAX_CONCURRENT_CONNECTIONS: usize = 64;
+const MAX_REQUEST_BYTES: usize = 16 * 1024;
+const REQUEST_HEADER_TIMEOUT: Duration = Duration::from_secs(5);
 
 #[derive(Clone, Debug)]
 pub struct ApiState {
@@ -94,15 +102,33 @@ pub async fn serve_shared_until_shutdown(
     shutdown: impl Future<Output = ()>,
 ) -> HlsResult<()> {
     tokio::pin!(shutdown);
+    let permits = Arc::new(Semaphore::new(MAX_CONCURRENT_CONNECTIONS));
+    let mut connections = JoinSet::new();
 
     loop {
         tokio::select! {
-            () = &mut shutdown => return Ok(()),
+            () = &mut shutdown => {
+                connections.abort_all();
+                while connections.join_next().await.is_some() {}
+                return Ok(());
+            },
+            Some(joined) = connections.join_next(), if !connections.is_empty() => {
+                if let Err(error) = joined {
+                    eprintln!("HTTP connection task failed: {error}");
+                }
+            },
             accepted = listener.accept() => {
                 let (stream, _) = accepted?;
+                let Ok(permit) = permits.clone().try_acquire_owned() else {
+                    drop(stream);
+                    continue;
+                };
                 let state = state.clone();
-                tokio::spawn(async move {
-                    let _ = serve_connection(stream, state).await;
+                connections.spawn(async move {
+                    let _permit = permit;
+                    if let Err(error) = serve_connection(stream, state).await {
+                        eprintln!("HTTP connection failed: {error}");
+                    }
                 });
             }
         }
@@ -110,7 +136,10 @@ pub async fn serve_shared_until_shutdown(
 }
 
 async fn serve_connection(mut stream: TcpStream, state: SharedApiState) -> HlsResult<()> {
-    let request = read_http_request(&mut stream).await?;
+    let request = match timeout(REQUEST_HEADER_TIMEOUT, read_http_request(&mut stream)).await {
+        Ok(request) => request?,
+        Err(_) => ParsedRequest::Malformed("request header timeout".to_owned()),
+    };
     let response = match request {
         ParsedRequest::Get { path, query } => {
             let snapshot = state.snapshot()?;
@@ -148,7 +177,6 @@ enum ParsedRequest {
 }
 
 async fn read_http_request(stream: &mut TcpStream) -> HlsResult<ParsedRequest> {
-    const MAX_REQUEST_BYTES: usize = 16 * 1024;
     let mut buffer = Vec::with_capacity(1024);
 
     loop {
@@ -158,13 +186,13 @@ async fn read_http_request(stream: &mut TcpStream) -> HlsResult<ParsedRequest> {
             break;
         }
         buffer.extend_from_slice(&chunk[..read]);
-        if buffer.windows(4).any(|window| window == b"\r\n\r\n") {
-            break;
-        }
         if buffer.len() > MAX_REQUEST_BYTES {
             return Ok(ParsedRequest::Malformed(
                 "request header too large".to_owned(),
             ));
+        }
+        if buffer.windows(4).any(|window| window == b"\r\n\r\n") {
+            break;
         }
     }
 
@@ -260,11 +288,29 @@ fn handle_symbol(path: &str, state: &ApiState) -> HlsResult<ApiResponse> {
         Ok(symbol) => symbol,
         Err(error) => return json_response(400, &json!({ "error": error.to_string() })),
     };
-    let Some(row) = state.rows.iter().find(|row| row.symbol == symbol) else {
+    let Some(row) = state
+        .rows
+        .iter()
+        .find(|row| row_matches_symbol_selector(row, &symbol))
+    else {
         return json_response(404, &json!({ "error": "not found" }));
     };
 
     json_response(200, row)
+}
+
+fn row_matches_symbol_selector(row: &FeatureSnapshot, selector: &str) -> bool {
+    if row.symbol.eq_ignore_ascii_case(selector) {
+        return true;
+    }
+    row.metadata.as_ref().is_some_and(|metadata| {
+        metadata.feed_identifier.eq_ignore_ascii_case(selector)
+            || pair_selector_eq(&metadata.display_name, selector)
+    })
+}
+
+fn pair_selector_eq(left: &str, right: &str) -> bool {
+    left.eq_ignore_ascii_case(right) || left.eq_ignore_ascii_case(&right.trim().replace('-', "/"))
 }
 
 fn parse_query(query: &str) -> HlsResult<BTreeMap<String, String>> {
