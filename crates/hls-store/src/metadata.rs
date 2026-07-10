@@ -460,6 +460,60 @@ impl MetadataRegistry {
         Ok(())
     }
 
+    pub fn insert_backfill_result_atomic(
+        &mut self,
+        file: Option<&FileRegistryEntry>,
+        attempt: &BackfillAttemptRecord,
+    ) -> HlsResult<()> {
+        if let Some(file) = file {
+            self.validate_file_entry(file)?;
+        }
+        let transaction = self.conn.transaction().map_err(sqlite_error)?;
+        if let Some(file) = file {
+            transaction
+                .execute(
+                    "INSERT INTO files (
+                        path, event_type, symbol, start_ts_ms, end_ts_ms, rows, bytes, created_at_ms, run_id
+                    ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+                    params![
+                        file.path,
+                        file.event_type,
+                        file.symbol,
+                        file.start_ts_ms,
+                        file.end_ts_ms,
+                        file.rows,
+                        file.bytes,
+                        file.created_at_ms,
+                        file.run_id
+                    ],
+                )
+                .map_err(sqlite_error)?;
+        }
+        transaction
+            .execute(
+                "INSERT INTO backfill_attempts (
+                    attempt_id, run_id, gap_id, source, requested_start_ns, requested_end_ns,
+                    attempted_at_ms, status, rows_written, confidence_impact, notes
+                ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+                params![
+                    attempt.attempt_id,
+                    attempt.run_id,
+                    attempt.gap_id,
+                    attempt.source,
+                    attempt.requested_start_ns,
+                    attempt.requested_end_ns,
+                    attempt.attempted_at_ms,
+                    attempt.status.as_str(),
+                    attempt.rows_written,
+                    attempt.confidence_impact.as_str(),
+                    attempt.notes
+                ],
+            )
+            .map_err(sqlite_error)?;
+        transaction.commit().map_err(sqlite_error)?;
+        Ok(())
+    }
+
     pub fn list_backfill_attempts(&self, run_id: &str) -> HlsResult<Vec<BackfillAttemptRecord>> {
         let mut stmt = self
             .conn

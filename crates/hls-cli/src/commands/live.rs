@@ -77,6 +77,7 @@ use tokio_tungstenite::{connect_async, tungstenite::Message};
 
 use crate::commands::metadata::{attach_metadata, load_metadata_enrichments};
 use crate::commands::record::{default_run_id, enabled_outputs, parse_symbols};
+use crate::commands::ws_rate_limit::RollingMessageRateLimiter;
 
 const DEFAULT_WS_URL: &str = "wss://api.hyperliquid.xyz/ws";
 const DEFAULT_LIVE_DURATION_SECS: u64 = 60;
@@ -93,8 +94,6 @@ const TUI_KEY_POLL_MS: u64 = 100;
 const MAX_TUI_EVENTS_PER_SYMBOL: usize = 64;
 const WS_MARKET_DATA_TIMEOUT: Duration = Duration::from_secs(60);
 const WS_MARKET_DATA_CHECK_INTERVAL: Duration = Duration::from_secs(5);
-const WS_OUTBOUND_RATE_WINDOW: Duration = Duration::from_secs(60);
-const WS_SUBSCRIPTION_RATE_BUDGET: usize = 1_900;
 const TUI_PREFERENCES_FILE: &str = "tui-preferences.toml";
 const MAX_DEFERRED_LIVE_DIAGNOSTICS: usize = 8;
 
@@ -1292,37 +1291,6 @@ enum CancellableSendOutcome<T> {
     Stopped(LiveStopReason),
 }
 
-#[derive(Default)]
-struct SubscriptionRateLimiter {
-    sent_at: VecDeque<tokio::time::Instant>,
-}
-
-impl SubscriptionRateLimiter {
-    fn next_available_at(&mut self, now: tokio::time::Instant) -> Option<tokio::time::Instant> {
-        self.prune(now);
-        let blocking_index = self
-            .sent_at
-            .len()
-            .checked_sub(WS_SUBSCRIPTION_RATE_BUDGET)?;
-        self.sent_at
-            .get(blocking_index)
-            .and_then(|sent_at| sent_at.checked_add(WS_OUTBOUND_RATE_WINDOW))
-    }
-
-    fn record(&mut self, now: tokio::time::Instant) {
-        self.prune(now);
-        self.sent_at.push_back(now);
-    }
-
-    fn prune(&mut self, now: tokio::time::Instant) {
-        while self.sent_at.front().is_some_and(|sent_at| {
-            now.saturating_duration_since(*sent_at) >= WS_OUTBOUND_RATE_WINDOW
-        }) {
-            self.sent_at.pop_front();
-        }
-    }
-}
-
 async fn cancellable_send<SendFuture, StopFuture>(
     send_future: SendFuture,
     stop_future: StopFuture,
@@ -1441,7 +1409,7 @@ async fn drive_live_ws(
     };
     let mut conn_id = 0;
     let mut reconnect_attempt = 0;
-    let mut subscription_rate_limiter = SubscriptionRateLimiter::default();
+    let mut subscription_rate_limiter = RollingMessageRateLimiter::default();
     loop {
         if lifetime.has_expired_by(tokio::time::Instant::now()) {
             summary.mark_stopped(LiveStopReason::DurationElapsed);
@@ -1559,7 +1527,7 @@ async fn drive_live_ws(
 async fn drive_live_connection(
     ws_url: &str,
     subscription_messages: &[String],
-    subscription_rate_limiter: &mut SubscriptionRateLimiter,
+    subscription_rate_limiter: &mut RollingMessageRateLimiter,
     conn_id: u64,
     lifetime: LiveRunLifetime,
     started: Instant,
@@ -4229,7 +4197,7 @@ mod tests {
     #[test]
     fn reconnect_subscriptions_respect_a_rolling_outbound_rate_window() {
         let started = tokio::time::Instant::now();
-        let mut limiter = SubscriptionRateLimiter::default();
+        let mut limiter = RollingMessageRateLimiter::default();
 
         for _ in 0..924 {
             assert_eq!(limiter.next_available_at(started), None);
@@ -4248,10 +4216,12 @@ mod tests {
 
         assert_eq!(
             limiter.next_available_at(third_batch),
-            Some(started + WS_OUTBOUND_RATE_WINDOW)
+            Some(started + crate::commands::ws_rate_limit::WS_OUTBOUND_RATE_WINDOW)
         );
         assert_eq!(
-            limiter.next_available_at(started + WS_OUTBOUND_RATE_WINDOW),
+            limiter.next_available_at(
+                started + crate::commands::ws_rate_limit::WS_OUTBOUND_RATE_WINDOW
+            ),
             None
         );
     }

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import html
+import os
 import re
 import shlex
 import subprocess
@@ -16,7 +17,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT_DIR = ROOT / "docs" / "assets" / "screenshots"
-HLS = ROOT / "target" / "debug" / "hls"
+TARGET_DIR = Path(os.environ.get("CARGO_TARGET_DIR", ROOT / "target"))
+if not TARGET_DIR.is_absolute():
+    TARGET_DIR = ROOT / TARGET_DIR
+HLS = TARGET_DIR / "debug" / "hls"
 FIXTURE = "tests/fixtures/hyperliquid/ws_mock_live.ndjson"
 MAX_COLS = 152
 CHAR_WIDTH = 8.4

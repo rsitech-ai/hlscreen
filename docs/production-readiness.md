@@ -29,6 +29,29 @@ Not included:
 
 ## Latest Live Validation
 
+Run: `audit-allpairs-20260710-15m`
+
+Current post-merge evidence:
+
+- Duration: `899` measured seconds (`--duration-secs 900`)
+- Symbols: `310`
+- Public subscriptions: `931` (`allMids` plus per-symbol trades, BBO, and active asset context)
+- Raw WebSocket messages: `286,205`
+- Normalized market events: `294,144`
+- Raw files: `13`
+- Normalized files: `1`
+- Registered files: `14`
+- Reconnects: `0`
+- Data gaps: `0`
+- SQLite clean shutdown: `true`
+- Replay confidence rows: `310`
+- Replay drift/missing/extra: `0 / 0 / 0`
+
+The exact command, official-document checks, code-review findings, and gate
+results are in the [2026-07-10 post-merge production audit](reports/2026-07-10-post-merge-production-audit.md).
+
+Earlier five-minute evidence remains below for comparison.
+
 Run: `allpairs-prodreadiness-20260708-201752`
 
 Command:

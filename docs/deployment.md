@@ -15,6 +15,20 @@ one full API snapshot recomputation every 250 ms and skips timer catch-up after
 idle or scheduler stalls. `--refresh-secs` remains the slower health refresh
 cadence; the final state is also published at shutdown.
 
+The preview also keeps all outbound WebSocket messages under a rolling
+`1,900`-per-60-second budget, applies exponential reconnect delay from one
+second to a 30-second cap, and includes connection establishment, outbound
+writes, and rate-limit waits in the bounded duration. The loopback HTTP listener
+allows at most 64 concurrent connection tasks, limits request headers to 16
+KiB, times out incomplete headers after five seconds, and aborts outstanding
+connection tasks on shutdown. These are local resource and lifecycle guards;
+they do not turn the preview into a supported hosted service.
+
+Symbol detail routes accept the user-facing pair (`HYPE/USDC` or
+`hype-usdc`) and Hyperliquid's transport feed identifier (`@107`). Returned
+rows preserve the transport identifier in `symbol` and expose the display pair
+through public metadata.
+
 Experimental process-manager templates may exist in the repository while this
 work is developed. They are not an install path, release artifact, or evidence
 that unattended operation has been validated.
