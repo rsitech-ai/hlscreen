@@ -7,6 +7,8 @@ use hls_core::{
 use rusqlite::{Connection, OptionalExtension, params, types::Type};
 use serde::{Deserialize, Serialize};
 
+use crate::paths::{validate_registered_data_path, validate_run_id};
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct RecordingRun {
     pub run_id: String,
@@ -109,9 +111,16 @@ impl MetadataRegistry {
     }
 
     pub fn insert_run(&self, run: &RecordingRun) -> HlsResult<()> {
+        validate_run_id(&run.run_id)?;
+        if self.get_run(&run.run_id)?.is_some() {
+            return Err(HlsError::Config(format!(
+                "recording run '{}' already exists; choose a unique --run-id to preserve existing evidence",
+                run.run_id
+            )));
+        }
         self.conn
             .execute(
-                "INSERT OR REPLACE INTO runs (
+                "INSERT INTO runs (
                     run_id, started_at_ms, ended_at_ms, config_hash, app_version, git_sha,
                     raw_enabled, normalized_enabled, clean_shutdown, gap_count
                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
@@ -161,9 +170,11 @@ impl MetadataRegistry {
     }
 
     pub fn insert_file(&self, file: &FileRegistryEntry) -> HlsResult<()> {
+        validate_run_id(&file.run_id)?;
+        validate_registered_data_path(&file.path)?;
         self.conn
             .execute(
-                "INSERT OR REPLACE INTO files (
+                "INSERT INTO files (
                     path, event_type, symbol, start_ts_ms, end_ts_ms, rows, bytes, created_at_ms, run_id
                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
                 params![

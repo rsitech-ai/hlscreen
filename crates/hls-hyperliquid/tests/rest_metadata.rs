@@ -57,3 +57,44 @@ fn universe_selection_applies_include_and_exclude_by_display_or_feed_id() {
     assert_eq!(selected.len(), 1);
     assert_eq!(selected[0].symbol.display_name, "TEST/USDC");
 }
+
+#[test]
+fn spot_context_parser_rejects_non_finite_numeric_strings() {
+    let raw = include_str!("../../../tests/fixtures/hyperliquid/spot_meta_and_asset_ctxs.json")
+        .replacen("25000000.5", "NaN", 1);
+
+    let error = parse_spot_meta_and_asset_ctxs(&raw)
+        .expect_err("non-finite public REST values must not enter ranking state");
+
+    assert!(error.to_string().contains("finite"));
+}
+
+#[test]
+fn spot_context_parser_rejects_negative_volume_and_prices() {
+    let fixture = include_str!("../../../tests/fixtures/hyperliquid/spot_meta_and_asset_ctxs.json");
+    for raw in [
+        fixture.replacen("25000000.5", "-1", 1),
+        fixture.replacen("35.50", "-1", 1),
+    ] {
+        let error = parse_spot_meta_and_asset_ctxs(&raw)
+            .expect_err("negative public REST values must not enter market state");
+        assert!(
+            error.to_string().contains("positive") || error.to_string().contains("non-negative"),
+            "{error}"
+        );
+    }
+}
+
+#[test]
+fn spot_context_parser_treats_zero_price_sentinels_as_missing() {
+    let raw = include_str!("../../../tests/fixtures/hyperliquid/spot_meta_and_asset_ctxs.json")
+        .replacen("\"prevDayPx\": \"34.00\"", "\"prevDayPx\": \"0.0\"", 1);
+    let markets = parse_spot_meta_and_asset_ctxs(&raw)
+        .expect("zero price sentinel should not invalidate the complete universe");
+    let hype = markets
+        .iter()
+        .find(|market| market.symbol.hl_coin == "@107")
+        .expect("HYPE market");
+
+    assert_eq!(hype.prev_day_px, None);
+}

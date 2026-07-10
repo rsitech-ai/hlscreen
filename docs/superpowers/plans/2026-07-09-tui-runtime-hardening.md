@@ -6,7 +6,7 @@
 
 **Architecture:** Keep public market ingestion, screening, scoring, recording formats, and Ratatui layouts unchanged. Add explicit session lifetime and stop-reason types around the existing WebSocket loop, make terminal and recorder ownership RAII-safe, and exercise the exact terminal path through a fixture-backed interactive session in a pseudo-terminal.
 
-**Tech Stack:** Rust 2024, Tokio, Ratatui 0.29, Crossterm 0.29, Clap 4.5, `portable-pty` as a test-only dependency, existing fixture and workspace crates.
+**Tech Stack:** Rust 2024, Tokio, Ratatui 0.30.2, Crossterm 0.29, Clap 4.5, `portable-pty` as a test-only dependency, existing fixture and workspace crates.
 
 ## Global Constraints
 

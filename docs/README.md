@@ -12,6 +12,7 @@ Start with the public README, then use these files for deeper implementation and
 - [Release checklist](RELEASING.md)
 - [Open source checklist](OPEN_SOURCE_CHECKLIST.md)
 - [Latest production-readiness live refresh](reports/2026-07-08-production-readiness-live-refresh.md)
+- [Latest end-to-end release audit](reports/2026-07-10-end-to-end-release-audit.md)
 - [All-data E2E audit](reports/2026-07-08-all-data-e2e-audit.md)
 - [Pre-merge audit](reports/2026-07-08-pre-merge-audit.md)
 

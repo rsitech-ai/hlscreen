@@ -65,3 +65,12 @@ fn parses_score_component_fields_with_dot_notation() {
         }
     );
 }
+
+#[test]
+fn rejects_non_finite_numeric_literals() {
+    let huge = "9".repeat(400);
+    let error =
+        parse_filter(&format!("price > {huge}")).expect_err("filter literals must remain finite");
+
+    assert!(error.to_string().contains("finite"));
+}
