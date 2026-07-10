@@ -33,7 +33,7 @@ use crate::commands::{
     health::simulated_health,
     metadata::{attach_metadata, load_metadata_enrichments},
     record::parse_symbols,
-    ws_rate_limit::RollingMessageRateLimiter,
+    ws_rate_limit::{RollingMessageRateLimiter, RollingRateLimiter, WS_OUTBOUND_RATE_WINDOW},
 };
 
 const DEFAULT_WS_URL: &str = "wss://api.hyperliquid.xyz/ws";
@@ -43,6 +43,7 @@ const DEFAULT_MAX_SUBSCRIPTIONS: usize = 980;
 const LIVE_API_PUBLISH_INTERVAL_MS: u64 = 250;
 const SERVER_RECONNECT_INITIAL_BACKOFF_MS: u64 = 1_000;
 const SERVER_RECONNECT_MAX_BACKOFF_MS: u64 = 30_000;
+const SERVER_CONNECTION_RATE_BUDGET: usize = 29;
 
 #[derive(Debug, Args)]
 pub struct ServerArgs {
@@ -254,6 +255,8 @@ async fn publish_network_live_api(
     };
     let mut reconnect_attempt = 0;
     let mut outbound_rate_limiter = RollingMessageRateLimiter::default();
+    let mut connection_rate_limiter =
+        RollingRateLimiter::new(SERVER_CONNECTION_RATE_BUDGET, WS_OUTBOUND_RATE_WINDOW);
 
     while tokio::time::Instant::now() < deadline {
         let connected_at_ms = now_ms_i64()?;
@@ -269,6 +272,7 @@ async fn publish_network_live_api(
             connected_at_ms,
             &mut summary,
             &mut outbound_rate_limiter,
+            &mut connection_rate_limiter,
         )
         .await
         {
@@ -338,7 +342,21 @@ async fn drive_server_live_connection(
     connected_at_ms: i64,
     summary: &mut ServerLiveSummary,
     outbound_rate_limiter: &mut RollingMessageRateLimiter,
+    connection_rate_limiter: &mut RollingRateLimiter,
 ) -> anyhow::Result<()> {
+    if !wait_for_rate_limit_slot(connection_rate_limiter, deadline).await {
+        publish_final_api_snapshot(
+            shared,
+            state,
+            metadata,
+            fee_profile,
+            summary,
+            None,
+            ConnectionState::Connecting,
+        )?;
+        return Ok(());
+    }
+    connection_rate_limiter.record(tokio::time::Instant::now());
     let connected = tokio::select! {
         connected = connect_async(&args.ws_url) => Some(connected),
         _ = tokio::time::sleep_until(deadline) => None,
@@ -525,12 +543,8 @@ async fn send_rate_limited<S>(
 where
     S: Sink<Message, Error = tokio_tungstenite::tungstenite::Error> + Unpin,
 {
-    let now = tokio::time::Instant::now();
-    if let Some(available_at) = limiter.next_available_at(now) {
-        tokio::select! {
-            _ = tokio::time::sleep_until(available_at) => {}
-            _ = tokio::time::sleep_until(deadline) => return Ok(false),
-        }
+    if !wait_for_rate_limit_slot(limiter, deadline).await {
+        return Ok(false);
     }
     tokio::select! {
         result = sink.send(message) => result.context(context)?,
@@ -538,6 +552,20 @@ where
     }
     limiter.record(tokio::time::Instant::now());
     Ok(true)
+}
+
+async fn wait_for_rate_limit_slot(
+    limiter: &mut RollingRateLimiter,
+    deadline: tokio::time::Instant,
+) -> bool {
+    let now = tokio::time::Instant::now();
+    let Some(available_at) = limiter.next_available_at(now) else {
+        return true;
+    };
+    tokio::select! {
+        _ = tokio::time::sleep_until(available_at) => true,
+        _ = tokio::time::sleep_until(deadline) => false,
+    }
 }
 
 async fn sleep_before_deadline(duration: Duration, deadline: tokio::time::Instant) -> bool {
@@ -883,6 +911,8 @@ mod tests {
             ..ServerLiveSummary::default()
         };
         let mut outbound_rate_limiter = RollingMessageRateLimiter::default();
+        let mut connection_rate_limiter =
+            RollingRateLimiter::new(SERVER_CONNECTION_RATE_BUDGET, WS_OUTBOUND_RATE_WINDOW);
 
         drive_server_live_connection(
             &args,
@@ -899,6 +929,7 @@ mod tests {
             now_ms_i64().expect("connected time"),
             &mut summary,
             &mut outbound_rate_limiter,
+            &mut connection_rate_limiter,
         )
         .await
         .expect("bounded live connection");
@@ -1026,6 +1057,26 @@ mod tests {
         assert_eq!(
             next_server_reconnect_backoff(policy, &mut attempt, false),
             2_000
+        );
+    }
+
+    #[test]
+    fn server_connection_attempts_keep_headroom_below_the_official_rate_limit() {
+        let started = tokio::time::Instant::now();
+        let mut limiter =
+            RollingRateLimiter::new(SERVER_CONNECTION_RATE_BUDGET, WS_OUTBOUND_RATE_WINDOW);
+
+        for _ in 0..SERVER_CONNECTION_RATE_BUDGET {
+            assert_eq!(limiter.next_available_at(started), None);
+            limiter.record(started);
+        }
+        assert_eq!(
+            limiter.next_available_at(started + Duration::from_secs(1)),
+            Some(started + WS_OUTBOUND_RATE_WINDOW)
+        );
+        assert_eq!(
+            limiter.next_available_at(started + WS_OUTBOUND_RATE_WINDOW),
+            None
         );
     }
 

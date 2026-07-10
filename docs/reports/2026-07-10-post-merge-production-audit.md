@@ -41,7 +41,9 @@ Timer behavior was checked against Tokio's documented missed-tick semantics:
    server counts subscriptions, heartbeats, and pongs and uses exponential
    reconnect delay capped at 30 seconds. The delay sequence resets after a
    connection resumes actual market events, so independent outages start at
-   one second instead of inheriting stale backoff state.
+   one second instead of inheriting stale backoff state. A separate rolling
+   limiter permits at most 29 connection attempts per 60 seconds, so a
+   data-bearing flapping socket still remains below the official ceiling.
 2. A bounded live API run could outlive `--duration-secs` while connecting or
    writing. Connection establishment, outbound writes, rate-limit waits, and
    reconnect sleeps now all observe the monotonic run deadline.
