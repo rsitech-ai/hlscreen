@@ -272,6 +272,9 @@ The local alert evaluator suppresses repeated events for the same playbook,
 rule, and symbol while the rule cooldown is active. Suppressed attempts are
 reported separately as `SuppressedAlert` records so replay output can explain
 why an event was not emitted.
+When `--alert-history-file` is supplied, emitted timestamps in that local JSONL
+history seed cooldown state on the next CLI invocation. Without a history file,
+cooldown state is intentionally limited to the current process invocation.
 
 `hls alerts` evaluates either the built-in local playbook or a user-supplied
 JSON/TOML playbook file over replayed rows or deterministic fixture rows, can

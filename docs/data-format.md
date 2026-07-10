@@ -57,8 +57,8 @@ retain receive timestamp, `websocket`/`rest_bootstrap` provenance, and
 rows. Confidence snapshots are keyed
 by recording run, replay timestamp, and symbol so `hls replay --verify-parity`
 can compare recomputed data-quality state against a persisted local baseline.
-The registry is local-only and stores no secrets. A symlinked cache database is
-rejected rather than followed.
+The registry is local-only and stores no secrets. A symlinked cache or registry
+database file is rejected during open rather than followed.
 
 ## Backfill Attempt Metadata
 
@@ -107,7 +107,8 @@ sources remain future work.
 
 ## Parquet Event Export
 
-`hlscreen` can export normalized event JSONL into an analytical Parquet file:
+`hlscreen` exports every `normalized_jsonl` part registered for a run, in
+registry path order, into one analytical Parquet file:
 
 ```text
 parquet/events/run=<run-id>/part-000000.parquet
@@ -160,6 +161,9 @@ unsupported-version error instead of guessing a migration.
 `hls replay --input parquet` also requires this manifest; if the manifest or
 registered `normalized_parquet` file is missing, replay fails instead of
 falling back to JSONL.
+The run and all JSONL inputs must already be registered. Existing Parquet or
+schema evidence is never replaced; a failed export removes files created by
+that failed attempt instead of registering orphan evidence.
 
 ## Parquet Feature/Confidence Export
 

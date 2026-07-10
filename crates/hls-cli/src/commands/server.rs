@@ -313,7 +313,24 @@ async fn drive_server_live_connection(
 
     loop {
         tokio::select! {
-            _ = tokio::time::sleep_until(deadline) => return Ok(()),
+            _ = tokio::time::sleep_until(deadline) => {
+                let age = last_message_at_ms.and_then(|last| message_age_ms(last).ok());
+                publish_api_snapshot(
+                    shared,
+                    state,
+                    metadata,
+                    fee_profile,
+                    ServerHealthStats {
+                        subscriptions: summary.subscriptions,
+                        last_message_age_ms: age,
+                        reconnects: summary.reconnects,
+                        data_gaps: summary.data_gaps,
+                        rows_written: summary.market_events,
+                    },
+                    summary,
+                )?;
+                return Ok(());
+            },
             _ = heartbeat.tick() => {
                 write
                     .send(Message::Text(ping_message().to_owned().into()))
@@ -566,4 +583,85 @@ fn now_ns_u64() -> anyhow::Result<u64> {
         .ok_or_else(|| HlsError::Time("current time overflowed u64 nanoseconds".to_owned()))?;
     u64::try_from(nanos)
         .map_err(|_| HlsError::Time("current time overflowed u64 nanoseconds".to_owned()).into())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tokio_tungstenite::accept_async;
+
+    #[tokio::test]
+    async fn deadline_publishes_ingested_rows_before_long_refresh_interval() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.expect("listener");
+        let address = listener.local_addr().expect("listener address");
+        let peer = tokio::spawn(async move {
+            let (stream, _) = listener.accept().await.expect("accept");
+            let mut websocket = accept_async(stream).await.expect("websocket accept");
+            websocket
+                .next()
+                .await
+                .expect("subscription")
+                .expect("message");
+            websocket
+                .send(Message::Text(
+                    include_str!("../../../../tests/fixtures/hyperliquid/ws_mock_live.ndjson")
+                        .lines()
+                        .next()
+                        .expect("fixture trade")
+                        .to_owned()
+                        .into(),
+                ))
+                .await
+                .expect("send fixture event");
+            tokio::time::sleep(Duration::from_secs(1)).await;
+        });
+        let args = ServerArgs {
+            bind: "127.0.0.1:0".to_owned(),
+            print_health: false,
+            live: true,
+            symbols: Some("@107".to_owned()),
+            top: 1,
+            all_symbols: false,
+            duration_secs: 1,
+            refresh_secs: 60,
+            max_subscriptions: 10,
+            ws_url: format!("ws://{address}"),
+            fixture_file: None,
+            metadata_file: None,
+            fee_profile_file: None,
+            simulate_health: None,
+        };
+        let shared = SharedApiState::new(ApiState::new(connecting_health().snapshot(), Vec::new()));
+        let mut state = LiveMarketState::new(["@107".to_owned()]);
+        let mut summary = ServerLiveSummary {
+            symbols: 1,
+            subscriptions: 1,
+            ..ServerLiveSummary::default()
+        };
+
+        drive_server_live_connection(
+            &args,
+            &[SubscriptionPlan::new(vec!["@107".to_owned()])
+                .with_streams([StreamKind::Trades])
+                .subscribe_messages()
+                .expect("subscription messages")[0]
+                .clone()],
+            &shared,
+            &mut state,
+            &[],
+            None,
+            tokio::time::Instant::now() + Duration::from_millis(150),
+            now_ms_i64().expect("connected time"),
+            &mut summary,
+        )
+        .await
+        .expect("bounded live connection");
+
+        assert!(summary.market_events > 0);
+        assert_eq!(summary.rows, 1, "deadline must publish the final state");
+        let snapshot = shared.snapshot().expect("API state");
+        let response = handle_get("/symbols", "", &snapshot).expect("symbols response");
+        assert!(response.body.contains("@107"));
+        peer.await.expect("peer task");
+    }
 }

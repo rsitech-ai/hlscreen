@@ -1,4 +1,8 @@
-use std::{fs, path::Path};
+use std::{
+    fs::{self, OpenOptions},
+    io::Write,
+    path::Path,
+};
 
 use hls_core::{HlsError, HlsResult};
 use serde::{Deserialize, Serialize};
@@ -57,7 +61,12 @@ impl StorageSchemaManifest {
         }
         let raw = serde_json::to_string_pretty(self)
             .map_err(|err| HlsError::Parse(format!("serialize schema manifest: {err}")))?;
-        fs::write(path, format!("{raw}\n"))?;
+        let mut file = OpenOptions::new().write(true).create_new(true).open(path)?;
+        if let Err(error) = file.write_all(format!("{raw}\n").as_bytes()) {
+            drop(file);
+            let _ = fs::remove_file(path);
+            return Err(error.into());
+        }
         Ok(())
     }
 

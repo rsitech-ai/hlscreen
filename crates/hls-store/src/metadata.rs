@@ -171,6 +171,17 @@ pub struct MetadataRegistry {
 impl MetadataRegistry {
     pub fn open(path: impl AsRef<Path>) -> HlsResult<Self> {
         let path = path.as_ref();
+        match std::fs::symlink_metadata(path) {
+            Ok(metadata) if metadata.file_type().is_symlink() => {
+                return Err(HlsError::Config(format!(
+                    "refusing symbolic link at metadata registry '{}'",
+                    path.display()
+                )));
+            }
+            Ok(_) => {}
+            Err(error) if error.kind() == io::ErrorKind::NotFound => {}
+            Err(error) => return Err(error.into()),
+        }
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent)?;
         }
@@ -243,6 +254,12 @@ impl MetadataRegistry {
     pub fn insert_file(&self, file: &FileRegistryEntry) -> HlsResult<()> {
         validate_run_id(&file.run_id)?;
         validate_registered_data_path(&file.path)?;
+        if self.get_run(&file.run_id)?.is_none() {
+            return Err(HlsError::Config(format!(
+                "recording run '{}' was not found; file evidence cannot be registered without its run",
+                file.run_id
+            )));
+        }
         self.conn
             .execute(
                 "INSERT INTO files (
