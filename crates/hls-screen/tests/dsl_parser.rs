@@ -48,6 +48,35 @@ fn parses_sort_fields_and_rejects_unknown_identifiers() {
 }
 
 #[test]
+fn parses_fee_aware_tradeability_fields() {
+    let expr = parse_filter(
+        "fee_tradeability_state == \"costly\" and fee_expected_round_trip_cost_bps > 25",
+    )
+    .expect("fee-aware filter parses");
+    assert_eq!(
+        expr,
+        Expr::And(
+            Box::new(Expr::Compare {
+                left: ValueExpr::Field(Field::FeeTradeabilityState),
+                op: CmpOp::Eq,
+                right: ValueExpr::String("costly".to_owned()),
+            }),
+            Box::new(Expr::Compare {
+                left: ValueExpr::Field(Field::FeeExpectedRoundTripCostBps),
+                op: CmpOp::Gt,
+                right: ValueExpr::Number(25.0),
+            })
+        )
+    );
+
+    let sort = parse_sort("fee_expected_round_trip_cost_bps:asc").expect("fee-aware sort parses");
+    assert_eq!(
+        sort.value,
+        ValueExpr::Field(Field::FeeExpectedRoundTripCostBps)
+    );
+}
+
+#[test]
 fn parses_score_component_fields_with_dot_notation() {
     assert_eq!(
         parse_filter("score_component.spread_cost < 0").expect("filter parses"),

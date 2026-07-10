@@ -1,0 +1,8 @@
+{
+  "name": "invalid-thresholds",
+  "maker_fee_hundredths_bps": 0,
+  "taker_fee_hundredths_bps": 2500,
+  "slippage_buffer_hundredths_bps": 100,
+  "max_tradeable_round_trip_hundredths_bps": 5000,
+  "max_costly_round_trip_hundredths_bps": 2000
+}

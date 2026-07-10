@@ -1,6 +1,9 @@
 use hls_core::data_gap::DataGap;
 use hls_core::metadata::{COHORT_FRESH_LIQUIDITY, MetadataEnrichment, MetadataEnrichmentInput};
-use hls_store::metadata::{FileRegistryEntry, MetadataRegistry, RecordingRun, SymbolRegistryEntry};
+use hls_store::metadata::{
+    BackfillAttemptRecord, BackfillConfidenceImpact, BackfillStatus, FileRegistryEntry,
+    MetadataRegistry, RecordingRun, SymbolRegistryEntry,
+};
 
 #[test]
 fn metadata_registry_tracks_runs_files_and_data_gaps() {
@@ -107,4 +110,96 @@ fn metadata_registry_persists_enrichment_freshness() {
     let all = registry.list_metadata_enrichments().expect("list metadata");
     assert_eq!(all.len(), 1);
     assert_eq!(all[0].symbol, "@107");
+}
+
+#[test]
+fn metadata_registry_tracks_backfill_attempts_by_run_and_gap() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let registry = MetadataRegistry::open(temp.path().join("hls.sqlite")).expect("open registry");
+    let run = RecordingRun::new("run-backfill", 1_710_000_000_000, true, true);
+    registry.insert_run(&run).expect("insert run");
+
+    let gap = DataGap::new(
+        "run-backfill",
+        9,
+        1_710_000_010_000_000_000,
+        1_710_000_020_000_000_000,
+        "fixture reconnect gap",
+        vec!["@107".to_owned(), "@151".to_owned()],
+        false,
+    );
+    registry.insert_gap(&gap).expect("insert gap");
+
+    registry
+        .insert_backfill_attempt(&BackfillAttemptRecord {
+            attempt_id: "run-backfill:9:trades".to_owned(),
+            run_id: "run-backfill".to_owned(),
+            gap_id: gap.gap_id.clone(),
+            source: "public_rest_trades".to_owned(),
+            requested_start_ns: gap.started_at_ns,
+            requested_end_ns: gap.ended_at_ns,
+            attempted_at_ms: 1_710_000_021_000,
+            status: BackfillStatus::Repaired,
+            rows_written: 42,
+            confidence_impact: BackfillConfidenceImpact::Restored,
+            notes: Some("fixture repaired trades".to_owned()),
+        })
+        .expect("insert repaired attempt");
+    registry
+        .insert_backfill_attempt(&BackfillAttemptRecord {
+            attempt_id: "run-backfill:9:bbo".to_owned(),
+            run_id: "run-backfill".to_owned(),
+            gap_id: gap.gap_id.clone(),
+            source: "public_rest_bbo".to_owned(),
+            requested_start_ns: gap.started_at_ns,
+            requested_end_ns: gap.ended_at_ns,
+            attempted_at_ms: 1_710_000_022_000,
+            status: BackfillStatus::PartiallyRepaired,
+            rows_written: 7,
+            confidence_impact: BackfillConfidenceImpact::Partial,
+            notes: Some("fixture partial bbo".to_owned()),
+        })
+        .expect("insert partial attempt");
+    registry
+        .insert_backfill_attempt(&BackfillAttemptRecord {
+            attempt_id: "run-backfill:9:candles".to_owned(),
+            run_id: "run-backfill".to_owned(),
+            gap_id: gap.gap_id.clone(),
+            source: "public_rest_candles".to_owned(),
+            requested_start_ns: gap.started_at_ns,
+            requested_end_ns: gap.ended_at_ns,
+            attempted_at_ms: 1_710_000_023_000,
+            status: BackfillStatus::Unrepaired,
+            rows_written: 0,
+            confidence_impact: BackfillConfidenceImpact::Degraded,
+            notes: Some("fixture endpoint unavailable".to_owned()),
+        })
+        .expect("insert unrepaired attempt");
+
+    let attempts = registry
+        .list_backfill_attempts("run-backfill")
+        .expect("list backfill attempts");
+    assert_eq!(attempts.len(), 3);
+    assert_eq!(attempts[0].status, BackfillStatus::Repaired);
+    assert_eq!(attempts[1].status, BackfillStatus::PartiallyRepaired);
+    assert_eq!(attempts[2].status, BackfillStatus::Unrepaired);
+    assert_eq!(
+        attempts[0].confidence_impact,
+        BackfillConfidenceImpact::Restored
+    );
+    assert_eq!(
+        attempts[1].confidence_impact,
+        BackfillConfidenceImpact::Partial
+    );
+    assert_eq!(
+        attempts[2].confidence_impact,
+        BackfillConfidenceImpact::Degraded
+    );
+    assert_eq!(attempts[0].rows_written, 42);
+    assert_eq!(attempts[2].rows_written, 0);
+
+    let gap_attempts = registry
+        .list_backfill_attempts_for_gap("run-backfill", &gap.gap_id)
+        .expect("list gap attempts");
+    assert_eq!(gap_attempts, attempts);
 }

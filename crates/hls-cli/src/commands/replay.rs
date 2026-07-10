@@ -1,8 +1,10 @@
 use std::path::PathBuf;
 
 use anyhow::{Context, bail};
-use clap::Args;
-use hls_store::replay::{ReplayOptions, replay_run, verify_or_insert_confidence_parity};
+use clap::{Args, ValueEnum};
+use hls_store::replay::{
+    ReplayInputFormat, ReplayOptions, replay_run, verify_or_insert_confidence_parity,
+};
 use hls_tui::app::{render_confidence_summary, render_table_with_title};
 
 use crate::commands::record::parse_symbols;
@@ -20,6 +22,20 @@ pub struct ReplayArgs {
 
     #[arg(long)]
     pub verify_parity: bool,
+
+    #[arg(
+        long,
+        value_enum,
+        default_value_t = ReplayInput::Jsonl,
+        help = "Replay input format: jsonl uses canonical normalized files; parquet requires exported normalized-event Parquet and schema.json"
+    )]
+    pub input: ReplayInput,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, ValueEnum)]
+pub enum ReplayInput {
+    Jsonl,
+    Parquet,
 }
 
 pub async fn run(args: ReplayArgs) -> anyhow::Result<()> {
@@ -27,7 +43,8 @@ pub async fn run(args: ReplayArgs) -> anyhow::Result<()> {
         &args.data_dir,
         &args.run_id,
         parse_symbols(args.symbols.as_deref()),
-    );
+    )
+    .with_input_format(args.input.into());
     let summary = replay_run(options.clone())
         .with_context(|| format!("replay recording run '{}'", args.run_id))?;
 
@@ -64,4 +81,13 @@ pub async fn run(args: ReplayArgs) -> anyhow::Result<()> {
     print!("{output}");
 
     Ok(())
+}
+
+impl From<ReplayInput> for ReplayInputFormat {
+    fn from(value: ReplayInput) -> Self {
+        match value {
+            ReplayInput::Jsonl => Self::Jsonl,
+            ReplayInput::Parquet => Self::Parquet,
+        }
+    }
 }

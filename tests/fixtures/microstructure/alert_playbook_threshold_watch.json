@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "id": "operator-threshold-watch",
+  "description": "Local read-only threshold grammar playbook.",
+  "rules": [
+    {
+      "id": "shock-threshold-stack",
+      "description": "Spread shock and weak confidence threshold stack.",
+      "severity": "watch",
+      "condition": {
+        "type": "all",
+        "conditions": [
+          {
+            "type": "field_threshold",
+            "field": "spread_shock_bps",
+            "op": "gte",
+            "value": 250.0
+          },
+          {
+            "type": "field_threshold",
+            "field": "confidence_score",
+            "op": "lte",
+            "value": 100.0
+          }
+        ]
+      },
+      "cooldown_ms": 60000,
+      "source_interval_ms": 30000,
+      "action": "local_only"
+    }
+  ]
+}

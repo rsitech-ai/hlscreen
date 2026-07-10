@@ -4,8 +4,9 @@ use hls_core::{
 };
 use hls_store::{
     metadata::MetadataRegistry,
+    parquet::export_normalized_events_to_parquet,
     recorder::{RecordOptions, record_fixture_ndjson},
-    replay::{ReplayOptions, replay_run, verify_or_insert_confidence_parity},
+    replay::{ReplayInputFormat, ReplayOptions, replay_run, verify_or_insert_confidence_parity},
 };
 
 #[test]
@@ -115,4 +116,67 @@ fn replay_applies_recorded_data_gaps_to_confidence() {
             .has_reason(ConfidenceReason::ReconnectGap)
     );
     assert_eq!(snapshot.confidence.level, ConfidenceLevel::Low);
+}
+
+#[test]
+fn replay_can_use_normalized_event_parquet_as_input() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let data_dir = temp.path().join("data");
+    record_fixture_ndjson(
+        include_str!("../../../tests/fixtures/hyperliquid/ws_mock_live.ndjson"),
+        RecordOptions::new(
+            &data_dir,
+            "parquet-replay",
+            vec!["@107".to_owned()],
+            false,
+            true,
+        ),
+    )
+    .expect("record fixture");
+    export_normalized_events_to_parquet(&data_dir, "parquet-replay")
+        .expect("export normalized parquet");
+
+    let jsonl_summary = replay_run(ReplayOptions::new(&data_dir, "parquet-replay", Vec::new()))
+        .expect("jsonl replay");
+    let parquet_summary = replay_run(
+        ReplayOptions::new(&data_dir, "parquet-replay", Vec::new())
+            .with_input_format(ReplayInputFormat::Parquet),
+    )
+    .expect("parquet replay");
+
+    assert_eq!(parquet_summary.events_read, jsonl_summary.events_read);
+    assert_eq!(parquet_summary.snapshot_ts_ms, jsonl_summary.snapshot_ts_ms);
+    assert_eq!(
+        parquet_summary.snapshots.len(),
+        jsonl_summary.snapshots.len()
+    );
+    assert_eq!(parquet_summary.snapshots, jsonl_summary.snapshots);
+}
+
+#[test]
+fn parquet_replay_requires_exported_schema_manifest() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let data_dir = temp.path().join("data");
+    record_fixture_ndjson(
+        include_str!("../../../tests/fixtures/hyperliquid/ws_mock_live.ndjson"),
+        RecordOptions::new(
+            &data_dir,
+            "missing-parquet",
+            vec!["@107".to_owned()],
+            false,
+            true,
+        ),
+    )
+    .expect("record fixture");
+
+    let err = replay_run(
+        ReplayOptions::new(&data_dir, "missing-parquet", Vec::new())
+            .with_input_format(ReplayInputFormat::Parquet),
+    )
+    .expect_err("parquet replay should require an exported manifest");
+
+    assert!(
+        err.to_string()
+            .contains("no normalized-event Parquet schema manifest")
+    );
 }

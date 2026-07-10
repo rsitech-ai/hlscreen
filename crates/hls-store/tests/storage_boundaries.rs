@@ -1,6 +1,7 @@
 use std::fs;
 
 use hls_store::{
+    analog::{AnalogSearchOptions, AnalogSearchRunOptions, build_analog_index_for_run},
     metadata::{FileRegistryEntry, MetadataRegistry, RecordingRun},
     recorder::{RecordOptions, record_fixture_ndjson},
     replay::{ReplayOptions, replay_run},
@@ -115,6 +116,15 @@ fn replay_rejects_registry_paths_that_escape_the_data_directory() {
 
     let error = replay_run(ReplayOptions::new(&data_dir, "escaped", Vec::new()))
         .expect_err("replay must not trust an operator-controlled registry path");
+    assert!(error.to_string().contains("registered data path"));
+
+    let error = build_analog_index_for_run(AnalogSearchRunOptions::new(
+        &data_dir,
+        "escaped",
+        "@107",
+        AnalogSearchOptions::default(),
+    ))
+    .expect_err("analog search must not trust an operator-controlled registry path");
     assert!(error.to_string().contains("registered data path"));
 }
 
