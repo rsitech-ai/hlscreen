@@ -15,6 +15,13 @@ pub struct AlertEvaluator {
 }
 
 impl AlertEvaluator {
+    pub fn remember_emission(&mut self, key: AlertKey, emitted_at_ms: i64) {
+        self.last_emitted_ms
+            .entry(key)
+            .and_modify(|existing| *existing = (*existing).max(emitted_at_ms))
+            .or_insert(emitted_at_ms);
+    }
+
     pub fn evaluate(
         &mut self,
         playbook: &AlertPlaybook,
@@ -31,7 +38,7 @@ impl AlertEvaluator {
                 };
                 let key = AlertKey::new(&playbook.id, &rule.id, &snapshot.symbol);
                 if let Some(last_emitted_ms) = self.last_emitted_ms.get(&key) {
-                    let elapsed = now_ms.saturating_sub(*last_emitted_ms);
+                    let elapsed = now_ms.saturating_sub(*last_emitted_ms).max(0);
                     if elapsed < rule.cooldown_ms {
                         evaluation.suppressed.push(SuppressedAlert {
                             playbook_id: playbook.id.clone(),

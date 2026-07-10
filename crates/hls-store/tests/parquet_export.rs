@@ -5,7 +5,7 @@ use std::{
 
 use hls_core::market_state::MarketEvent;
 use hls_store::{
-    metadata::MetadataRegistry,
+    metadata::{FileRegistryEntry, MetadataRegistry, RecordingRun},
     parquet::{export_feature_snapshots_to_parquet, export_normalized_events_to_parquet},
     recorder::{RecordOptions, record_fixture_ndjson},
     schema::{
@@ -189,6 +189,19 @@ fn parquet_export_preserves_committed_jsonl_fixture_rows() {
         include_str!("../../../tests/fixtures/microstructure/parquet_parity_events.ndjson"),
     )
     .expect("write fixture normalized events");
+    let registry = MetadataRegistry::open(temp.path().join("hls.sqlite")).expect("registry");
+    registry
+        .insert_run(&RecordingRun::new(run_id, 1, false, true))
+        .expect("run metadata");
+    register_normalized_part(
+        &registry,
+        run_id,
+        "normalized/events/run=parquet-parity/part-000000.ndjson",
+        fixture_lines_count(),
+        fs::metadata(normalized_dir.join("part-000000.ndjson"))
+            .expect("source metadata")
+            .len(),
+    );
 
     let fixture_lines =
         include_str!("../../../tests/fixtures/microstructure/parquet_parity_events.ndjson")
@@ -236,6 +249,117 @@ fn parquet_export_preserves_committed_jsonl_fixture_rows() {
                 .expect("parquet event json parses");
         assert_eq!(&parquet_event, event);
     }
+}
+
+#[test]
+fn normalized_events_export_reads_every_registered_jsonl_part() {
+    let temp = tempfile::tempdir().expect("temp dir");
+    let run_id = "parquet-multipart";
+    let normalized_dir = temp
+        .path()
+        .join("normalized/events")
+        .join(format!("run={run_id}"));
+    fs::create_dir_all(&normalized_dir).expect("create normalized dir");
+    let fixture =
+        include_str!("../../../tests/fixtures/microstructure/parquet_parity_events.ndjson");
+    fs::write(normalized_dir.join("part-000000.ndjson"), fixture).expect("write first part");
+    fs::write(normalized_dir.join("part-000001.ndjson"), fixture).expect("write second part");
+
+    let registry = MetadataRegistry::open(temp.path().join("hls.sqlite")).expect("registry");
+    registry
+        .insert_run(&RecordingRun::new(run_id, 1, false, true))
+        .expect("run metadata");
+    for part in ["part-000000.ndjson", "part-000001.ndjson"] {
+        let relative = format!("normalized/events/run={run_id}/{part}");
+        register_normalized_part(
+            &registry,
+            run_id,
+            &relative,
+            fixture_lines_count(),
+            fs::metadata(temp.path().join(&relative))
+                .expect("part metadata")
+                .len(),
+        );
+    }
+
+    let exported = export_normalized_events_to_parquet(temp.path(), run_id)
+        .expect("export all registered parts");
+
+    assert_eq!(exported.rows, (fixture_lines_count() * 2) as u64);
+}
+
+#[test]
+fn parquet_export_rejects_missing_run_and_existing_destination_without_writing() {
+    let temp = tempfile::tempdir().expect("temp dir");
+    let run_id = "orphan-export";
+    let normalized_dir = temp
+        .path()
+        .join("normalized/events")
+        .join(format!("run={run_id}"));
+    fs::create_dir_all(&normalized_dir).expect("create normalized dir");
+    fs::write(
+        normalized_dir.join("part-000000.ndjson"),
+        include_str!("../../../tests/fixtures/microstructure/parquet_parity_events.ndjson"),
+    )
+    .expect("write source");
+
+    let error = export_normalized_events_to_parquet(temp.path(), run_id)
+        .expect_err("export must require registered run evidence");
+    assert!(error.to_string().contains("was not found"));
+    assert!(!temp.path().join("parquet/events").exists());
+
+    let registry = MetadataRegistry::open(temp.path().join("hls.sqlite")).expect("registry");
+    registry
+        .insert_run(&RecordingRun::new(run_id, 1, false, true))
+        .expect("run metadata");
+    let relative = format!("normalized/events/run={run_id}/part-000000.ndjson");
+    register_normalized_part(
+        &registry,
+        run_id,
+        &relative,
+        fixture_lines_count(),
+        fs::metadata(temp.path().join(&relative))
+            .expect("source metadata")
+            .len(),
+    );
+    let first = export_normalized_events_to_parquet(temp.path(), run_id).expect("first export");
+    let first_bytes = fs::read(temp.path().join(&first.path)).expect("first parquet bytes");
+
+    export_normalized_events_to_parquet(temp.path(), run_id)
+        .expect_err("second export must preserve append-only evidence");
+    assert_eq!(
+        fs::read(temp.path().join(&first.path)).expect("preserved parquet bytes"),
+        first_bytes
+    );
+}
+
+fn fixture_lines_count() -> usize {
+    include_str!("../../../tests/fixtures/microstructure/parquet_parity_events.ndjson")
+        .lines()
+        .filter(|line| !line.trim().is_empty())
+        .count()
+}
+
+fn register_normalized_part(
+    registry: &MetadataRegistry,
+    run_id: &str,
+    path: &str,
+    rows: usize,
+    bytes: u64,
+) {
+    registry
+        .insert_file(&FileRegistryEntry {
+            path: path.to_owned(),
+            event_type: "normalized_jsonl".to_owned(),
+            symbol: None,
+            start_ts_ms: None,
+            end_ts_ms: None,
+            rows: rows as u64,
+            bytes,
+            created_at_ms: 1,
+            run_id: run_id.to_owned(),
+        })
+        .expect("register normalized part");
 }
 
 fn expected_event_type(event: &MarketEvent) -> &'static str {

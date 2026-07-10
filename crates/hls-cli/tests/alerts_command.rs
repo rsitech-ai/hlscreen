@@ -214,6 +214,42 @@ fn alerts_command_writes_local_history_jsonl() {
 }
 
 #[test]
+fn alerts_command_persists_cooldown_state_in_history_across_invocations() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let history_path = temp.path().join("alerts.jsonl");
+    let args = vec![
+        "alerts".to_owned(),
+        "--fixture-file".to_owned(),
+        fixture("tests/fixtures/microstructure/thin_brittle_book.ndjson"),
+        "--symbol".to_owned(),
+        "@107".to_owned(),
+        "--playbook-file".to_owned(),
+        fixture("tests/fixtures/microstructure/alert_playbook_threshold_watch.json"),
+        "--alert-history-file".to_owned(),
+        history_path.to_string_lossy().into_owned(),
+        "--json".to_owned(),
+    ];
+
+    Command::cargo_bin("hls")
+        .expect("hls binary")
+        .args(&args)
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("\"events\": ["));
+    Command::cargo_bin("hls")
+        .expect("hls binary")
+        .args(&args)
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("\"events\": []"))
+        .stdout(predicate::str::contains("\"suppressed\": ["));
+
+    let history = fs::read_to_string(history_path).expect("history file");
+    assert_eq!(history.matches(r#""kind":"event""#).count(), 1);
+    assert_eq!(history.matches(r#""kind":"suppressed""#).count(), 1);
+}
+
+#[test]
 fn alerts_command_lists_local_history_jsonl() {
     let temp = tempfile::tempdir().expect("tempdir");
     let history_path = temp.path().join("alerts.jsonl");

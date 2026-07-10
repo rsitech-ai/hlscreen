@@ -8,7 +8,8 @@ use anyhow::{Context, bail};
 use clap::Args;
 use hls_core::{
     alerts::{
-        AlertAction, AlertCondition, AlertHistoryRecord, AlertPlaybook, AlertRule, AlertSeverity,
+        AlertAction, AlertCondition, AlertHistoryRecord, AlertKey, AlertPlaybook, AlertRule,
+        AlertSeverity,
     },
     market_state::{FeatureSnapshot, LiveMarketState},
 };
@@ -93,6 +94,9 @@ pub async fn run(args: AlertsArgs) -> anyhow::Result<()> {
     playbook.validate()?;
 
     let mut evaluator = AlertEvaluator::default();
+    if let Some(path) = &args.alert_history_file {
+        restore_alert_cooldowns(path, &mut evaluator)?;
+    }
     let evaluation = evaluator.evaluate(&playbook, std::slice::from_ref(snapshot), now_ms)?;
     if let Some(path) = &args.alert_history_file {
         append_alert_history(path, &evaluation)?;
@@ -104,6 +108,50 @@ pub async fn run(args: AlertsArgs) -> anyhow::Result<()> {
         print_text(&evaluation);
     }
 
+    Ok(())
+}
+
+#[derive(serde::Deserialize)]
+struct PersistedCooldownRecord {
+    kind: String,
+    playbook_id: String,
+    rule_id: String,
+    symbol: String,
+    #[serde(default)]
+    triggered_at_ms: Option<i64>,
+    action: AlertAction,
+}
+
+fn restore_alert_cooldowns(path: &Path, evaluator: &mut AlertEvaluator) -> anyhow::Result<()> {
+    let raw = match fs::read_to_string(path) {
+        Ok(raw) => raw,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(error) => return Err(error).with_context(|| format!("read {}", path.display())),
+    };
+    for (index, line) in raw.lines().enumerate() {
+        if line.trim().is_empty() {
+            continue;
+        }
+        let record: PersistedCooldownRecord = serde_json::from_str(line)
+            .with_context(|| format!("parse {} line {}", path.display(), index + 1))?;
+        if record.action != AlertAction::LocalOnly {
+            bail!("alert history line {} is not local_only", index + 1);
+        }
+        if record.kind != "event" {
+            continue;
+        }
+        let emitted_at_ms = record.triggered_at_ms.with_context(|| {
+            format!(
+                "alert history {} line {} event has no triggered_at_ms",
+                path.display(),
+                index + 1
+            )
+        })?;
+        evaluator.remember_emission(
+            AlertKey::new(&record.playbook_id, &record.rule_id, &record.symbol),
+            emitted_at_ms,
+        );
+    }
     Ok(())
 }
 

@@ -407,7 +407,7 @@ impl ExtensionRuntime {
             .map_err(|err| HlsError::Config(format!("read extension output: {err}")))?;
         let annotations: Vec<RowAnnotation> = serde_json::from_slice(&output)
             .map_err(|err| HlsError::Parse(format!("parse extension row annotations: {err}")))?;
-        validate_annotations(&annotations, self.limits.max_output_bytes)?;
+        validate_annotations(&annotations, &snapshot.symbol, self.limits.max_output_bytes)?;
         Ok(annotations)
     }
 }
@@ -426,7 +426,11 @@ fn verify_sha256(bytes: &[u8], expected: &str) -> HlsResult<()> {
     Ok(())
 }
 
-fn validate_annotations(annotations: &[RowAnnotation], max_output_bytes: usize) -> HlsResult<()> {
+fn validate_annotations(
+    annotations: &[RowAnnotation],
+    input_symbol: &str,
+    max_output_bytes: usize,
+) -> HlsResult<()> {
     let mut encoded_len = 2_usize;
     for annotation in annotations {
         if annotation.symbol.trim().is_empty()
@@ -436,6 +440,12 @@ fn validate_annotations(annotations: &[RowAnnotation], max_output_bytes: usize) 
             return Err(HlsError::Config(
                 "extension row annotations require symbol, label, and detail".to_owned(),
             ));
+        }
+        if annotation.symbol != input_symbol {
+            return Err(HlsError::Config(format!(
+                "extension annotation symbol '{}' does not match input symbol '{input_symbol}'",
+                annotation.symbol
+            )));
         }
         if annotation.label.contains("order")
             || annotation.label.contains("wallet")
