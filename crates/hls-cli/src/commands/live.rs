@@ -1,6 +1,6 @@
 use std::{
     cell::Cell,
-    collections::VecDeque,
+    collections::{HashSet, VecDeque},
     fs,
     future::{Future, pending},
     io::{self, IsTerminal, Write},
@@ -24,6 +24,7 @@ use crossterm::{
         KeyModifiers, MouseEvent, MouseEventKind,
     },
     execute,
+    style::Colored,
     terminal::{
         EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode,
         size as terminal_size,
@@ -37,18 +38,21 @@ use hls_core::{
     metadata::MetadataEnrichment,
     time::now_millis,
 };
-use hls_features::engine::FeatureEngine;
+use hls_features::engine::{ConfidenceInputs, FeatureEngine};
 use hls_hyperliquid::{
     rest::{HyperliquidRestClient, SpotMarketContext, select_universe},
     ws::{
         parser::{parse_ws_message, parse_ws_ndjson},
-        subscriptions::{StreamKind, SubscriptionPlan, ping_message},
+        subscriptions::{
+            OFFICIAL_WS_SUBSCRIPTION_LIMIT, StreamKind, SubscriptionPlan, ping_message,
+        },
     },
 };
 use hls_screen::ScreenRequest;
 use hls_store::{
     metadata::{MetadataRegistry, RecordingRun, SymbolRegistryEntry},
     normalized::StreamingNormalizedWriter,
+    paths::validate_run_id,
     raw::{RawMarketMessage, RawWriter},
     recorder::{RecordOptions, RecordSummary, record_fixture_ndjson},
 };
@@ -67,7 +71,7 @@ use ratatui::{Terminal, backend::CrosstermBackend};
 #[cfg(test)]
 use ratatui::{TerminalOptions, Viewport, layout::Rect};
 use serde::{Deserialize, Serialize};
-use tokio::time::{interval, sleep, sleep_until};
+use tokio::time::{Interval, MissedTickBehavior, interval, sleep, sleep_until};
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 
 use crate::commands::metadata::{attach_metadata, load_metadata_enrichments};
@@ -85,6 +89,11 @@ const LIVE_RECORDER_QUEUE_CAPACITY: usize = 65_536;
 const INITIAL_RECONNECT_BACKOFF_MS: u64 = 1_000;
 const MAX_RECONNECT_BACKOFF_MS: u64 = 30_000;
 const TUI_KEY_POLL_MS: u64 = 100;
+const MAX_TUI_EVENTS_PER_SYMBOL: usize = 64;
+const WS_MARKET_DATA_TIMEOUT: Duration = Duration::from_secs(60);
+const WS_MARKET_DATA_CHECK_INTERVAL: Duration = Duration::from_secs(5);
+const WS_OUTBOUND_RATE_WINDOW: Duration = Duration::from_secs(60);
+const WS_SUBSCRIPTION_RATE_BUDGET: usize = 1_900;
 const TUI_PREFERENCES_FILE: &str = "tui-preferences.toml";
 const MAX_DEFERRED_LIVE_DIAGNOSTICS: usize = 8;
 
@@ -491,18 +500,70 @@ struct PersistedTuiPreferences {
 }
 
 pub async fn run(args: LiveArgs) -> anyhow::Result<()> {
-    validate_live_duration(
-        args.duration_secs,
-        args.tui,
-        args.once,
-        LiveTerminalCapabilities::detect(),
-    )?;
+    validate_live_args(&args, LiveTerminalCapabilities::detect())?;
 
     if let Some(fixture_file) = args.fixture_file.clone() {
         return run_fixture_live(args, &fixture_file).await;
     }
 
     run_network_live(args).await
+}
+
+fn validate_live_args(args: &LiveArgs, terminals: LiveTerminalCapabilities) -> anyhow::Result<()> {
+    if args.refresh_secs == 0 {
+        bail!("--refresh-secs must be greater than zero");
+    }
+    if args.top == 0 {
+        bail!("--top must be greater than zero");
+    }
+    if args.max_subscriptions == 0 {
+        bail!("--max-subscriptions must be greater than zero");
+    }
+    if args.max_subscriptions > OFFICIAL_WS_SUBSCRIPTION_LIMIT {
+        bail!(
+            "--max-subscriptions cannot exceed the official IP-wide limit of {OFFICIAL_WS_SUBSCRIPTION_LIMIT}"
+        );
+    }
+    if args.all_symbols && args.symbols.is_some() {
+        bail!("--symbols and --all-symbols are mutually exclusive");
+    }
+    if args
+        .symbols
+        .as_deref()
+        .is_some_and(|symbols| parse_symbols(Some(symbols)).is_empty())
+    {
+        bail!("--symbols must contain at least one non-empty selector");
+    }
+    if !args.record && (args.raw || args.normalized || args.parquet || args.run_id.is_some()) {
+        bail!("--raw, --normalized, --parquet, and --run-id require --record");
+    }
+    if args.parquet {
+        bail!("Parquet output is not implemented; use --normalized for replayable JSONL");
+    }
+    if let Some(run_id) = args.run_id.as_deref() {
+        validate_run_id(run_id)?;
+    }
+    if args.data_dir.as_os_str().is_empty() {
+        bail!("--data-dir must not be empty");
+    }
+    if args.once && args.fixture_file.is_none() {
+        bail!("--once is only supported with --fixture-file");
+    }
+    if args.fixture_file.is_some() && !args.once && !args.tui {
+        bail!("fixture-backed interactive mode requires --tui when --once is absent");
+    }
+    if args.fixture_file.is_none()
+        && !(args.ws_url.starts_with("ws://") || args.ws_url.starts_with("wss://"))
+    {
+        bail!("--ws-url must use the ws:// or wss:// scheme");
+    }
+
+    validate_live_duration(args.duration_secs, args.tui, args.once, terminals)?;
+    if !args.once {
+        LiveRunLifetime::from_duration_secs(args.duration_secs, tokio::time::Instant::now())?;
+    }
+
+    Ok(())
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -558,19 +619,10 @@ pub async fn run_tui(args: TuiArgs) -> anyhow::Result<()> {
 }
 
 async fn run_fixture_live(args: LiveArgs, fixture_file: &PathBuf) -> anyhow::Result<()> {
-    if !args.once && !args.tui {
-        bail!("fixture-backed interactive mode requires --tui when --once is absent");
-    }
-
     let raw = fs::read_to_string(fixture_file)
         .with_context(|| format!("read {}", fixture_file.display()))?;
 
     if args.record {
-        if args.parquet {
-            bail!(
-                "Parquet output is not implemented in this slice; use --normalized for replayable JSONL"
-            );
-        }
         let run_id = args.run_id.clone().unwrap_or_else(default_run_id);
         let (raw_enabled, normalized_enabled) = enabled_outputs(args.raw, args.normalized);
         let summary = record_fixture_ndjson(
@@ -733,26 +785,9 @@ async fn run_interactive_fixture_tui(
 }
 
 async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
-    if args.once {
-        bail!("--once is only supported with --fixture-file");
-    }
-    if args.parquet {
-        bail!(
-            "Parquet output is not implemented in this slice; use --normalized for replayable JSONL"
-        );
-    }
-
     let selection = load_live_symbols(&args).await?;
     let symbols = selection.symbols;
-    let mut plan =
-        SubscriptionPlan::new(symbols.clone()).with_max_subscriptions(args.max_subscriptions);
-    if args.all_symbols && plan.subscription_count() > args.max_subscriptions {
-        plan = plan.with_streams([
-            StreamKind::Trades,
-            StreamKind::Bbo,
-            StreamKind::ActiveAssetCtx,
-        ]);
-    }
+    let plan = live_subscription_plan(symbols.clone(), args.all_symbols, args.max_subscriptions);
     let subscription_messages = plan.subscribe_messages()?;
     let mut state = LiveMarketState::new(symbols.clone());
     let run_id = args.run_id.clone().unwrap_or_else(default_run_id);
@@ -795,10 +830,11 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
 
     if !render_live_tui {
         eprintln!(
-            "read-only live run: symbols={} subscriptions={} streams_per_symbol={} duration_secs={} ws_url={}",
+            "read-only live run: symbols={} subscriptions={} streams_per_symbol={} global_streams={} duration_secs={} ws_url={}",
             symbols.len(),
             subscription_messages.len(),
-            plan.streams().len(),
+            plan.per_symbol_stream_count(),
+            plan.global_stream_count(),
             args.duration_secs,
             args.ws_url
         );
@@ -840,7 +876,7 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
         &symbols,
         lifetime,
         &mut shutdown_signal,
-        Duration::from_secs(args.refresh_secs.max(1)),
+        Duration::from_secs(args.refresh_secs),
         &mut state,
         &mut screen_request,
         &metadata,
@@ -895,14 +931,15 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
 
     let mut summary = drive_result?;
     let record_summary = record_summary_result?;
-    let mut snapshots = FeatureEngine::default().snapshots(&state, now_ms_i64()?);
+    let mut snapshots = live_feature_snapshots(&state, &summary, now_ms_i64()?);
     attach_metadata(&mut snapshots, metadata);
     summary.row_count = snapshots.len();
 
     println!("live_run=complete");
     println!("symbols={}", symbols.len());
     println!("subscriptions={}", subscription_messages.len());
-    println!("streams_per_symbol={}", plan.streams().len());
+    println!("streams_per_symbol={}", plan.per_symbol_stream_count());
+    println!("global_streams={}", plan.global_stream_count());
     println!("ws_messages={}", summary.ws_messages);
     println!("market_events={}", summary.market_events);
     println!("reconnects={}", summary.reconnects);
@@ -958,6 +995,29 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
     print!("{table}");
 
     Ok(())
+}
+
+fn live_subscription_plan(
+    symbols: Vec<String>,
+    all_symbols: bool,
+    max_subscriptions: usize,
+) -> SubscriptionPlan {
+    let mut plan = SubscriptionPlan::new(symbols).with_max_subscriptions(max_subscriptions);
+    if all_symbols && plan.subscription_count() > max_subscriptions {
+        plan = plan.with_streams([
+            StreamKind::AllMids,
+            StreamKind::Trades,
+            StreamKind::Bbo,
+            StreamKind::ActiveAssetCtx,
+        ]);
+        if plan.subscription_count() > max_subscriptions {
+            plan = plan.with_streams([StreamKind::AllMids, StreamKind::ActiveAssetCtx]);
+            if plan.subscription_count() > max_subscriptions {
+                plan = plan.with_streams([StreamKind::AllMids]);
+            }
+        }
+    }
+    plan
 }
 
 #[derive(Clone, Debug, Default)]
@@ -1031,9 +1091,33 @@ struct LiveDriveSummary {
     elapsed_secs: u64,
     row_count: usize,
     stop_reason: Option<LiveStopReason>,
+    gap_symbols: HashSet<String>,
+    recording_active: bool,
 }
 
 impl LiveDriveSummary {
+    fn mark_gap(&mut self, symbols: &[String]) {
+        self.reconnects = self.reconnects.saturating_add(1);
+        self.data_gaps = self.data_gaps.saturating_add(1);
+        self.gap_symbols.extend(symbols.iter().cloned());
+    }
+
+    fn confidence_inputs(&self) -> ConfidenceInputs {
+        self.gap_symbols
+            .iter()
+            .fold(ConfidenceInputs::default(), |inputs, symbol| {
+                inputs.with_gap_symbol(symbol.clone())
+            })
+    }
+
+    fn recorder_status(&self) -> &'static str {
+        if self.recording_active {
+            "REC active"
+        } else {
+            "REC ready"
+        }
+    }
+
     fn mark_stopped(&mut self, stop_reason: LiveStopReason) {
         self.stop_reason = Some(stop_reason);
     }
@@ -1047,9 +1131,8 @@ impl LiveDriveSummary {
             .is_some_and(LiveStopReason::is_clean_shutdown)
     }
 
-    fn is_no_messages_failure(&self) -> bool {
-        self.ws_messages == 0
-            && self.reconnects > 0
+    fn is_no_market_data_failure(&self) -> bool {
+        self.market_events == 0
             && !matches!(
                 self.stop_reason,
                 Some(LiveStopReason::OperatorQuit | LiveStopReason::Signal)
@@ -1157,8 +1240,27 @@ enum ConnectionOutcome {
         gap_started_at_ns: u64,
         gap_ended_at_ns: u64,
         reason: String,
-        received_any_message: bool,
+        received_market_data: bool,
     },
+}
+
+#[allow(clippy::too_many_arguments)]
+fn reconnect_after_ws_send_failure(
+    conn_id: u64,
+    connect_started_ns: u64,
+    last_market_event_recv_ns: Option<u64>,
+    gap_ended_at_ns: u64,
+    operation: &str,
+    error: impl std::fmt::Display,
+    received_market_data: bool,
+) -> ConnectionOutcome {
+    ConnectionOutcome::Reconnect {
+        conn_id,
+        gap_started_at_ns: last_market_event_recv_ns.unwrap_or(connect_started_ns),
+        gap_ended_at_ns,
+        reason: format!("{operation}: {error}"),
+        received_market_data,
+    }
 }
 
 #[derive(Debug)]
@@ -1173,6 +1275,37 @@ enum WsReadEvent {
 enum CancellableSendOutcome<T> {
     Sent(T),
     Stopped(LiveStopReason),
+}
+
+#[derive(Default)]
+struct SubscriptionRateLimiter {
+    sent_at: VecDeque<tokio::time::Instant>,
+}
+
+impl SubscriptionRateLimiter {
+    fn next_available_at(&mut self, now: tokio::time::Instant) -> Option<tokio::time::Instant> {
+        self.prune(now);
+        let blocking_index = self
+            .sent_at
+            .len()
+            .checked_sub(WS_SUBSCRIPTION_RATE_BUDGET)?;
+        self.sent_at
+            .get(blocking_index)
+            .and_then(|sent_at| sent_at.checked_add(WS_OUTBOUND_RATE_WINDOW))
+    }
+
+    fn record(&mut self, now: tokio::time::Instant) {
+        self.prune(now);
+        self.sent_at.push_back(now);
+    }
+
+    fn prune(&mut self, now: tokio::time::Instant) {
+        while self.sent_at.front().is_some_and(|sent_at| {
+            now.saturating_duration_since(*sent_at) >= WS_OUTBOUND_RATE_WINDOW
+        }) {
+            self.sent_at.pop_front();
+        }
+    }
 }
 
 async fn cancellable_send<SendFuture, StopFuture>(
@@ -1207,7 +1340,7 @@ async fn wait_for_live_stop(
     summary: &LiveDriveSummary,
     mut tui_frame_sink: Option<&mut LiveTuiRenderer>,
 ) -> anyhow::Result<LiveStopReason> {
-    let mut ui_events = interval(Duration::from_millis(TUI_KEY_POLL_MS));
+    let mut ui_events = live_interval(Duration::from_millis(TUI_KEY_POLL_MS));
 
     loop {
         tokio::select! {
@@ -1287,9 +1420,13 @@ async fn drive_live_ws(
     diagnostics: &mut LiveDiagnostics,
 ) -> anyhow::Result<LiveDriveSummary> {
     let started = Instant::now();
-    let mut summary = LiveDriveSummary::default();
+    let mut summary = LiveDriveSummary {
+        recording_active: recorder.is_some(),
+        ..LiveDriveSummary::default()
+    };
     let mut conn_id = 0;
     let mut reconnect_attempt = 0;
+    let mut subscription_rate_limiter = SubscriptionRateLimiter::default();
     loop {
         if lifetime.has_expired_by(tokio::time::Instant::now()) {
             summary.mark_stopped(LiveStopReason::DurationElapsed);
@@ -1298,6 +1435,7 @@ async fn drive_live_ws(
         let outcome = drive_live_connection(
             ws_url,
             subscription_messages,
+            &mut subscription_rate_limiter,
             conn_id,
             lifetime,
             started,
@@ -1325,10 +1463,9 @@ async fn drive_live_ws(
                 gap_started_at_ns,
                 gap_ended_at_ns,
                 reason,
-                received_any_message,
+                received_market_data,
             } => {
-                summary.reconnects = summary.reconnects.saturating_add(1);
-                summary.data_gaps = summary.data_gaps.saturating_add(1);
+                summary.mark_gap(symbols);
                 if let Some(recorder) = recorder {
                     recorder.record_gap(
                         closed_conn_id,
@@ -1352,14 +1489,14 @@ async fn drive_live_ws(
                     ),
                 );
                 conn_id = conn_id.saturating_add(1);
-                reconnect_attempt = if received_any_message {
+                reconnect_attempt = if received_market_data {
                     0
                 } else {
                     reconnect_attempt.saturating_add(1)
                 };
                 let backoff_wait = sleep(backoff);
                 tokio::pin!(backoff_wait);
-                let mut ui_events = interval(Duration::from_millis(TUI_KEY_POLL_MS));
+                let mut ui_events = live_interval(Duration::from_millis(TUI_KEY_POLL_MS));
                 ui_events.tick().await;
                 let stop_reason = loop {
                     tokio::select! {
@@ -1391,9 +1528,9 @@ async fn drive_live_ws(
         }
     }
 
-    if summary.is_no_messages_failure() {
+    if summary.is_no_market_data_failure() {
         return Err(HlsError::External(format!(
-            "live run ended without receiving any WebSocket messages after {} reconnect attempt(s)",
+            "live run ended without receiving any market-data events after {} reconnect attempt(s)",
             summary.reconnects
         ))
         .into());
@@ -1407,6 +1544,7 @@ async fn drive_live_ws(
 async fn drive_live_connection(
     ws_url: &str,
     subscription_messages: &[String],
+    subscription_rate_limiter: &mut SubscriptionRateLimiter,
     conn_id: u64,
     lifetime: LiveRunLifetime,
     started: Instant,
@@ -1423,7 +1561,7 @@ async fn drive_live_connection(
     shutdown_signal: &mut ShutdownSignal,
 ) -> anyhow::Result<ConnectionOutcome> {
     let connect_started_ns = now_ns_u64()?;
-    let mut ui_events = interval(Duration::from_millis(TUI_KEY_POLL_MS));
+    let mut ui_events = live_interval(Duration::from_millis(TUI_KEY_POLL_MS));
     ui_events.tick().await;
     let connect = connect_async(ws_url);
     tokio::pin!(connect);
@@ -1457,13 +1595,37 @@ async fn drive_live_connection(
                 gap_started_at_ns: connect_started_ns,
                 gap_ended_at_ns: now_ns_u64()?,
                 reason: format!("connect Hyperliquid WebSocket: {err}"),
-                received_any_message: false,
+                received_market_data: false,
             });
         }
     };
     let (mut write, mut read) = ws.split();
 
     for message in subscription_messages {
+        if let Some(available_at) =
+            subscription_rate_limiter.next_available_at(tokio::time::Instant::now())
+        {
+            let stop_future = wait_for_live_stop(
+                lifetime,
+                shutdown_signal,
+                keyboard_interactive,
+                tui_state.as_deref_mut(),
+                state,
+                screen_request,
+                metadata,
+                color_mode,
+                LiveProgressMode::Live,
+                started,
+                summary,
+                tui_frame_sink.as_deref_mut(),
+            );
+            match cancellable_send(sleep_until(available_at), stop_future).await? {
+                CancellableSendOutcome::Sent(()) => {}
+                CancellableSendOutcome::Stopped(stop_reason) => {
+                    return Ok(ConnectionOutcome::Stopped(stop_reason));
+                }
+            }
+        }
         match send_live_message(
             &mut write,
             Message::Text(message.clone().into()),
@@ -1488,23 +1650,27 @@ async fn drive_live_connection(
                     gap_started_at_ns: connect_started_ns,
                     gap_ended_at_ns: now_ns_u64()?,
                     reason: format!("send subscription: {err}"),
-                    received_any_message: false,
+                    received_market_data: false,
                 });
             }
             CancellableSendOutcome::Stopped(stop_reason) => {
                 return Ok(ConnectionOutcome::Stopped(stop_reason));
             }
         }
+        subscription_rate_limiter.record(tokio::time::Instant::now());
     }
 
-    let mut heartbeat = interval(Duration::from_secs(20));
+    let mut heartbeat = live_interval(Duration::from_secs(20));
     heartbeat.tick().await;
-    let mut progress = interval(refresh_interval);
+    let mut progress = live_interval(refresh_interval);
     progress.tick().await;
-    let mut ui_events = interval(Duration::from_millis(TUI_KEY_POLL_MS));
+    let mut ui_events = live_interval(Duration::from_millis(TUI_KEY_POLL_MS));
     ui_events.tick().await;
-    let mut last_message_recv_ns: Option<u64> = None;
-    let mut received_any_message = false;
+    let mut inactivity = live_interval(WS_MARKET_DATA_CHECK_INTERVAL);
+    inactivity.tick().await;
+    let mut last_market_event_recv_ns: Option<u64> = None;
+    let mut last_market_data_at = Instant::now();
+    let mut received_market_data = false;
 
     loop {
         tokio::select! {
@@ -1559,17 +1725,34 @@ async fn drive_live_connection(
                 ).await? {
                     CancellableSendOutcome::Sent(Ok(())) => {}
                     CancellableSendOutcome::Sent(Err(err)) => {
-                        return Ok(ConnectionOutcome::Reconnect {
+                        return Ok(reconnect_after_ws_send_failure(
                             conn_id,
-                            gap_started_at_ns: last_message_recv_ns.unwrap_or(connect_started_ns),
-                            gap_ended_at_ns: now_ns_u64()?,
-                            reason: format!("send heartbeat ping: {err}"),
-                            received_any_message,
-                        });
+                            connect_started_ns,
+                            last_market_event_recv_ns,
+                            now_ns_u64()?,
+                            "send heartbeat ping",
+                            err,
+                            received_market_data,
+                        ));
                     }
                     CancellableSendOutcome::Stopped(stop_reason) => {
                         return Ok(ConnectionOutcome::Stopped(stop_reason));
                     }
+                }
+            }
+            _ = inactivity.tick() => {
+                let now = Instant::now();
+                if websocket_inactive(last_market_data_at, now) {
+                    return Ok(ConnectionOutcome::Reconnect {
+                        conn_id,
+                        gap_started_at_ns: last_market_event_recv_ns.unwrap_or(connect_started_ns),
+                        gap_ended_at_ns: now_ns_u64()?,
+                        reason: format!(
+                            "no market-data event for {} seconds",
+                            WS_MARKET_DATA_TIMEOUT.as_secs()
+                        ),
+                        received_market_data,
+                    });
                 }
             }
             next = read.next() => {
@@ -1577,10 +1760,10 @@ async fn drive_live_connection(
                 let Some(next) = next else {
                     return Ok(ConnectionOutcome::Reconnect {
                         conn_id,
-                        gap_started_at_ns: last_message_recv_ns.unwrap_or(connect_started_ns),
+                        gap_started_at_ns: last_market_event_recv_ns.unwrap_or(connect_started_ns),
                         gap_ended_at_ns: recv_ts_ns,
                         reason: "Hyperliquid WebSocket stream ended".to_owned(),
-                        received_any_message,
+                        received_market_data,
                     });
                 };
                 let message = match next {
@@ -1588,15 +1771,13 @@ async fn drive_live_connection(
                     Err(err) => {
                         return Ok(ConnectionOutcome::Reconnect {
                             conn_id,
-                            gap_started_at_ns: last_message_recv_ns.unwrap_or(connect_started_ns),
+                            gap_started_at_ns: last_market_event_recv_ns.unwrap_or(connect_started_ns),
                             gap_ended_at_ns: recv_ts_ns,
                             reason: format!("read WebSocket message: {err}"),
-                            received_any_message,
+                            received_market_data,
                         });
                     }
                 };
-                received_any_message = true;
-                last_message_recv_ns = Some(recv_ts_ns);
                 match ws_message_text(message)? {
                     WsReadEvent::Text(line) => {
                     summary.ws_messages += 1;
@@ -1607,6 +1788,11 @@ async fn drive_live_connection(
                         .into_iter()
                         .map(|event| event.with_recv_ts_ns(recv_ts_ns))
                         .collect();
+                    if !events.is_empty() {
+                        received_market_data = true;
+                        last_market_event_recv_ns = Some(recv_ts_ns);
+                        last_market_data_at = Instant::now();
+                    }
                     summary.market_events += events.len() as u64;
                     if let Some(recorder) = recorder {
                         recorder.record_events(events.clone())?;
@@ -1634,9 +1820,15 @@ async fn drive_live_connection(
                         ).await? {
                             CancellableSendOutcome::Sent(Ok(())) => {}
                             CancellableSendOutcome::Sent(Err(err)) => {
-                                return Err(HlsError::External(format!(
-                                    "send WebSocket pong: {err}"
-                                )).into());
+                                return Ok(reconnect_after_ws_send_failure(
+                                    conn_id,
+                                    connect_started_ns,
+                                    last_market_event_recv_ns,
+                                    recv_ts_ns,
+                                    "send WebSocket pong",
+                                    err,
+                                    received_market_data,
+                                ));
                             }
                             CancellableSendOutcome::Stopped(stop_reason) => {
                                 return Ok(ConnectionOutcome::Stopped(stop_reason));
@@ -1646,10 +1838,10 @@ async fn drive_live_connection(
                     WsReadEvent::Reconnect(reason) => {
                         return Ok(ConnectionOutcome::Reconnect {
                             conn_id,
-                            gap_started_at_ns: last_message_recv_ns.unwrap_or(connect_started_ns),
+                            gap_started_at_ns: last_market_event_recv_ns.unwrap_or(connect_started_ns),
                             gap_ended_at_ns: recv_ts_ns,
                             reason,
-                            received_any_message,
+                            received_market_data,
                         });
                     }
                 }
@@ -1962,7 +2154,7 @@ where
     S: LiveTuiFrameSink + ?Sized,
 {
     if let Some(tui_frame_sink) = tui_frame_sink {
-        let mut snapshots = FeatureEngine::default().snapshots(ctx.state, now_ms_i64()?);
+        let mut snapshots = live_feature_snapshots(ctx.state, ctx.summary, now_ms_i64()?);
         attach_metadata(&mut snapshots, ctx.metadata.to_vec());
         let model = live_tui_model(
             &snapshots,
@@ -1973,7 +2165,7 @@ where
             live_tui_trades(ctx.state),
             LiveTuiStatus::new(
                 ctx.mode.status(),
-                "REC ready",
+                ctx.summary.recorder_status(),
                 format!(
                     "{}s ws={} events={} reconnects={} gaps={}",
                     ctx.started.elapsed().as_secs(),
@@ -2011,6 +2203,18 @@ fn render_live_tui_snapshot(
         color_mode,
     )
     .map_err(Into::into)
+}
+
+fn live_feature_snapshots(
+    state: &LiveMarketState,
+    summary: &LiveDriveSummary,
+    now_ms: i64,
+) -> Vec<FeatureSnapshot> {
+    FeatureEngine::default().snapshots_with_confidence_inputs(
+        state,
+        now_ms,
+        &summary.confidence_inputs(),
+    )
 }
 
 fn live_tui_model(
@@ -2056,14 +2260,31 @@ impl LiveTuiStatus {
 fn live_tui_candles(state: &LiveMarketState) -> Vec<CandleEvent> {
     state
         .states()
-        .flat_map(|state| state.candles.iter().cloned())
+        .flat_map(|state| {
+            state
+                .candles
+                .iter()
+                .skip(
+                    state
+                        .candles
+                        .len()
+                        .saturating_sub(MAX_TUI_EVENTS_PER_SYMBOL),
+                )
+                .cloned()
+        })
         .collect()
 }
 
 fn live_tui_trades(state: &LiveMarketState) -> Vec<TradeEvent> {
     state
         .states()
-        .flat_map(|state| state.trades.iter().cloned())
+        .flat_map(|state| {
+            state
+                .trades
+                .iter()
+                .skip(state.trades.len().saturating_sub(MAX_TUI_EVENTS_PER_SYMBOL))
+                .cloned()
+        })
         .collect()
 }
 
@@ -2237,10 +2458,11 @@ fn apply_pending_tui_actions(
     ui_state: &mut WorkstationUiState,
     state: &LiveMarketState,
     screen_request: &mut ScreenRequest,
+    summary: &LiveDriveSummary,
 ) -> anyhow::Result<bool> {
     let mut actions = Vec::new();
     let mut redraw_requested = false;
-    let row_count = current_screened_row_count(state, screen_request)?;
+    let row_count = current_screened_row_count(state, screen_request, summary)?;
     while event::poll(Duration::from_millis(0))? {
         match live_tui_event_effect(event::read()?, ui_state, terminal_size().ok(), row_count) {
             LiveTuiEventEffect::Ignore => {}
@@ -2254,7 +2476,7 @@ fn apply_pending_tui_actions(
     }
 
     for action in actions {
-        apply_live_tui_action(action, ui_state, state, screen_request)?;
+        apply_live_tui_action(action, ui_state, state, screen_request, summary)?;
     }
     Ok(true)
 }
@@ -2277,7 +2499,7 @@ where
     let Some(ui_state) = ui_state else {
         return Ok(None);
     };
-    let event_redraw = apply_pending_tui_actions(ui_state, state, screen_request)?;
+    let event_redraw = apply_pending_tui_actions(ui_state, state, screen_request, summary)?;
     if live_tui_redraw_requested(event_redraw, tui_frame_sink.as_deref_mut()) {
         render_live_progress(
             LiveProgressContext {
@@ -3481,13 +3703,14 @@ fn apply_live_tui_action(
     ui_state: &mut WorkstationUiState,
     state: &LiveMarketState,
     screen_request: &mut ScreenRequest,
+    summary: &LiveDriveSummary,
 ) -> anyhow::Result<()> {
     match action {
         WorkstationAction::SubmitCommand => {
-            submit_live_command(ui_state, state, screen_request)?;
+            submit_live_command(ui_state, state, screen_request, summary)?;
         }
         _ => {
-            let row_count = current_screened_row_count(state, screen_request)?;
+            let row_count = current_screened_row_count(state, screen_request, summary)?;
             ui_state.apply(action, row_count);
         }
     }
@@ -3498,13 +3721,14 @@ fn submit_live_command(
     ui_state: &mut WorkstationUiState,
     state: &LiveMarketState,
     screen_request: &mut ScreenRequest,
+    summary: &LiveDriveSummary,
 ) -> anyhow::Result<bool> {
     let Some(command) = ui_state.command().cloned() else {
         return Ok(false);
     };
     let input = command.input().trim();
     let mut candidate = screen_request.clone();
-    let snapshots = FeatureEngine::default().snapshots(state, now_ms_i64()?);
+    let snapshots = live_feature_snapshots(state, summary, now_ms_i64()?);
 
     match command.target() {
         WorkstationCommandTarget::Filter => {
@@ -3589,8 +3813,9 @@ fn live_command_error_message(err: &HlsError) -> String {
 fn current_screened_row_count(
     state: &LiveMarketState,
     screen_request: &ScreenRequest,
+    summary: &LiveDriveSummary,
 ) -> anyhow::Result<usize> {
-    let snapshots = FeatureEngine::default().snapshots(state, now_ms_i64()?);
+    let snapshots = live_feature_snapshots(state, summary, now_ms_i64()?);
     Ok(hls_screen::ScreenEngine
         .apply(&snapshots, screen_request)?
         .len())
@@ -3671,10 +3896,34 @@ trait LiveTuiFrameSink {
     ) -> anyhow::Result<()>;
 }
 
+#[derive(Default)]
+struct LiveTuiPresentationCache {
+    last_market_frame: Option<RatatuiFrameModel>,
+}
+
+impl LiveTuiPresentationCache {
+    fn present(&mut self, model: &RatatuiFrameModel) -> RatatuiFrameModel {
+        if model.ui_paused() {
+            let presented = self.last_market_frame.as_ref().map_or_else(
+                || model.clone(),
+                |frozen| model.clone().with_market_presentation_from(frozen),
+            );
+            if self.last_market_frame.is_none() {
+                self.last_market_frame = Some(model.clone());
+            }
+            presented
+        } else {
+            self.last_market_frame = Some(model.clone());
+            model.clone()
+        }
+    }
+}
+
 struct LiveTuiRenderer<W: Write = io::Stderr> {
     terminal: Option<Terminal<CrosstermBackend<W>>>,
     enforcement: LiveTuiSessionEnforcement,
     last_viewport: Option<RatatuiViewport>,
+    presentation: LiveTuiPresentationCache,
 }
 
 impl LiveTuiRenderer<io::Stderr> {
@@ -3692,6 +3941,7 @@ impl LiveTuiRenderer<io::Stderr> {
             terminal: Some(terminal),
             enforcement,
             last_viewport: None,
+            presentation: LiveTuiPresentationCache::default(),
         })
     }
 }
@@ -3720,6 +3970,7 @@ impl<W: Write> LiveTuiRenderer<W> {
             terminal: Some(terminal),
             enforcement,
             last_viewport: None,
+            presentation: LiveTuiPresentationCache::default(),
         })
     }
 }
@@ -3739,14 +3990,16 @@ impl<W: Write> LiveTuiFrameSink for LiveTuiRenderer<W> {
         model: &RatatuiFrameModel,
         color_mode: RatatuiColorMode,
     ) -> anyhow::Result<()> {
+        let model = self.presentation.present(model);
         let terminal = self
             .terminal
             .as_mut()
             .context("live TUI renderer terminal is unavailable")?;
         let completed = TERMINAL_OPERATION_COORDINATOR
             .with_session_operation(self.enforcement, || {
+                apply_crossterm_color_policy(color_mode);
                 terminal.draw(|frame| {
-                    hls_tui::ratatui_app::render_ratatui_frame(frame, model, color_mode);
+                    hls_tui::ratatui_app::render_ratatui_frame(frame, &model, color_mode);
                 })
             })
             .map_err(live_tui_session_operation_error)??;
@@ -3756,6 +4009,10 @@ impl<W: Write> LiveTuiFrameSink for LiveTuiRenderer<W> {
         });
         Ok(())
     }
+}
+
+fn apply_crossterm_color_policy(color_mode: RatatuiColorMode) {
+    Colored::set_ansi_color_disabled(color_mode == RatatuiColorMode::NoColor);
 }
 
 impl<W: Write> Drop for LiveTuiRenderer<W> {
@@ -3855,6 +4112,16 @@ fn reconnect_backoff(attempt: u64) -> Duration {
     )
 }
 
+fn live_interval(period: Duration) -> Interval {
+    let mut timer = interval(period);
+    timer.set_missed_tick_behavior(MissedTickBehavior::Skip);
+    timer
+}
+
+fn websocket_inactive(last_market_data: Instant, now: Instant) -> bool {
+    now.saturating_duration_since(last_market_data) >= WS_MARKET_DATA_TIMEOUT
+}
+
 fn now_ns_u64() -> HlsResult<u64> {
     let nanos = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -3920,6 +4187,91 @@ mod tests {
         assert_eq!(reconnect_backoff(1), Duration::from_millis(2_000));
         assert_eq!(reconnect_backoff(5), Duration::from_millis(30_000));
         assert_eq!(reconnect_backoff(100), Duration::from_millis(30_000));
+    }
+
+    #[tokio::test]
+    async fn live_runtime_intervals_skip_missed_ticks() {
+        let timer = live_interval(Duration::from_millis(100));
+        assert_eq!(
+            timer.missed_tick_behavior(),
+            tokio::time::MissedTickBehavior::Skip
+        );
+    }
+
+    #[test]
+    fn websocket_inactivity_uses_a_monotonic_deadline() {
+        let last_market_data = Instant::now();
+        assert!(!websocket_inactive(
+            last_market_data,
+            last_market_data + WS_MARKET_DATA_TIMEOUT - Duration::from_millis(1)
+        ));
+        assert!(websocket_inactive(
+            last_market_data,
+            last_market_data + WS_MARKET_DATA_TIMEOUT
+        ));
+    }
+
+    #[test]
+    fn reconnect_subscriptions_respect_a_rolling_outbound_rate_window() {
+        let started = tokio::time::Instant::now();
+        let mut limiter = SubscriptionRateLimiter::default();
+
+        for _ in 0..924 {
+            assert_eq!(limiter.next_available_at(started), None);
+            limiter.record(started);
+        }
+        let second_batch = started + Duration::from_secs(1);
+        for _ in 0..924 {
+            assert_eq!(limiter.next_available_at(second_batch), None);
+            limiter.record(second_batch);
+        }
+        let third_batch = started + Duration::from_secs(2);
+        for _ in 0..52 {
+            assert_eq!(limiter.next_available_at(third_batch), None);
+            limiter.record(third_batch);
+        }
+
+        assert_eq!(
+            limiter.next_available_at(third_batch),
+            Some(started + WS_OUTBOUND_RATE_WINDOW)
+        );
+        assert_eq!(
+            limiter.next_available_at(started + WS_OUTBOUND_RATE_WINDOW),
+            None
+        );
+    }
+
+    #[test]
+    fn all_symbol_subscription_plan_degrades_to_global_mids_and_contexts() {
+        let symbols = (0..700).map(|index| format!("@{index}")).collect();
+        let plan = live_subscription_plan(symbols, true, DEFAULT_MAX_SUBSCRIPTIONS);
+
+        assert_eq!(plan.subscription_count(), 701);
+        assert_eq!(plan.per_symbol_stream_count(), 1);
+        assert_eq!(plan.global_stream_count(), 1);
+        assert!(plan.validate().is_ok());
+    }
+
+    #[test]
+    fn current_size_all_symbol_plan_keeps_trades_and_bbo_under_headroom() {
+        let symbols = (0..309).map(|index| format!("@{index}")).collect();
+        let plan = live_subscription_plan(symbols, true, DEFAULT_MAX_SUBSCRIPTIONS);
+
+        assert_eq!(plan.subscription_count(), 928);
+        assert_eq!(plan.per_symbol_stream_count(), 3);
+        assert_eq!(plan.global_stream_count(), 1);
+        assert!(plan.validate().is_ok());
+    }
+
+    #[test]
+    fn oversized_all_symbol_plan_falls_back_to_one_global_feed() {
+        let symbols = (0..1_200).map(|index| format!("@{index}")).collect();
+        let plan = live_subscription_plan(symbols, true, DEFAULT_MAX_SUBSCRIPTIONS);
+
+        assert_eq!(plan.subscription_count(), 1);
+        assert_eq!(plan.per_symbol_stream_count(), 0);
+        assert_eq!(plan.global_stream_count(), 1);
+        assert!(plan.validate().is_ok());
     }
 
     #[test]
@@ -4274,7 +4626,55 @@ mod tests {
         assert_eq!(summary.stop_reason, Some(LiveStopReason::Signal));
         assert_eq!(summary.stop_reason_label(), Some("signal"));
         assert!(summary.is_clean_shutdown());
-        assert!(!summary.is_no_messages_failure());
+        assert!(!summary.is_no_market_data_failure());
+    }
+
+    #[test]
+    fn reconnect_gaps_lower_confidence_for_every_affected_symbol() {
+        let mut summary = LiveDriveSummary::default();
+        summary.mark_gap(&["HYPE/USDC".to_owned(), "BTC/USDC".to_owned()]);
+        let state = LiveMarketState::new([
+            "HYPE/USDC".to_owned(),
+            "BTC/USDC".to_owned(),
+            "SOL/USDC".to_owned(),
+        ]);
+        let snapshots = FeatureEngine::default().snapshots_with_confidence_inputs(
+            &state,
+            1_710_000_000_000,
+            &summary.confidence_inputs(),
+        );
+
+        for symbol in ["HYPE/USDC", "BTC/USDC"] {
+            let row = snapshots
+                .iter()
+                .find(|row| row.symbol == symbol)
+                .expect("affected row");
+            assert!(
+                row.confidence
+                    .has_reason(hls_core::confidence::ConfidenceReason::ReconnectGap)
+            );
+        }
+        let unaffected = snapshots
+            .iter()
+            .find(|row| row.symbol == "SOL/USDC")
+            .expect("unaffected row");
+        assert!(
+            !unaffected
+                .confidence
+                .has_reason(hls_core::confidence::ConfidenceReason::ReconnectGap)
+        );
+    }
+
+    #[test]
+    fn live_drive_summary_reports_truthful_recorder_state() {
+        let ready = LiveDriveSummary::default();
+        assert_eq!(ready.recorder_status(), "REC ready");
+
+        let active = LiveDriveSummary {
+            recording_active: true,
+            ..LiveDriveSummary::default()
+        };
+        assert_eq!(active.recorder_status(), "REC active");
     }
 
     #[test]
@@ -4284,7 +4684,7 @@ mod tests {
             ..LiveDriveSummary::default()
         };
 
-        assert!(summary.is_no_messages_failure());
+        assert!(summary.is_no_market_data_failure());
         assert!(!summary.is_clean_shutdown());
     }
 
@@ -4297,7 +4697,19 @@ mod tests {
         summary.mark_stopped(LiveStopReason::DurationElapsed);
 
         assert!(summary.is_clean_shutdown());
-        assert!(summary.is_no_messages_failure());
+        assert!(summary.is_no_market_data_failure());
+    }
+
+    #[test]
+    fn control_frames_do_not_make_a_no_market_data_run_successful() {
+        let mut summary = LiveDriveSummary {
+            ws_messages: 10,
+            market_events: 0,
+            ..LiveDriveSummary::default()
+        };
+        summary.mark_stopped(LiveStopReason::DurationElapsed);
+
+        assert!(summary.is_no_market_data_failure());
     }
 
     #[test]
@@ -4310,7 +4722,7 @@ mod tests {
             summary.mark_stopped(stop_reason);
 
             assert!(summary.is_clean_shutdown());
-            assert!(!summary.is_no_messages_failure());
+            assert!(!summary.is_no_market_data_failure());
         }
     }
 
@@ -4374,6 +4786,38 @@ mod tests {
                 .expect("selection succeeds"),
             CancellableSendOutcome::Sent(Err("write failed"))
         );
+    }
+
+    #[test]
+    fn websocket_reply_write_failure_preserves_gap_context_for_reconnect() {
+        let outcome = reconnect_after_ws_send_failure(
+            7,
+            10,
+            Some(20),
+            30,
+            "send WebSocket pong",
+            "connection reset",
+            true,
+        );
+
+        match outcome {
+            ConnectionOutcome::Reconnect {
+                conn_id,
+                gap_started_at_ns,
+                gap_ended_at_ns,
+                reason,
+                received_market_data,
+            } => {
+                assert_eq!(conn_id, 7);
+                assert_eq!(gap_started_at_ns, 20);
+                assert_eq!(gap_ended_at_ns, 30);
+                assert_eq!(reason, "send WebSocket pong: connection reset");
+                assert!(received_market_data);
+            }
+            ConnectionOutcome::Stopped(reason) => {
+                panic!("write failure must reconnect, not stop with {reason:?}")
+            }
+        }
     }
 
     #[test]
@@ -6237,6 +6681,113 @@ mod tests {
         assert!(repeated_frame.len() < first_frame_end - constructor_end);
     }
 
+    #[test]
+    fn paused_live_tui_freezes_market_data_but_keeps_runtime_status_current() {
+        let mut rows = FeatureEngine::default().snapshots(
+            &LiveMarketState::new(["HYPE/USDC".to_owned()]),
+            1_710_000_000_000,
+        );
+        let row = rows.first_mut().expect("fixture row");
+        row.price = Some(35.0);
+        row.mid_px = Some(35.0);
+
+        let request = ScreenRequest::default();
+        let live_model = live_tui_model(
+            &rows,
+            "pause regression",
+            &request,
+            None,
+            vec![],
+            vec![],
+            LiveTuiStatus::new("LIVE", "REC ready", "ws=1 events=1 reconnects=0 gaps=0"),
+        );
+        let mut cache = LiveTuiPresentationCache::default();
+        let initial = cache.present(&live_model);
+
+        rows[0].price = Some(99.0);
+        rows[0].mid_px = Some(99.0);
+        let mut paused_state = WorkstationUiState::default();
+        paused_state.apply(WorkstationAction::TogglePause, 1);
+        let paused_model = live_tui_model(
+            &rows,
+            "pause regression",
+            &request,
+            Some(&paused_state),
+            vec![],
+            vec![],
+            LiveTuiStatus::new(
+                "LIVE",
+                "REC active",
+                "ws=222 events=333 reconnects=0 gaps=0",
+            ),
+        );
+        let paused = cache.present(&paused_model);
+
+        let viewport = RatatuiViewport {
+            width: 160,
+            height: 48,
+        };
+        let initial_output =
+            render_live_tui_snapshot(&initial, Some(viewport), RatatuiColorMode::NoColor)
+                .expect("initial frame renders");
+        let paused_output =
+            render_live_tui_snapshot(&paused, Some(viewport), RatatuiColorMode::NoColor)
+                .expect("paused frame renders");
+
+        assert!(initial_output.contains("35."), "{initial_output}");
+        assert!(paused_output.contains("35."), "{paused_output}");
+        assert!(!paused_output.contains("99."), "{paused_output}");
+        assert!(paused_output.contains("paused"), "{paused_output}");
+        assert!(paused_output.contains("REC active"), "{paused_output}");
+        assert!(paused_output.contains("222"), "{paused_output}");
+
+        paused_state.apply(WorkstationAction::TogglePause, 1);
+        let resumed_model = live_tui_model(
+            &rows,
+            "pause regression",
+            &request,
+            Some(&paused_state),
+            vec![],
+            vec![],
+            LiveTuiStatus::new(
+                "LIVE",
+                "REC active",
+                "ws=223 events=334 reconnects=0 gaps=0",
+            ),
+        );
+        let resumed = cache.present(&resumed_model);
+        let resumed_output =
+            render_live_tui_snapshot(&resumed, Some(viewport), RatatuiColorMode::NoColor)
+                .expect("resumed frame renders");
+        assert!(resumed_output.contains("99."), "{resumed_output}");
+    }
+
+    #[test]
+    fn live_tui_presentation_payload_is_bounded_per_symbol() {
+        let mut state = LiveMarketState::new(["@107".to_owned()]);
+        for index in 0..100_u64 {
+            state
+                .apply(MarketEvent::Trade(TradeEvent {
+                    recv_ts_ns: index * 1_000_000,
+                    exchange_ts_ms: index as i64,
+                    hl_coin: "@107".to_owned(),
+                    side: hls_core::market_state::TradeSide::Buy,
+                    price: 35.0,
+                    size: 1.0,
+                    notional: 35.0,
+                    hash: format!("0x{index:x}"),
+                    tid: index,
+                    unique_trade_id: format!("@107:{index}:{index}"),
+                }))
+                .expect("trade applies");
+        }
+
+        let trades = live_tui_trades(&state);
+        assert_eq!(trades.len(), MAX_TUI_EVENTS_PER_SYMBOL);
+        assert_eq!(trades.first().map(|trade| trade.tid), Some(36));
+        assert_eq!(trades.last().map(|trade| trade.tid), Some(99));
+    }
+
     #[derive(Debug, Parser)]
     struct LiveArgsParseHarness {
         #[command(flatten)]
@@ -6253,6 +6804,33 @@ mod tests {
             resolve_live_ratatui_color_mode(parsed.args.color, false),
             RatatuiColorMode::Color
         );
+    }
+
+    #[test]
+    fn invalid_live_arguments_fail_preflight_before_runtime_side_effects() {
+        let cases = [
+            (vec!["hls-live", "--refresh-secs", "0"], "--refresh-secs"),
+            (vec!["hls-live", "--top", "0"], "--top"),
+            (
+                vec!["hls-live", "--symbols", "@107", "--all-symbols"],
+                "--symbols",
+            ),
+            (vec!["hls-live", "--raw"], "--record"),
+            (vec!["hls-live", "--run-id", "orphan"], "--record"),
+            (vec!["hls-live", "--max-subscriptions", "1001"], "official"),
+            (
+                vec!["hls-live", "--duration-secs", "18446744073709551615"],
+                "too large",
+            ),
+        ];
+        let terminals = LiveTerminalCapabilities::new(true, true);
+
+        for (argv, expected) in cases {
+            let parsed = LiveArgsParseHarness::try_parse_from(argv).expect("clap accepts shape");
+            let error = validate_live_args(&parsed.args, terminals)
+                .expect_err("semantic preflight rejects invalid arguments");
+            assert!(error.to_string().contains(expected), "{error:#}");
+        }
     }
 
     #[test]
@@ -6359,12 +6937,16 @@ chart_window = "15m"
         }
         let mut request = ScreenRequest::default();
         let mut ui_state = WorkstationUiState::default();
+        let summary = LiveDriveSummary::default();
 
         ui_state.apply(WorkstationAction::CycleFilter, 1);
         for ch in "spread_bps < 20".chars() {
             ui_state.apply(WorkstationAction::CommandChar(ch), 1);
         }
-        assert!(submit_live_command(&mut ui_state, &state, &mut request).expect("valid applies"));
+        assert!(
+            submit_live_command(&mut ui_state, &state, &mut request, &summary)
+                .expect("valid applies")
+        );
         assert_eq!(request.where_expr.as_deref(), Some("spread_bps < 20"));
         assert!(ui_state.command().is_none());
 
@@ -6372,7 +6954,10 @@ chart_window = "15m"
         for ch in "symbol > 10".chars() {
             ui_state.apply(WorkstationAction::CommandChar(ch), 1);
         }
-        assert!(submit_live_command(&mut ui_state, &state, &mut request).expect("invalid handled"));
+        assert!(
+            submit_live_command(&mut ui_state, &state, &mut request, &summary)
+                .expect("invalid handled")
+        );
 
         assert_eq!(request.where_expr.as_deref(), Some("spread_bps < 20"));
         assert_eq!(
@@ -6394,12 +6979,16 @@ chart_window = "15m"
         }
         let mut request = ScreenRequest::default();
         let mut ui_state = WorkstationUiState::default();
+        let summary = LiveDriveSummary::default();
 
         ui_state.apply(WorkstationAction::CyclePreset, 1);
         for ch in "thin_books".chars() {
             ui_state.apply(WorkstationAction::CommandChar(ch), 1);
         }
-        assert!(submit_live_command(&mut ui_state, &state, &mut request).expect("preset applies"));
+        assert!(
+            submit_live_command(&mut ui_state, &state, &mut request, &summary)
+                .expect("preset applies")
+        );
         assert_eq!(request.preset.as_deref(), Some("thin_books"));
         assert!(request.where_expr.is_none());
         assert!(request.sort.is_none());
@@ -6408,7 +6997,10 @@ chart_window = "15m"
         for ch in "spread_bps:asc".chars() {
             ui_state.apply(WorkstationAction::CommandChar(ch), 1);
         }
-        assert!(submit_live_command(&mut ui_state, &state, &mut request).expect("sort applies"));
+        assert!(
+            submit_live_command(&mut ui_state, &state, &mut request, &summary)
+                .expect("sort applies")
+        );
         assert_eq!(request.preset.as_deref(), Some("thin_books"));
         assert_eq!(request.sort.as_deref(), Some("spread_bps:asc"));
         assert!(ui_state.command().is_none());
@@ -6426,12 +7018,16 @@ chart_window = "15m"
         }
         let mut request = ScreenRequest::default();
         let mut ui_state = WorkstationUiState::default();
+        let summary = LiveDriveSummary::default();
 
         ui_state.apply(WorkstationAction::OpenSymbolSearch, 1);
         for ch in "@107".chars() {
             ui_state.apply(WorkstationAction::CommandChar(ch), 1);
         }
-        assert!(submit_live_command(&mut ui_state, &state, &mut request).expect("symbol applies"));
+        assert!(
+            submit_live_command(&mut ui_state, &state, &mut request, &summary)
+                .expect("symbol applies")
+        );
         assert_eq!(ui_state.selected_index(1), Some(0));
         assert_eq!(ui_state.selected_symbol(), Some("@107"));
         assert!(ui_state.command().is_none());
@@ -6441,7 +7037,10 @@ chart_window = "15m"
         for ch in "NOPE".chars() {
             ui_state.apply(WorkstationAction::CommandChar(ch), 1);
         }
-        assert!(submit_live_command(&mut ui_state, &state, &mut request).expect("miss handled"));
+        assert!(
+            submit_live_command(&mut ui_state, &state, &mut request, &summary)
+                .expect("miss handled")
+        );
         assert_eq!(
             ui_state.command_error(),
             Some("no visible symbol matches 'NOPE'")

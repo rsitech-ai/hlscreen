@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use hls_core::market_state::{
-    AllMidsEvent, AssetContextEvent, CandleEvent, LiveMarketState, MarketEvent, TradeEvent,
-    TradeSide,
+    AllMidsEvent, AssetContextEvent, CandleEvent, LiveMarketState, MarketEvent, TopOfBookEvent,
+    TradeEvent, TradeSide,
 };
 
 #[test]
@@ -32,6 +32,28 @@ fn duplicate_trade_ids_are_idempotent_across_replay_or_reconnect() {
     assert_eq!(symbol.trades.len(), 1);
     assert_eq!(symbol.duplicate_trade_count, 1);
     assert_eq!(symbol.last_trade_price, Some(35.0));
+}
+
+#[test]
+fn trade_history_is_hour_bounded_and_late_events_do_not_regress_live_price() {
+    let mut state = LiveMarketState::new(["@107".to_owned()]);
+    let base = 1_710_000_000_000_i64;
+
+    state
+        .apply(MarketEvent::Trade(trade(base, 35.0, 1)))
+        .expect("first trade applies");
+    state
+        .apply(MarketEvent::Trade(trade(base + 3_600_001, 36.0, 2)))
+        .expect("new hour trade applies");
+    state
+        .apply(MarketEvent::Trade(trade(base, 10.0, 3)))
+        .expect("late stale trade is safely ignored");
+
+    let symbol = state.symbol_state("@107").expect("symbol state exists");
+    assert_eq!(symbol.trades.len(), 1);
+    assert_eq!(symbol.trades[0].price, 36.0);
+    assert_eq!(symbol.last_trade_price, Some(36.0));
+    assert_eq!(symbol.last_trade_ts_ms, Some(base + 3_600_001));
 }
 
 #[test]
@@ -68,6 +90,69 @@ fn asset_context_updates_refresh_live_staleness_when_receive_time_is_present() {
     let symbol = state.symbol_state("@107").expect("symbol state exists");
     assert_eq!(symbol.mark_px, Some(35.0));
     assert_eq!(symbol.last_update_ms, Some(1_710_000_000_456));
+}
+
+#[test]
+fn out_of_order_quote_and_context_events_do_not_regress_current_market_state() {
+    let mut state = LiveMarketState::new(["@107".to_owned()]);
+    state
+        .apply(MarketEvent::TopOfBook(bbo(2_000, 35.0, 35.2)))
+        .expect("latest bbo applies");
+    state
+        .apply(MarketEvent::TopOfBook(bbo(1_000, 10.0, 10.2)))
+        .expect("late bbo is retained without becoming current");
+
+    state
+        .apply(MarketEvent::AssetContext(AssetContextEvent {
+            recv_ts_ns: 3_000_000_000,
+            hl_coin: "@107".to_owned(),
+            day_ntl_vlm: Some(1_000_000.0),
+            prev_day_px: Some(34.0),
+            mark_px: Some(36.0),
+            mid_px: Some(36.1),
+            circulating_supply: None,
+        }))
+        .expect("latest context applies");
+    state
+        .apply(MarketEvent::AssetContext(AssetContextEvent {
+            recv_ts_ns: 2_000_000_000,
+            hl_coin: "@107".to_owned(),
+            day_ntl_vlm: Some(1.0),
+            prev_day_px: Some(9.0),
+            mark_px: Some(10.0),
+            mid_px: Some(10.1),
+            circulating_supply: None,
+        }))
+        .expect("late context is ignored");
+
+    state
+        .apply(MarketEvent::AllMids(AllMidsEvent {
+            recv_ts_ns: 5_000_000_000,
+            mids_by_hl_coin: HashMap::from([("@107".to_owned(), 37.0)]),
+        }))
+        .expect("latest all-mids applies");
+    state
+        .apply(MarketEvent::AllMids(AllMidsEvent {
+            recv_ts_ns: 4_000_000_000,
+            mids_by_hl_coin: HashMap::from([("@107".to_owned(), 11.0)]),
+        }))
+        .expect("late all-mids is ignored");
+
+    let symbol = state.symbol_state("@107").expect("symbol state exists");
+    assert_eq!(symbol.bid_px, Some(35.0));
+    assert_eq!(symbol.ask_px, Some(35.2));
+    assert_eq!(symbol.mark_px, Some(36.0));
+    assert_eq!(symbol.day_ntl_vlm, Some(1_000_000.0));
+    assert_eq!(symbol.mid_px, Some(37.0));
+    assert_eq!(symbol.last_update_ms, Some(5_000));
+    assert_eq!(
+        symbol
+            .bbo_events
+            .iter()
+            .map(|event| event.exchange_ts_ms)
+            .collect::<Vec<_>>(),
+        vec![1_000, 2_000]
+    );
 }
 
 #[test]
@@ -115,5 +200,34 @@ fn candle(open_ts_ms: i64, close: f64) -> CandleEvent {
         close,
         volume_base: 1200.0,
         trade_count: 42,
+    }
+}
+
+fn trade(exchange_ts_ms: i64, price: f64, tid: u64) -> TradeEvent {
+    TradeEvent {
+        recv_ts_ns: exchange_ts_ms as u64 * 1_000_000,
+        exchange_ts_ms,
+        hl_coin: "@107".to_owned(),
+        side: TradeSide::Buy,
+        price,
+        size: 1.0,
+        notional: price,
+        hash: format!("0x{tid:x}"),
+        tid,
+        unique_trade_id: format!("@107:{exchange_ts_ms}:{tid}"),
+    }
+}
+
+fn bbo(exchange_ts_ms: i64, bid: f64, ask: f64) -> TopOfBookEvent {
+    TopOfBookEvent {
+        recv_ts_ns: exchange_ts_ms as u64 * 1_000_000,
+        exchange_ts_ms,
+        hl_coin: "@107".to_owned(),
+        bid_price: Some(bid),
+        bid_size: Some(2.0),
+        bid_order_count: Some(1),
+        ask_price: Some(ask),
+        ask_size: Some(3.0),
+        ask_order_count: Some(1),
     }
 }

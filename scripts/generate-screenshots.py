@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import argparse
 import html
 import re
 import shlex
@@ -33,8 +34,9 @@ class Screenshot:
     commands: list[list[str]]
 
 
-def main() -> None:
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
+def main(*, check: bool) -> None:
+    if not check:
+        OUT_DIR.mkdir(parents=True, exist_ok=True)
     ensure_binary()
 
     with tempfile.TemporaryDirectory(prefix="hlscreen-screenshots.") as temp:
@@ -197,18 +199,38 @@ def main() -> None:
 
         redactions = [(str(temp_dir), "<tmp>")]
 
+        stale: list[Path] = []
         for screenshot in screenshots:
             lines = run_screenshot(screenshot, redactions)
             svg = render_svg(screenshot.title, lines)
-            (OUT_DIR / screenshot.filename).write_text(svg, encoding="utf-8")
-            print(f"wrote {OUT_DIR / screenshot.filename}")
+            output = OUT_DIR / screenshot.filename
+            if check:
+                if not output.is_file() or output.read_text(encoding="utf-8") != svg:
+                    stale.append(output)
+                continue
+            output.write_text(svg, encoding="utf-8")
+            print(f"wrote {output}")
+
+        if stale:
+            rendered = "\n".join(f"- {path.relative_to(ROOT)}" for path in stale)
+            raise SystemExit(
+                "deterministic screenshots are stale; run "
+                "`python3 scripts/generate-screenshots.py`:\n"
+                f"{rendered}"
+            )
+        if check:
+            print(f"verified {len(screenshots)} deterministic screenshots")
 
 
 def ensure_binary() -> None:
-    subprocess.run(["cargo", "build", "-p", "hls-cli"], cwd=ROOT, check=True)
+    subprocess.run(
+        ["cargo", "build", "-p", "hls-cli", "--locked"], cwd=ROOT, check=True
+    )
 
 
-def run_screenshot(screenshot: Screenshot, redactions: list[tuple[str, str]]) -> list[str]:
+def run_screenshot(
+    screenshot: Screenshot, redactions: list[tuple[str, str]]
+) -> list[str]:
     lines: list[str] = []
     for command in screenshot.commands:
         display = printable_command(command, redactions)
@@ -294,9 +316,9 @@ def render_svg(title: str, lines: list[str]) -> str:
         f'aria-label="{html.escape(title)} terminal screenshot" '
         f'viewBox="0 0 {width} {height}" width="{width}" height="{height}">',
         "<defs>",
-        "<linearGradient id=\"bg\" x1=\"0\" x2=\"1\" y1=\"0\" y2=\"1\">",
-        "<stop offset=\"0\" stop-color=\"#0d1117\"/>",
-        "<stop offset=\"1\" stop-color=\"#18212b\"/>",
+        '<linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">',
+        '<stop offset="0" stop-color="#0d1117"/>',
+        '<stop offset="1" stop-color="#18212b"/>',
         "</linearGradient>",
         "</defs>",
         f'<rect width="{width}" height="{height}" rx="8" fill="url(#bg)"/>',
@@ -350,7 +372,17 @@ def line_style(line: str) -> tuple[str, str]:
         )
     ):
         return "#f2cc60", "700"
-    if line.startswith(("Selected:", "Bid/Ask", "Top book", "Signed flow", "Confidence", "Why ranked", "Metadata")):
+    if line.startswith(
+        (
+            "Selected:",
+            "Bid/Ask",
+            "Top book",
+            "Signed flow",
+            "Confidence",
+            "Why ranked",
+            "Metadata",
+        )
+    ):
         return "#a5d6ff", "600"
     if "● fresh" in line or "PASS" in line or "TRADE" in line:
         return "#7ee787", "600"
@@ -375,4 +407,10 @@ def line_style(line: str) -> tuple[str, str]:
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="fail when tracked screenshots differ without rewriting them",
+    )
+    main(check=parser.parse_args().check)

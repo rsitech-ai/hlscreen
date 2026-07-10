@@ -26,7 +26,8 @@ fn renders_read_only_main_table_for_fixture_snapshot() {
     assert!(table.contains("│ symbol"));
     assert!(table.contains("sprbp"));
     assert!(table.contains("flow30"));
-    assert!(table.contains("amihud"));
+    assert!(table.contains("cost"));
+    assert!(!table.contains("amihud"));
     assert!(table.contains("why now"));
     assert!(table.contains("@107"));
     assert!(table.contains("35.2000"));
