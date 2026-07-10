@@ -28,7 +28,9 @@ jobs:
         run: cargo install cargo-audit --version 0.22.2 --locked
 
       - name: Deny vulnerabilities and dependency warnings
-        run: cargo audit --deny warnings
+        # Apache Parquet 59.1.0 still pulls the unmaintained paste proc-macro.
+        # Keep every vulnerability and all other warnings denied while upstream removes it.
+        run: cargo audit --deny warnings --ignore RUSTSEC-2024-0436
 
   pty-tui:
     name: PTY TUI (${{ matrix.os }})
