@@ -4,7 +4,10 @@ use anyhow::Context;
 use clap::{Args, ValueEnum};
 use hls_store::{
     metadata::FileRegistryEntry,
-    parquet::{export_feature_snapshots_to_parquet, export_normalized_events_to_parquet},
+    parquet::{
+        export_all_to_parquet, export_feature_snapshots_to_parquet,
+        export_normalized_events_to_parquet,
+    },
 };
 
 #[derive(Debug, Args)]
@@ -27,15 +30,12 @@ pub enum ParquetDataset {
 }
 
 pub async fn run(args: ExportParquetArgs) -> anyhow::Result<()> {
-    let mut entries = Vec::new();
-    if matches!(args.dataset, ParquetDataset::Events | ParquetDataset::All) {
-        entries.push(
+    let entries = match args.dataset {
+        ParquetDataset::Events => vec![
             export_normalized_events_to_parquet(&args.data_dir, &args.run_id)
                 .with_context(|| format!("export normalized run '{}' to parquet", args.run_id))?,
-        );
-    }
-    if matches!(args.dataset, ParquetDataset::Features | ParquetDataset::All) {
-        entries.push(
+        ],
+        ParquetDataset::Features => vec![
             export_feature_snapshots_to_parquet(&args.data_dir, &args.run_id).with_context(
                 || {
                     format!(
@@ -44,8 +44,10 @@ pub async fn run(args: ExportParquetArgs) -> anyhow::Result<()> {
                     )
                 },
             )?,
-        );
-    }
+        ],
+        ParquetDataset::All => export_all_to_parquet(&args.data_dir, &args.run_id)
+            .with_context(|| format!("export all datasets for run '{}' to parquet", args.run_id))?,
+    };
 
     for entry in entries {
         print_entry(&entry);
