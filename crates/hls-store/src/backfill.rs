@@ -1,5 +1,5 @@
 use std::{
-    fs::{self, File},
+    fs::{self, OpenOptions},
     io::Write,
     path::{Path, PathBuf},
 };
@@ -78,7 +78,7 @@ pub fn backfill_public_gaps(
             "backfill interval must be a supported public candle interval".to_owned(),
         ));
     }
-    let registry = MetadataRegistry::open(options.data_dir.join("hls.sqlite"))?;
+    let mut registry = MetadataRegistry::open(options.data_dir.join("hls.sqlite"))?;
     let Some(run) = registry.get_run(&options.run_id)? else {
         return Err(HlsError::Config(format!(
             "recording run '{}' was not found",
@@ -109,7 +109,7 @@ pub fn backfill_public_gaps(
             continue;
         }
         summary.gaps_examined += 1;
-        let result = backfill_gap(&options, source, &registry, &gap)?;
+        let result = backfill_gap(&options, source, &mut registry, &gap)?;
         match result.attempt.status {
             BackfillStatus::Repaired => summary.gaps_repaired += 1,
             BackfillStatus::PartiallyRepaired => summary.gaps_partially_repaired += 1,
@@ -131,7 +131,7 @@ struct BackfilledGap {
 fn backfill_gap(
     options: &BackfillGapsOptions,
     source: &impl CandleBackfillSource,
-    registry: &MetadataRegistry,
+    registry: &mut MetadataRegistry,
     gap: &DataGap,
 ) -> HlsResult<BackfilledGap> {
     let start_time_ms = ns_to_ms_i64(gap.started_at_ns)?;
@@ -169,7 +169,7 @@ fn backfill_gap(
         .len();
     let attempted_at_ms = now_ms_i64()?;
 
-    let file = if candles.is_empty() {
+    let prepared_file = if candles.is_empty() {
         None
     } else {
         Some(write_backfilled_candles(
@@ -179,10 +179,6 @@ fn backfill_gap(
             &candles,
         )?)
     };
-    if let Some(file) = &file {
-        registry.insert_file(file)?;
-    }
-
     let attempt = BackfillAttemptRecord {
         attempt_id: format!(
             "{}:{}:{}:{attempt_index}",
@@ -203,7 +199,9 @@ fn backfill_gap(
             &gap.affected_symbols,
         )),
     };
-    registry.insert_backfill_attempt(&attempt)?;
+    registry
+        .insert_backfill_result_atomic(prepared_file.as_ref().map(|file| &file.entry), &attempt)?;
+    let file = prepared_file.map(PreparedBackfillFile::commit);
 
     Ok(BackfilledGap { attempt, file })
 }
@@ -213,7 +211,7 @@ fn write_backfilled_candles(
     gap: &DataGap,
     attempt_index: usize,
     candles: &[CandleEvent],
-) -> HlsResult<FileRegistryEntry> {
+) -> HlsResult<PreparedBackfillFile> {
     let safe_gap_id = stable_path_id(&gap.gap_id);
     let relative_path = format!(
         "normalized/events/run={}/backfill-{}-{}-{attempt_index:06}.ndjson",
@@ -221,7 +219,11 @@ fn write_backfilled_candles(
     );
     let full_path = prepare_data_file_path(&options.data_dir, &relative_path)?;
 
-    let mut file = File::create(&full_path)?;
+    let mut file = OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&full_path)?;
+    let pending = PendingBackfillFile::new(&full_path);
     for candle in candles {
         let event = MarketEvent::Candle(candle.clone());
         let line = serde_json::to_string(&event)
@@ -231,17 +233,58 @@ fn write_backfilled_candles(
     file.flush()?;
     let metadata = fs::metadata(&full_path)?;
 
-    Ok(FileRegistryEntry {
-        path: relative_path,
-        event_type: "normalized_jsonl".to_owned(),
-        symbol: None,
-        start_ts_ms: candles.iter().map(|candle| candle.open_ts_ms).min(),
-        end_ts_ms: candles.iter().map(|candle| candle.close_ts_ms).max(),
-        rows: candles.len() as u64,
-        bytes: metadata.len(),
-        created_at_ms: now_ms_i64()?,
-        run_id: options.run_id.clone(),
+    Ok(PreparedBackfillFile {
+        entry: FileRegistryEntry {
+            path: relative_path,
+            event_type: "normalized_jsonl".to_owned(),
+            symbol: None,
+            start_ts_ms: candles.iter().map(|candle| candle.open_ts_ms).min(),
+            end_ts_ms: candles.iter().map(|candle| candle.close_ts_ms).max(),
+            rows: candles.len() as u64,
+            bytes: metadata.len(),
+            created_at_ms: now_ms_i64()?,
+            run_id: options.run_id.clone(),
+        },
+        pending,
     })
+}
+
+struct PreparedBackfillFile {
+    entry: FileRegistryEntry,
+    pending: PendingBackfillFile,
+}
+
+impl PreparedBackfillFile {
+    fn commit(self) -> FileRegistryEntry {
+        self.pending.commit();
+        self.entry
+    }
+}
+
+struct PendingBackfillFile {
+    path: PathBuf,
+    committed: bool,
+}
+
+impl PendingBackfillFile {
+    fn new(path: &Path) -> Self {
+        Self {
+            path: path.to_owned(),
+            committed: false,
+        }
+    }
+
+    fn commit(mut self) {
+        self.committed = true;
+    }
+}
+
+impl Drop for PendingBackfillFile {
+    fn drop(&mut self) {
+        if !self.committed {
+            let _ = fs::remove_file(&self.path);
+        }
+    }
 }
 
 fn backfill_notes(status: BackfillStatus, interval: &str, symbols: &[String]) -> String {

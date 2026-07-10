@@ -12,7 +12,7 @@ It is built for operators and researchers who want a local-first way to inspect 
 
 Current state: pre-1.0 read-only live-data preview with bounded local validation. Recording, replay, screening, deterministic terminal rendering, health checks, and local release-package dry runs are implemented, but unattended production readiness is not yet proven. It is not a trading bot, hosted service, or capital-touching execution system.
 
-Latest live validation: the 2026-07-10 release audit completed a top-10 session with `40` subscriptions, `204` WebSocket messages, `456` market events, and high confidence for all 10 rows. A separate all-symbol session covered `309` spot markets through `928` subscriptions and processed `2,013` messages / `7,267` events. Both runs stopped cleanly with `0` reconnects and `0` data gaps. See the [dated release audit](docs/reports/2026-07-10-end-to-end-release-audit.md).
+Latest live validation: a 2026-07-10 15-minute all-symbol TUI/recording run covered `310` spot markets through `931` public subscriptions and processed `286,205` WebSocket messages / `294,144` normalized events. It stopped cleanly with `0` reconnects, `0` data gaps, and replay confidence parity over all `310` rows. See the [post-merge production audit](docs/reports/2026-07-10-post-merge-production-audit.md).
 
 Implemented today:
 
