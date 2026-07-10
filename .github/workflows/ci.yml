@@ -86,16 +86,19 @@ jobs:
             cargo-${{ runner.os }}-
 
       - name: Format
-        run: cargo fmt --check
+        run: cargo fmt --all -- --check
 
       - name: Clippy
-        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+        run: cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
 
       - name: Test
-        run: cargo test --workspace --all-features
+        run: cargo test --workspace --all-features --locked
 
       - name: Build release
-        run: cargo build --release --workspace --all-features
+        run: cargo build --release --workspace --all-features --locked
+
+      - name: Verify deterministic screenshots
+        run: python3 scripts/generate-screenshots.py --check
 
       - name: Release packaging check
         run: scripts/check-release-packaging.sh

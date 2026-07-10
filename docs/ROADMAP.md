@@ -11,7 +11,9 @@
 - Normalized replay JSONL.
 - SQLite metadata registry.
 - Feature snapshots and screening DSL.
-- Terminal table rendering.
+- Adaptive full-screen Ratatui workstation with keyboard/mouse pane navigation,
+  command editing, resize-aware layouts, true display pause, and deterministic
+  non-TTY rendering.
 - Health snapshots and read-only local API helpers.
 - Deterministic public fixture benchmark packs.
 - Low-cardinality metrics snapshots with Prometheus text output.
@@ -31,10 +33,10 @@
    - Bind to localhost only by default.
    - Read-only routes only.
    - Health and screen endpoints backed by live/replay state.
-4. Advanced interactive TUI beyond the current row/view keyboard controls.
-   - Keyboard-driven filter editing.
-   - Preset switching.
-   - Health panel and recording status.
+4. Longer-running market-data resilience.
+   - Fresh all-symbol soak evidence after material runtime changes.
+   - Bounded memory and render-latency telemetry under sustained high-volume feeds.
+   - Deterministic local WebSocket fault injection for inactivity and reconnect storms.
 5. First public release.
    - Run `dist plan` and `dist build` with the pinned cargo-dist version.
    - Review the first `v*` tag packaging workflow output.

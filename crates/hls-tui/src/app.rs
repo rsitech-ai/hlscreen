@@ -25,7 +25,7 @@ enum ColumnKind {
     Imbalance,
     Flow30,
     Rv5m,
-    Amihud,
+    LiquidityCost,
     Confidence,
     WhyNow,
 }
@@ -45,7 +45,7 @@ const WIDE_COLUMNS: [WorkstationColumn; 9] = [
     column("imb", 7, Align::Right, ColumnKind::Imbalance),
     column("flow30", 8, Align::Right, ColumnKind::Flow30),
     column("rv5m", 7, Align::Right, ColumnKind::Rv5m),
-    column("amihud", 6, Align::Left, ColumnKind::Amihud),
+    column("cost", 6, Align::Left, ColumnKind::LiquidityCost),
     column("conf", 6, Align::Right, ColumnKind::Confidence),
     column("why now", 17, Align::Left, ColumnKind::WhyNow),
 ];
@@ -57,7 +57,7 @@ const COMPACT_COLUMNS: [WorkstationColumn; 9] = [
     column("imb", 5, Align::Right, ColumnKind::Imbalance),
     column("flow", 7, Align::Right, ColumnKind::Flow30),
     column("rv", 5, Align::Right, ColumnKind::Rv5m),
-    column("liq", 5, Align::Left, ColumnKind::Amihud),
+    column("cost", 5, Align::Left, ColumnKind::LiquidityCost),
     column("c", 4, Align::Right, ColumnKind::Confidence),
     column("why", 10, Align::Left, ColumnKind::WhyNow),
 ];
@@ -422,7 +422,7 @@ fn format_column_cell(
         ColumnKind::Imbalance => format_imbalance_cell(row.tob_imbalance),
         ColumnKind::Flow30 => format_signed_usd(row.signed_notional_flow_30s),
         ColumnKind::Rv5m => format_volatility_compact(row.rv_5m),
-        ColumnKind::Amihud => format_amihud_proxy(row),
+        ColumnKind::LiquidityCost => format_liquidity_cost_proxy(row),
         ColumnKind::Confidence => format_confidence_decimal(row),
         ColumnKind::WhyNow => format_why_now(row),
     }
@@ -1086,7 +1086,7 @@ fn format_percent(value: Option<f64>) -> String {
     value.map_or_else(|| "-".to_owned(), |value| format!("{:+.2}%", value * 100.0))
 }
 
-fn format_amihud_proxy(row: &FeatureSnapshot) -> String {
+fn format_liquidity_cost_proxy(row: &FeatureSnapshot) -> String {
     match (row.spread_bps, row.tob_depth_usd) {
         (Some(spread), Some(depth))
             if row.liquidity_score >= 70.0 && spread <= 20.0 && depth >= 10_000.0 =>

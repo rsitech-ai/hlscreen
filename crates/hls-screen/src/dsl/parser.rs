@@ -284,6 +284,11 @@ fn read_number(chars: &[char], start: usize) -> HlsResult<(f64, usize)> {
     let value = raw
         .parse::<f64>()
         .map_err(|err| HlsError::Parse(format!("invalid number '{raw}': {err}")))?;
+    if !value.is_finite() {
+        return Err(HlsError::Parse(format!(
+            "numeric literal '{raw}' must be finite"
+        )));
+    }
     Ok((value, index))
 }
 

@@ -10,7 +10,10 @@ use hls_core::{
 };
 use hls_features::engine::{ConfidenceInputs, FeatureEngine};
 
-use crate::{metadata::MetadataRegistry, normalized::read_normalized_events};
+use crate::{
+    metadata::MetadataRegistry, normalized::read_normalized_events,
+    paths::resolve_registered_data_path,
+};
 
 #[derive(Clone, Debug)]
 pub struct ReplayOptions {
@@ -76,7 +79,7 @@ pub fn replay_run(options: ReplayOptions) -> HlsResult<ReplaySummary> {
         .iter()
         .filter(|file| file.event_type == "normalized_jsonl")
     {
-        let path = options.data_dir.join(&file.path);
+        let path = resolve_registered_data_path(&options.data_dir, &file.path)?;
         events.extend(read_normalized_events(path)?);
     }
 

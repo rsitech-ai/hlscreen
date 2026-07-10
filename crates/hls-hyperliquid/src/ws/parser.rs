@@ -55,6 +55,11 @@ fn parse_trades(data: serde_json::Value) -> HlsResult<Vec<MarketEvent>> {
     parse_json::<Vec<WsTrade>>(data, "trades")?
         .into_iter()
         .map(|trade| {
+            if trade.time < 0 {
+                return Err(HlsError::Parse(
+                    "trade.time must be non-negative".to_owned(),
+                ));
+            }
             let side = match trade.side.as_str() {
                 "B" | "buy" | "Buy" => TradeSide::Buy,
                 "A" | "sell" | "Sell" => TradeSide::Sell,
@@ -63,6 +68,9 @@ fn parse_trades(data: serde_json::Value) -> HlsResult<Vec<MarketEvent>> {
             let price = parse_positive(&trade.px, "trade.px")?;
             let size = parse_positive(&trade.sz, "trade.sz")?;
             let notional = price * size;
+            if !notional.is_finite() {
+                return Err(HlsError::Parse("trade notional must be finite".to_owned()));
+            }
             let unique_trade_id = format!("{}:{}:{}", trade.coin, trade.time, trade.tid);
 
             Ok(MarketEvent::Trade(TradeEvent {
@@ -83,6 +91,9 @@ fn parse_trades(data: serde_json::Value) -> HlsResult<Vec<MarketEvent>> {
 
 fn parse_bbo(data: serde_json::Value) -> HlsResult<MarketEvent> {
     let bbo = parse_json::<WsBbo>(data, "bbo")?;
+    if bbo.time < 0 {
+        return Err(HlsError::Parse("bbo.time must be non-negative".to_owned()));
+    }
     let [bid, ask] = bbo.bbo;
     let (bid_price, bid_size, bid_order_count) = level_parts(bid, "bid")?;
     let (ask_price, ask_size, ask_order_count) = level_parts(ask, "ask")?;
@@ -128,11 +139,11 @@ fn parse_active_asset_ctx(data: serde_json::Value) -> HlsResult<MarketEvent> {
     Ok(MarketEvent::AssetContext(AssetContextEvent {
         recv_ts_ns: 0,
         hl_coin: ctx.coin,
-        day_ntl_vlm: parse_optional_number(ctx.ctx.day_ntl_vlm, "assetCtx.dayNtlVlm")?,
-        prev_day_px: parse_optional_number(ctx.ctx.prev_day_px, "assetCtx.prevDayPx")?,
-        mark_px: parse_optional_number(ctx.ctx.mark_px, "assetCtx.markPx")?,
-        mid_px: parse_optional_number(ctx.ctx.mid_px, "assetCtx.midPx")?,
-        circulating_supply: parse_optional_number(
+        day_ntl_vlm: parse_optional_non_negative(ctx.ctx.day_ntl_vlm, "assetCtx.dayNtlVlm")?,
+        prev_day_px: parse_optional_positive(ctx.ctx.prev_day_px, "assetCtx.prevDayPx")?,
+        mark_px: parse_optional_positive(ctx.ctx.mark_px, "assetCtx.markPx")?,
+        mid_px: parse_optional_positive(ctx.ctx.mid_px, "assetCtx.midPx")?,
+        circulating_supply: parse_optional_non_negative(
             ctx.ctx.circulating_supply,
             "assetCtx.circulatingSupply",
         )?,
@@ -163,6 +174,11 @@ fn parse_candles(data: serde_json::Value) -> HlsResult<Vec<MarketEvent>> {
                     "candle open time must be <= close time".to_owned(),
                 ));
             }
+            if open_ts_ms < 0 || close_ts_ms < 0 {
+                return Err(HlsError::Parse(
+                    "candle timestamps must be non-negative".to_owned(),
+                ));
+            }
             if open <= 0.0 || close <= 0.0 || high <= 0.0 || low <= 0.0 {
                 return Err(HlsError::Parse(
                     "candle OHLC values must be positive".to_owned(),
@@ -172,6 +188,9 @@ fn parse_candles(data: serde_json::Value) -> HlsResult<Vec<MarketEvent>> {
                 return Err(HlsError::Parse(
                     "candle OHLC values are internally inconsistent".to_owned(),
                 ));
+            }
+            if volume_base < 0.0 {
+                return Err(HlsError::Parse("candle.v must be non-negative".to_owned()));
             }
 
             Ok(MarketEvent::Candle(CandleEvent {
@@ -201,6 +220,9 @@ fn parse_positive(raw: &str, field: &str) -> HlsResult<f64> {
         .parse::<f64>()
         .map_err(|err| HlsError::Parse(format!("{field} must be numeric: {err}")))?;
 
+    if !parsed.is_finite() {
+        return Err(HlsError::Parse(format!("{field} must be finite")));
+    }
     if parsed <= 0.0 {
         return Err(HlsError::Parse(format!("{field} must be positive")));
     }
@@ -213,7 +235,7 @@ fn parse_optional_number(raw: Option<serde_json::Value>, field: &str) -> HlsResu
         return Ok(None);
     };
 
-    match raw {
+    let parsed = match raw {
         serde_json::Value::Null => Ok(None),
         serde_json::Value::Number(number) => number
             .as_f64()
@@ -227,7 +249,35 @@ fn parse_optional_number(raw: Option<serde_json::Value>, field: &str) -> HlsResu
         other => Err(HlsError::Parse(format!(
             "{field} must be numeric string, number, or null; got {other}"
         ))),
+    }?;
+
+    match parsed {
+        Some(value) if !value.is_finite() => {
+            Err(HlsError::Parse(format!("{field} must be finite")))
+        }
+        _ => Ok(parsed),
     }
+}
+
+fn parse_optional_positive(raw: Option<serde_json::Value>, field: &str) -> HlsResult<Option<f64>> {
+    let parsed = parse_optional_number(raw, field)?;
+    if parsed.is_some_and(|value| value < 0.0) {
+        return Err(HlsError::Parse(format!(
+            "{field} must be positive or a zero missing-value sentinel"
+        )));
+    }
+    Ok(parsed.filter(|value| *value > 0.0))
+}
+
+fn parse_optional_non_negative(
+    raw: Option<serde_json::Value>,
+    field: &str,
+) -> HlsResult<Option<f64>> {
+    let parsed = parse_optional_number(raw, field)?;
+    if parsed.is_some_and(|value| value < 0.0) {
+        return Err(HlsError::Parse(format!("{field} must be non-negative")));
+    }
+    Ok(parsed)
 }
 
 fn parse_required_f64(raw: serde_json::Value, field: &str) -> HlsResult<f64> {
