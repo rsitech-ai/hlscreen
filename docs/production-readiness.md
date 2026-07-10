@@ -1,12 +1,12 @@
 # Production Readiness
 
-`hlscreen` is production-ready for local, read-only public Hyperliquid spot market-data screening and recording. It is not production-ready for live trading, private account monitoring, hosted multi-user service operation, or unattended capital-touching automation.
+`hlscreen` is a read-only local live-data preview with bounded validation evidence. It is not production-ready for unattended operation, live trading, private account monitoring, hosted service operation, or capital-touching automation.
 
 ## Readiness Label
 
-**Status:** local read-only live-data release candidate.
+**Status:** local read-only live-data preview; production readiness is not yet proven.
 
-Supported production-like use:
+Supported bounded local use:
 
 - Build from source with Rust 1.88+.
 - Run bounded public WebSocket sessions over all currently available spot symbols.
@@ -14,15 +14,18 @@ Supported production-like use:
 - Replay captured runs and verify confidence parity.
 - Screen captured rows with deterministic presets or DSL filters.
 - Render deterministic terminal output and health JSON.
+- Preview read-only localhost HTTP routes over current in-memory state.
+- Run a bounded localhost API preview backed by public live market-data snapshots with `hls server --live`.
 
 Not included:
 
 - Wallets, private keys, private streams, signed actions, orders, cancels, withdrawals, leverage, liquidation, or execution.
 - Trading advice, recommendations, or profitability claims.
-- Long-running localhost HTTP server loop.
+- A supported long-running daemon, hosted multi-user API, public network exposure, production supervisor deployment, or completed multi-day soak proof.
 - Public release binaries/checksums from a reviewed `v*` tag.
-- Automatic public-data REST backfill after reconnect.
-- True Parquet writer.
+- Full tick-level public-data repair after live reconnect. Coarse public candle rows may be appended, but missing trades/BBO are not reconstructed and the original gap remains degraded.
+- A production alert engine, validated canonical production microstructure metric suite, private account fee-tier lookup, realized fill model, or service-backed historical analog search.
+- Full schema-versioned analytical Parquet dataset family beyond the initial normalized-event export.
 
 ## Latest Live Validation
 
@@ -109,7 +112,7 @@ python3 scripts/generate-screenshots.py
 
 ## Deployment Checklist
 
-Use this checklist for a local production-style deployment:
+Use this checklist for bounded local validation:
 
 1. Build and test:
 
@@ -119,9 +122,13 @@ Use this checklist for a local production-style deployment:
    cargo test --workspace --all-features --locked
    cargo build --release --workspace --all-features --locked
    RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps --locked
-   cargo audit --deny warnings
+   cargo audit --deny warnings --ignore RUSTSEC-2024-0436
    scripts/check-release-packaging.sh
    ```
+
+   The single ignored advisory is the unmaintained `paste` proc-macro pulled
+   transitively by Apache Parquet 59.1.0. It is not a vulnerability exception;
+   all vulnerabilities and all other dependency warnings remain denied.
 
 2. Create a local data directory outside the repo:
 
@@ -164,7 +171,13 @@ Use this checklist for a local production-style deployment:
    ```bash
    ./target/release/hls doctor --live --json --data-dir "$HLS_DATA_DIR"
    ./target/release/hls server --print-health
+   ./target/release/hls server --bind 127.0.0.1:8787
+   ./target/release/hls server --live --symbols hype-usdc --duration-secs 300 --bind 127.0.0.1:8787
    ```
+
+The HTTP commands above are bounded local previews. They are not a production
+daemon or deployment procedure. See [deployment.md](deployment.md) for the
+missing production-service gates.
 
 ## Operational Signals
 

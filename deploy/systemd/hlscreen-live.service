@@ -1,0 +1,23 @@
+[Unit]
+Description=hlscreen read-only Hyperliquid spot live API
+Documentation=https://github.com/s1korrrr/hlscreen
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/hls server --live --all-symbols --duration-secs 86400 --refresh-secs 30 --bind 127.0.0.1:8787
+Restart=always
+RestartSec=10
+TimeoutStopSec=30
+KillSignal=SIGINT
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=%h/.local/state/hlscreen
+WorkingDirectory=%h
+Environment=HLS_DATA_DIR=%h/.local/state/hlscreen
+
+[Install]
+WantedBy=default.target

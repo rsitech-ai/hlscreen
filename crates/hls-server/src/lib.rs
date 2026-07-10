@@ -1,10 +1,18 @@
 #![forbid(unsafe_code)]
 
-use std::collections::BTreeMap;
+use std::{
+    collections::BTreeMap,
+    future::Future,
+    sync::{Arc, RwLock},
+};
 
 use hls_core::{HlsError, HlsResult, health::HealthSnapshot, market_state::FeatureSnapshot};
 use hls_screen::{ScreenEngine, ScreenRequest};
 use serde_json::json;
+use tokio::{
+    io::{AsyncReadExt, AsyncWriteExt},
+    net::{TcpListener, TcpStream},
+};
 
 #[derive(Clone, Debug)]
 pub struct ApiState {
@@ -15,6 +23,35 @@ pub struct ApiState {
 impl ApiState {
     pub fn new(health: HealthSnapshot, rows: Vec<FeatureSnapshot>) -> Self {
         Self { health, rows }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct SharedApiState {
+    inner: Arc<RwLock<ApiState>>,
+}
+
+impl SharedApiState {
+    pub fn new(state: ApiState) -> Self {
+        Self {
+            inner: Arc::new(RwLock::new(state)),
+        }
+    }
+
+    pub fn replace(&self, state: ApiState) -> HlsResult<()> {
+        let mut guard = self
+            .inner
+            .write()
+            .map_err(|_| HlsError::External("API state write lock poisoned".to_owned()))?;
+        *guard = state;
+        Ok(())
+    }
+
+    pub fn snapshot(&self) -> HlsResult<ApiState> {
+        self.inner
+            .read()
+            .map_err(|_| HlsError::External("API state read lock poisoned".to_owned()))
+            .map(|guard| guard.clone())
     }
 }
 
@@ -40,6 +77,151 @@ pub fn handle_get(path: &str, query: &str, state: &ApiState) -> HlsResult<ApiRes
         "/screen" => handle_screen(query, state),
         path if path.starts_with("/symbol/") => handle_symbol(path, state),
         _ => json_response(404, &json!({ "error": "not found" })),
+    }
+}
+
+pub async fn serve_until_shutdown(
+    listener: TcpListener,
+    state: ApiState,
+    shutdown: impl Future<Output = ()>,
+) -> HlsResult<()> {
+    serve_shared_until_shutdown(listener, SharedApiState::new(state), shutdown).await
+}
+
+pub async fn serve_shared_until_shutdown(
+    listener: TcpListener,
+    state: SharedApiState,
+    shutdown: impl Future<Output = ()>,
+) -> HlsResult<()> {
+    tokio::pin!(shutdown);
+
+    loop {
+        tokio::select! {
+            () = &mut shutdown => return Ok(()),
+            accepted = listener.accept() => {
+                let (stream, _) = accepted?;
+                let state = state.clone();
+                tokio::spawn(async move {
+                    let _ = serve_connection(stream, state).await;
+                });
+            }
+        }
+    }
+}
+
+async fn serve_connection(mut stream: TcpStream, state: SharedApiState) -> HlsResult<()> {
+    let request = read_http_request(&mut stream).await?;
+    let response = match request {
+        ParsedRequest::Get { path, query } => {
+            let snapshot = state.snapshot()?;
+            handle_get(&path, &query, &snapshot)?
+        }
+        ParsedRequest::UnsupportedMethod => {
+            json_response(405, &json!({ "error": "method not allowed" }))?
+        }
+        ParsedRequest::Malformed(error) => json_response(400, &json!({ "error": error }))?,
+    };
+
+    let status_text = status_text(response.status_code);
+    let body = response.body.as_bytes();
+    stream
+        .write_all(
+            format!(
+                "HTTP/1.1 {} {}\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n",
+                response.status_code,
+                status_text,
+                body.len()
+            )
+            .as_bytes(),
+        )
+        .await?;
+    stream.write_all(body).await?;
+    stream.shutdown().await?;
+    Ok(())
+}
+
+#[derive(Debug, Eq, PartialEq)]
+enum ParsedRequest {
+    Get { path: String, query: String },
+    UnsupportedMethod,
+    Malformed(String),
+}
+
+async fn read_http_request(stream: &mut TcpStream) -> HlsResult<ParsedRequest> {
+    const MAX_REQUEST_BYTES: usize = 16 * 1024;
+    let mut buffer = Vec::with_capacity(1024);
+
+    loop {
+        let mut chunk = [0_u8; 1024];
+        let read = stream.read(&mut chunk).await?;
+        if read == 0 {
+            break;
+        }
+        buffer.extend_from_slice(&chunk[..read]);
+        if buffer.windows(4).any(|window| window == b"\r\n\r\n") {
+            break;
+        }
+        if buffer.len() > MAX_REQUEST_BYTES {
+            return Ok(ParsedRequest::Malformed(
+                "request header too large".to_owned(),
+            ));
+        }
+    }
+
+    let request = match std::str::from_utf8(&buffer) {
+        Ok(request) => request,
+        Err(error) => {
+            return Ok(ParsedRequest::Malformed(format!(
+                "request is not valid UTF-8: {error}"
+            )));
+        }
+    };
+    let Some(first_line) = request.lines().next() else {
+        return Ok(ParsedRequest::Malformed("empty request".to_owned()));
+    };
+    parse_request_line(first_line)
+}
+
+fn parse_request_line(first_line: &str) -> HlsResult<ParsedRequest> {
+    let mut parts = first_line.split_whitespace();
+    let Some(method) = parts.next() else {
+        return Ok(ParsedRequest::Malformed("missing method".to_owned()));
+    };
+    let Some(target) = parts.next() else {
+        return Ok(ParsedRequest::Malformed(
+            "missing request target".to_owned(),
+        ));
+    };
+    let Some(version) = parts.next() else {
+        return Ok(ParsedRequest::Malformed("missing HTTP version".to_owned()));
+    };
+    if parts.next().is_some() || !version.starts_with("HTTP/") {
+        return Ok(ParsedRequest::Malformed(
+            "malformed request line".to_owned(),
+        ));
+    }
+    if method != "GET" {
+        return Ok(ParsedRequest::UnsupportedMethod);
+    }
+    let (path, query) = target.split_once('?').unwrap_or((target, ""));
+    if !path.starts_with('/') {
+        return Ok(ParsedRequest::Malformed(
+            "request target must be an absolute path".to_owned(),
+        ));
+    }
+    Ok(ParsedRequest::Get {
+        path: path.to_owned(),
+        query: query.to_owned(),
+    })
+}
+
+fn status_text(status_code: u16) -> &'static str {
+    match status_code {
+        200 => "OK",
+        400 => "Bad Request",
+        404 => "Not Found",
+        405 => "Method Not Allowed",
+        _ => "OK",
     }
 }
 

@@ -1,6 +1,10 @@
 use assert_cmd::Command;
 use predicates::prelude::*;
 
+fn fixture(path: &str) -> String {
+    format!("{}/../../{}", env!("CARGO_MANIFEST_DIR"), path)
+}
+
 #[test]
 fn doctor_live_json_reports_simulated_health() {
     Command::cargo_bin("hls")
@@ -59,4 +63,39 @@ fn server_print_health_outputs_read_only_local_api_payload() {
         .stdout(predicate::str::contains(r#""read_only":true"#))
         .stdout(predicate::str::contains("wallet").not())
         .stdout(predicate::str::contains("order").not());
+}
+
+#[test]
+fn server_rejects_non_loopback_bind_before_starting() {
+    Command::cargo_bin("hls")
+        .expect("hls binary")
+        .args(["server", "--bind", "0.0.0.0:8787"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("loopback address"));
+}
+
+#[test]
+fn server_live_fixture_publishes_read_only_market_rows() {
+    Command::cargo_bin("hls")
+        .expect("hls binary")
+        .args([
+            "server",
+            "--live",
+            "--bind",
+            "127.0.0.1:0",
+            "--symbols",
+            "@107",
+            "--fixture-file",
+            &fixture("tests/fixtures/hyperliquid/ws_mock_live.ndjson"),
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("server_live_run=complete"))
+        .stdout(predicate::str::contains("symbols=1"))
+        .stdout(predicate::str::contains("rows=1"))
+        .stdout(predicate::str::contains("market_events="))
+        .stdout(predicate::str::contains("wallet").not())
+        .stdout(predicate::str::contains("order").not())
+        .stderr(predicate::str::contains("hls live server listening"));
 }

@@ -78,7 +78,7 @@
 
 ### Constraints
 - Technical: keep benchmark runs deterministic; avoid high-cardinality metric labels; keep CLI data on stdout and diagnostics/errors on stderr; use existing parser/state/feature paths.
-- Operational: do not mutate parent `rsibot`; do not publish packages, tags, GitHub releases, or Homebrew taps.
+- Operational: do not mutate parent `rsibot`; do not publish packages, tags, or GitHub releases.
 - Risk/capital: no private/account data, no wallet/config secrets, no plugin network/filesystem access, no order-capable APIs.
 
 ### Options Considered

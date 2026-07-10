@@ -6,7 +6,11 @@ use hls_core::{
         TradeabilityState,
     },
 };
-use hls_server::{ApiState, handle_get};
+use hls_server::{
+    ApiState, SharedApiState, handle_get, serve_shared_until_shutdown, serve_until_shutdown,
+};
+use serde_json::Value;
+use tokio::{net::TcpListener, sync::oneshot};
 
 #[test]
 fn health_endpoint_returns_read_only_status_without_action_surfaces() {
@@ -75,6 +79,137 @@ fn encoded_symbol_paths_round_trip_and_malformed_queries_return_400() {
     assert!(response.body.contains("invalid UTF-8"));
 }
 
+#[tokio::test]
+async fn long_running_server_serves_read_only_http_until_shutdown() {
+    let listener = TcpListener::bind("127.0.0.1:0")
+        .await
+        .expect("bind loopback listener");
+    let address = listener.local_addr().expect("listener address");
+    let (shutdown_tx, shutdown_rx) = oneshot::channel();
+    let server = tokio::spawn(serve_until_shutdown(
+        listener,
+        ApiState::new(HealthInputs::healthy_fixture().snapshot(), rows()),
+        async move {
+            let _ = shutdown_rx.await;
+        },
+    ));
+    let client = reqwest::Client::new();
+
+    let health: Value = client
+        .get(format!("http://{address}/health"))
+        .send()
+        .await
+        .expect("health request")
+        .error_for_status()
+        .expect("health status")
+        .json()
+        .await
+        .expect("health json");
+    assert_eq!(health["status"], "healthy");
+    assert_eq!(health["read_only"], true);
+
+    let screen: Value = client
+        .get(format!(
+            "http://{address}/screen?where=symbol%20%3D%3D%20%22AAA%2FUSDC%22&limit=1"
+        ))
+        .send()
+        .await
+        .expect("screen request")
+        .error_for_status()
+        .expect("screen status")
+        .json()
+        .await
+        .expect("screen json");
+    assert_eq!(screen["rows"][0]["symbol"], "AAA/USDC");
+
+    let unsafe_route = client
+        .get(format!("http://{address}/orders"))
+        .send()
+        .await
+        .expect("orders request");
+    assert_eq!(unsafe_route.status(), reqwest::StatusCode::NOT_FOUND);
+    let unsafe_body = unsafe_route.text().await.expect("orders body");
+    assert!(!unsafe_body.contains("wallet"));
+    assert!(!unsafe_body.contains("order"));
+
+    shutdown_tx.send(()).expect("send shutdown");
+    server
+        .await
+        .expect("server task")
+        .expect("server exits cleanly");
+}
+
+#[tokio::test]
+async fn running_server_serves_replaced_market_state_without_restart() {
+    let listener = TcpListener::bind("127.0.0.1:0")
+        .await
+        .expect("bind loopback listener");
+    let address = listener.local_addr().expect("listener address");
+    let shared = SharedApiState::new(ApiState::new(
+        HealthInputs::healthy_fixture().snapshot(),
+        vec![row("AAA/USDC", 2.0)],
+    ));
+    let (shutdown_tx, shutdown_rx) = oneshot::channel();
+    let server = tokio::spawn(serve_shared_until_shutdown(
+        listener,
+        shared.clone(),
+        async move {
+            let _ = shutdown_rx.await;
+        },
+    ));
+    let client = reqwest::Client::new();
+
+    let first: Value = client
+        .get(format!("http://{address}/screen?limit=1"))
+        .send()
+        .await
+        .expect("first screen request")
+        .error_for_status()
+        .expect("first screen status")
+        .json()
+        .await
+        .expect("first screen json");
+    assert_eq!(first["rows"][0]["symbol"], "AAA/USDC");
+
+    shared
+        .replace(ApiState::new(
+            HealthInputs::writer_lag_fixture().snapshot(),
+            vec![row("BBB/USDC", 1.0)],
+        ))
+        .expect("replace API state");
+
+    let second: Value = client
+        .get(format!("http://{address}/screen?limit=1"))
+        .send()
+        .await
+        .expect("second screen request")
+        .error_for_status()
+        .expect("second screen status")
+        .json()
+        .await
+        .expect("second screen json");
+    assert_eq!(second["rows"][0]["symbol"], "BBB/USDC");
+
+    let health: Value = client
+        .get(format!("http://{address}/health"))
+        .send()
+        .await
+        .expect("health request")
+        .error_for_status()
+        .expect("health status")
+        .json()
+        .await
+        .expect("health json");
+    assert_eq!(health["status"], "degraded");
+    assert_eq!(health["writer_backlog"], 250);
+
+    shutdown_tx.send(()).expect("send shutdown");
+    server
+        .await
+        .expect("server task")
+        .expect("server exits cleanly");
+}
+
 fn rows() -> Vec<FeatureSnapshot> {
     vec![row("AAA/USDC", 2.0), row("BBB/USDC", 1.0)]
 }
@@ -96,9 +231,11 @@ fn row(symbol: &str, price: f64) -> FeatureSnapshot {
         spread_recovery_ms: None,
         resilience_state: LiquidityResilienceState::Unknown,
         tradeability_state: TradeabilityState::Unknown,
+        fee_aware_tradeability: None,
         adverse_selection_proxy: AdverseSelectionProxy::Unknown,
         signed_notional_flow_30s: None,
         bbo_ofi_proxy_30s: None,
+        microstructure_metrics: Vec::new(),
         tob_depth_usd: Some(1_000.0),
         tob_imbalance: Some(0.0),
         ret_1m: Some(0.0),

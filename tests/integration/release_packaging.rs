@@ -23,8 +23,6 @@ fn dist_workspace_declares_tag_gated_release_plan() {
     assert!(dist.contains("hosting = \"github\""));
     assert!(dist.contains("github-attestations = true"));
     assert!(dist.contains("install-updater = false"));
-    assert!(dist.contains("homebrew"));
-
     let cargo = read("Cargo.toml");
     assert!(cargo.contains("[profile.dist]"));
     assert!(cargo.contains("inherits = \"release\""));
@@ -76,4 +74,72 @@ fn release_docs_explain_local_dry_run_and_no_secrets_boundary() {
     assert!(!docs.contains("cargo dist build"));
     assert!(docs.contains("No release secrets"));
     assert!(docs.contains("git tag -a v"));
+}
+
+#[test]
+fn release_validation_scripts_cover_local_artifacts_checksums_and_public_readiness() {
+    let local_smoke = read("scripts/local-release-artifact-smoke.sh");
+    assert!(local_smoke.contains("target/release/hls"));
+    assert!(local_smoke.contains("tar -czf"));
+    assert!(local_smoke.contains("sha256"));
+    assert!(local_smoke.contains("doctor --data-dir"));
+    assert!(local_smoke.contains("--fixture-file"));
+    assert!(!local_smoke.contains("git push"));
+    assert!(!local_smoke.contains("gh release upload"));
+
+    let public_scan = read("scripts/check-public-readiness.sh");
+    assert!(public_scan.contains("README.md"));
+    assert!(public_scan.contains("SECURITY.md"));
+    assert!(public_scan.contains("docs/ROADMAP.md"));
+    assert!(public_scan.contains("docs/assets/screenshots/live-screen.svg"));
+    assert!(public_scan.contains("Release tag created"));
+
+    let packaging_check = read("scripts/check-release-packaging.sh");
+    assert!(packaging_check.contains("check-public-readiness.sh"));
+    assert!(packaging_check.contains("local-release-artifact-smoke.sh"));
+}
+
+#[test]
+fn release_docs_and_roadmap_separate_local_proof_from_publication() {
+    let releasing = read("docs/RELEASING.md");
+    assert!(releasing.contains("Local Artifact Smoke"));
+    assert!(releasing.contains("Artifact Checklist"));
+    assert!(releasing.contains("Release Artifact Status"));
+    assert!(releasing.contains("not a published release"));
+    assert!(releasing.contains("not a supported long-running daemon"));
+
+    let roadmap = read("docs/ROADMAP.md");
+    assert!(roadmap.contains("Draft/local proof only"));
+    assert!(roadmap.contains("no reviewed `v*` release artifact publication"));
+    assert!(roadmap.contains("These are not a supported production service"));
+    assert!(
+        roadmap.contains("Validate supervisor templates before describing them as deployment support")
+    );
+}
+
+#[test]
+fn rustsec_gate_keeps_one_documented_transitive_warning_exception() {
+    let expected = "cargo audit --deny warnings --ignore RUSTSEC-2024-0436";
+    let workflow = read(".github/workflows/ci.yml");
+    let releasing = read("docs/RELEASING.md");
+    let readiness = read("docs/production-readiness.md");
+
+    assert!(workflow.contains(expected));
+    assert!(releasing.contains(expected));
+    assert!(readiness.contains(expected));
+    assert!(workflow.contains("Apache Parquet 59.1.0"));
+    assert!(releasing.contains("all other warnings remain denied"));
+    assert!(readiness.contains("all other dependency warnings remain denied"));
+}
+
+#[test]
+fn workspace_ci_bounds_heavy_rust_build_disk_usage() {
+    let workflow = read(".github/workflows/ci.yml");
+
+    assert!(workflow.contains("CARGO_INCREMENTAL: 0"));
+    assert!(workflow.contains("CARGO_PROFILE_DEV_DEBUG: 0"));
+    assert!(workflow.contains("CARGO_PROFILE_TEST_DEBUG: 0"));
+    assert!(workflow.contains("- name: Cache cargo registry"));
+    assert!(workflow.contains("key: cargo-registry-v1-${{ runner.os }}-"));
+    assert!(!workflow.contains("- name: Cache cargo registry and build outputs\n        uses: actions/cache@v5\n        with:\n          path: |\n            ~/.cargo/registry\n            ~/.cargo/git\n            target\n          key: cargo-${{ runner.os }}-"));
 }

@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{io, path::Path};
 
 use hls_core::{
     HlsError, HlsResult, confidence::DataConfidenceSnapshot, data_gap::DataGap,
@@ -93,6 +93,77 @@ pub struct MetadataCacheRecord {
     pub metadata: MetadataEnrichment,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub enum BackfillStatus {
+    Repaired,
+    PartiallyRepaired,
+    Unrepaired,
+}
+
+impl BackfillStatus {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Repaired => "repaired",
+            Self::PartiallyRepaired => "partially_repaired",
+            Self::Unrepaired => "unrepaired",
+        }
+    }
+
+    fn parse(value: &str, column: usize) -> rusqlite::Result<Self> {
+        match value {
+            "repaired" => Ok(Self::Repaired),
+            "partially_repaired" => Ok(Self::PartiallyRepaired),
+            "unrepaired" => Ok(Self::Unrepaired),
+            value => Err(invalid_text_enum(column, "backfill status", value)),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub enum BackfillConfidenceImpact {
+    Restored,
+    Partial,
+    Degraded,
+}
+
+impl BackfillConfidenceImpact {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Restored => "restored",
+            Self::Partial => "partial",
+            Self::Degraded => "degraded",
+        }
+    }
+
+    fn parse(value: &str, column: usize) -> rusqlite::Result<Self> {
+        match value {
+            "restored" => Ok(Self::Restored),
+            "partial" => Ok(Self::Partial),
+            "degraded" => Ok(Self::Degraded),
+            value => Err(invalid_text_enum(
+                column,
+                "backfill confidence impact",
+                value,
+            )),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct BackfillAttemptRecord {
+    pub attempt_id: String,
+    pub run_id: String,
+    pub gap_id: String,
+    pub source: String,
+    pub requested_start_ns: u64,
+    pub requested_end_ns: u64,
+    pub attempted_at_ms: i64,
+    pub status: BackfillStatus,
+    pub rows_written: u64,
+    pub confidence_impact: BackfillConfidenceImpact,
+    pub notes: Option<String>,
+}
+
 pub struct MetadataRegistry {
     conn: Connection,
 }
@@ -100,6 +171,17 @@ pub struct MetadataRegistry {
 impl MetadataRegistry {
     pub fn open(path: impl AsRef<Path>) -> HlsResult<Self> {
         let path = path.as_ref();
+        match std::fs::symlink_metadata(path) {
+            Ok(metadata) if metadata.file_type().is_symlink() => {
+                return Err(HlsError::Config(format!(
+                    "refusing symbolic link at metadata registry '{}'",
+                    path.display()
+                )));
+            }
+            Ok(_) => {}
+            Err(error) if error.kind() == io::ErrorKind::NotFound => {}
+            Err(error) => return Err(error.into()),
+        }
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent)?;
         }
@@ -170,8 +252,7 @@ impl MetadataRegistry {
     }
 
     pub fn insert_file(&self, file: &FileRegistryEntry) -> HlsResult<()> {
-        validate_run_id(&file.run_id)?;
-        validate_registered_data_path(&file.path)?;
+        self.validate_file_entry(file)?;
         self.conn
             .execute(
                 "INSERT INTO files (
@@ -190,6 +271,47 @@ impl MetadataRegistry {
                 ],
             )
             .map_err(sqlite_error)?;
+        Ok(())
+    }
+
+    pub fn insert_files_atomic(&mut self, files: &[FileRegistryEntry]) -> HlsResult<()> {
+        for file in files {
+            self.validate_file_entry(file)?;
+        }
+        let transaction = self.conn.transaction().map_err(sqlite_error)?;
+        for file in files {
+            transaction
+                .execute(
+                    "INSERT INTO files (
+                        path, event_type, symbol, start_ts_ms, end_ts_ms, rows, bytes, created_at_ms, run_id
+                    ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+                    params![
+                        file.path,
+                        file.event_type,
+                        file.symbol,
+                        file.start_ts_ms,
+                        file.end_ts_ms,
+                        file.rows,
+                        file.bytes,
+                        file.created_at_ms,
+                        file.run_id
+                    ],
+                )
+                .map_err(sqlite_error)?;
+        }
+        transaction.commit().map_err(sqlite_error)?;
+        Ok(())
+    }
+
+    fn validate_file_entry(&self, file: &FileRegistryEntry) -> HlsResult<()> {
+        validate_run_id(&file.run_id)?;
+        validate_registered_data_path(&file.path)?;
+        if self.get_run(&file.run_id)?.is_none() {
+            return Err(HlsError::Config(format!(
+                "recording run '{}' was not found; file evidence cannot be registered without its run",
+                file.run_id
+            )));
+        }
         Ok(())
     }
 
@@ -290,6 +412,91 @@ impl MetadataRegistry {
 
         let rows = stmt
             .query_map([run_id], row_to_gap)
+            .map_err(sqlite_error)?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(sqlite_error)?;
+
+        Ok(rows)
+    }
+
+    pub fn mark_gap_recovered(&self, run_id: &str, gap_id: &str, recovered: bool) -> HlsResult<()> {
+        let changed = self
+            .conn
+            .execute(
+                "UPDATE data_gaps SET recovered = ?3 WHERE run_id = ?1 AND gap_id = ?2",
+                params![run_id, gap_id, recovered],
+            )
+            .map_err(sqlite_error)?;
+        if changed == 0 {
+            return Err(HlsError::Config(format!(
+                "data gap '{gap_id}' was not found in run '{run_id}'"
+            )));
+        }
+        Ok(())
+    }
+
+    pub fn insert_backfill_attempt(&self, attempt: &BackfillAttemptRecord) -> HlsResult<()> {
+        self.conn
+            .execute(
+                "INSERT INTO backfill_attempts (
+                    attempt_id, run_id, gap_id, source, requested_start_ns, requested_end_ns,
+                    attempted_at_ms, status, rows_written, confidence_impact, notes
+                ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+                params![
+                    attempt.attempt_id,
+                    attempt.run_id,
+                    attempt.gap_id,
+                    attempt.source,
+                    attempt.requested_start_ns,
+                    attempt.requested_end_ns,
+                    attempt.attempted_at_ms,
+                    attempt.status.as_str(),
+                    attempt.rows_written,
+                    attempt.confidence_impact.as_str(),
+                    attempt.notes
+                ],
+            )
+            .map_err(sqlite_error)?;
+        Ok(())
+    }
+
+    pub fn list_backfill_attempts(&self, run_id: &str) -> HlsResult<Vec<BackfillAttemptRecord>> {
+        let mut stmt = self
+            .conn
+            .prepare(
+                "SELECT attempt_id, run_id, gap_id, source, requested_start_ns, requested_end_ns,
+                    attempted_at_ms, status, rows_written, confidence_impact, notes
+                 FROM backfill_attempts WHERE run_id = ?1
+                 ORDER BY attempted_at_ms, attempt_id",
+            )
+            .map_err(sqlite_error)?;
+
+        let rows = stmt
+            .query_map([run_id], row_to_backfill_attempt)
+            .map_err(sqlite_error)?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(sqlite_error)?;
+
+        Ok(rows)
+    }
+
+    pub fn list_backfill_attempts_for_gap(
+        &self,
+        run_id: &str,
+        gap_id: &str,
+    ) -> HlsResult<Vec<BackfillAttemptRecord>> {
+        let mut stmt = self
+            .conn
+            .prepare(
+                "SELECT attempt_id, run_id, gap_id, source, requested_start_ns, requested_end_ns,
+                    attempted_at_ms, status, rows_written, confidence_impact, notes
+                 FROM backfill_attempts WHERE run_id = ?1 AND gap_id = ?2
+                 ORDER BY attempted_at_ms, attempt_id",
+            )
+            .map_err(sqlite_error)?;
+
+        let rows = stmt
+            .query_map(params![run_id, gap_id], row_to_backfill_attempt)
             .map_err(sqlite_error)?
             .collect::<Result<Vec<_>, _>>()
             .map_err(sqlite_error)?;
@@ -473,6 +680,21 @@ impl MetadataRegistry {
                     affected_symbols TEXT NOT NULL,
                     recovered INTEGER NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS backfill_attempts (
+                    attempt_id TEXT PRIMARY KEY,
+                    run_id TEXT NOT NULL,
+                    gap_id TEXT NOT NULL,
+                    source TEXT NOT NULL,
+                    requested_start_ns INTEGER NOT NULL,
+                    requested_end_ns INTEGER NOT NULL,
+                    attempted_at_ms INTEGER NOT NULL,
+                    status TEXT NOT NULL,
+                    rows_written INTEGER NOT NULL,
+                    confidence_impact TEXT NOT NULL,
+                    notes TEXT
+                );
+                CREATE INDEX IF NOT EXISTS idx_backfill_attempts_run_gap
+                    ON backfill_attempts(run_id, gap_id, attempted_at_ms);
                 CREATE TABLE IF NOT EXISTS confidence_snapshots (
                     run_id TEXT NOT NULL,
                     snapshot_ts_ms INTEGER NOT NULL,
@@ -548,6 +770,24 @@ fn row_to_gap(row: &rusqlite::Row<'_>) -> rusqlite::Result<DataGap> {
     })
 }
 
+fn row_to_backfill_attempt(row: &rusqlite::Row<'_>) -> rusqlite::Result<BackfillAttemptRecord> {
+    let status: String = row.get(7)?;
+    let confidence_impact: String = row.get(9)?;
+    Ok(BackfillAttemptRecord {
+        attempt_id: row.get(0)?,
+        run_id: row.get(1)?,
+        gap_id: row.get(2)?,
+        source: row.get(3)?,
+        requested_start_ns: row.get(4)?,
+        requested_end_ns: row.get(5)?,
+        attempted_at_ms: row.get(6)?,
+        status: BackfillStatus::parse(&status, 7)?,
+        rows_written: row.get(8)?,
+        confidence_impact: BackfillConfidenceImpact::parse(&confidence_impact, 9)?,
+        notes: row.get(10)?,
+    })
+}
+
 fn row_to_confidence_snapshot(
     row: &rusqlite::Row<'_>,
 ) -> rusqlite::Result<ConfidenceSnapshotRecord> {
@@ -575,4 +815,15 @@ fn row_to_metadata_cache(row: &rusqlite::Row<'_>) -> rusqlite::Result<MetadataCa
 
 fn sqlite_error(err: rusqlite::Error) -> HlsError {
     HlsError::External(format!("sqlite metadata error: {err}"))
+}
+
+fn invalid_text_enum(column: usize, name: &'static str, value: &str) -> rusqlite::Error {
+    rusqlite::Error::FromSqlConversionFailure(
+        column,
+        Type::Text,
+        Box::new(io::Error::new(
+            io::ErrorKind::InvalidData,
+            format!("invalid {name}: {value}"),
+        )),
+    )
 }
