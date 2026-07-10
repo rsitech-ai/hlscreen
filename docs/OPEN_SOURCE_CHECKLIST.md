@@ -12,6 +12,7 @@ This file tracks the public-release package for `hlscreen`.
 - [x] Support policy.
 - [x] Changelog.
 - [x] Release checklist.
+- [x] Deployment limitations document that does not claim a production service path.
 - [x] Privacy note.
 - [x] Threat model.
 - [x] Roadmap.
@@ -28,8 +29,12 @@ This file tracks the public-release package for `hlscreen`.
 
 - [x] GitHub Actions green while the repo is private: post-merge CI run `28965215942` passed on `main` commit `45b9e7c`.
 - [x] Current live all-symbol public-data smoke recorded in `docs/reports/2026-07-08-production-readiness-live-refresh.md`.
+- [x] Public-readiness scan: `scripts/check-public-readiness.sh`.
+- [x] Local release artifact/checksum/install smoke: `scripts/local-release-artifact-smoke.sh`.
+- [x] CI release packaging gate includes static release contract tests, public-readiness scan, and local artifact smoke.
 - [ ] Release tag created.
 - [ ] Release binaries/checksums published.
+- [ ] Multi-day supervised soak report published.
 
 ## Public Positioning
 

@@ -75,7 +75,7 @@
 
 ## Decision: Stage interactive TUI and packaging work after confidence/replay
 
-**Decision**: Keep deterministic rendering tests for the first slice, then add a Ratatui/crossterm keyboard runtime when the data model and why-ranked panes are stable. Add cargo-dist/GitHub Releases/Homebrew packaging after the quickstart and release checks are stable.
+**Decision**: Keep deterministic rendering tests for the first slice, then add a Ratatui/crossterm keyboard runtime when the data model and why-ranked panes are stable. Add reviewed cargo-dist/GitHub Release packaging after the quickstart and release checks are stable.
 
 **Rationale**: Ratatui is a Rust library for fast, lightweight, rich terminal UIs and fits the target UX, but a full keyboard runtime is a larger lifecycle change than confidence/replay. cargo-dist is built to plan, build, host, publish, and announce binary releases and fits the release goal, but release automation should follow stable user-visible commands.
 

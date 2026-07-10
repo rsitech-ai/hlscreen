@@ -23,8 +23,6 @@ fn dist_workspace_declares_tag_gated_release_plan() {
     assert!(dist.contains("hosting = \"github\""));
     assert!(dist.contains("github-attestations = true"));
     assert!(dist.contains("install-updater = false"));
-    assert!(dist.contains("homebrew"));
-
     let cargo = read("Cargo.toml");
     assert!(cargo.contains("[profile.dist]"));
     assert!(cargo.contains("inherits = \"release\""));
@@ -76,4 +74,45 @@ fn release_docs_explain_local_dry_run_and_no_secrets_boundary() {
     assert!(!docs.contains("cargo dist build"));
     assert!(docs.contains("No release secrets"));
     assert!(docs.contains("git tag -a v"));
+}
+
+#[test]
+fn release_validation_scripts_cover_local_artifacts_checksums_and_public_readiness() {
+    let local_smoke = read("scripts/local-release-artifact-smoke.sh");
+    assert!(local_smoke.contains("target/release/hls"));
+    assert!(local_smoke.contains("tar -czf"));
+    assert!(local_smoke.contains("sha256"));
+    assert!(local_smoke.contains("doctor --data-dir"));
+    assert!(local_smoke.contains("--fixture-file"));
+    assert!(!local_smoke.contains("git push"));
+    assert!(!local_smoke.contains("gh release upload"));
+
+    let public_scan = read("scripts/check-public-readiness.sh");
+    assert!(public_scan.contains("README.md"));
+    assert!(public_scan.contains("SECURITY.md"));
+    assert!(public_scan.contains("docs/ROADMAP.md"));
+    assert!(public_scan.contains("docs/assets/screenshots/live-screen.svg"));
+    assert!(public_scan.contains("Release tag created"));
+
+    let packaging_check = read("scripts/check-release-packaging.sh");
+    assert!(packaging_check.contains("check-public-readiness.sh"));
+    assert!(packaging_check.contains("local-release-artifact-smoke.sh"));
+}
+
+#[test]
+fn release_docs_and_roadmap_separate_local_proof_from_publication() {
+    let releasing = read("docs/RELEASING.md");
+    assert!(releasing.contains("Local Artifact Smoke"));
+    assert!(releasing.contains("Artifact Checklist"));
+    assert!(releasing.contains("Release Artifact Status"));
+    assert!(releasing.contains("not a published release"));
+    assert!(releasing.contains("not a supported long-running daemon"));
+
+    let roadmap = read("docs/ROADMAP.md");
+    assert!(roadmap.contains("Draft/local proof only"));
+    assert!(roadmap.contains("no reviewed `v*` release artifact publication"));
+    assert!(roadmap.contains("These are not a supported production service"));
+    assert!(
+        roadmap.contains("Validate supervisor templates before describing them as deployment support")
+    );
 }

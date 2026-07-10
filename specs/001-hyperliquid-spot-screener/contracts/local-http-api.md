@@ -1,6 +1,6 @@
 # Optional Local HTTP API Contract
 
-The local API is optional for v1 and must remain read-only. It exposes current feature snapshots and health for local tooling. It is not a full web dashboard.
+The local API is optional for v1 and must remain read-only. It exposes current feature snapshots and health for local tooling. `hls server --bind` can serve a static in-memory state, and `hls server --live` can serve bounded public WebSocket market-data snapshots through the same routes. It is not a full web dashboard or hosted multi-user service.
 
 ## `GET /health`
 

@@ -10,14 +10,14 @@ It is built for operators and researchers who want a local-first way to inspect 
 
 ## Status
 
-Current state: read-only live-data release candidate for local deployment. The codebase is production-ready for bounded public Hyperliquid spot recording, replay, screening, deterministic terminal rendering, health checks, and local release packaging dry runs. It is not a trading bot, hosted service, or capital-touching execution system.
+Current state: pre-1.0 read-only live-data preview with bounded local validation. Recording, replay, screening, deterministic terminal rendering, health checks, and local release-package dry runs are implemented, but unattended production readiness is not yet proven. It is not a trading bot, hosted service, or capital-touching execution system.
 
 Latest live validation: the 2026-07-10 release audit completed a top-10 session with `40` subscriptions, `204` WebSocket messages, `456` market events, and high confidence for all 10 rows. A separate all-symbol session covered `309` spot markets through `928` subscriptions and processed `2,013` messages / `7,267` events. Both runs stopped cleanly with `0` reconnects and `0` data gaps. See the [dated release audit](docs/reports/2026-07-10-end-to-end-release-audit.md).
 
 Implemented today:
 
 - Public Hyperliquid REST metadata parsing for `spotMeta` and `spotMetaAndAssetCtxs`.
-- Public WebSocket parsing for trades, BBO, all-mids, active asset context, and candles, with deterministic fixtures kept for tests.
+- Public WebSocket parsing for trades, BBO, selected-symbol L2 snapshots, all-mids, active asset context, and candles, with deterministic fixtures kept for tests.
 - Bounded public WebSocket live screen with duration-based shutdown, heartbeat pings, inbound inactivity detection, rate-limited reconnect/resubscribe, optional raw/normalized recording, and all-symbol subscription budgeting.
 - Bounded live recording through a fail-closed writer queue so disk I/O does not silently drop or stall market-data ingestion.
 - Adaptive Ratatui live cockpit for TTY sessions and `--tui` smoke captures, with differential rendering, non-bursting refresh timers, a true display-only pause, watchlist, detail, market internals rail, real 1m OHLC/volume chart, book, tape, status bar, color, persisted display preferences, visible wide/medium/narrow layout profiles, resize-aware layouts, keyboard pane zoom, mouse pane focus, and command-palette editing for filters, presets, and sort order.
@@ -26,20 +26,20 @@ Implemented today:
 - Confidence-aware feature snapshots and TUI rows for fresh, sparse, duplicate, and explicit gap/parser/backlog quality inputs.
 - Persisted confidence baselines plus `hls replay --verify-parity` drift detection for local replay checks.
 - Deterministic score breakdowns, screen-rule score fields, and `hls explain` why-ranked output for replayed or fixture-backed rows.
-- Compressed raw public message recording, normalized replay JSONL, and local SQLite metadata with unique, path-safe run IDs and registry-path validation.
+- Compressed raw public message recording, normalized replay JSONL, analytical Parquet export/replay with schema manifests, and local SQLite metadata with unique, path-safe run IDs and registry-path validation.
 - Deterministic screening DSL and built-in screen presets.
 - Health snapshots, reconnect simulation, TUI health rendering, and read-only local API helpers.
 - Deterministic public fixture benchmark packs through `hls bench`.
 - Low-cardinality metrics snapshots in `hls doctor --live --json`, including Prometheus text output.
-- Read-only extension manifest models that reject network, filesystem, private-data, and trading permissions.
+- Bounded standalone Wasm row-annotation extensions that reject imports, network/filesystem/private/trading permissions, oversized modules, hash mismatches, and excess memory/output.
 - Draft cargo-dist release packaging config and tag-gated packaging workflow.
 
 Not implemented yet:
 
-- Automatic REST backfill for missed public data after a reconnect. Reconnect gaps are recorded explicitly.
-- Long-running localhost HTTP server loop.
-- True Parquet writer.
+- Automatic live invocation of the coarse public candle backfill adapter after reconnect. Missing trades and BBO cannot be reconstructed, and reconnect gaps remain explicit.
+- Supported long-running localhost daemon/service lifecycle.
 - Published release binaries from a reviewed `v*` tag run.
+- Production alert delivery/operations, validated canonical production microstructure metrics, private account fee tiers, realized-fill modeling, service-backed analog search, and multi-day supervised soak proof.
 
 ## Screenshots
 
@@ -340,13 +340,17 @@ Run the deterministic public benchmark pack:
   --json
 ```
 
+Additional local read-only commands include `hls export-parquet`, `hls alerts`,
+`hls analog`, and `hls extension`. Run each command with `--help` for its explicit
+fixture/replay inputs and output options.
+
 ## Architecture
 
 Workspace crates:
 
 - `hls-core`: shared config, symbols, errors, state, health, and telemetry contracts.
 - `hls-hyperliquid`: public Hyperliquid REST/WebSocket parsing and connection helpers.
-- `hls-store`: compressed raw capture, normalized replay data, metadata registry, replay readers, and benchmark packs.
+- `hls-store`: compressed raw capture, normalized replay data, analytical Parquet, metadata registry, replay readers, and benchmark packs.
 - `hls-features`: rolling feature windows and formulas.
 - `hls-screen`: screening DSL, presets, and row filtering/sorting.
 - `hls-tui`: terminal rendering.

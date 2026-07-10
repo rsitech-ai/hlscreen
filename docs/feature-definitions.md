@@ -30,6 +30,55 @@ The v1 feature set is a transparent screener surface, not a prediction engine.
 
 These scores are screen ordering aids only. They are not predictions, recommendations, or profitability claims.
 
+## Market Composite
+
+`hls tui` builds a chained market index from official 1m constituent candles;
+it never averages incompatible raw asset prices. The index starts at `100`.
+Constituent weights are proportional to the square root of finite positive
+24-hour quote notional, capped at 10%, and renormalized within each available
+minute. Missing constituents reduce the displayed liquidity-weight coverage
+instead of producing synthetic flat candles.
+
+Breadth is equal-weight and reported separately as advances, declines,
+unchanged, and stale/missing symbols. Live quote volume uses summed public trade
+notional when available and is labeled `ExactTrades`; historical candle volume
+uses `volume_base * close` and is labeled `CloseApproximation`. Neither measure
+is private fill volume or an execution signal.
+
+## Research Microstructure Metrics
+
+`FeatureSnapshot.microstructure_metrics` carries metric-level evidence with a
+`support` value of `canonical`, `proxy`, or `unavailable`. The current runtime
+does not emit any production-validated canonical metric. Implemented values are
+bounded research proxies or explicit unavailable states.
+
+Current metric contracts:
+
+| Metric | Support when value exists | Formula / rule | Unit | Unavailable when |
+| --- | --- | --- | --- | --- |
+| `amihud_1m` | proxy | bounded `abs(return_1m) / dollar_volume_1m` over public trades | `return_per_usd` | fewer than two trades or non-positive public notional |
+| `roll_effective_spread` | proxy | bounded adjacent public trade-price-change estimate | `price` | fewer than four trades or non-negative adjacent price-change covariance |
+| `bipower_variation_5m` | proxy | trade-to-trade adjacent absolute-return products without canonical time-bar sampling | `decimal_variance` | fewer than three valid public trades |
+| `bbo_ofi_proxy_30s` | proxy | best-level queue-change notional from public BBO updates | `usd_notional` | fewer than two BBO updates in the 30-second window |
+| `signed_flow_toxicity_proxy_30s` | proxy | `abs(sum(signed_public_trade_notional_30s)) / sum(abs(public_trade_notional_30s))` | `ratio` | fewer than two trades or non-positive public notional in the 30-second window |
+| `adverse_selection_toxicity_proxy` | proxy | ordinal `0/1/2` from public signed flow, BBO OFI proxy, resilience, and TOB depth | `ordinal` | missing signed flow, BBO OFI proxy, or TOB depth |
+
+Important caveats:
+
+- `amihud_1m`, `roll_effective_spread`, and `bipower_variation_5m` are bounded
+  public-trade research formulas. Their windowing and sampling have not been
+  validated as canonical production estimates.
+- `roll_effective_spread` is unavailable when the public trade-price changes do
+  not show the negative serial covariance required by the Roll estimator.
+- `bbo_ofi_proxy_30s` is still a best-level proxy. It is not full-book OFI.
+- `signed_flow_toxicity_proxy_30s` is a bounded public trade-flow concentration
+  proxy. It is not canonical toxicity, private fill quality, or adverse
+  selection measured from account execution.
+- `adverse_selection_toxicity_proxy` is an ordinal warning, not a toxicity
+  model, fill model, or trading recommendation.
+- The compact TUI `amihud` column prefers the public-trade Amihud-style proxy
+  when available and falls back to the older spread/depth liquidity proxy.
+
 ## Liquidity Resilience and Tradeability
 
 Liquidity resilience fields are derived from public `bbo` and `trades` events
@@ -68,6 +117,51 @@ Important caveats:
 - `tradeability_state` describes visible quoted cost and data quality only. It
   does not include fees, slippage beyond top-of-book, funding, market impact,
   account limits, or order placement feasibility.
+
+## Fee-Aware Tradeability
+
+Fee-aware tradeability is optional additive evidence. The default
+`tradeability_state` remains public-data-only and does not change unless a
+caller explicitly configures a local `FeeProfile` in the feature engine or
+passes a local profile file to `hls screen --fee-profile-file` or bounded
+`hls server --live --fee-profile-file`.
+
+Current implemented contract:
+
+- Fee configuration uses an explicit local profile name plus integer
+  hundredths-of-basis-points for maker fee, taker fee, taker fill ratio,
+  slippage buffer, and round-trip thresholds.
+- `taker_fill_ratio_hundredths` is an explicit local assumption from `0` to
+  `10000`; omitted profiles default to `10000` for backward-compatible
+  all-taker economics.
+- `blended_fee_bps = taker_fee_bps * taker_fill_ratio + maker_fee_bps * (1 - taker_fill_ratio)`.
+- `expected_round_trip_cost_bps = spread_bps + 2 * blended_fee_bps + slippage_buffer_bps`.
+- If the base public-data tradeability state is not `tradeable`, fee-aware
+  evidence preserves that base state and records the base-state reason.
+- If the base state is `tradeable`, the fee-aware state stays `tradeable` only
+  when expected round-trip cost is at or below the profile's tradeable
+  threshold; otherwise it becomes `costly`.
+
+Screen fields exposed when fee evidence exists:
+
+- `fee_tradeability_state`
+- `fee_expected_round_trip_cost_bps`
+- `fee_profile`
+- `maker_fee_bps`
+- `taker_fee_bps`
+- `taker_fill_ratio`
+
+Important caveats:
+
+- Fee-aware output does not query private account fee tiers, wallet state, user
+  fills, or account limits.
+- It is not a fill model, profitability model, routing model, or execution
+  feasibility check.
+- `taker_fill_ratio` is not inferred from realized fills; it is a local
+  operator-supplied assumption used only to make screening costs explicit.
+- Current CLI support is limited to explicit local JSON/TOML profile files for
+  `hls screen` and read-only `hls live` filtering/rendering. Account fee-tier
+  lookup and fill/execution modeling remain out of scope.
 
 ## Data Confidence
 
@@ -146,3 +240,96 @@ Built-in presets:
 - `flow_pressure`
 
 Missing numeric values do not match numeric comparisons. Invalid expressions are rejected and do not replace the active screen session.
+
+## Alerts And Analytics Boundaries
+
+Alerts are local, read-only replay/live annotations over public `FeatureSnapshot`
+rows. `AlertPlaybook` rules can emit `AlertEvent` records with trigger reason,
+confidence level, confidence score, source interval, severity, and cooldown
+state. Alert actions must be `local_only`; exchange actions, orders, wallet
+operations, private account data, and external delivery are rejected or left out
+of the current model.
+
+Current implemented alert condition grammar:
+
+- `spread_shock_and_low_confidence`: emits when `spread_shock_bps` is at or
+  above the configured threshold and `confidence.score` is at or below the
+  configured maximum.
+- `field_threshold`: emits when one typed numeric field crosses a configured
+  threshold. Supported fields are `confidence_score`, `spread_bps`,
+  `spread_shock_bps`, `tob_depth_usd`, `tob_imbalance`,
+  `signed_notional_flow_30s`, `bbo_ofi_proxy_30s`, `rv_1m`, `rv_5m`, and
+  `day_ntl_vlm`. Supported operators are `gt`, `gte`, `lt`, `lte`, and `eq`.
+- `all`: emits when every child condition emits; empty condition lists fail
+  validation.
+- `any`: emits when at least one child condition emits and reports the first
+  matching child reason; empty condition lists fail validation.
+- `not`: emits when its child condition does not emit. The reason is
+  deliberately conservative because missing public evidence can make the child
+  condition false.
+
+The local alert evaluator suppresses repeated events for the same playbook,
+rule, and symbol while the rule cooldown is active. Suppressed attempts are
+reported separately as `SuppressedAlert` records so replay output can explain
+why an event was not emitted.
+
+`hls alerts` evaluates either the built-in local playbook or a user-supplied
+JSON/TOML playbook file over replayed rows or deterministic fixture rows, can
+print JSON for scripting, and can append emitted and suppressed evidence to
+local JSONL with `--alert-history-file`.
+`hls alerts --history-file <path>` lists recent local history records with
+optional `--symbol`, `--limit`, and `--json` output. These paths are local-only:
+they do not send exchange actions, query private account data, use wallet
+state, or deliver external notifications. File-backed playbooks can use the
+fixed spread-shock condition or the typed threshold/boolean grammar above.
+
+Live evaluation and Ratatui alert-history panes are not wired yet. Current alert
+behavior is an explicit standalone local command, not a scheduler or operational
+alert engine.
+
+## Historical Analog Search
+
+`hls analog` searches local normalized replay windows for `FeatureSnapshot`
+states similar to a selected symbol's latest replayed state. It can either scan
+a normalized local run directly or write/read a schema-versioned local JSON
+index with `--write-index <path>` and `--index-file <path>`. The implementation
+is intentionally local: it does not require a hosted data lake, private account
+data, or network calls while searching a recorded run or local index.
+
+Current comparable dimensions:
+
+- `spread_bps`
+- `tob_imbalance`
+- `signed_notional_flow_30s`
+- `bbo_ofi_proxy_30s`
+- `rv_5m`
+- `liquidity_score`
+- `momentum_score`
+
+Each match includes a normalized distance and the largest contributing feature
+differences. Candidates require at least three comparable dimensions. If local
+history is too sparse or the caller asks for more valid candidates than exist,
+the report returns `insufficient_evidence` and an empty `matches` array instead
+of fabricating analogs.
+
+Analog output is research context only. It is not a prediction, recommendation,
+execution simulation, or profitability claim.
+
+Still planned beyond the current `specs/006-alerts-and-analytics` local
+surface:
+
+- Live evaluation, external delivery, daemon scheduling, and TUI alert history
+  panes. The current local playbook grammar supports fixed spread-shock
+  rules, typed `field_threshold`, `all`/`any`/`not` boolean composition, and
+  explicit local JSONL evidence history with CLI listing.
+- Larger database/service-backed historical analog indexes beyond the current
+  local JSON index.
+- Richer adverse-selection/toxicity analytics beyond the current public-data
+  ordinal proxy.
+- Account/fill-model-aware fee economics. The current implementation supports
+  optional library-configured fee profiles, `hls screen --fee-profile-file`,
+  and bounded `hls server --live --fee-profile-file`, but no private account
+  fee-tier lookup.
+- Broader plugin runtime surfaces. The current extension layer supports bounded
+  standalone CLI row-annotation execution; live integration, plugin discovery,
+  TUI panels, and score/health annotation execution remain future work.
