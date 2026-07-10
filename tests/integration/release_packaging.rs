@@ -140,5 +140,6 @@ fn workspace_ci_bounds_heavy_rust_build_disk_usage() {
     assert!(workflow.contains("CARGO_PROFILE_DEV_DEBUG: 0"));
     assert!(workflow.contains("CARGO_PROFILE_TEST_DEBUG: 0"));
     assert!(workflow.contains("- name: Cache cargo registry"));
+    assert!(workflow.contains("key: cargo-registry-v1-${{ runner.os }}-"));
     assert!(!workflow.contains("- name: Cache cargo registry and build outputs\n        uses: actions/cache@v5\n        with:\n          path: |\n            ~/.cargo/registry\n            ~/.cargo/git\n            target\n          key: cargo-${{ runner.os }}-"));
 }
