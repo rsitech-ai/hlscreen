@@ -14,13 +14,17 @@ This project is pre-1.0. Use this checklist before tagging a public release.
    cargo test --workspace --all-features --locked
    cargo build --release --workspace --all-features --locked
    RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps --locked
-   cargo audit --deny warnings
+   cargo audit --deny warnings --ignore RUSTSEC-2024-0436
    scripts/check-release-packaging.sh
    git diff --check
    python3 scripts/generate-screenshots.py --check
    ```
    `scripts/check-release-packaging.sh` runs the static release contract tests,
    the public-readiness scan, and the local artifact smoke described below.
+   `RUSTSEC-2024-0436` is a narrow exception for the unmaintained `paste`
+   proc-macro currently pulled by Apache Parquet 59.1.0. It is not a known
+   vulnerability; every vulnerability and all other warnings remain denied.
+   Remove the exception when Parquet drops that transitive dependency.
 3. Run fixture smokes.
    ```bash
    tmpdir="$(mktemp -d /tmp/hlscreen-release.XXXXXX)"
