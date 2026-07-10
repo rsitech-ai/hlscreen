@@ -1,13 +1,15 @@
 use hls_core::{
     HlsError, HlsResult,
     market_state::{
-        AllMidsEvent, AssetContextEvent, CandleEvent, MarketEvent, TopOfBookEvent, TradeEvent,
-        TradeSide,
+        AllMidsEvent, AssetContextEvent, CandleCompletion, CandleEvent, CandleProvenance,
+        MarketEvent, OrderBookEvent, OrderBookLevel, TopOfBookEvent, TradeEvent, TradeSide,
     },
 };
 use serde::de::DeserializeOwned;
 
-use super::types::{WsActiveSpotAssetCtx, WsAllMids, WsBbo, WsCandle, WsEnvelope, WsTrade};
+use super::types::{
+    WsActiveSpotAssetCtx, WsAllMids, WsBbo, WsBook, WsCandle, WsEnvelope, WsLevel, WsTrade,
+};
 
 pub fn parse_ws_ndjson(raw: &str) -> HlsResult<Vec<MarketEvent>> {
     let mut events = Vec::new();
@@ -33,6 +35,7 @@ pub fn parse_ws_message(raw: &str) -> HlsResult<Vec<MarketEvent>> {
     match envelope.channel.as_str() {
         "trades" => parse_trades(envelope.data),
         "bbo" => parse_bbo(envelope.data).map(|event| vec![event]),
+        "l2Book" => parse_l2_book(envelope.data).map(|event| vec![event]),
         "allMids" => parse_all_mids(envelope.data).map(|event| vec![event]),
         "activeAssetCtx" | "activeSpotAssetCtx" => {
             parse_active_asset_ctx(envelope.data).map(|event| vec![event])
@@ -117,6 +120,69 @@ fn parse_bbo(data: serde_json::Value) -> HlsResult<MarketEvent> {
         ask_size,
         ask_order_count,
     }))
+}
+
+fn parse_l2_book(data: serde_json::Value) -> HlsResult<MarketEvent> {
+    let book = parse_json::<WsBook>(data, "l2Book")?;
+    if book.time < 0 {
+        return Err(HlsError::Parse(
+            "l2Book.time must be non-negative".to_owned(),
+        ));
+    }
+
+    let [bid_levels, ask_levels] = book.levels;
+    if bid_levels.len() > 20 || ask_levels.len() > 20 {
+        return Err(HlsError::Parse(
+            "l2Book must contain at most 20 levels per side".to_owned(),
+        ));
+    }
+    let bids = parse_book_levels(bid_levels, "bid")?;
+    let asks = parse_book_levels(ask_levels, "ask")?;
+
+    if bids
+        .windows(2)
+        .any(|levels| levels[0].price < levels[1].price)
+    {
+        return Err(HlsError::Parse(
+            "l2Book bids must be sorted from highest to lowest price".to_owned(),
+        ));
+    }
+    if asks
+        .windows(2)
+        .any(|levels| levels[0].price > levels[1].price)
+    {
+        return Err(HlsError::Parse(
+            "l2Book asks must be sorted from lowest to highest price".to_owned(),
+        ));
+    }
+    if let (Some(bid), Some(ask)) = (bids.first(), asks.first())
+        && bid.price > ask.price
+    {
+        return Err(HlsError::Parse(
+            "l2Book best bid must be <= best ask".to_owned(),
+        ));
+    }
+
+    Ok(MarketEvent::OrderBook(OrderBookEvent {
+        recv_ts_ns: 0,
+        exchange_ts_ms: book.time,
+        hl_coin: book.coin,
+        bids,
+        asks,
+    }))
+}
+
+fn parse_book_levels(levels: Vec<WsLevel>, side: &str) -> HlsResult<Vec<OrderBookLevel>> {
+    levels
+        .into_iter()
+        .map(|level| {
+            Ok(OrderBookLevel {
+                price: parse_positive(&level.px, &format!("l2Book.{side}.px"))?,
+                size: parse_non_negative(&level.sz, &format!("l2Book.{side}.sz"))?,
+                order_count: level.n,
+            })
+        })
+        .collect()
 }
 
 fn parse_all_mids(data: serde_json::Value) -> HlsResult<MarketEvent> {
@@ -205,6 +271,8 @@ fn parse_candles(data: serde_json::Value) -> HlsResult<Vec<MarketEvent>> {
                 close,
                 volume_base,
                 trade_count,
+                provenance: CandleProvenance::WebSocket,
+                completion: CandleCompletion::Open,
             }))
         })
         .collect()
@@ -227,6 +295,19 @@ fn parse_positive(raw: &str, field: &str) -> HlsResult<f64> {
         return Err(HlsError::Parse(format!("{field} must be positive")));
     }
 
+    Ok(parsed)
+}
+
+fn parse_non_negative(raw: &str, field: &str) -> HlsResult<f64> {
+    let parsed = raw
+        .parse::<f64>()
+        .map_err(|err| HlsError::Parse(format!("{field} must be numeric: {err}")))?;
+    if !parsed.is_finite() {
+        return Err(HlsError::Parse(format!("{field} must be finite")));
+    }
+    if parsed < 0.0 {
+        return Err(HlsError::Parse(format!("{field} must be non-negative")));
+    }
     Ok(parsed)
 }
 

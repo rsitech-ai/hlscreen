@@ -89,12 +89,14 @@ Expected outcome:
 ```bash
 ./target/debug/hls doctor --live --json
 ./target/debug/hls server --print-health
+./target/debug/hls server --live --symbols hype-usdc --duration-secs 30 --bind 127.0.0.1:8787
 ```
 
 Expected outcome:
 
 - `doctor --live --json` reports read-only safety, public REST reachability, and health status.
 - `server --print-health` prints the compact `/health` JSON payload for the local read-only API contract.
+- `server --live` starts a bounded local read-only HTTP loop and publishes public WebSocket market-data snapshots to `/health`, `/symbols`, `/screen`, and `/symbol/...`.
 - No output contains wallet prompts, private credentials, or order actions.
 
 ## Validation Commands

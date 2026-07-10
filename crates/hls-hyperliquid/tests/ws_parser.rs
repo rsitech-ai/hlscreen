@@ -101,6 +101,42 @@ fn parses_single_candle_runtime_payload() {
 }
 
 #[test]
+fn parses_l2_book_snapshot() {
+    let events = parse_ws_message(
+        r#"{"channel":"l2Book","data":{"coin":"@107","time":1710000000123,"levels":[[{"px":"35.0","sz":"2.0","n":3},{"px":"34.9","sz":"4.0","n":2}],[{"px":"35.1","sz":"1.5","n":4},{"px":"35.2","sz":"3.0","n":1}]]}}"#,
+    )
+    .expect("L2 snapshot parses");
+
+    match &events[0] {
+        MarketEvent::OrderBook(book) => {
+            assert_eq!(book.hl_coin, "@107");
+            assert_eq!(book.exchange_ts_ms, 1_710_000_000_123);
+            assert_eq!(book.bids.len(), 2);
+            assert_eq!(book.asks.len(), 2);
+            assert_eq!(book.bids[0].price, 35.0);
+            assert_eq!(book.bids[0].size, 2.0);
+            assert_eq!(book.bids[0].order_count, 3);
+            assert_eq!(book.asks[0].price, 35.1);
+        }
+        other => panic!("expected order-book event, got {other:?}"),
+    }
+}
+
+#[test]
+fn rejects_invalid_l2_book_snapshots_without_partial_events() {
+    let invalid = [
+        r#"{"channel":"l2Book","data":{"coin":"@107","time":1710000000123,"levels":[[{"px":"NaN","sz":"2.0","n":3}],[{"px":"35.1","sz":"1.5","n":4}]]}}"#,
+        r#"{"channel":"l2Book","data":{"coin":"@107","time":1710000000123,"levels":[[{"px":"35.0","sz":"-1.0","n":3}],[{"px":"35.1","sz":"1.5","n":4}]]}}"#,
+        r#"{"channel":"l2Book","data":{"coin":"@107","time":1710000000123,"levels":[[{"px":"34.9","sz":"2.0","n":3},{"px":"35.0","sz":"2.0","n":3}],[{"px":"35.1","sz":"1.5","n":4}]]}}"#,
+        r#"{"channel":"l2Book","data":{"coin":"@107","time":1710000000123,"levels":[[{"px":"35.2","sz":"2.0","n":3}],[{"px":"35.1","sz":"1.5","n":4}]]}}"#,
+    ];
+
+    for payload in invalid {
+        assert!(parse_ws_message(payload).is_err(), "accepted {payload}");
+    }
+}
+
+#[test]
 fn parse_ws_message_rejects_private_user_channels() {
     let err = parse_ws_message(r#"{"channel":"userFills","data":{"user":"0xabc","fills":[]}}"#)
         .expect_err("private user stream is out of scope");

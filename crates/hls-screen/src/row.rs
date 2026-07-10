@@ -57,6 +57,24 @@ impl<'a> ScreenRow<'a> {
             Field::TradeabilityState => {
                 FieldValue::String(self.snapshot.tradeability_state.as_str().to_owned())
             }
+            Field::FeeTradeabilityState => self
+                .snapshot
+                .fee_aware_tradeability
+                .as_ref()
+                .map(|fee| FieldValue::String(fee.state.as_str().to_owned()))
+                .unwrap_or(FieldValue::Missing),
+            Field::FeeExpectedRoundTripCostBps => self
+                .snapshot
+                .fee_aware_tradeability
+                .as_ref()
+                .map(|fee| FieldValue::Number(fee.expected_round_trip_cost_bps))
+                .unwrap_or(FieldValue::Missing),
+            Field::FeeProfile => self
+                .snapshot
+                .fee_aware_tradeability
+                .as_ref()
+                .map(|fee| FieldValue::String(fee.profile_name.clone()))
+                .unwrap_or(FieldValue::Missing),
             Field::AdverseSelectionProxy => {
                 FieldValue::String(self.snapshot.adverse_selection_proxy.as_str().to_owned())
             }

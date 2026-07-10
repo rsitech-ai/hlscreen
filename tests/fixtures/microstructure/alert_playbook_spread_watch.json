@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "id": "operator-spread-watch",
+  "description": "Local read-only spread shock plus confidence playbook.",
+  "rules": [
+    {
+      "id": "custom-shock",
+      "description": "Spread shock while confidence is below the configured threshold.",
+      "severity": "watch",
+      "condition": {
+        "type": "spread_shock_and_low_confidence",
+        "min_spread_shock_bps": 250.0,
+        "max_confidence_score": 100
+      },
+      "cooldown_ms": 60000,
+      "source_interval_ms": 30000,
+      "action": "local_only"
+    }
+  ]
+}

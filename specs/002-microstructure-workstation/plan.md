@@ -118,7 +118,7 @@ See [research.md](research.md). Key decisions:
 - Prioritize confidence and replay parity before adding new ranking weights.
 - Use BBO-plus-trade metrics as explicitly labeled top-of-book proxies.
 - Add observability with low-cardinality metrics and timestamp separation.
-- Add cargo-dist/GitHub Releases/Homebrew as packaging work after core validation.
+- Add reviewed cargo-dist/GitHub Release packaging work after core validation.
 - Define a read-only extension contract before adding any plugin runtime.
 
 ## Phase 1: Design Summary

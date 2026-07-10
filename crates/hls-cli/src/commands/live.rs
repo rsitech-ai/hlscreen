@@ -52,6 +52,7 @@ use hls_screen::ScreenRequest;
 use hls_store::{
     metadata::{MetadataRegistry, RecordingRun, SymbolRegistryEntry},
     normalized::StreamingNormalizedWriter,
+    parquet::export_normalized_events_to_parquet,
     paths::validate_run_id,
     raw::{RawMarketMessage, RawWriter},
     recorder::{RecordOptions, RecordSummary, record_fixture_ndjson},
@@ -537,9 +538,6 @@ fn validate_live_args(args: &LiveArgs, terminals: LiveTerminalCapabilities) -> a
     if !args.record && (args.raw || args.normalized || args.parquet || args.run_id.is_some()) {
         bail!("--raw, --normalized, --parquet, and --run-id require --record");
     }
-    if args.parquet {
-        bail!("Parquet output is not implemented; use --normalized for replayable JSONL");
-    }
     if let Some(run_id) = args.run_id.as_deref() {
         validate_run_id(run_id)?;
     }
@@ -624,7 +622,8 @@ async fn run_fixture_live(args: LiveArgs, fixture_file: &PathBuf) -> anyhow::Res
 
     if args.record {
         let run_id = args.run_id.clone().unwrap_or_else(default_run_id);
-        let (raw_enabled, normalized_enabled) = enabled_outputs(args.raw, args.normalized);
+        let (raw_enabled, normalized_enabled) =
+            enabled_outputs(args.raw, args.normalized || args.parquet);
         let summary = record_fixture_ndjson(
             &raw,
             RecordOptions::new(
@@ -637,6 +636,13 @@ async fn run_fixture_live(args: LiveArgs, fixture_file: &PathBuf) -> anyhow::Res
         )?;
         println!("recording run: {}", summary.run_id);
         println!("clean_shutdown={}", summary.clean_shutdown);
+        if args.parquet {
+            let parquet = export_normalized_events_to_parquet(&args.data_dir, &summary.run_id)
+                .with_context(|| format!("export '{}' to parquet", summary.run_id))?;
+            println!("parquet_file={}", parquet.path);
+            println!("parquet_rows={}", parquet.rows);
+            println!("parquet_bytes={}", parquet.bytes);
+        }
     }
 
     let events = parse_ws_ndjson(&raw)?;
@@ -791,7 +797,8 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
     let subscription_messages = plan.subscribe_messages()?;
     let mut state = LiveMarketState::new(symbols.clone());
     let run_id = args.run_id.clone().unwrap_or_else(default_run_id);
-    let (raw_enabled, normalized_enabled) = enabled_outputs(args.raw, args.normalized);
+    let (raw_enabled, normalized_enabled) =
+        enabled_outputs(args.raw, args.normalized || args.parquet);
     let recorder = if args.record {
         Some(LiveRecorder::new(
             &args.data_dir,
@@ -959,6 +966,14 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
         println!("raw_files={}", record_summary.raw_files.len());
         println!("normalized_files={}", record_summary.normalized_files.len());
         println!("clean_shutdown={}", record_summary.clean_shutdown);
+        if args.parquet {
+            let parquet =
+                export_normalized_events_to_parquet(&args.data_dir, &record_summary.run_id)
+                    .with_context(|| format!("export '{}' to parquet", record_summary.run_id))?;
+            println!("parquet_file={}", parquet.path);
+            println!("parquet_rows={}", parquet.rows);
+            println!("parquet_bytes={}", parquet.bytes);
+        }
     }
     let table = if render_live_tui {
         let model = live_tui_model(

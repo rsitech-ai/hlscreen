@@ -1,10 +1,12 @@
 #![forbid(unsafe_code)]
 
+pub mod alerts;
 pub mod confidence;
 pub mod config;
 pub mod data_gap;
 pub mod error;
 pub mod extension;
+pub mod fees;
 pub mod health;
 pub mod market_state;
 pub mod metadata;

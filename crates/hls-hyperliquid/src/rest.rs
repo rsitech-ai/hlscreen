@@ -2,6 +2,7 @@ use std::{collections::HashMap, time::Duration};
 
 use hls_core::{
     HlsError, HlsResult,
+    market_state::{CandleCompletion, CandleEvent, CandleProvenance},
     metadata::{MetadataEnrichment, MetadataEnrichmentInput},
     symbol::MarketSymbol,
     time::{now_millis, parse_utc_datetime_millis},
@@ -50,6 +51,58 @@ impl HyperliquidRestClient {
             .post_info(json!({ "type": "tokenDetails", "tokenId": token_id }))
             .await?;
         parse_token_details(token_id, &body)
+    }
+
+    pub async fn candle_snapshot(
+        &self,
+        coin: &str,
+        interval: &str,
+        start_time_ms: i64,
+        end_time_ms: i64,
+    ) -> HlsResult<Vec<CandleEvent>> {
+        if coin.trim().is_empty() {
+            return Err(HlsError::Config(
+                "candle snapshot coin must not be empty".to_owned(),
+            ));
+        }
+        if interval.trim().is_empty() {
+            return Err(HlsError::Config(
+                "candle snapshot interval must not be empty".to_owned(),
+            ));
+        }
+        if start_time_ms > end_time_ms {
+            return Err(HlsError::Config(
+                "candle snapshot start_time_ms must be <= end_time_ms".to_owned(),
+            ));
+        }
+
+        let body = self
+            .post_info(json!({
+                "type": "candleSnapshot",
+                "req": {
+                    "coin": coin,
+                    "interval": interval,
+                    "startTime": start_time_ms,
+                    "endTime": end_time_ms
+                }
+            }))
+            .await?;
+        let candles = parse_candle_snapshot(&body)?;
+        for candle in &candles {
+            if candle.hl_coin != coin {
+                return Err(HlsError::Parse(format!(
+                    "candleSnapshot returned coin '{}' for requested coin '{coin}'",
+                    candle.hl_coin
+                )));
+            }
+            if candle.interval != interval {
+                return Err(HlsError::Parse(format!(
+                    "candleSnapshot returned interval '{}' for requested interval '{interval}'",
+                    candle.interval
+                )));
+            }
+        }
+        Ok(candles)
     }
 
     pub async fn spot_metadata_enrichments(
@@ -305,6 +358,48 @@ pub fn parse_metadata_enrichment_bundle(raw: &str) -> HlsResult<Vec<MetadataEnri
     )
 }
 
+pub fn parse_candle_snapshot(raw: &str) -> HlsResult<Vec<CandleEvent>> {
+    let parsed_at_ms = now_ms_i64()?;
+    let candles: Vec<PublicCandleSnapshot> = serde_json::from_str(raw)
+        .map_err(|err| HlsError::Parse(format!("invalid candleSnapshot JSON: {err}")))?;
+
+    candles
+        .into_iter()
+        .map(|candle| {
+            let open_ts_ms = required_i64(&candle.open_ts_ms, "candleSnapshot.t")?;
+            let close_ts_ms = required_i64(&candle.close_ts_ms, "candleSnapshot.T")?;
+            let open = required_f64(&candle.open, "candleSnapshot.o")?;
+            let close = required_f64(&candle.close, "candleSnapshot.c")?;
+            let high = required_f64(&candle.high, "candleSnapshot.h")?;
+            let low = required_f64(&candle.low, "candleSnapshot.l")?;
+            let volume_base = required_f64(&candle.volume_base, "candleSnapshot.v")?;
+            let trade_count = required_u64(&candle.trade_count, "candleSnapshot.n")?;
+
+            validate_candle_fields(open_ts_ms, close_ts_ms, open, high, low, close)?;
+
+            Ok(CandleEvent {
+                recv_ts_ns: 0,
+                open_ts_ms,
+                close_ts_ms,
+                hl_coin: candle.hl_coin,
+                interval: candle.interval,
+                open,
+                high,
+                low,
+                close,
+                volume_base,
+                trade_count,
+                provenance: CandleProvenance::RestBootstrap,
+                completion: if close_ts_ms < parsed_at_ms {
+                    CandleCompletion::Closed
+                } else {
+                    CandleCompletion::Open
+                },
+            })
+        })
+        .collect()
+}
+
 pub fn parse_token_details(token_id: &str, raw: &str) -> HlsResult<PublicTokenDetails> {
     let value: Value = serde_json::from_str(raw)
         .map_err(|err| HlsError::Parse(format!("invalid tokenDetails JSON: {err}")))?;
@@ -459,6 +554,100 @@ fn parse_token_details_value(token_id: &str, value: &Value) -> HlsResult<PublicT
         max_supply: numeric_field_non_negative(value, "maxSupply")?,
         circulating_supply: numeric_field_non_negative(value, "circulatingSupply")?,
     })
+}
+
+#[derive(Clone, Debug, Deserialize)]
+struct PublicCandleSnapshot {
+    #[serde(rename = "t")]
+    open_ts_ms: Value,
+    #[serde(rename = "T")]
+    close_ts_ms: Value,
+    #[serde(rename = "s")]
+    hl_coin: String,
+    #[serde(rename = "i")]
+    interval: String,
+    #[serde(rename = "o")]
+    open: Value,
+    #[serde(rename = "h")]
+    high: Value,
+    #[serde(rename = "l")]
+    low: Value,
+    #[serde(rename = "c")]
+    close: Value,
+    #[serde(rename = "v")]
+    volume_base: Value,
+    #[serde(rename = "n")]
+    trade_count: Value,
+}
+
+fn required_i64(value: &Value, field: &str) -> HlsResult<i64> {
+    match value {
+        Value::Number(number) => number
+            .as_i64()
+            .ok_or_else(|| HlsError::Parse(format!("field '{field}' is not representable as i64"))),
+        Value::String(text) => text
+            .parse::<i64>()
+            .map_err(|err| HlsError::Parse(format!("field '{field}' must be an integer: {err}"))),
+        other => Err(HlsError::Parse(format!(
+            "field '{field}' must be an integer or integer string, got {other}"
+        ))),
+    }
+}
+
+fn required_u64(value: &Value, field: &str) -> HlsResult<u64> {
+    match value {
+        Value::Number(number) => number
+            .as_u64()
+            .ok_or_else(|| HlsError::Parse(format!("field '{field}' is not representable as u64"))),
+        Value::String(text) => text.parse::<u64>().map_err(|err| {
+            HlsError::Parse(format!(
+                "field '{field}' must be an unsigned integer: {err}"
+            ))
+        }),
+        other => Err(HlsError::Parse(format!(
+            "field '{field}' must be an unsigned integer or integer string, got {other}"
+        ))),
+    }
+}
+
+fn required_f64(value: &Value, field: &str) -> HlsResult<f64> {
+    match value {
+        Value::Number(number) => number
+            .as_f64()
+            .ok_or_else(|| HlsError::Parse(format!("field '{field}' is not representable as f64"))),
+        Value::String(text) => text
+            .parse::<f64>()
+            .map_err(|err| HlsError::Parse(format!("field '{field}' must be numeric: {err}"))),
+        other => Err(HlsError::Parse(format!(
+            "field '{field}' must be a number or numeric string, got {other}"
+        ))),
+    }
+}
+
+fn validate_candle_fields(
+    open_ts_ms: i64,
+    close_ts_ms: i64,
+    open: f64,
+    high: f64,
+    low: f64,
+    close: f64,
+) -> HlsResult<()> {
+    if open_ts_ms > close_ts_ms {
+        return Err(HlsError::Parse(
+            "candleSnapshot open time must be <= close time".to_owned(),
+        ));
+    }
+    if open <= 0.0 || close <= 0.0 || high <= 0.0 || low <= 0.0 {
+        return Err(HlsError::Parse(
+            "candleSnapshot OHLC values must be positive".to_owned(),
+        ));
+    }
+    if high < low || high < open || high < close || low > open || low > close {
+        return Err(HlsError::Parse(
+            "candleSnapshot OHLC values are internally inconsistent".to_owned(),
+        ));
+    }
+    Ok(())
 }
 
 fn numeric_field(value: &Value, field: &str) -> HlsResult<Option<f64>> {

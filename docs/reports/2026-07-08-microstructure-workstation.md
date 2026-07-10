@@ -45,7 +45,7 @@ git diff --check
 
 Local `dist plan` was run with pinned cargo-dist 0.32.0 installed under
 `/tmp/hlscreen-dist`. It planned macOS, Linux, and Windows archives, shell and
-PowerShell installers, a Homebrew formula, checksums, and a source archive.
+PowerShell installers, checksums, and a source archive.
 
 ## Known Remaining Gaps
 

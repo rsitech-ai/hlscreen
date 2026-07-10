@@ -88,9 +88,11 @@ fn fixture_events_produce_feature_snapshot_with_freshness_state() {
         spread_recovery_ms: None,
         resilience_state: LiquidityResilienceState::Unknown,
         tradeability_state: TradeabilityState::Unknown,
+        fee_aware_tradeability: None,
         adverse_selection_proxy: AdverseSelectionProxy::Unknown,
         signed_notional_flow_30s: Some(-35.20),
         bbo_ofi_proxy_30s: None,
+        microstructure_metrics: Vec::new(),
         tob_depth_usd: None,
         tob_imbalance: None,
         ret_1m: None,
@@ -319,5 +321,7 @@ fn candle(close_ts_ms: i64, volume_base: f64, trade_count: u64) -> MarketEvent {
         close: 100.0,
         volume_base,
         trade_count,
+        provenance: Default::default(),
+        completion: Default::default(),
     })
 }

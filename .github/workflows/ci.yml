@@ -28,7 +28,9 @@ jobs:
         run: cargo install cargo-audit --version 0.22.2 --locked
 
       - name: Deny vulnerabilities and dependency warnings
-        run: cargo audit --deny warnings
+        # Apache Parquet 59.1.0 still pulls the unmaintained paste proc-macro.
+        # Keep every vulnerability and all other warnings denied while upstream removes it.
+        run: cargo audit --deny warnings --ignore RUSTSEC-2024-0436
 
   pty-tui:
     name: PTY TUI (${{ matrix.os }})
@@ -66,6 +68,10 @@ jobs:
     name: Rust workspace
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      CARGO_INCREMENTAL: 0
+      CARGO_PROFILE_DEV_DEBUG: 0
+      CARGO_PROFILE_TEST_DEBUG: 0
 
     steps:
       - name: Checkout
@@ -74,16 +80,15 @@ jobs:
       - name: Install Rust toolchain
         run: rustup toolchain install 1.88 --profile minimal --component rustfmt --component clippy
 
-      - name: Cache cargo registry and build outputs
+      - name: Cache cargo registry
         uses: actions/cache@v5
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            target
-          key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
+          key: cargo-registry-v1-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
           restore-keys: |
-            cargo-${{ runner.os }}-
+            cargo-registry-v1-${{ runner.os }}-
 
       - name: Format
         run: cargo fmt --all -- --check

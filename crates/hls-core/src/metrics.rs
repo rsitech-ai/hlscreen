@@ -41,6 +41,206 @@ impl MetricDefinition {
     }
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MetricSupport {
+    Canonical,
+    Proxy,
+    Unavailable,
+}
+
+impl MetricSupport {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Canonical => "canonical",
+            Self::Proxy => "proxy",
+            Self::Unavailable => "unavailable",
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct MicrostructureMetricDefinition {
+    pub name: String,
+    pub formula: String,
+    pub unit: String,
+    pub required_inputs: Vec<String>,
+    pub support: MetricSupport,
+    pub caveat: Option<String>,
+}
+
+impl MicrostructureMetricDefinition {
+    pub fn canonical(
+        name: impl Into<String>,
+        formula: impl Into<String>,
+        unit: impl Into<String>,
+        required_inputs: impl IntoIterator<Item = impl Into<String>>,
+    ) -> Self {
+        Self {
+            name: name.into(),
+            formula: formula.into(),
+            unit: unit.into(),
+            required_inputs: required_inputs.into_iter().map(Into::into).collect(),
+            support: MetricSupport::Canonical,
+            caveat: None,
+        }
+    }
+
+    pub fn proxy(
+        name: impl Into<String>,
+        formula: impl Into<String>,
+        unit: impl Into<String>,
+        required_inputs: impl IntoIterator<Item = impl Into<String>>,
+        caveat: impl Into<String>,
+    ) -> Self {
+        Self {
+            name: name.into(),
+            formula: formula.into(),
+            unit: unit.into(),
+            required_inputs: required_inputs.into_iter().map(Into::into).collect(),
+            support: MetricSupport::Proxy,
+            caveat: Some(caveat.into()),
+        }
+    }
+
+    pub fn unavailable(
+        name: impl Into<String>,
+        formula: impl Into<String>,
+        unit: impl Into<String>,
+        required_inputs: impl IntoIterator<Item = impl Into<String>>,
+        caveat: impl Into<String>,
+    ) -> Self {
+        Self {
+            name: name.into(),
+            formula: formula.into(),
+            unit: unit.into(),
+            required_inputs: required_inputs.into_iter().map(Into::into).collect(),
+            support: MetricSupport::Unavailable,
+            caveat: Some(caveat.into()),
+        }
+    }
+
+    pub fn validate(&self) -> HlsResult<()> {
+        if !is_snake_case_identifier(&self.name) {
+            return Err(HlsError::Config(format!(
+                "microstructure metric '{}' must be snake_case",
+                self.name
+            )));
+        }
+        if self.formula.trim().is_empty() {
+            return Err(HlsError::Config(format!(
+                "microstructure metric '{}' formula cannot be empty",
+                self.name
+            )));
+        }
+        if self.unit.trim().is_empty() {
+            return Err(HlsError::Config(format!(
+                "microstructure metric '{}' unit cannot be empty",
+                self.name
+            )));
+        }
+        if self.required_inputs.is_empty() {
+            return Err(HlsError::Config(format!(
+                "microstructure metric '{}' requires at least one input",
+                self.name
+            )));
+        }
+
+        let mut inputs = HashSet::new();
+        for input in &self.required_inputs {
+            if !is_snake_case_identifier(input) {
+                return Err(HlsError::Config(format!(
+                    "microstructure metric '{}' input '{}' must be snake_case",
+                    self.name, input
+                )));
+            }
+            if input.contains("private")
+                || input.contains("wallet")
+                || input.contains("account")
+                || input.contains("order")
+            {
+                return Err(HlsError::Config(format!(
+                    "microstructure metric '{}' cannot require private or execution input '{}'",
+                    self.name, input
+                )));
+            }
+            if !inputs.insert(input.clone()) {
+                return Err(HlsError::Config(format!(
+                    "microstructure metric '{}' repeats input '{}'",
+                    self.name, input
+                )));
+            }
+        }
+
+        if !matches!(self.support, MetricSupport::Canonical)
+            && self
+                .caveat
+                .as_deref()
+                .map(str::trim)
+                .unwrap_or_default()
+                .is_empty()
+        {
+            return Err(HlsError::Config(format!(
+                "{} metric '{}' requires an explicit caveat",
+                self.support.as_str(),
+                self.name
+            )));
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct MicrostructureMetricSnapshot {
+    pub name: String,
+    pub support: MetricSupport,
+    pub value: Option<f64>,
+    pub unit: String,
+    pub reason: Option<String>,
+}
+
+impl MicrostructureMetricSnapshot {
+    pub fn canonical(name: impl Into<String>, value: f64, unit: impl Into<String>) -> Self {
+        Self {
+            name: name.into(),
+            support: MetricSupport::Canonical,
+            value: Some(value),
+            unit: unit.into(),
+            reason: None,
+        }
+    }
+
+    pub fn proxy(
+        name: impl Into<String>,
+        value: f64,
+        unit: impl Into<String>,
+        reason: impl Into<String>,
+    ) -> Self {
+        Self {
+            name: name.into(),
+            support: MetricSupport::Proxy,
+            value: Some(value),
+            unit: unit.into(),
+            reason: Some(reason.into()),
+        }
+    }
+
+    pub fn unavailable(
+        name: impl Into<String>,
+        unit: impl Into<String>,
+        reason: impl Into<String>,
+    ) -> Self {
+        Self {
+            name: name.into(),
+            support: MetricSupport::Unavailable,
+            value: None,
+            unit: unit.into(),
+            reason: Some(reason.into()),
+        }
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct MetricsRegistry {
     pub definitions: Vec<MetricDefinition>,

@@ -200,6 +200,8 @@ fn candle(open_ts_ms: i64, close: f64) -> CandleEvent {
         close,
         volume_base: 1200.0,
         trade_count: 42,
+        provenance: Default::default(),
+        completion: Default::default(),
     }
 }
 

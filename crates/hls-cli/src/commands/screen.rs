@@ -3,12 +3,12 @@ use std::{fs, path::PathBuf};
 use anyhow::{Context, bail};
 use clap::Args;
 use hls_core::market_state::{FeatureSnapshot, LiveMarketState, MarketEvent};
-use hls_features::engine::FeatureEngine;
 use hls_hyperliquid::ws::parser::parse_ws_ndjson;
 use hls_screen::ScreenRequest;
 use hls_store::replay::{ReplayOptions, replay_run};
 use hls_tui::app::render_screened_table;
 
+use crate::commands::fees::{apply_fee_profile, feature_engine, load_fee_profile};
 use crate::commands::metadata::{attach_metadata, load_metadata_enrichments};
 use crate::commands::record::parse_symbols;
 
@@ -40,6 +40,10 @@ pub struct ScreenArgs {
 
     #[arg(long, hide = true)]
     pub metadata_file: Option<PathBuf>,
+
+    /// Apply an explicit local JSON/TOML fee profile for fee-aware filtering; does not query account fee tiers.
+    #[arg(long)]
+    pub fee_profile_file: Option<PathBuf>,
 }
 
 pub async fn run(args: ScreenArgs) -> anyhow::Result<()> {
@@ -48,19 +52,23 @@ pub async fn run(args: ScreenArgs) -> anyhow::Result<()> {
         where_expr: args.r#where.clone(),
         sort: args.sort.clone(),
     };
+    let fee_profile = load_fee_profile(args.fee_profile_file.as_ref())?;
     let mut snapshots = if let Some(fixture_file) = &args.fixture_file {
         snapshots_from_fixture(
             fixture_file,
             parse_symbols(args.symbols.as_deref()),
             args.top,
+            fee_profile.as_ref(),
         )?
     } else if let Some(run_id) = &args.run_id {
-        replay_run(ReplayOptions::new(
+        let mut snapshots = replay_run(ReplayOptions::new(
             &args.data_dir,
             run_id,
             parse_symbols(args.symbols.as_deref()),
         ))?
-        .snapshots
+        .snapshots;
+        apply_fee_profile(&mut snapshots, fee_profile.as_ref());
+        snapshots
     } else {
         bail!("screen requires --fixture-file or --run-id in this slice");
     };
@@ -81,6 +89,7 @@ fn snapshots_from_fixture(
     fixture_file: &PathBuf,
     symbols: Vec<String>,
     top: usize,
+    fee_profile: Option<&hls_core::fees::FeeProfile>,
 ) -> anyhow::Result<Vec<FeatureSnapshot>> {
     let raw = fs::read_to_string(fixture_file)
         .with_context(|| format!("read {}", fixture_file.display()))?;
@@ -94,7 +103,7 @@ fn snapshots_from_fixture(
     for event in events {
         state.apply(event)?;
     }
-    Ok(FeatureEngine::default().snapshots(&state, latest_update_ms(&state)))
+    Ok(feature_engine(fee_profile).snapshots(&state, latest_update_ms(&state)))
 }
 
 fn selected_symbols(events: &[MarketEvent], top: usize) -> Vec<String> {
