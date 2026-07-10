@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "name": "safe-row-labeler",
+  "version": "0.1.0",
+  "description": "Fixture read-only plugin that returns bounded row annotations.",
+  "wasm": {
+    "path": "extensions/safe-row-labeler.wasm",
+    "sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+    "memory_max_pages": 2
+  },
+  "permissions": {
+    "read_only": true,
+    "network": false,
+    "filesystem": false,
+    "private_data": false,
+    "trading": false,
+    "allowed_hosts": [],
+    "allowed_paths": []
+  },
+  "entrypoints": [
+    {
+      "name": "annotate_row",
+      "input": "feature_snapshot",
+      "output": "row_annotations"
+    }
+  ]
+}

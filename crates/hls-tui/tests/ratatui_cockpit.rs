@@ -740,6 +740,8 @@ fn directional_chart_candles(symbol: &str) -> Vec<CandleEvent> {
             close: 12.0,
             volume_base: 100.0,
             trade_count: 10,
+            provenance: Default::default(),
+            completion: Default::default(),
         },
         CandleEvent {
             recv_ts_ns: 2,
@@ -753,6 +755,8 @@ fn directional_chart_candles(symbol: &str) -> Vec<CandleEvent> {
             close: 10.0,
             volume_base: 160.0,
             trade_count: 12,
+            provenance: Default::default(),
+            completion: Default::default(),
         },
     ]
 }

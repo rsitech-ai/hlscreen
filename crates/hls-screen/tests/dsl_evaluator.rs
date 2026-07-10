@@ -1,8 +1,8 @@
 use hls_core::{
     confidence::DataConfidenceSnapshot,
     market_state::{
-        AdverseSelectionProxy, FeatureSnapshot, LiquidityResilienceState, StalenessState,
-        TradeabilityState,
+        AdverseSelectionProxy, FeatureSnapshot, FeeAwareTradeabilitySnapshot,
+        LiquidityResilienceState, StalenessState, TradeabilityState,
     },
     score::{ScoreBreakdown, ScoreComponent, ScoreComponentKind},
 };
@@ -117,6 +117,47 @@ fn score_fields_filter_sort_and_keep_missing_components_out() {
     assert_eq!(symbols(&spread_cost_rows), vec!["AAA/USDC"]);
 }
 
+#[test]
+fn fee_aware_fields_filter_and_sort_when_profile_evidence_exists() {
+    let mut rows = fixture_rows();
+    rows[0].fee_aware_tradeability = Some(fee_evidence(
+        "manual-low-fee",
+        TradeabilityState::Tradeable,
+        12.5,
+    ));
+    rows[1].fee_aware_tradeability = Some(fee_evidence(
+        "manual-high-fee",
+        TradeabilityState::Costly,
+        72.0,
+    ));
+
+    let visible = ScreenEngine
+        .apply(
+            &rows,
+            &ScreenRequest {
+                where_expr: Some("fee_tradeability_state == \"costly\"".to_owned()),
+                sort: Some("fee_expected_round_trip_cost_bps:desc".to_owned()),
+                ..ScreenRequest::default()
+            },
+        )
+        .expect("fee-aware screen fields apply");
+
+    assert_eq!(symbols(&visible), vec!["BBB/USDC"]);
+
+    let missing = ScreenEngine
+        .apply(
+            &rows,
+            &ScreenRequest {
+                where_expr: Some("fee_expected_round_trip_cost_bps < 20".to_owned()),
+                sort: Some("fee_profile:asc".to_owned()),
+                ..ScreenRequest::default()
+            },
+        )
+        .expect("fee profile sort applies");
+
+    assert_eq!(symbols(&missing), vec!["AAA/USDC"]);
+}
+
 fn symbols(rows: &[FeatureSnapshot]) -> Vec<String> {
     rows.iter().map(|row| row.symbol.clone()).collect()
 }
@@ -154,9 +195,11 @@ fn row(
         spread_recovery_ms: None,
         resilience_state: LiquidityResilienceState::Unknown,
         tradeability_state: TradeabilityState::Unknown,
+        fee_aware_tradeability: None,
         adverse_selection_proxy: AdverseSelectionProxy::Unknown,
         signed_notional_flow_30s: None,
         bbo_ofi_proxy_30s: None,
+        microstructure_metrics: Vec::new(),
         tob_depth_usd: Some(1_000.0),
         tob_imbalance: Some(0.0),
         ret_1m: Some(0.0),
@@ -175,5 +218,23 @@ fn row(
         updated_ms_ago: Some(0),
         staleness_state: StalenessState::Fresh,
         incomplete_window_reason: None,
+    }
+}
+
+fn fee_evidence(
+    profile_name: &str,
+    state: TradeabilityState,
+    expected_round_trip_cost_bps: f64,
+) -> FeeAwareTradeabilitySnapshot {
+    FeeAwareTradeabilitySnapshot {
+        profile_name: profile_name.to_owned(),
+        state,
+        expected_round_trip_cost_bps,
+        maker_fee_bps: 0.0,
+        taker_fee_bps: 1.0,
+        taker_fill_ratio: 1.0,
+        slippage_buffer_bps: 0.25,
+        max_tradeable_round_trip_bps: 20.0,
+        reason: "fixture".to_owned(),
     }
 }
