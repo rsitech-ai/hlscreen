@@ -144,6 +144,26 @@ fn extension_runtime_executes_safe_wasm_row_annotation_fixture() {
 }
 
 #[test]
+fn extension_runtime_rejects_annotations_for_another_symbol() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let wasm_path = temp.path().join("extensions/safe-row-labeler.wasm");
+    fs::create_dir_all(wasm_path.parent().expect("wasm parent")).expect("mkdir");
+    let wat = include_str!("../../../tests/fixtures/microstructure/plugin_safe_row_labeler.wat")
+        .replace("@107", "@999");
+    let wasm = wat::parse_str(wat).expect("fixture wat compiles");
+    fs::write(&wasm_path, &wasm).expect("write wasm");
+
+    let mut manifest = safe_manifest();
+    manifest.wasm.sha256 = sha256_hex(&wasm);
+    let runtime = ExtensionRuntime::with_default_limits().expect("runtime initializes");
+    let error = runtime
+        .invoke_row_annotations(&manifest, temp.path(), "annotate_row", &snapshot())
+        .expect_err("row annotation must remain bound to the input symbol");
+
+    assert!(error.to_string().contains("input symbol"));
+}
+
+#[test]
 fn extension_runtime_rejects_unsafe_manifest_before_loading_wasm() {
     let manifest: ExtensionManifest = serde_json::from_str(include_str!(
         "../../../tests/fixtures/microstructure/plugin_unsafe_manifest.json"

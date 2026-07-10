@@ -1,6 +1,6 @@
 use std::{
-    fs::{self, File},
-    path::Path,
+    fs::{self, File, OpenOptions},
+    path::{Path, PathBuf},
     sync::Arc,
 };
 
@@ -64,37 +64,53 @@ pub fn export_normalized_events_to_parquet(
 ) -> HlsResult<FileRegistryEntry> {
     let data_dir = data_dir.as_ref();
     validate_run_id(run_id)?;
-    let normalized_path = resolve_registered_data_path(
-        data_dir,
-        &format!("normalized/events/run={run_id}/part-000000.ndjson"),
-    )?;
-    let events = read_normalized_events(&normalized_path)?;
+    let registry = MetadataRegistry::open(data_dir.join("hls.sqlite"))?;
+    require_registered_run(&registry, run_id)?;
+    let registered_files = registry.list_files(run_id)?;
+    let source_files = registered_files
+        .iter()
+        .filter(|file| file.event_type == "normalized_jsonl")
+        .collect::<Vec<_>>();
+    if source_files.is_empty() {
+        return Err(HlsError::Config(format!(
+            "recording run '{run_id}' has no registered normalized_jsonl files"
+        )));
+    }
+    let mut events = Vec::new();
+    for source in source_files {
+        let path = resolve_registered_data_path(data_dir, &source.path)?;
+        events.extend(read_normalized_events(path)?);
+    }
 
     let relative_path = format!("parquet/events/run={run_id}/part-000000.parquet");
+    reject_registered_export(&registered_files, &relative_path)?;
     let full_path = prepare_data_file_path(data_dir, &relative_path)?;
-    write_events_to_parquet_file(&events, &full_path)?;
     let schema_path = prepare_data_file_path(
         data_dir,
         &format!("parquet/events/run={run_id}/schema.json"),
     )?;
-    StorageSchemaManifest::current_for_normalized_events().write_to_path(schema_path)?;
+    reject_existing_export_paths(&full_path, &schema_path)?;
 
-    let metadata = fs::metadata(&full_path)?;
-    let entry = FileRegistryEntry {
-        path: relative_path,
-        event_type: "normalized_parquet".to_owned(),
-        symbol: None,
-        start_ts_ms: None,
-        end_ts_ms: None,
-        rows: events.len() as u64,
-        bytes: metadata.len(),
-        created_at_ms: now_ms_i64()?,
-        run_id: run_id.to_owned(),
-    };
+    let pending_parquet = write_events_to_parquet_file(&events, &full_path)?;
+    StorageSchemaManifest::current_for_normalized_events().write_to_path(&schema_path)?;
 
-    let registry = MetadataRegistry::open(data_dir.join("hls.sqlite"))?;
-    registry.insert_file(&entry)?;
-    Ok(entry)
+    let result = (|| {
+        let metadata = fs::metadata(&full_path)?;
+        let entry = FileRegistryEntry {
+            path: relative_path,
+            event_type: "normalized_parquet".to_owned(),
+            symbol: None,
+            start_ts_ms: None,
+            end_ts_ms: None,
+            rows: events.len() as u64,
+            bytes: metadata.len(),
+            created_at_ms: now_ms_i64()?,
+            run_id: run_id.to_owned(),
+        };
+        registry.insert_file(&entry)?;
+        Ok(entry)
+    })();
+    finish_export(result, pending_parquet, &schema_path)
 }
 
 pub fn export_feature_snapshots_to_parquet(
@@ -103,37 +119,141 @@ pub fn export_feature_snapshots_to_parquet(
 ) -> HlsResult<FileRegistryEntry> {
     let data_dir = data_dir.as_ref();
     validate_run_id(run_id)?;
+    let registry = MetadataRegistry::open(data_dir.join("hls.sqlite"))?;
+    require_registered_run(&registry, run_id)?;
     let summary = replay_run(ReplayOptions::new(data_dir, run_id, Vec::new()))?;
 
     let relative_path = format!("parquet/features/run={run_id}/part-000000.parquet");
+    let registered_files = registry.list_files(run_id)?;
+    reject_registered_export(&registered_files, &relative_path)?;
     let full_path = prepare_data_file_path(data_dir, &relative_path)?;
-    write_feature_snapshots_to_parquet_file(
-        &summary.snapshots,
-        summary.snapshot_ts_ms,
-        &full_path,
-    )?;
     let schema_path = prepare_data_file_path(
         data_dir,
         &format!("parquet/features/run={run_id}/schema.json"),
     )?;
-    StorageSchemaManifest::current_for_feature_snapshots().write_to_path(schema_path)?;
+    reject_existing_export_paths(&full_path, &schema_path)?;
 
-    let metadata = fs::metadata(&full_path)?;
-    let entry = FileRegistryEntry {
-        path: relative_path,
-        event_type: "feature_snapshot_parquet".to_owned(),
-        symbol: None,
-        start_ts_ms: Some(summary.snapshot_ts_ms),
-        end_ts_ms: Some(summary.snapshot_ts_ms),
-        rows: summary.snapshots.len() as u64,
-        bytes: metadata.len(),
-        created_at_ms: now_ms_i64()?,
-        run_id: run_id.to_owned(),
-    };
+    let pending_parquet = write_feature_snapshots_to_parquet_file(
+        &summary.snapshots,
+        summary.snapshot_ts_ms,
+        &full_path,
+    )?;
+    StorageSchemaManifest::current_for_feature_snapshots().write_to_path(&schema_path)?;
 
-    let registry = MetadataRegistry::open(data_dir.join("hls.sqlite"))?;
-    registry.insert_file(&entry)?;
-    Ok(entry)
+    let result = (|| {
+        let metadata = fs::metadata(&full_path)?;
+        let entry = FileRegistryEntry {
+            path: relative_path,
+            event_type: "feature_snapshot_parquet".to_owned(),
+            symbol: None,
+            start_ts_ms: Some(summary.snapshot_ts_ms),
+            end_ts_ms: Some(summary.snapshot_ts_ms),
+            rows: summary.snapshots.len() as u64,
+            bytes: metadata.len(),
+            created_at_ms: now_ms_i64()?,
+            run_id: run_id.to_owned(),
+        };
+        registry.insert_file(&entry)?;
+        Ok(entry)
+    })();
+    finish_export(result, pending_parquet, &schema_path)
+}
+
+fn require_registered_run(registry: &MetadataRegistry, run_id: &str) -> HlsResult<()> {
+    if registry.get_run(run_id)?.is_none() {
+        return Err(HlsError::Config(format!(
+            "recording run '{run_id}' was not found"
+        )));
+    }
+    Ok(())
+}
+
+fn reject_registered_export(files: &[FileRegistryEntry], path: &str) -> HlsResult<()> {
+    if files.iter().any(|file| file.path == path) {
+        return Err(HlsError::Config(format!(
+            "Parquet export '{path}' is already registered; existing evidence is append-only"
+        )));
+    }
+    Ok(())
+}
+
+fn reject_existing_export_paths(parquet_path: &Path, schema_path: &Path) -> HlsResult<()> {
+    for path in [parquet_path, schema_path] {
+        if fs::symlink_metadata(path).is_ok() {
+            return Err(HlsError::Config(format!(
+                "refusing to replace existing export evidence '{}'",
+                path.display()
+            )));
+        }
+    }
+    Ok(())
+}
+
+fn finish_export(
+    result: HlsResult<FileRegistryEntry>,
+    pending_parquet: PendingEvidenceFile,
+    schema_path: &Path,
+) -> HlsResult<FileRegistryEntry> {
+    match result {
+        Ok(entry) => {
+            pending_parquet.commit();
+            Ok(entry)
+        }
+        Err(error) => {
+            let parquet_cleanup = pending_parquet.rollback();
+            let schema_cleanup = remove_if_present(schema_path);
+            if parquet_cleanup.is_ok() && schema_cleanup.is_ok() {
+                Err(error)
+            } else {
+                Err(HlsError::External(format!(
+                    "{error}; failed to fully roll back incomplete Parquet export"
+                )))
+            }
+        }
+    }
+}
+
+struct PendingEvidenceFile {
+    path: PathBuf,
+    committed: bool,
+}
+
+impl PendingEvidenceFile {
+    fn create(path: &Path) -> HlsResult<(Self, File)> {
+        let file = OpenOptions::new().write(true).create_new(true).open(path)?;
+        Ok((
+            Self {
+                path: path.to_owned(),
+                committed: false,
+            },
+            file,
+        ))
+    }
+
+    fn commit(mut self) {
+        self.committed = true;
+    }
+
+    fn rollback(mut self) -> std::io::Result<()> {
+        self.committed = true;
+        remove_if_present(&self.path)
+    }
+}
+
+impl Drop for PendingEvidenceFile {
+    fn drop(&mut self) {
+        if !self.committed {
+            let _ = fs::remove_file(&self.path);
+        }
+    }
+}
+
+fn remove_if_present(path: &Path) -> std::io::Result<()> {
+    match fs::remove_file(path) {
+        Ok(()) => Ok(()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(error),
+    }
 }
 
 pub fn read_normalized_events_from_parquet(path: impl AsRef<Path>) -> HlsResult<Vec<MarketEvent>> {
@@ -154,13 +274,16 @@ pub fn read_normalized_events_from_parquet(path: impl AsRef<Path>) -> HlsResult<
     Ok(events)
 }
 
-fn write_events_to_parquet_file(events: &[MarketEvent], path: &Path) -> HlsResult<()> {
+fn write_events_to_parquet_file(
+    events: &[MarketEvent],
+    path: &Path,
+) -> HlsResult<PendingEvidenceFile> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)?;
     }
 
     let schema = Arc::new(parse_message_type(EVENT_PARQUET_SCHEMA).map_err(parquet_error)?);
-    let file = File::create(path)?;
+    let (pending, file) = PendingEvidenceFile::create(path)?;
     let mut writer =
         SerializedFileWriter::new(file, schema, Default::default()).map_err(parquet_error)?;
     let mut row_group = writer.next_row_group().map_err(parquet_error)?;
@@ -212,20 +335,20 @@ fn write_events_to_parquet_file(events: &[MarketEvent], path: &Path) -> HlsResul
 
     row_group.close().map_err(parquet_error)?;
     writer.finish().map_err(parquet_error)?;
-    Ok(())
+    Ok(pending)
 }
 
 fn write_feature_snapshots_to_parquet_file(
     snapshots: &[FeatureSnapshot],
     snapshot_ts_ms: i64,
     path: &Path,
-) -> HlsResult<()> {
+) -> HlsResult<PendingEvidenceFile> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)?;
     }
 
     let schema = Arc::new(parse_message_type(FEATURE_PARQUET_SCHEMA).map_err(parquet_error)?);
-    let file = File::create(path)?;
+    let (pending, file) = PendingEvidenceFile::create(path)?;
     let mut writer =
         SerializedFileWriter::new(file, schema, Default::default()).map_err(parquet_error)?;
     let mut row_group = writer.next_row_group().map_err(parquet_error)?;
@@ -332,7 +455,7 @@ fn write_feature_snapshots_to_parquet_file(
 
     row_group.close().map_err(parquet_error)?;
     writer.finish().map_err(parquet_error)?;
-    Ok(())
+    Ok(pending)
 }
 
 fn write_i64_column<W: std::io::Write + Send>(

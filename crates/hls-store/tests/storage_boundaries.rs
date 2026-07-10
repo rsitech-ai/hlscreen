@@ -85,6 +85,47 @@ fn file_registry_does_not_replace_existing_evidence_rows() {
 }
 
 #[test]
+fn file_registry_rejects_entries_for_missing_runs() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let registry = MetadataRegistry::open(temp.path().join("hls.sqlite")).expect("registry");
+    let error = registry
+        .insert_file(&FileRegistryEntry {
+            path: "normalized/events/run=missing/part-000000.ndjson".to_owned(),
+            event_type: "normalized_jsonl".to_owned(),
+            symbol: None,
+            start_ts_ms: None,
+            end_ts_ms: None,
+            rows: 1,
+            bytes: 1,
+            created_at_ms: 1,
+            run_id: "missing".to_owned(),
+        })
+        .expect_err("file evidence must belong to a registered run");
+
+    assert!(error.to_string().contains("was not found"));
+    assert!(registry.list_files("missing").expect("files").is_empty());
+}
+
+#[cfg(unix)]
+#[test]
+fn metadata_registry_rejects_symlinked_database_files() {
+    use std::os::unix::fs::symlink;
+
+    let temp = tempfile::tempdir().expect("tempdir");
+    let outside = temp.path().join("outside.sqlite");
+    fs::write(&outside, []).expect("outside file");
+    let data_dir = temp.path().join("data");
+    fs::create_dir_all(&data_dir).expect("data dir");
+    symlink(&outside, data_dir.join("hls.sqlite")).expect("database symlink");
+
+    let error = match MetadataRegistry::open(data_dir.join("hls.sqlite")) {
+        Ok(_) => panic!("registry must not follow a database symlink"),
+        Err(error) => error,
+    };
+    assert!(error.to_string().contains("symbolic link"));
+}
+
+#[test]
 fn replay_rejects_registry_paths_that_escape_the_data_directory() {
     let temp = tempfile::tempdir().expect("tempdir");
     let data_dir = temp.path().join("data");
