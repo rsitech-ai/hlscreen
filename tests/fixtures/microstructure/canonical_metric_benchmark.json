@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "now_ms": 1000000,
+  "trades": [
+    {"exchange_ts_ms": 950000, "price": 100.0, "size": 1.0, "side": "sell", "tid": 1},
+    {"exchange_ts_ms": 960000, "price": 101.0, "size": 2.0, "side": "buy", "tid": 2},
+    {"exchange_ts_ms": 970000, "price": 99.0, "size": 1.5, "side": "sell", "tid": 3},
+    {"exchange_ts_ms": 980000, "price": 100.5, "size": 3.0, "side": "buy", "tid": 4},
+    {"exchange_ts_ms": 990000, "price": 102.0, "size": 2.5, "side": "buy", "tid": 5}
+  ],
+  "metrics": [
+    {
+      "name": "public_trade_vwap_1m",
+      "contract": {
+        "metric_name": "public_trade_vwap_1m",
+        "version": 1,
+        "window_ms": 60000,
+        "minimum_observations": 3,
+        "sampling_mode": "exchange_event_window",
+        "unit": "price",
+        "absolute_tolerance": 1e-12,
+        "relative_tolerance": 1e-12
+      },
+      "expected": 100.7
+    },
+    {
+      "name": "public_trade_return_1m",
+      "contract": {
+        "metric_name": "public_trade_return_1m",
+        "version": 1,
+        "window_ms": 60000,
+        "minimum_observations": 3,
+        "sampling_mode": "exchange_event_window",
+        "unit": "decimal_return",
+        "absolute_tolerance": 1e-12,
+        "relative_tolerance": 1e-12
+      },
+      "expected": 0.02
+    }
+  ]
+}
