@@ -1169,7 +1169,7 @@
 
 ### Context
 - Background: The current market board is visually improved and uses real `FeatureSnapshot` data, but richer microstructure detail is still concentrated in a single `SELECTED SYMBOL` section. The requested mock calls for per-pair visibility into price, 24h volume, mid/mark, bid/ask, spread, TOB depth/imbalance, returns, realized volatility, activity z-scores, liquidity/momentum/mean-reversion scores, confidence, flow, resilience, and metadata.
-- Inputs: `/Users/s1kor/.codex/attachments/24f4f400-2fac-4700-a096-ce4c1a31397d/pasted-text.txt`, `crates/hls-core/src/market_state.rs`, `crates/hls-tui/src/app.rs`, `crates/hls-tui/tests/main_table_golden.rs`, `crates/hls-cli/tests/live_mock.rs`, and `scripts/generate-screenshots.py`.
+- Inputs: the original local product brief (not distributed), `crates/hls-core/src/market_state.rs`, `crates/hls-tui/src/app.rs`, `crates/hls-tui/tests/main_table_golden.rs`, `crates/hls-cli/tests/live_mock.rs`, and `scripts/generate-screenshots.py`.
 - Outputs: per-pair detail-card rendering from existing live snapshot fields, updated golden/CLI tests, regenerated screenshots, validation evidence, and PR/merge if stable.
 
 ### Assumptions

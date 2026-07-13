@@ -11,6 +11,10 @@ HLS_REPO_ROOT="$repo_root" rustc \
 
 HLS_REPO_ROOT="$repo_root" "$repo_root/target/release_packaging_test"
 
+python3 "$repo_root/scripts/harden-generated-release-workflow.py" \
+  --check \
+  --workflow "$repo_root/.github/workflows/release.yml"
+
 python3 "$repo_root/scripts/validate-soak-report.py" \
   "$repo_root/tests/fixtures/operations/soak-report-valid.json" \
   --minimum-duration-secs 900
