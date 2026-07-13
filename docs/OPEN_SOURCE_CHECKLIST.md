@@ -19,6 +19,10 @@ This file tracks the public-release package for `hlscreen`.
 - [x] GitHub issue templates.
 - [x] Pull request template.
 - [x] CI workflow.
+- [x] Fixed CI runners, SHA-pinned actions, read-only workflow permissions, and
+  disabled checkout credential persistence.
+- [x] Workflow concurrency controls and zero-finding pedantic zizmor policy in CI.
+- [x] Versioned cargo-deny policy for dependency licenses and source registries.
 - [x] Dependabot config.
 - [x] Deterministic screenshot generator.
 - [x] Committed screenshot assets.
@@ -32,6 +36,15 @@ This file tracks the public-release package for `hlscreen`.
 - [x] Public-readiness scan: `scripts/check-public-readiness.sh`.
 - [x] Local release artifact/checksum/install smoke: `scripts/local-release-artifact-smoke.sh`.
 - [x] CI release packaging gate includes static release contract tests, public-readiness scan, and local artifact smoke.
+- [x] Pull-request candidate artifact builds configured for four targets, source
+  archive, checksums, installers, CycloneDX SBOM, and auditable binaries.
+- [x] Tag-only provenance configured with host-job-scoped attestation permissions.
+- [x] Release caches and dynamic containers disabled; shell values isolated from
+  GitHub expression interpolation; build installers version-pinned.
+- [x] Tracked-file public-readiness scan rejects developer-specific paths,
+  private-key blocks, and common committed token formats.
+- [ ] Fresh feature-branch PR checks and candidate artifact uploads green.
+- [ ] Repository public or eligible for private-repository attestations before tagging.
 - [ ] Release tag created.
 - [ ] Release binaries/checksums published.
 - [ ] Multi-day supervised soak report published.

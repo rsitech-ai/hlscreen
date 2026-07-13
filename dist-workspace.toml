@@ -7,17 +7,39 @@ members = ["cargo:."]
 cargo-dist-version = "0.32.0"
 # CI backends to support
 ci = "github"
+# Keep the reviewed workflow hardening deltas described in docs/RELEASING.md.
+allow-dirty = ["ci"]
 # The installers to generate for each app
 installers = ["shell", "powershell"]
 # Target platforms to build apps for (Rust target-triple syntax)
 targets = ["aarch64-apple-darwin", "x86_64-apple-darwin", "x86_64-unknown-linux-gnu", "x86_64-pc-windows-msvc"]
 # Which actions to run on pull requests
-pr-run-mode = "plan"
+pr-run-mode = "upload"
+# Whether builds should try to be cached in CI
+cache-builds = false
 # Where to host releases
 hosting = "github"
+# Generate and dist a source tarball
+source-tarball = true
+# Checksums to generate for each App
+checksum = "sha256"
+# Whether to embed dependency information using cargo-auditable
+cargo-auditable = true
+# Whether to use cargo-cyclonedx to generate an SBOM
+cargo-cyclonedx = true
 # Whether to install an updater program
 install-updater = false
 # Whether to enable GitHub Attestations
 github-attestations = true
+# When to generate GitHub Attestations
+github-attestations-phase = "host"
+# Patterns to attest when creating attestations for release artifacts
+github-attestations-filters = ["*.json", "*.xml", "*.sha256", "*.sh", "*.ps1", "*.tar.gz", "*.tar.xz", "*.zip"]
 # Path that installers should place binaries in
 install-path = "CARGO_HOME"
+
+[dist.github-action-commits]
+"actions/checkout" = "df4cb1c069e1874edd31b4311f1884172cec0e10"
+"actions/upload-artifact" = "043fb46d1a93c77aae656e7c1c64a875d1fc6a0a"
+"actions/download-artifact" = "3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c"
+"actions/attest" = "a1948c3f048ba23858d222213b7c278aabede763"
