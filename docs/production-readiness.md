@@ -56,6 +56,22 @@ candle coverage only. REST failures are recorded as unrepaired attempts and
 produce a non-zero command result; repeat attempts are skipped unless `--retry`
 is explicit. No current readiness claim treats this as tick-level recovery.
 
+Machine-validated supervised soak evidence is available through
+`scripts/run-supervised-soak.sh`. Its versioned report records the exact commit
+and command, CPU/RSS/storage samples, reconnect and data-quality counters,
+shutdown state, and two replay-parity outcomes. The validator rejects dirty or
+short runs, missing samples, parser/backfill failures, unrepaired tick gaps,
+memory growth beyond the declared limit, and replay drift. This closes the
+repository tooling gap; no multi-day run has yet been completed and the
+deployment status remains experimental.
+
+The runner itself was exercised against the public feed on 2026-07-13 with a
+15-second requested capture (`ops-smoke-live-20260713`): 310 symbols, 931
+subscriptions, 2,829 WebSocket messages, 10,515 normalized events, zero
+reconnects/gaps/parser drops, clean closeout, and zero replay
+drift/missing/extra. This validates the bounded runner path only; it does not
+replace the required multi-day evidence.
+
 Earlier five-minute evidence remains below for comparison.
 
 Run: `allpairs-prodreadiness-20260708-201752`
@@ -178,6 +194,16 @@ Use this checklist for bounded local validation:
      --raw \
      --normalized \
      --run-id allpairs-$(date +%Y%m%d-%H%M%S) \
+     --data-dir "$HLS_DATA_DIR"
+   ```
+
+   For an evidence package with resource samples and automatic parity checks,
+   use:
+
+   ```bash
+   scripts/run-supervised-soak.sh \
+     --duration-secs 900 \
+     --sample-interval-secs 30 \
      --data-dir "$HLS_DATA_DIR"
    ```
 

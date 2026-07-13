@@ -39,6 +39,15 @@ pub struct TelemetryWindow {
     samples: Vec<LatencySample>,
 }
 
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct OperationsTelemetry {
+    pub reconnect_attempts: u64,
+    pub parser_drops: u64,
+    pub stale_duration_ms: u64,
+    pub repair_latency_ms: Option<u64>,
+    pub unrepaired_gap_duration_ms: u64,
+}
+
 impl TelemetryWindow {
     pub fn from_samples(samples: Vec<LatencySample>) -> Self {
         Self { samples }

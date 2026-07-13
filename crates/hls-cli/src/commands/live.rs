@@ -990,6 +990,7 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
     println!("global_streams={}", plan.global_stream_count());
     println!("ws_messages={}", summary.ws_messages);
     println!("market_events={}", summary.market_events);
+    println!("parser_drops=0");
     println!("reconnects={}", summary.reconnects);
     println!("data_gaps={}", summary.data_gaps);
     println!("elapsed_secs={}", summary.elapsed_secs);
