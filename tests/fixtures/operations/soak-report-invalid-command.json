@@ -1,13 +1,8 @@
 {
   "schema_version": 1,
-  "run_id": "soak-fixture-valid",
+  "run_id": "soak-fixture-invalid-command",
   "commit": "0123456789abcdef0123456789abcdef01234567",
-  "command": [
-    "hls", "live", "--all-symbols", "--duration-secs", "900",
-    "--refresh-secs", "30", "--record", "--raw", "--normalized",
-    "--backfill-gaps", "--run-id", "soak-fixture-valid",
-    "--data-dir", "/tmp/hlscreen-soak-fixture", "--color", "never"
-  ],
+  "command": ["echo", "not-a-live-capture"],
   "started_at": "2026-07-13T10:00:00Z",
   "ended_at": "2026-07-13T10:15:00Z",
   "duration_secs": 900,

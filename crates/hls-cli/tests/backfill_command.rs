@@ -165,3 +165,28 @@ fn backfill_command_appends_coarse_candles_without_restoring_tick_confidence() {
             .has_reason(ConfidenceReason::ReconnectGap)
     );
 }
+
+#[test]
+fn backfill_command_rejects_spoofed_loopback_http_host_before_storage() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let data_dir = temp.path().join("data");
+
+    Command::cargo_bin("hls")
+        .expect("hls binary")
+        .args([
+            "backfill",
+            "--run-id",
+            "spoofed-loopback",
+            "--rest-url",
+            "http://localhost.attacker.example",
+            "--data-dir",
+        ])
+        .arg(&data_dir)
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains(
+            "--rest-url must use HTTPS or an HTTP loopback address",
+        ));
+
+    assert!(!data_dir.join("hls.sqlite").exists());
+}

@@ -14,6 +14,13 @@ from typing import Any
 
 
 COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
+REQUIRED_CAPTURE_FLAGS = (
+    "--all-symbols",
+    "--record",
+    "--raw",
+    "--normalized",
+    "--backfill-gaps",
+)
 
 
 def integer(value: Any, path: str, errors: list[str], *, minimum: int = 0) -> int | None:
@@ -61,6 +68,54 @@ def parse_timestamp(value: Any, path: str, errors: list[str]) -> datetime | None
         return None
 
 
+def command_option(command: list[str], option: str, errors: list[str]) -> str | None:
+    positions = [index for index, item in enumerate(command) if item == option]
+    if len(positions) != 1:
+        errors.append(f"command must contain {option} exactly once")
+        return None
+    position = positions[0]
+    if position + 1 >= len(command) or command[position + 1].startswith("--"):
+        errors.append(f"command option {option} must have a value")
+        return None
+    return command[position + 1]
+
+
+def validate_live_capture_command(
+    command: list[str],
+    run_id: Any,
+    report_duration: int | None,
+    minimum_duration_secs: int,
+    errors: list[str],
+) -> None:
+    if Path(command[0]).name != "hls" or len(command) < 2 or command[1] != "live":
+        errors.append("command must invoke hls live")
+    for flag in REQUIRED_CAPTURE_FLAGS:
+        if command.count(flag) != 1:
+            errors.append(f"command must contain {flag} exactly once")
+    for forbidden in ("--fixture-file", "--once"):
+        if forbidden in command:
+            errors.append(f"command must not contain {forbidden}")
+
+    command_duration = command_option(command, "--duration-secs", errors)
+    if command_duration is not None:
+        try:
+            requested_duration = int(command_duration)
+        except ValueError:
+            errors.append("command --duration-secs must be an integer")
+        else:
+            if requested_duration < minimum_duration_secs:
+                errors.append(
+                    f"command --duration-secs must be >= {minimum_duration_secs}"
+                )
+            if report_duration is not None and report_duration < requested_duration:
+                errors.append("duration_secs must cover the command --duration-secs value")
+
+    command_run_id = command_option(command, "--run-id", errors)
+    if command_run_id is not None and command_run_id != run_id:
+        errors.append("command --run-id must equal report run_id")
+    command_option(command, "--data-dir", errors)
+
+
 def validate(report: Any, minimum_duration_secs: int) -> list[str]:
     errors: list[str] = []
     if not isinstance(report, dict):
@@ -73,7 +128,12 @@ def validate(report: Any, minimum_duration_secs: int) -> list[str]:
     if not isinstance(report.get("commit"), str) or not COMMIT_RE.fullmatch(report["commit"]):
         errors.append("commit must be a lowercase 40-character Git object ID")
     command = report.get("command")
-    if not isinstance(command, list) or not command or not all(isinstance(item, str) and item for item in command):
+    valid_command_shape = (
+        isinstance(command, list)
+        and bool(command)
+        and all(isinstance(item, str) and item for item in command)
+    )
+    if not valid_command_shape:
         errors.append("command must be a non-empty array of non-empty strings")
 
     started = parse_timestamp(report.get("started_at"), "started_at", errors)
@@ -87,6 +147,14 @@ def validate(report: Any, minimum_duration_secs: int) -> list[str]:
             errors.append("ended_at must not precede started_at")
         elif duration is not None and abs(wall_duration - duration) > 2:
             errors.append("timestamp span and duration_secs differ by more than 2 seconds")
+    if valid_command_shape:
+        validate_live_capture_command(
+            command,
+            report.get("run_id"),
+            duration,
+            minimum_duration_secs,
+            errors,
+        )
 
     if integer(report.get("exit_code"), "exit_code", errors) not in (None, 0):
         errors.append("exit_code must equal 0")

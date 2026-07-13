@@ -17,7 +17,9 @@ use hls_hyperliquid::{
     ws::{
         connection::ReconnectPolicy,
         parser::{parse_ws_message, parse_ws_ndjson},
-        subscriptions::{StreamKind, SubscriptionPlan, ping_message},
+        subscriptions::{
+            OFFICIAL_WS_SUBSCRIPTION_LIMIT, StreamKind, SubscriptionPlan, ping_message,
+        },
     },
 };
 use hls_server::{ApiState, SharedApiState, handle_get, serve_shared_until_shutdown};
@@ -136,9 +138,7 @@ fn parse_loopback_bind(raw: &str) -> anyhow::Result<SocketAddr> {
 }
 
 async fn run_live_server(args: ServerArgs, bind: SocketAddr) -> anyhow::Result<()> {
-    if args.duration_secs == 0 {
-        bail!("--duration-secs must be greater than zero");
-    }
+    validate_live_server_args(&args)?;
     let fee_profile = load_fee_profile(args.fee_profile_file.as_ref())?;
     let listener = TcpListener::bind(bind).await?;
     let address = listener.local_addr()?;
@@ -157,16 +157,27 @@ async fn run_live_server(args: ServerArgs, bind: SocketAddr) -> anyhow::Result<(
         args.duration_secs
     );
 
-    let summary = if let Some(fixture_file) = &args.fixture_file {
-        publish_fixture_live_api(&args, fixture_file, &shared, fee_profile.as_ref())?
+    let publish_result = if let Some(fixture_file) = &args.fixture_file {
+        publish_fixture_live_api(&args, fixture_file, &shared, fee_profile.as_ref())
     } else {
-        publish_network_live_api(&args, &shared, fee_profile.as_ref()).await?
+        publish_network_live_api(&args, &shared, fee_profile.as_ref()).await
     };
 
     let _ = shutdown_tx.send(());
-    server
+    let server_result = server
         .await
-        .map_err(|err| HlsError::External(format!("live API server task failed: {err}")))??;
+        .map_err(|err| HlsError::External(format!("live API server task failed: {err}")))?
+        .map_err(anyhow::Error::from);
+    let summary = match (publish_result, server_result) {
+        (Ok(summary), Ok(())) => summary,
+        (Ok(_), Err(server_error)) => return Err(server_error),
+        (Err(publish_error), Ok(())) => return Err(publish_error),
+        (Err(publish_error), Err(server_error)) => {
+            return Err(publish_error.context(format!(
+                "live API server shutdown also failed: {server_error}"
+            )));
+        }
+    };
 
     println!("server_live_run=complete");
     println!("listen=http://{address}");
@@ -177,6 +188,51 @@ async fn run_live_server(args: ServerArgs, bind: SocketAddr) -> anyhow::Result<(
     println!("rows={}", summary.rows);
     println!("reconnects={}", summary.reconnects);
     println!("data_gaps={}", summary.data_gaps);
+    Ok(())
+}
+
+fn validate_live_server_args(args: &ServerArgs) -> anyhow::Result<()> {
+    if args.duration_secs == 0 {
+        bail!("--duration-secs must be greater than zero");
+    }
+    if args.refresh_secs == 0 {
+        bail!("--refresh-secs must be greater than zero");
+    }
+    if args.top == 0 {
+        bail!("--top must be greater than zero");
+    }
+    if args.max_subscriptions == 0 {
+        bail!("--max-subscriptions must be greater than zero");
+    }
+    if args.max_subscriptions > OFFICIAL_WS_SUBSCRIPTION_LIMIT {
+        bail!(
+            "--max-subscriptions cannot exceed the official IP-wide limit of {OFFICIAL_WS_SUBSCRIPTION_LIMIT}"
+        );
+    }
+    if args.all_symbols && args.symbols.is_some() {
+        bail!("--symbols and --all-symbols are mutually exclusive");
+    }
+    if args
+        .symbols
+        .as_deref()
+        .is_some_and(|symbols| parse_symbols(Some(symbols)).is_empty())
+    {
+        bail!("--symbols must contain at least one non-empty selector");
+    }
+    if args.fixture_file.is_none()
+        && !(args.ws_url.starts_with("ws://") || args.ws_url.starts_with("wss://"))
+    {
+        bail!("--ws-url must use the ws:// or wss:// scheme");
+    }
+    if tokio::time::Instant::now()
+        .checked_add(Duration::from_secs(args.duration_secs))
+        .is_none()
+    {
+        bail!(
+            "--duration-secs value {} is too large for this runtime",
+            args.duration_secs
+        );
+    }
     Ok(())
 }
 
@@ -219,7 +275,7 @@ fn publish_fixture_live_api(
         },
         &mut summary,
     )?;
-    Ok(summary)
+    summary.require_market_data()
 }
 
 async fn publish_network_live_api(
@@ -229,15 +285,7 @@ async fn publish_network_live_api(
 ) -> anyhow::Result<ServerLiveSummary> {
     let selection = load_server_live_symbols(args).await?;
     let symbols = selection.symbols;
-    let mut plan =
-        SubscriptionPlan::new(symbols.clone()).with_max_subscriptions(args.max_subscriptions);
-    if args.all_symbols && plan.subscription_count() > args.max_subscriptions {
-        plan = plan.with_streams([
-            StreamKind::Trades,
-            StreamKind::Bbo,
-            StreamKind::ActiveAssetCtx,
-        ]);
-    }
+    let plan = server_subscription_plan(symbols.clone(), args.all_symbols, args.max_subscriptions);
     let subscription_messages = plan.subscribe_messages()?;
     let mut metadata = selection.metadata;
     metadata.extend(load_metadata_enrichments(args.metadata_file.as_ref())?);
@@ -312,7 +360,30 @@ async fn publish_network_live_api(
         }
     }
 
-    Ok(summary)
+    summary.require_market_data()
+}
+
+fn server_subscription_plan(
+    symbols: Vec<String>,
+    all_symbols: bool,
+    max_subscriptions: usize,
+) -> SubscriptionPlan {
+    let mut plan = SubscriptionPlan::new(symbols).with_max_subscriptions(max_subscriptions);
+    if all_symbols && plan.subscription_count() > max_subscriptions {
+        plan = plan.with_streams([
+            StreamKind::AllMids,
+            StreamKind::Trades,
+            StreamKind::Bbo,
+            StreamKind::ActiveAssetCtx,
+        ]);
+        if plan.subscription_count() > max_subscriptions {
+            plan = plan.with_streams([StreamKind::AllMids, StreamKind::ActiveAssetCtx]);
+            if plan.subscription_count() > max_subscriptions {
+                plan = plan.with_streams([StreamKind::AllMids]);
+            }
+        }
+    }
+    plan
 }
 
 fn next_server_reconnect_backoff(
@@ -651,6 +722,19 @@ struct ServerLiveSummary {
     last_reconnect_backoff_ms: Option<u64>,
 }
 
+impl ServerLiveSummary {
+    fn require_market_data(self) -> anyhow::Result<Self> {
+        if self.market_events == 0 {
+            return Err(HlsError::External(format!(
+                "live server run ended without market-data events after {} reconnect(s)",
+                self.reconnects
+            ))
+            .into());
+        }
+        Ok(self)
+    }
+}
+
 #[derive(Clone, Copy, Debug)]
 struct ServerHealthStats {
     connection_state: ConnectionState,
@@ -818,6 +902,61 @@ mod tests {
     use super::*;
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
     use tokio_tungstenite::accept_async;
+
+    #[tokio::test]
+    async fn live_server_releases_listener_when_publication_fails() {
+        let reservation = std::net::TcpListener::bind("127.0.0.1:0").expect("reserve port");
+        let address = reservation.local_addr().expect("reserved address");
+        drop(reservation);
+        let args = ServerArgs {
+            bind: address.to_string(),
+            print_health: false,
+            live: true,
+            symbols: Some("@107".to_owned()),
+            top: 1,
+            all_symbols: false,
+            duration_secs: 1,
+            refresh_secs: 1,
+            max_subscriptions: 10,
+            ws_url: DEFAULT_WS_URL.to_owned(),
+            fixture_file: Some(PathBuf::from("missing-live-server-fixture.ndjson")),
+            metadata_file: None,
+            fee_profile_file: None,
+            simulate_health: None,
+        };
+
+        run_live_server(args, address)
+            .await
+            .expect_err("missing fixture must fail");
+
+        TcpListener::bind(address)
+            .await
+            .expect("failed live server must release its listener");
+    }
+
+    #[test]
+    fn live_server_summary_rejects_runs_without_market_data() {
+        let error = ServerLiveSummary {
+            symbols: 1,
+            subscriptions: 3,
+            ws_messages: 4,
+            ..ServerLiveSummary::default()
+        }
+        .require_market_data()
+        .expect_err("control frames cannot make a live server run successful");
+
+        assert!(error.to_string().contains("without market-data events"));
+    }
+
+    #[test]
+    fn all_symbol_server_plan_stays_within_subscription_budget() {
+        let symbols = (0..1_000).map(|index| format!("@{index}")).collect();
+
+        let plan = server_subscription_plan(symbols, true, OFFICIAL_WS_SUBSCRIPTION_LIMIT);
+
+        assert!(plan.subscription_count() <= OFFICIAL_WS_SUBSCRIPTION_LIMIT);
+        assert_eq!(plan.streams(), &[StreamKind::AllMids]);
+    }
 
     #[tokio::test]
     async fn idle_then_burst_is_coalesced_and_published_before_deadline() {
