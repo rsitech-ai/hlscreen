@@ -33,13 +33,19 @@ Implemented today:
 - Low-cardinality metrics snapshots in `hls doctor --live --json`, including Prometheus text output.
 - Manual `hls backfill` and opt-in `hls live --record --backfill-gaps` coarse public candle coverage with durable partial/unrepaired attempt evidence.
 - Bounded standalone Wasm row-annotation extensions that reject imports, network/filesystem/private/trading permissions, oversized modules, hash mismatches, and excess memory/output.
-- Draft cargo-dist release packaging config and tag-gated packaging workflow.
+- Hardened cargo-dist candidate packaging with pull-request artifact builds,
+  SHA-256 checksums, a source archive, CycloneDX SBOM, auditable Rust binaries,
+  SHA-pinned actions, and tag-only publication/provenance.
 
 Not implemented yet:
 
 - Supported long-running localhost daemon/service lifecycle.
 - Published release binaries from a reviewed `v*` tag run.
-- Production alert delivery/operations, validated canonical production microstructure metrics, private account fee tiers, realized-fill modeling, service-backed analog search, and multi-day supervised soak proof.
+- Production alert delivery/operations, validated canonical production
+  microstructure metrics, service-backed analog search, and multi-day supervised
+  soak proof.
+- Private account access, fee-tier lookup, and realized-fill modeling are outside
+  the public/read-only trust boundary rather than partially implemented.
 
 ## Screenshots
 
