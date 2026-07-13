@@ -36,6 +36,7 @@
 - [x] T014 [P] [US3] Add research metric formula/proxy tests in `crates/hls-features/tests/canonical_metrics.rs`
 - [x] T015 [US3] Implement research proxy and unavailable states in `crates/hls-features/src/metrics.rs`
 - [ ] T031 [US3] Define and validate a canonical production metric suite with benchmark data, sampling contracts, and error tolerances
+- [x] T032 [US3] Add versioned sampling/tolerance contracts and benchmark two directly observed public-trade window metrics while retaining advanced estimators as proxy/unavailable
 - [x] T016 [US3] Implement fee-aware tradeability using explicit fee profiles in `crates/hls-features/src/tradeability.rs`
 - [x] T017 [US3] Update metric docs in `docs/feature-definitions.md`
 - [x] T029 [US3] Add local maker/taker fill-mix fee economics with `taker_fill_ratio_hundredths`

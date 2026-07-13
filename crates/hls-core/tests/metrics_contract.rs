@@ -1,5 +1,6 @@
 use hls_core::metrics::{
-    MetricDefinition, MetricKind, MetricSupport, MetricsRegistry, MicrostructureMetricDefinition,
+    MetricDefinition, MetricKind, MetricSamplingContract, MetricSamplingMode, MetricSupport,
+    MetricsRegistry, MicrostructureMetricDefinition, MicrostructureMetricSnapshot,
     operations_metrics_snapshot,
 };
 use hls_core::telemetry::OperationsTelemetry;
@@ -192,4 +193,44 @@ fn operations_metrics_omit_unknown_repair_latency() {
             .iter()
             .all(|sample| sample.name != "hls_repair_latency_ms")
     );
+}
+
+#[test]
+fn sampling_contract_rejects_vague_tolerances_and_non_finite_values() {
+    let mut contract = MetricSamplingContract {
+        metric_name: "public_trade_vwap_1m".to_owned(),
+        version: 1,
+        window_ms: 60_000,
+        minimum_observations: 3,
+        sampling_mode: MetricSamplingMode::ExchangeEventWindow,
+        unit: "price".to_owned(),
+        absolute_tolerance: 0.0,
+        relative_tolerance: 0.0,
+    };
+    assert!(
+        contract
+            .validate()
+            .expect_err("zero tolerances are ambiguous")
+            .to_string()
+            .contains("tolerances")
+    );
+
+    contract.absolute_tolerance = 1e-12;
+    assert!(
+        contract
+            .validate_value(f64::NAN, 100.0)
+            .expect_err("non-finite observations fail closed")
+            .to_string()
+            .contains("finite")
+    );
+    assert!(contract.has_sufficient_observations(3));
+    assert!(!contract.has_sufficient_observations(2));
+
+    let sparse = MicrostructureMetricSnapshot::canonical(&contract, 2, 100.0);
+    assert_eq!(sparse.support, MetricSupport::Unavailable);
+    assert!(sparse.value.is_none());
+
+    let canonical = MicrostructureMetricSnapshot::canonical(&contract, 3, 100.0);
+    assert_eq!(canonical.support, MetricSupport::Canonical);
+    assert_eq!(canonical.value, Some(100.0));
 }
