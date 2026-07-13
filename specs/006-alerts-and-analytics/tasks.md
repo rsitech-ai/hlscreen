@@ -19,10 +19,10 @@
 - [x] T007 [P] [US1] Add alert replay tests in `crates/hls-features/tests/alerts.rs`
 - [x] T008 [US1] Implement local alert evaluator in `crates/hls-features/src/alerts.rs`
 - [x] T009 [US1] Add alert CLI/replay command in `crates/hls-cli/src/commands/alerts.rs`
-- [ ] T010 [US1] Render alert events in TUI/status surfaces in `crates/hls-tui/src/ratatui_app.rs`
+- [x] T010 [US1] Render alert events in TUI/status surfaces in `crates/hls-tui/src/ratatui_app.rs`
 - [x] T025 [US1] Add explicit local JSONL alert history persistence via `--alert-history-file` in `crates/hls-cli/src/commands/alerts.rs`
 - [x] T026 [US1] Add local alert history listing via `hls alerts --history-file` in `crates/hls-cli/src/commands/alerts.rs`
-- [ ] T027 [US1] Render bounded local alert history in Ratatui TUI surfaces when live alert integration exists
+- [x] T027 [US1] Render bounded local alert history in Ratatui TUI surfaces when live alert integration exists
 
 ## Phase 4: User Story 2 - Search Historical Analogs (Priority: P2)
 
@@ -49,6 +49,7 @@
 - [x] T020 [US4] Implement bounded plugin runtime in `crates/hls-core/src/extension.rs`
 - [x] T021 [US4] Add plugin invocation command or TUI integration after safety tests pass
 - [ ] T024 [US4] Add explicit live row-annotation plugin execution after defining live runtime ownership and latency limits
+- [x] T033 [US4] Define and test bounded plugin worker ownership, overload, timeout, failure, and stale-annotation behavior before live enablement
 
 ## Phase 7: Polish
 

@@ -16,6 +16,8 @@ Supported bounded local use:
 - Render deterministic terminal output and health JSON.
 - Preview read-only localhost HTTP routes over current in-memory state.
 - Run a bounded localhost API preview backed by public live market-data snapshots with `hls server --live`.
+- Evaluate validated local-only alert playbooks in the TUI with bounded in-memory
+  history and no external delivery or exchange action.
 
 Not included:
 

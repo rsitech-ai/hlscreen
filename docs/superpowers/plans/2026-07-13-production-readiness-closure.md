@@ -102,11 +102,11 @@
 - Produces: bounded newest-first local alert history in the TUI with fixed row and byte limits.
 - Produces: explicit plugin execution budget and timeout; no plugin runs on the WebSocket receive critical section.
 
-- [ ] Add a failing deterministic TUI test for bounded alert rows, severity, timestamp, rule, symbol, and reason.
-- [ ] Render alert history without nested cards or layout shifts across compact/wide viewports.
-- [ ] Add keyboard focus/navigation and preserve pause/selection behavior.
-- [ ] Define plugin worker ownership, queue capacity, timeout, failure state, and stale-annotation behavior before live enablement.
-- [ ] Add overload and timeout tests proving market ingestion continues or fails closed according to the documented contract.
+- [x] Add a failing deterministic TUI test for bounded alert rows, severity, timestamp, rule, symbol, and reason.
+- [x] Render alert history without nested cards or layout shifts across compact/wide viewports.
+- [x] Add keyboard focus/navigation and preserve pause/selection behavior.
+- [x] Define plugin worker ownership, queue capacity, timeout, failure state, and stale-annotation behavior before live enablement.
+- [x] Add overload and timeout tests proving market ingestion continues or fails closed according to the documented contract.
 
 ### Task 5: Release, CI, And Open-Source Proof
 

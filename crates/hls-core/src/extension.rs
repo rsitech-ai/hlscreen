@@ -1,6 +1,13 @@
 use std::{
     fs,
-    path::{Component, Path},
+    path::{Component, Path, PathBuf},
+    sync::{
+        Arc, Mutex,
+        atomic::{AtomicU8, Ordering},
+        mpsc::{self, SyncSender, TrySendError},
+    },
+    thread::{self, JoinHandle},
+    time::{Duration, Instant},
 };
 
 use serde::{Deserialize, Serialize};
@@ -12,6 +19,8 @@ use crate::{HlsError, HlsResult};
 
 const INPUT_OFFSET: usize = 1024;
 const MAX_WASM_MODULE_BYTES: u64 = 8 * 1024 * 1024;
+const MAX_EXTENSION_QUEUE_CAPACITY: usize = 1024;
+const MAX_EXTENSION_INVOCATION_TIMEOUT: Duration = Duration::from_secs(30);
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct ExtensionManifest {
@@ -212,6 +221,272 @@ pub struct RowAnnotation {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ExtensionWorkerConfig {
+    pub queue_capacity: usize,
+    pub invocation_timeout: Duration,
+    pub stale_after: Duration,
+}
+
+impl Default for ExtensionWorkerConfig {
+    fn default() -> Self {
+        Self {
+            queue_capacity: 8,
+            invocation_timeout: Duration::from_millis(100),
+            stale_after: Duration::from_secs(2),
+        }
+    }
+}
+
+impl ExtensionWorkerConfig {
+    fn validate(self) -> HlsResult<()> {
+        if self.queue_capacity == 0 || self.queue_capacity > MAX_EXTENSION_QUEUE_CAPACITY {
+            return Err(HlsError::Config(format!(
+                "extension worker queue_capacity must be between 1 and {MAX_EXTENSION_QUEUE_CAPACITY}"
+            )));
+        }
+        if self.invocation_timeout.is_zero()
+            || self.invocation_timeout > MAX_EXTENSION_INVOCATION_TIMEOUT
+        {
+            return Err(HlsError::Config(
+                "extension worker invocation_timeout must be between 1ns and 30s".to_owned(),
+            ));
+        }
+        if self.stale_after.is_zero() {
+            return Err(HlsError::Config(
+                "extension worker stale_after must be positive".to_owned(),
+            ));
+        }
+        Ok(())
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+#[repr(u8)]
+pub enum ExtensionWorkerState {
+    Ready = 0,
+    Overloaded = 1,
+    TimedOut = 2,
+    Failed = 3,
+}
+
+impl ExtensionWorkerState {
+    fn from_raw(value: u8) -> Self {
+        match value {
+            0 => Self::Ready,
+            1 => Self::Overloaded,
+            2 => Self::TimedOut,
+            3 => Self::Failed,
+            _ => unreachable!("invalid extension worker state {value}"),
+        }
+    }
+
+    fn is_terminal(self) -> bool {
+        matches!(self, Self::TimedOut | Self::Failed)
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ExtensionAnnotationFreshness {
+    Fresh,
+    Stale,
+    Unavailable,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ExtensionAnnotationView {
+    pub state: ExtensionWorkerState,
+    pub freshness: ExtensionAnnotationFreshness,
+    pub annotations: Vec<RowAnnotation>,
+    pub detail: Option<String>,
+}
+
+#[derive(Default)]
+struct ExtensionWorkerShared {
+    latest_success: Option<(Instant, Vec<RowAnnotation>)>,
+    detail: Option<String>,
+}
+
+type ExtensionExecutor =
+    Arc<dyn Fn(&FeatureSnapshot) -> HlsResult<Vec<RowAnnotation>> + Send + Sync + 'static>;
+
+pub struct ExtensionWorker {
+    sender: Option<SyncSender<FeatureSnapshot>>,
+    state: Arc<AtomicU8>,
+    shared: Arc<Mutex<ExtensionWorkerShared>>,
+    stale_after: Duration,
+    supervisor: Option<JoinHandle<()>>,
+}
+
+impl ExtensionWorker {
+    pub fn start(
+        runtime: ExtensionRuntime,
+        manifest: ExtensionManifest,
+        manifest_dir: impl Into<PathBuf>,
+        entrypoint: impl Into<String>,
+        config: ExtensionWorkerConfig,
+    ) -> HlsResult<Self> {
+        config.validate()?;
+        manifest.validate()?;
+        let entrypoint = entrypoint.into();
+        validate_row_annotation_entrypoint(&manifest, &entrypoint)?;
+        let manifest_dir = manifest_dir.into();
+        Self::start_with_executor(config, move |snapshot| {
+            runtime.invoke_row_annotations(&manifest, &manifest_dir, &entrypoint, snapshot)
+        })
+    }
+
+    fn start_with_executor(
+        config: ExtensionWorkerConfig,
+        executor: impl Fn(&FeatureSnapshot) -> HlsResult<Vec<RowAnnotation>> + Send + Sync + 'static,
+    ) -> HlsResult<Self> {
+        config.validate()?;
+        let (sender, receiver) = mpsc::sync_channel(config.queue_capacity);
+        let state = Arc::new(AtomicU8::new(ExtensionWorkerState::Ready as u8));
+        let shared = Arc::new(Mutex::new(ExtensionWorkerShared::default()));
+        let supervisor_state = Arc::clone(&state);
+        let supervisor_shared = Arc::clone(&shared);
+        let executor: ExtensionExecutor = Arc::new(executor);
+        let supervisor = thread::Builder::new()
+            .name("hls-extension-worker".to_owned())
+            .spawn(move || {
+                while let Ok(snapshot) = receiver.recv() {
+                    let (completion_sender, completion_receiver) = mpsc::sync_channel(1);
+                    let invocation_executor = Arc::clone(&executor);
+                    thread::spawn(move || {
+                        let result = invocation_executor(&snapshot);
+                        let _ = completion_sender.send(result);
+                    });
+
+                    match completion_receiver.recv_timeout(config.invocation_timeout) {
+                        Ok(Ok(annotations)) => {
+                            let mut shared = supervisor_shared
+                                .lock()
+                                .unwrap_or_else(std::sync::PoisonError::into_inner);
+                            shared.latest_success = Some((Instant::now(), annotations));
+                            shared.detail = None;
+                            supervisor_state
+                                .store(ExtensionWorkerState::Ready as u8, Ordering::Release);
+                        }
+                        Ok(Err(error)) => {
+                            let mut shared = supervisor_shared
+                                .lock()
+                                .unwrap_or_else(std::sync::PoisonError::into_inner);
+                            shared.detail = Some(format!("extension invocation failed: {error}"));
+                            supervisor_state
+                                .store(ExtensionWorkerState::Failed as u8, Ordering::Release);
+                            break;
+                        }
+                        Err(mpsc::RecvTimeoutError::Timeout) => {
+                            let mut shared = supervisor_shared
+                                .lock()
+                                .unwrap_or_else(std::sync::PoisonError::into_inner);
+                            shared.detail = Some(format!(
+                                "extension invocation timeout after {}ms; worker disabled",
+                                config.invocation_timeout.as_millis()
+                            ));
+                            supervisor_state
+                                .store(ExtensionWorkerState::TimedOut as u8, Ordering::Release);
+                            break;
+                        }
+                        Err(mpsc::RecvTimeoutError::Disconnected) => {
+                            let mut shared = supervisor_shared
+                                .lock()
+                                .unwrap_or_else(std::sync::PoisonError::into_inner);
+                            shared.detail = Some(
+                                "extension invocation worker disconnected; worker disabled"
+                                    .to_owned(),
+                            );
+                            supervisor_state
+                                .store(ExtensionWorkerState::Failed as u8, Ordering::Release);
+                            break;
+                        }
+                    }
+                }
+            })?;
+
+        Ok(Self {
+            sender: Some(sender),
+            state,
+            shared,
+            stale_after: config.stale_after,
+            supervisor: Some(supervisor),
+        })
+    }
+
+    pub fn state(&self) -> ExtensionWorkerState {
+        ExtensionWorkerState::from_raw(self.state.load(Ordering::Acquire))
+    }
+
+    pub fn try_submit(&self, snapshot: FeatureSnapshot) -> Result<(), ExtensionWorkerState> {
+        let state = self.state();
+        if state.is_terminal() {
+            return Err(state);
+        }
+        let Some(sender) = self.sender.as_ref() else {
+            self.state
+                .store(ExtensionWorkerState::Failed as u8, Ordering::Release);
+            return Err(ExtensionWorkerState::Failed);
+        };
+        match sender.try_send(snapshot) {
+            Ok(()) => Ok(()),
+            Err(TrySendError::Full(_)) => {
+                self.state
+                    .store(ExtensionWorkerState::Overloaded as u8, Ordering::Release);
+                Err(ExtensionWorkerState::Overloaded)
+            }
+            Err(TrySendError::Disconnected(_)) => {
+                let state = self.state();
+                if state.is_terminal() {
+                    Err(state)
+                } else {
+                    self.state
+                        .store(ExtensionWorkerState::Failed as u8, Ordering::Release);
+                    Err(ExtensionWorkerState::Failed)
+                }
+            }
+        }
+    }
+
+    pub fn annotation_view(&self) -> ExtensionAnnotationView {
+        let state = self.state();
+        let shared = self
+            .shared
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        let (annotations, freshness) = shared.latest_success.as_ref().map_or_else(
+            || (Vec::new(), ExtensionAnnotationFreshness::Unavailable),
+            |(completed_at, annotations)| {
+                let freshness = if state == ExtensionWorkerState::Ready
+                    && completed_at.elapsed() <= self.stale_after
+                {
+                    ExtensionAnnotationFreshness::Fresh
+                } else {
+                    ExtensionAnnotationFreshness::Stale
+                };
+                (annotations.clone(), freshness)
+            },
+        );
+        ExtensionAnnotationView {
+            state,
+            freshness,
+            annotations,
+            detail: shared.detail.clone(),
+        }
+    }
+}
+
+impl Drop for ExtensionWorker {
+    fn drop(&mut self) {
+        self.sender.take();
+        if let Some(supervisor) = self.supervisor.take() {
+            let _ = supervisor.join();
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct ExtensionRuntimeLimits {
     pub fuel: u64,
     pub max_input_bytes: usize,
@@ -266,27 +541,7 @@ impl ExtensionRuntime {
         snapshot: &FeatureSnapshot,
     ) -> HlsResult<Vec<RowAnnotation>> {
         manifest.validate()?;
-        let entrypoint_contract = manifest
-            .entrypoints
-            .iter()
-            .find(|candidate| candidate.name == entrypoint)
-            .ok_or_else(|| {
-                HlsError::Config(format!(
-                    "extension entrypoint '{entrypoint}' is not declared by manifest '{}'",
-                    manifest.name
-                ))
-            })?;
-        if !matches!(
-            entrypoint_contract.input,
-            ExtensionInputKind::FeatureSnapshot
-        ) || !matches!(
-            entrypoint_contract.output,
-            ExtensionOutputKind::RowAnnotations
-        ) {
-            return Err(HlsError::Config(format!(
-                "extension entrypoint '{entrypoint}' must use feature_snapshot -> row_annotations"
-            )));
-        }
+        validate_row_annotation_entrypoint(manifest, entrypoint)?;
 
         let wasm_path = manifest_dir.join(&manifest.wasm.path);
         let module_size = fs::metadata(&wasm_path)?.len();
@@ -412,6 +667,34 @@ impl ExtensionRuntime {
     }
 }
 
+fn validate_row_annotation_entrypoint(
+    manifest: &ExtensionManifest,
+    entrypoint: &str,
+) -> HlsResult<()> {
+    let entrypoint_contract = manifest
+        .entrypoints
+        .iter()
+        .find(|candidate| candidate.name == entrypoint)
+        .ok_or_else(|| {
+            HlsError::Config(format!(
+                "extension entrypoint '{entrypoint}' is not declared by manifest '{}'",
+                manifest.name
+            ))
+        })?;
+    if !matches!(
+        entrypoint_contract.input,
+        ExtensionInputKind::FeatureSnapshot
+    ) || !matches!(
+        entrypoint_contract.output,
+        ExtensionOutputKind::RowAnnotations
+    ) {
+        return Err(HlsError::Config(format!(
+            "extension entrypoint '{entrypoint}' must use feature_snapshot -> row_annotations"
+        )));
+    }
+    Ok(())
+}
+
 fn verify_sha256(bytes: &[u8], expected: &str) -> HlsResult<()> {
     let digest = Sha256::digest(bytes);
     let mut actual = String::from("sha256:");
@@ -503,4 +786,173 @@ fn is_sha256_hash(value: &str) -> bool {
         return false;
     };
     hash.len() == 64 && hash.chars().all(|ch| ch.is_ascii_hexdigit())
+}
+
+#[cfg(test)]
+mod worker_tests {
+    use std::{
+        sync::{
+            Arc,
+            atomic::{AtomicBool, Ordering},
+        },
+        thread,
+        time::{Duration, Instant},
+    };
+
+    use crate::{
+        confidence::DataConfidenceSnapshot,
+        market_state::{
+            AdverseSelectionProxy, FeatureSnapshot, LiquidityResilienceState, StalenessState,
+            TradeabilityState,
+        },
+    };
+
+    use super::{
+        ExtensionAnnotationFreshness, ExtensionWorker, ExtensionWorkerConfig, ExtensionWorkerState,
+        RowAnnotation,
+    };
+
+    #[test]
+    fn extension_worker_queue_overload_returns_without_blocking_caller() {
+        let started = Arc::new(AtomicBool::new(false));
+        let started_for_executor = Arc::clone(&started);
+        let worker = ExtensionWorker::start_with_executor(
+            ExtensionWorkerConfig {
+                queue_capacity: 1,
+                invocation_timeout: Duration::from_millis(500),
+                stale_after: Duration::from_secs(1),
+            },
+            move |snapshot| {
+                started_for_executor.store(true, Ordering::Release);
+                thread::sleep(Duration::from_millis(100));
+                Ok(annotation(snapshot))
+            },
+        )
+        .expect("worker starts");
+
+        worker
+            .try_submit(snapshot("@first"))
+            .expect("first accepted");
+        wait_until(Duration::from_millis(100), || {
+            started.load(Ordering::Acquire)
+        });
+        worker
+            .try_submit(snapshot("@queued"))
+            .expect("queue accepts one");
+
+        let started_at = Instant::now();
+        assert_eq!(
+            worker.try_submit(snapshot("@overload")),
+            Err(ExtensionWorkerState::Overloaded)
+        );
+        assert!(started_at.elapsed() < Duration::from_millis(20));
+    }
+
+    #[test]
+    fn extension_worker_timeout_is_terminal_and_retained_annotations_become_stale() {
+        let worker = ExtensionWorker::start_with_executor(
+            ExtensionWorkerConfig {
+                queue_capacity: 1,
+                invocation_timeout: Duration::from_millis(20),
+                stale_after: Duration::from_secs(1),
+            },
+            |snapshot| {
+                if snapshot.symbol == "@slow" {
+                    thread::sleep(Duration::from_millis(100));
+                }
+                Ok(annotation(snapshot))
+            },
+        )
+        .expect("worker starts");
+
+        worker
+            .try_submit(snapshot("@fresh"))
+            .expect("fresh work accepted");
+        wait_until(Duration::from_millis(100), || {
+            worker.annotation_view().annotations.len() == 1
+        });
+        let fresh = worker.annotation_view();
+        assert_eq!(fresh.freshness, ExtensionAnnotationFreshness::Fresh);
+        assert_eq!(fresh.annotations[0].symbol, "@fresh");
+
+        worker
+            .try_submit(snapshot("@slow"))
+            .expect("slow work accepted");
+        wait_until(Duration::from_millis(100), || {
+            worker.state() == ExtensionWorkerState::TimedOut
+        });
+        let stale = worker.annotation_view();
+        assert_eq!(stale.state, ExtensionWorkerState::TimedOut);
+        assert_eq!(stale.freshness, ExtensionAnnotationFreshness::Stale);
+        assert_eq!(stale.annotations[0].symbol, "@fresh");
+        assert!(
+            stale
+                .detail
+                .as_deref()
+                .is_some_and(|detail| detail.contains("timeout"))
+        );
+        assert_eq!(
+            worker.try_submit(snapshot("@after-timeout")),
+            Err(ExtensionWorkerState::TimedOut)
+        );
+    }
+
+    fn wait_until(timeout: Duration, condition: impl Fn() -> bool) {
+        let started = Instant::now();
+        while !condition() {
+            assert!(started.elapsed() < timeout, "condition timed out");
+            thread::sleep(Duration::from_millis(1));
+        }
+    }
+
+    fn annotation(snapshot: &FeatureSnapshot) -> Vec<RowAnnotation> {
+        vec![RowAnnotation {
+            symbol: snapshot.symbol.clone(),
+            label: "worker:test".to_owned(),
+            detail: "read-only worker result".to_owned(),
+        }]
+    }
+
+    fn snapshot(symbol: &str) -> FeatureSnapshot {
+        FeatureSnapshot {
+            symbol: symbol.to_owned(),
+            confidence: DataConfidenceSnapshot::new(symbol),
+            price: Some(35.0),
+            mid_px: Some(35.0),
+            mark_px: Some(35.0),
+            day_ntl_vlm: Some(1_000_000.0),
+            bid_px: Some(34.9),
+            bid_sz: Some(3.0),
+            ask_px: Some(35.1),
+            ask_sz: Some(4.0),
+            spread_bps: Some(57.14),
+            spread_shock_bps: None,
+            spread_recovery_ms: None,
+            resilience_state: LiquidityResilienceState::Unknown,
+            tradeability_state: TradeabilityState::Unknown,
+            fee_aware_tradeability: None,
+            adverse_selection_proxy: AdverseSelectionProxy::Unknown,
+            signed_notional_flow_30s: None,
+            bbo_ofi_proxy_30s: None,
+            microstructure_metrics: Vec::new(),
+            tob_depth_usd: Some(245.1),
+            tob_imbalance: Some(-0.14),
+            ret_1m: None,
+            ret_5m: None,
+            ret_1h: None,
+            rv_1m: Some(0.0),
+            rv_5m: Some(0.0),
+            rv_1h: Some(0.0),
+            volume_z_1h: Some(0.0),
+            trade_count_z_1h: Some(0.0),
+            liquidity_score: 2.451,
+            momentum_score: 50.0,
+            mean_reversion_score: 50.0,
+            score_breakdown: None,
+            metadata: None,
+            updated_ms_ago: Some(0),
+            staleness_state: StalenessState::Fresh,
+            incomplete_window_reason: None,
+        }
+    }
 }
