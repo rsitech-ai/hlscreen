@@ -82,11 +82,11 @@
 - Produces: versioned `MetricSamplingContract` with window, minimum observations, sampling mode, unit, and absolute/relative tolerance.
 - Produces: benchmark validation that promotes only sufficiently evidenced metrics to `MetricSupport::Canonical`.
 
-- [ ] Add failing benchmark tests for sampling-contract validation, expected values, and tolerance rejection.
-- [ ] Implement time-bucketed canonical formulas only where public trades/BBO provide sufficient observations.
-- [ ] Keep Amihud, Roll, bipower variation, and toxicity as proxy/unavailable when their canonical sampling assumptions are unmet.
-- [ ] Document formulas, units, provenance, sample floors, tolerances, and known bias.
-- [ ] Run golden, property, sparse-data, and non-finite-input tests.
+- [x] Add failing benchmark tests for sampling-contract validation, expected values, and tolerance rejection.
+- [x] Implement time-bounded canonical formulas only where public trades provide sufficient observations.
+- [x] Keep Amihud, Roll, bipower variation, and toxicity as proxy/unavailable when their canonical sampling assumptions are unmet.
+- [x] Document formulas, units, provenance, sample floors, tolerances, and known bias.
+- [x] Run golden, ordering, sparse-data, tolerance, and non-finite-input tests.
 
 ### Task 4: Bounded TUI Alerts And Plugin Ownership
 

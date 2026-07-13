@@ -50,6 +50,98 @@ pub enum MetricSupport {
     Unavailable,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MetricSamplingMode {
+    ExchangeEventWindow,
+    FixedTimeBucket,
+    LatestPublicSnapshot,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct MetricSamplingContract {
+    pub metric_name: String,
+    pub version: u32,
+    pub window_ms: u64,
+    pub minimum_observations: u64,
+    pub sampling_mode: MetricSamplingMode,
+    pub unit: String,
+    pub absolute_tolerance: f64,
+    pub relative_tolerance: f64,
+}
+
+impl MetricSamplingContract {
+    pub fn validate(&self) -> HlsResult<()> {
+        if !is_snake_case_identifier(&self.metric_name) {
+            return Err(HlsError::Config(format!(
+                "sampling contract metric '{}' must be snake_case",
+                self.metric_name
+            )));
+        }
+        if self.version == 0 {
+            return Err(HlsError::Config(format!(
+                "sampling contract '{}' version must be positive",
+                self.metric_name
+            )));
+        }
+        if self.window_ms == 0 {
+            return Err(HlsError::Config(format!(
+                "sampling contract '{}' window must be positive",
+                self.metric_name
+            )));
+        }
+        if self.minimum_observations == 0 {
+            return Err(HlsError::Config(format!(
+                "sampling contract '{}' observation floor must be positive",
+                self.metric_name
+            )));
+        }
+        if self.unit.trim().is_empty() {
+            return Err(HlsError::Config(format!(
+                "sampling contract '{}' unit cannot be empty",
+                self.metric_name
+            )));
+        }
+        if !self.absolute_tolerance.is_finite()
+            || !self.relative_tolerance.is_finite()
+            || self.absolute_tolerance < 0.0
+            || self.relative_tolerance < 0.0
+            || (self.absolute_tolerance == 0.0 && self.relative_tolerance == 0.0)
+        {
+            return Err(HlsError::Config(format!(
+                "sampling contract '{}' tolerances must be finite, non-negative, and not both zero",
+                self.metric_name
+            )));
+        }
+        Ok(())
+    }
+
+    pub fn has_sufficient_observations(&self, observations: usize) -> bool {
+        u64::try_from(observations).is_ok_and(|count| count >= self.minimum_observations)
+    }
+
+    pub fn validate_value(&self, actual: f64, expected: f64) -> HlsResult<()> {
+        self.validate()?;
+        if !actual.is_finite() || !expected.is_finite() {
+            return Err(HlsError::Config(format!(
+                "sampling contract '{}' values must be finite",
+                self.metric_name
+            )));
+        }
+        let allowed = self
+            .absolute_tolerance
+            .max(self.relative_tolerance * expected.abs());
+        let difference = (actual - expected).abs();
+        if difference > allowed {
+            return Err(HlsError::Config(format!(
+                "sampling contract '{}' value {actual} is outside tolerance {allowed} of expected {expected}",
+                self.metric_name
+            )));
+        }
+        Ok(())
+    }
+}
+
 impl MetricSupport {
     pub fn as_str(self) -> &'static str {
         match self {
@@ -202,12 +294,36 @@ pub struct MicrostructureMetricSnapshot {
 }
 
 impl MicrostructureMetricSnapshot {
-    pub fn canonical(name: impl Into<String>, value: f64, unit: impl Into<String>) -> Self {
+    pub fn canonical(contract: &MetricSamplingContract, observations: usize, value: f64) -> Self {
+        if let Err(error) = contract.validate() {
+            return Self::unavailable(
+                contract.metric_name.clone(),
+                contract.unit.clone(),
+                format!("invalid canonical sampling contract: {error}"),
+            );
+        }
+        if !contract.has_sufficient_observations(observations) {
+            return Self::unavailable(
+                contract.metric_name.clone(),
+                contract.unit.clone(),
+                format!(
+                    "canonical sampling contract requires at least {} observations",
+                    contract.minimum_observations
+                ),
+            );
+        }
+        if !value.is_finite() {
+            return Self::unavailable(
+                contract.metric_name.clone(),
+                contract.unit.clone(),
+                "canonical metric value must be finite",
+            );
+        }
         Self {
-            name: name.into(),
+            name: contract.metric_name.clone(),
             support: MetricSupport::Canonical,
             value: Some(value),
-            unit: unit.into(),
+            unit: contract.unit.clone(),
             reason: None,
         }
     }
