@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "id": "tui-local-watch",
+  "description": "Deterministic local-only TUI alert fixture.",
+  "rules": [
+    {
+      "id": "spread-expansion",
+      "description": "Visible public spread expansion.",
+      "severity": "watch",
+      "condition": {
+        "type": "field_threshold",
+        "field": "spread_shock_bps",
+        "op": "gte",
+        "value": 50.0
+      },
+      "cooldown_ms": 60000,
+      "source_interval_ms": 1000,
+      "action": "local_only"
+    }
+  ]
+}

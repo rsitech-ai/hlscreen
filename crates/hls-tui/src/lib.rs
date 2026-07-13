@@ -1,5 +1,6 @@
 #![forbid(unsafe_code)]
 
+pub mod alerts;
 pub mod app;
 pub mod detail;
 pub mod health;

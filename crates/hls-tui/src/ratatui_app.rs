@@ -15,10 +15,12 @@ use ratatui::{
     widgets::{Block, Borders, Cell, Clear, Paragraph, Row, Table, Wrap},
 };
 
+use crate::alerts::TuiAlertRecord;
 use crate::interaction::{
     WorkstationChartWindow, WorkstationCommand, WorkstationPane, WorkstationUiState,
     WorkstationView,
 };
+use crate::theme::truncate_chars;
 
 const MAX_CHART_CANDLES: usize = 48;
 
@@ -71,6 +73,7 @@ pub struct RatatuiFrameModel {
     stream_status: String,
     recorder_status: String,
     health_status: String,
+    alerts: Vec<TuiAlertRecord>,
 }
 
 impl RatatuiFrameModel {
@@ -90,6 +93,7 @@ impl RatatuiFrameModel {
             stream_status: "LIVE".to_owned(),
             recorder_status: "REC ready".to_owned(),
             health_status: "ws=0 events=0 gaps=0".to_owned(),
+            alerts: Vec::new(),
         }
     }
 
@@ -113,6 +117,15 @@ impl RatatuiFrameModel {
     pub fn with_trades(mut self, trades: Vec<TradeEvent>) -> Self {
         self.trades = trades;
         self
+    }
+
+    pub fn with_alerts(mut self, alerts: Vec<TuiAlertRecord>) -> Self {
+        self.alerts = alerts;
+        self
+    }
+
+    pub fn rows(&self) -> &[FeatureSnapshot] {
+        &self.rows
     }
 
     pub fn ui_paused(&self) -> bool {
@@ -3025,6 +3038,69 @@ fn detail_heading_line(
         )));
     }
     Line::from(spans)
+}
+
+fn status_alert_history_lines(
+    model: &RatatuiFrameModel,
+    compact: bool,
+    color_mode: RatatuiColorMode,
+) -> Vec<Line<'static>> {
+    if model.alerts.is_empty() {
+        return Vec::new();
+    }
+
+    let selected = model
+        .ui_state
+        .status_alert_index()
+        .min(model.alerts.len().saturating_sub(1));
+    let visible_rows: usize = if compact { 2 } else { 4 };
+    let start = selected.saturating_sub(visible_rows.saturating_sub(1));
+    let mut lines = vec![Line::from(vec![
+        Span::styled(
+            format!("LOCAL ALERTS {} ", model.alerts.len()),
+            Style::default()
+                .fg(warn(color_mode))
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw(format!(
+            "newest first | row {}/{} | j/k alert history | local-only",
+            selected + 1,
+            model.alerts.len()
+        )),
+    ])];
+    for (index, alert) in model
+        .alerts
+        .iter()
+        .enumerate()
+        .skip(start)
+        .take(visible_rows)
+    {
+        let marker = if index == selected { ">" } else { " " };
+        let severity = match alert.severity {
+            hls_core::alerts::AlertSeverity::Info => "info",
+            hls_core::alerts::AlertSeverity::Watch => "watch",
+            hls_core::alerts::AlertSeverity::Critical => "critical",
+        };
+        let severity_color = match alert.severity {
+            hls_core::alerts::AlertSeverity::Info => accent(color_mode),
+            hls_core::alerts::AlertSeverity::Watch => warn(color_mode),
+            hls_core::alerts::AlertSeverity::Critical => danger(color_mode),
+        };
+        lines.push(Line::from(vec![
+            Span::styled(
+                format!("{marker} {severity:<8}"),
+                Style::default().fg(severity_color),
+            ),
+            Span::raw(format!(
+                " t={} {} {} | {}",
+                alert.triggered_at_ms,
+                alert.symbol,
+                alert.rule_id,
+                truncate_chars(&alert.reason, if compact { 44 } else { 96 })
+            )),
+        ]));
+    }
+    lines
 }
 
 fn quote_strip_line(
@@ -8815,6 +8891,7 @@ fn render_status_panel(
             Span::raw(" ingest"),
         ]),
     ];
+    lines.extend(status_alert_history_lines(model, compact, color_mode));
     if !compact {
         lines.push(status_latency_strip_line(
             &rows, reconnects, gaps, color_mode,
