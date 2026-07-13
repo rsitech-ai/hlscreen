@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "run_id": "soak-fixture-valid",
+  "commit": "0123456789abcdef0123456789abcdef01234567",
+  "command": ["hls", "live", "--all-symbols", "--duration-secs", "900", "--record"],
+  "started_at": "2026-07-13T10:00:00Z",
+  "ended_at": "2026-07-13T10:15:00Z",
+  "duration_secs": 900,
+  "exit_code": 0,
+  "clean_shutdown": true,
+  "samples": [
+    {"elapsed_secs": 0, "cpu_percent": 0.0, "rss_bytes": 12582912, "data_bytes": 0},
+    {"elapsed_secs": 450, "cpu_percent": 8.2, "rss_bytes": 18874368, "data_bytes": 10485760},
+    {"elapsed_secs": 900, "cpu_percent": 7.8, "rss_bytes": 20971520, "data_bytes": 20971520}
+  ],
+  "summary": {
+    "symbols": 150,
+    "subscriptions": 302,
+    "ws_messages": 300000,
+    "market_events": 900000,
+    "reconnects": 0,
+    "data_gaps": 0,
+    "unrepaired_gaps": 0,
+    "parser_drops": 0,
+    "backfill_requests_failed": 0
+  },
+  "replay": {
+    "first_status": "baseline_written",
+    "second_status": "passed",
+    "drift": 0,
+    "missing": 0,
+    "extra": 0
+  },
+  "limits": {"max_rss_growth_bytes": 67108864}
+}

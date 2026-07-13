@@ -97,6 +97,9 @@ fn release_validation_scripts_cover_local_artifacts_checksums_and_public_readine
     let packaging_check = read("scripts/check-release-packaging.sh");
     assert!(packaging_check.contains("check-public-readiness.sh"));
     assert!(packaging_check.contains("local-release-artifact-smoke.sh"));
+    assert!(packaging_check.contains("validate-soak-report.py"));
+    assert!(packaging_check.contains("soak-report-valid.json"));
+    assert!(packaging_check.contains("soak-report-invalid.json"));
 }
 
 #[test]
@@ -142,4 +145,29 @@ fn workspace_ci_bounds_heavy_rust_build_disk_usage() {
     assert!(workflow.contains("- name: Cache cargo registry"));
     assert!(workflow.contains("key: cargo-registry-v1-${{ runner.os }}-"));
     assert!(!workflow.contains("- name: Cache cargo registry and build outputs\n        uses: actions/cache@v5\n        with:\n          path: |\n            ~/.cargo/registry\n            ~/.cargo/git\n            target\n          key: cargo-${{ runner.os }}-"));
+}
+
+#[test]
+fn soak_tooling_is_bounded_fail_closed_and_documented() {
+    let runner = read("scripts/run-supervised-soak.sh");
+    assert!(runner.contains("--all-symbols"));
+    assert!(runner.contains("--duration-secs"));
+    assert!(runner.contains("--backfill-gaps"));
+    assert!(runner.contains("--verify-parity"));
+    assert!(runner.contains("kill -TERM"));
+    assert!(runner.contains("report.json"));
+    assert!(!runner.contains("--wallet"));
+    assert!(!runner.contains("--private"));
+
+    let validator = read("scripts/validate-soak-report.py");
+    assert!(validator.contains("schema_version"));
+    assert!(validator.contains("clean_shutdown"));
+    assert!(validator.contains("unrepaired_gaps"));
+    assert!(validator.contains("parser_drops"));
+    assert!(validator.contains("second_status"));
+
+    let deployment = read("docs/deployment.md");
+    assert!(deployment.contains("run-supervised-soak.sh"));
+    assert!(deployment.contains("validate-soak-report.py"));
+    assert!(deployment.contains("not multi-day soak proof"));
 }

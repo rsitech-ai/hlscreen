@@ -35,6 +35,75 @@ Experimental process-manager templates may exist in the repository while this
 work is developed. They are not an install path, release artifact, or evidence
 that unattended operation has been validated.
 
+## Supervised Soak Evidence
+
+The repository includes a bounded evidence runner for operator-supervised,
+public-data validation:
+
+```bash
+scripts/run-supervised-soak.sh \
+  --duration-secs 900 \
+  --sample-interval-secs 30 \
+  --data-dir /var/tmp/hlscreen-soak
+```
+
+It builds or uses the release binary, checks available disk space, records the
+exact all-symbol command and Git commit, forwards termination signals, samples
+CPU/RSS/storage growth, records raw and normalized public data, invokes coarse
+gap backfill, and runs replay parity twice. It publishes `report.json`
+atomically beside retained stdout/stderr and resource samples.
+
+The report is accepted only when the live process exits cleanly, receives real
+symbols/messages/events, has at least two monotonic resource samples, records
+no parser drops or failed backfill requests, leaves no exact tick-level gaps,
+stays within the configured RSS-growth bound, and passes the second replay with
+zero drift/missing/extra rows. Revalidate retained evidence with:
+
+```bash
+python3 scripts/validate-soak-report.py \
+  /var/tmp/hlscreen-soak/soak-reports/<run-id>/report.json \
+  --minimum-duration-secs 900
+```
+
+A passing 15-minute report is bounded smoke evidence, not multi-day soak proof.
+For a two-day candidate, run with `--duration-secs 172800` under direct operator
+supervision and retain the entire evidence directory. The runner is not a
+process supervisor and does not promote the experimental templates to a
+supported deployment package.
+
+## Operational Acceptance Matrix
+
+Run these focused gates before a supervised candidate:
+
+```bash
+# Reconnect/gap persistence and coarse REST repair, including source failure.
+cargo test -p hls-store --test backfill_gaps
+cargo test -p hls-cli --test backfill_command
+
+# Malformed/private/non-finite public messages fail closed.
+cargo test -p hls-hyperliquid --test ws_parser
+
+# SIGINT/SIGTERM restore the TUI and complete closeout.
+cargo test -p hls-cli --test pty_tui fixture_tui_restores_terminal_when_signaled_during_initial_frame
+
+# Static supervisor boundaries plus bounded loopback fixture smoke.
+scripts/check-supervisor-packaging.sh
+
+# Clean process restart over the same read-only fixture configuration.
+for attempt in 1 2; do
+  target/debug/hls server \
+    --live \
+    --symbols @107 \
+    --fixture-file tests/fixtures/hyperliquid/ws_mock_live.ndjson \
+    --bind 127.0.0.1:0
+done
+```
+
+Any failed command blocks deployment claims. A live reconnect also creates an
+exact tick-level gap even when public candles are appended; the soak validator
+therefore rejects the report until exact reconstruction exists or the run is
+repeated without a gap.
+
 ## Required Before Deployment Support
 
 - A supported server lifecycle with restart and recovery acceptance tests.

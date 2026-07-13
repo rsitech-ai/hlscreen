@@ -1,6 +1,8 @@
 use hls_core::metrics::{
     MetricDefinition, MetricKind, MetricSupport, MetricsRegistry, MicrostructureMetricDefinition,
+    operations_metrics_snapshot,
 };
+use hls_core::telemetry::OperationsTelemetry;
 
 #[test]
 fn metrics_registry_accepts_low_cardinality_labels() {
@@ -135,5 +137,59 @@ fn microstructure_metric_definitions_fail_closed_on_unsafe_or_vague_contracts() 
             .expect_err("inputs must be unique")
             .to_string()
             .contains("repeats input")
+    );
+}
+
+#[test]
+fn operations_metrics_cover_recovery_and_data_quality_without_symbol_labels() {
+    let snapshot = operations_metrics_snapshot(
+        1_000,
+        &OperationsTelemetry {
+            reconnect_attempts: 4,
+            parser_drops: 2,
+            stale_duration_ms: 1_500,
+            repair_latency_ms: Some(720),
+            unrepaired_gap_duration_ms: 8_000,
+        },
+    )
+    .expect("operations metrics are valid");
+
+    let expected = [
+        "hls_reconnect_attempts_total",
+        "hls_parser_drops_total",
+        "hls_stale_duration_ms_total",
+        "hls_repair_latency_ms",
+        "hls_unrepaired_gap_duration_ms",
+    ];
+    for name in expected {
+        let sample = snapshot
+            .samples
+            .iter()
+            .find(|sample| sample.name == name)
+            .unwrap_or_else(|| panic!("missing {name}"));
+        assert!(sample.labels.is_empty(), "{name} must not carry labels");
+    }
+    assert!(
+        snapshot
+            .prometheus_text
+            .contains("hls_parser_drops_total 2")
+    );
+    assert!(
+        snapshot
+            .prometheus_text
+            .contains("hls_repair_latency_ms 720")
+    );
+}
+
+#[test]
+fn operations_metrics_omit_unknown_repair_latency() {
+    let snapshot = operations_metrics_snapshot(1_000, &OperationsTelemetry::default())
+        .expect("operations metrics are valid");
+
+    assert!(
+        snapshot
+            .samples
+            .iter()
+            .all(|sample| sample.name != "hls_repair_latency_ms")
     );
 }
