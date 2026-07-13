@@ -12,7 +12,12 @@ It is built for operators and researchers who want a local-first way to inspect 
 
 Current state: pre-1.0 read-only live-data preview with bounded local validation. Recording, replay, screening, deterministic terminal rendering, health checks, and local release-package dry runs are implemented, but unattended production readiness is not yet proven. It is not a trading bot, hosted service, or capital-touching execution system.
 
-Latest live validation: a 2026-07-10 15-minute all-symbol TUI/recording run covered `310` spot markets through `931` public subscriptions and processed `286,205` WebSocket messages / `294,144` normalized events. It stopped cleanly with `0` reconnects, `0` data gaps, and replay confidence parity over all `310` rows. See the [post-merge production audit](docs/reports/2026-07-10-post-merge-production-audit.md).
+Latest live validation: a 2026-07-13 15-minute supervised all-symbol run at
+commit `f590787` covered `310` spot markets through `931` public subscriptions
+and processed `295,794` WebSocket messages / `303,779` normalized events. It
+stopped cleanly with `0` reconnects, gaps, parser drops, or failed backfills,
+then passed replay confidence parity over all `310` rows. See the
+[machine-readable soak report](docs/evidence/soak/sota-allpairs-20260713-15m.json).
 
 Implemented today:
 
@@ -82,6 +87,10 @@ These committed SVGs are deterministic terminal captures generated from the curr
 ### Health Panel
 
 ![Operations health panel](docs/assets/screenshots/health-panel.svg)
+
+### Local Alert History
+
+![Local-only alert history](docs/assets/screenshots/alert-history.svg)
 
 ### Symbol Metadata
 

@@ -18,6 +18,9 @@ python3 "$repo_root/scripts/harden-generated-release-workflow.py" \
 python3 "$repo_root/scripts/validate-soak-report.py" \
   "$repo_root/tests/fixtures/operations/soak-report-valid.json" \
   --minimum-duration-secs 900
+python3 "$repo_root/scripts/validate-soak-report.py" \
+  "$repo_root/docs/evidence/soak/sota-allpairs-20260713-15m.json" \
+  --minimum-duration-secs 900
 if python3 "$repo_root/scripts/validate-soak-report.py" \
   "$repo_root/tests/fixtures/operations/soak-report-invalid.json" \
   --minimum-duration-secs 900; then

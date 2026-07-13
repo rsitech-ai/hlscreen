@@ -24,6 +24,7 @@ required_files=(
   "docs/deployment.md"
   "docs/production-readiness.md"
   "docs/assets/screenshots/live-screen.svg"
+  "docs/evidence/soak/sota-allpairs-20260713-15m.json"
   "scripts/harden-generated-release-workflow.py"
   ".github/workflows/ci.yml"
   ".github/workflows/release.yml"
