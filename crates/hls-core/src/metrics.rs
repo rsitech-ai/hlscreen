@@ -3,6 +3,7 @@ use std::collections::{BTreeMap, HashSet};
 use serde::{Deserialize, Serialize};
 
 use crate::health::HealthSnapshot;
+use crate::telemetry::OperationsTelemetry;
 use crate::{HlsError, HlsResult};
 
 const HIGH_CARDINALITY_LABELS: &[&str] = &[
@@ -426,6 +427,55 @@ pub fn doctor_metrics_snapshot(
     }
 
     MetricsSnapshot::new(generated_at_ms, samples)
+}
+
+pub fn operations_metrics_snapshot(
+    generated_at_ms: u128,
+    telemetry: &OperationsTelemetry,
+) -> HlsResult<MetricsSnapshot> {
+    let mut samples = vec![
+        unlabelled_sample(
+            "hls_reconnect_attempts_total",
+            MetricKind::Counter,
+            "Total public WebSocket connection attempts after the initial attempt.",
+            telemetry.reconnect_attempts,
+        ),
+        unlabelled_sample(
+            "hls_parser_drops_total",
+            MetricKind::Counter,
+            "Total public messages rejected by the parser.",
+            telemetry.parser_drops,
+        ),
+        unlabelled_sample(
+            "hls_stale_duration_ms_total",
+            MetricKind::Counter,
+            "Cumulative time that inbound public data was stale.",
+            telemetry.stale_duration_ms,
+        ),
+        unlabelled_sample(
+            "hls_unrepaired_gap_duration_ms",
+            MetricKind::Gauge,
+            "Current cumulative duration of gaps without exact tick-level repair.",
+            telemetry.unrepaired_gap_duration_ms,
+        ),
+    ];
+    if let Some(repair_latency_ms) = telemetry.repair_latency_ms {
+        samples.push(unlabelled_sample(
+            "hls_repair_latency_ms",
+            MetricKind::Gauge,
+            "Elapsed time for the most recent completed coarse public repair attempt.",
+            repair_latency_ms,
+        ));
+    }
+    MetricsSnapshot::new(generated_at_ms, samples)
+}
+
+fn unlabelled_sample(name: &str, kind: MetricKind, description: &str, value: u64) -> MetricSample {
+    MetricSample::new(
+        MetricDefinition::new(name, kind, description, std::iter::empty::<&str>()),
+        BTreeMap::new(),
+        value as f64,
+    )
 }
 
 fn render_prometheus_text(samples: &[MetricSample]) -> HlsResult<String> {

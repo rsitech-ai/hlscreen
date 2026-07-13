@@ -36,13 +36,13 @@
 - Produces: `hls live --record --backfill-gaps` closeout behavior.
 - Preserves: `DataGap.recovered == false` for candle-only coverage.
 
-- [ ] Write a failing CLI integration test using a loopback HTTP fixture that records a gap, invokes `hls backfill`, and expects one `partially_repaired` attempt plus replay `ReconnectGap` confidence.
-- [ ] Run `cargo test -p hls-cli --test backfill_command` and confirm the missing command fails.
-- [ ] Add the backfill command and a prepared REST source that fetches each pending gap/symbol through `HyperliquidRestClient::candle_snapshot`.
-- [ ] Record per-symbol REST failures as durable unrepaired attempt notes instead of silently dropping them.
-- [ ] Add `--backfill-gaps`, `--backfill-interval`, and `--rest-url` to live/TUI arguments; require normalized recording and run repair only after clean recorder closeout.
-- [ ] Run focused store/CLI tests, then strict Clippy and the full workspace suite.
-- [ ] Commit the independently reviewable recovery slice.
+- [x] Write a failing CLI integration test using a loopback HTTP fixture that records a gap, invokes `hls backfill`, and expects one `partially_repaired` attempt plus replay `ReconnectGap` confidence.
+- [x] Run `cargo test -p hls-cli --test backfill_command` and confirm the missing command fails.
+- [x] Add the backfill command and a prepared REST source that fetches each pending gap/symbol through `HyperliquidRestClient::candle_snapshot`.
+- [x] Record per-symbol REST failures as durable unrepaired attempt notes instead of silently dropping them.
+- [x] Add `--backfill-gaps`, `--backfill-interval`, and `--rest-url` to live/TUI arguments; require normalized recording and run repair only after clean recorder closeout.
+- [x] Run focused store/CLI tests, then strict Clippy and the full workspace suite.
+- [x] Commit the independently reviewable recovery slice.
 
 ### Task 2: Operations And Soak Evidence
 
@@ -60,12 +60,12 @@
 - Produces: a versioned soak manifest containing commit, command, start/end, CPU/RSS samples, storage growth, reconnects, gaps, parser drops, shutdown state, and replay parity.
 - Produces: non-zero validation for incomplete, unclean, or parity-drifting reports.
 
-- [ ] Add failing telemetry contract tests for reconnect attempts, parser drops, stale duration, repair latency, and unrepaired-gap duration counters without symbol labels.
-- [ ] Implement the bounded low-cardinality definitions and validate them through `MetricsRegistry`.
-- [ ] Add report validation fixtures and prove missing samples, dirty shutdown, or replay drift fail.
-- [ ] Implement the soak wrapper with signal forwarding, periodic process/resource sampling, disk checks, exact command capture, replay parity, and atomic report publication.
-- [ ] Add restart, malformed-message, REST-failure, and SIGTERM acceptance commands to deployment documentation.
-- [ ] Run a bounded fault-injected smoke; do not mark multi-day soak complete.
+- [x] Add failing telemetry contract tests for reconnect attempts, parser drops, stale duration, repair latency, and unrepaired-gap duration counters without symbol labels.
+- [x] Implement the bounded low-cardinality definitions and validate them through `MetricsRegistry`.
+- [x] Add report validation fixtures and prove missing samples, dirty shutdown, or replay drift fail.
+- [x] Implement the soak wrapper with signal forwarding, periodic process/resource sampling, disk checks, exact command capture, replay parity, and atomic report publication.
+- [x] Add restart, malformed-message, REST-failure, and SIGTERM acceptance commands to deployment documentation.
+- [x] Run bounded live and fail-closed fixture smokes; do not mark multi-day soak complete.
 
 ### Task 3: Canonical Metric Contracts
 
