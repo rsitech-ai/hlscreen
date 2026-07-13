@@ -49,6 +49,33 @@ does not block source development or ordinary PR CI.
 
 ## Latest Live Validation
 
+Run: `sota-allpairs-20260713-15m`
+
+Fresh supervised evidence at commit
+`f590787fd53c55c398b339bb631851e2af91857d`:
+
+- Measured duration: `902` seconds (`--duration-secs 900`)
+- Symbols: `310`
+- Public subscriptions: `931`
+- Raw WebSocket messages: `295,794`
+- Normalized market events: `303,779`
+- Reconnects / data gaps / parser drops: `0 / 0 / 0`
+- Failed public backfill requests: `0`
+- SQLite clean shutdown: `true`
+- Replay status: `baseline_written`, then `passed`
+- Replay drift / missing / extra: `0 / 0 / 0`
+- Peak settled RSS: `55,541,760` bytes
+- Final evidence size: `65,646,592` bytes
+
+The exact command, timestamps, resource samples, limits, counters, and replay
+results are committed in the
+[machine-readable 15-minute soak report](evidence/soak/sota-allpairs-20260713-15m.json).
+Its live stderr contained only expected 30-second progress records; both replay
+stderr logs were empty. This is fresh bounded all-symbol evidence, not multi-day
+or unattended production proof.
+
+Previous 15-minute evidence follows for comparison.
+
 Run: `audit-allpairs-20260710-15m`
 
 Current post-merge evidence:

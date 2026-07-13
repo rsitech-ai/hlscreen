@@ -177,6 +177,7 @@ fn release_validation_scripts_cover_local_artifacts_checksums_and_public_readine
     assert!(public_scan.contains("SECURITY.md"));
     assert!(public_scan.contains("docs/ROADMAP.md"));
     assert!(public_scan.contains("docs/assets/screenshots/live-screen.svg"));
+    assert!(public_scan.contains("docs/evidence/soak/sota-allpairs-20260713-15m.json"));
     assert!(public_scan.contains("scripts/harden-generated-release-workflow.py"));
     assert!(public_scan.contains("Release tag created"));
     assert!(public_scan.contains("private_path_pattern"));
@@ -200,6 +201,7 @@ fn release_validation_scripts_cover_local_artifacts_checksums_and_public_readine
     assert!(hardener.contains("finally:"));
     assert!(packaging_check.contains("validate-soak-report.py"));
     assert!(packaging_check.contains("soak-report-valid.json"));
+    assert!(packaging_check.contains("sota-allpairs-20260713-15m.json"));
     assert!(packaging_check.contains("soak-report-invalid.json"));
 }
 

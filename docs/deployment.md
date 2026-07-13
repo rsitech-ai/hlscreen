@@ -66,6 +66,8 @@ python3 scripts/validate-soak-report.py \
 ```
 
 A passing 15-minute report is bounded smoke evidence, not multi-day soak proof.
+The latest reviewed example is the
+[2026-07-13 all-symbol report](evidence/soak/sota-allpairs-20260713-15m.json).
 For a two-day candidate, run with `--duration-secs 172800` under direct operator
 supervision and retain the entire evidence directory. The runner is not a
 process supervisor and does not promote the experimental templates to a
