@@ -1,5 +1,6 @@
 pub mod alerts;
 pub mod analog;
+pub mod backfill;
 pub mod bench;
 pub mod doctor;
 pub mod explain;

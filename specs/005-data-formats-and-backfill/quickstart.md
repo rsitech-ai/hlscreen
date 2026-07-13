@@ -28,10 +28,12 @@ PY
 
 ```bash
 cargo test -p hls-store --test backfill_gaps
+cargo test -p hls-cli --test backfill_command
+./target/debug/hls backfill --data-dir /tmp/hlscreen-run --run-id <run-id> --interval 1m
 ./target/debug/hls replay --data-dir /tmp/hlscreen-run --run-id <run-id> --verify-parity
 ```
 
 Expected: candle-covered gaps remain `partially_repaired`, empty responses remain
 `unrepaired`, and replay keeps the reconnect-gap confidence penalty because
-trades/BBO were not reconstructed. Automatic invocation from `hls live` remains
-open in T018.
+trades/BBO were not reconstructed. `hls live --record --backfill-gaps` invokes
+the same path after a clean recorder closeout when normalized output is enabled.
