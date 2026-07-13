@@ -202,7 +202,9 @@ fn release_validation_scripts_cover_local_artifacts_checksums_and_public_readine
     assert!(packaging_check.contains("validate-soak-report.py"));
     assert!(packaging_check.contains("soak-report-valid.json"));
     assert!(packaging_check.contains("sota-allpairs-20260713-15m.json"));
+    assert!(packaging_check.contains("merge-base --is-ancestor"));
     assert!(packaging_check.contains("soak-report-invalid.json"));
+    assert!(packaging_check.contains("soak-report-invalid-command.json"));
 }
 
 #[test]

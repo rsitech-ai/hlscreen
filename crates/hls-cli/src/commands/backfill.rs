@@ -3,7 +3,7 @@ use std::{collections::BTreeMap, path::PathBuf};
 use anyhow::bail;
 use clap::Args;
 use hls_core::{HlsError, market_state::CandleEvent};
-use hls_hyperliquid::rest::HyperliquidRestClient;
+use hls_hyperliquid::rest::{HyperliquidRestClient, validate_public_rest_base_url};
 use hls_store::backfill::{
     BackfillGapsOptions, BackfillGapsSummary, CandleBackfillRequest, CandleBackfillSource,
     PendingCandleBackfillRequest, backfill_public_gaps, pending_public_candle_requests,
@@ -148,12 +148,6 @@ async fn collect_public_candles(
 }
 
 pub(crate) fn validate_rest_url(rest_url: &str) -> anyhow::Result<()> {
-    let allowed = rest_url.starts_with("https://")
-        || rest_url.starts_with("http://127.0.0.1")
-        || rest_url.starts_with("http://localhost")
-        || rest_url.starts_with("http://[::1]");
-    if !allowed {
-        bail!("--rest-url must use HTTPS or an HTTP loopback address");
-    }
+    validate_public_rest_base_url(rest_url)?;
     Ok(())
 }
