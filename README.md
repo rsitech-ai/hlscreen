@@ -185,6 +185,18 @@ Run a short public live smoke for one symbol:
   --refresh-secs 5
 ```
 
+Optionally evaluate a local-only alert playbook in the TUI:
+
+```bash
+./target/debug/hls tui \
+  --symbols HYPE/USDC \
+  --alert-playbook-file tests/fixtures/microstructure/alert_playbook_tui_watch.json
+```
+
+Alert evaluation runs on draw ticks outside WebSocket ingestion. Press `6` to
+focus the Status pane, then use `j`/`k` to navigate the bounded newest-first
+history. The playbook validator rejects every action except `local_only`.
+
 Run the same smoke while recording raw and normalized local evidence:
 
 ```bash
@@ -202,7 +214,8 @@ Run the same smoke while recording raw and normalized local evidence:
 
 TTY keyboard controls for the Ratatui `hls tui` / `hls live --tui` cockpit:
 
-- `↑`/`↓` or `k`/`j`: move focused row.
+- `↑`/`↓` or `k`/`j`: move the focused market row, or navigate alert history
+  while the Status pane is focused.
 - `←`/`→` or `[`/`]`: cycle pane focus across watchlist, detail, chart, book, tape, and ops/status.
 - `PgUp`/`PgDn`, `Home`, `End`: jump through the visible board.
 - `w`/`1`, `i`/`2`, `c`/`3`, `b`/`4`, `r`/`5`, `o`/`6`: focus watchlist, instrument detail, chart, book, tape/recent trades, and ops/status panes.

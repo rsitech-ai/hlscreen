@@ -33,12 +33,16 @@ use crossterm::{
 use futures_util::{SinkExt, StreamExt};
 use hls_core::{
     HlsError, HlsResult,
+    alerts::AlertPlaybook,
     data_gap::DataGap,
     market_state::{CandleEvent, FeatureSnapshot, LiveMarketState, MarketEvent, TradeEvent},
     metadata::MetadataEnrichment,
     time::now_millis,
 };
-use hls_features::engine::{ConfidenceInputs, FeatureEngine};
+use hls_features::{
+    alerts::AlertEvaluator,
+    engine::{ConfidenceInputs, FeatureEngine},
+};
 use hls_hyperliquid::{
     rest::{HyperliquidRestClient, SpotMarketContext, select_universe},
     ws::{
@@ -59,6 +63,7 @@ use hls_store::{
     recorder::{RecordOptions, RecordSummary, record_fixture_ndjson},
 };
 use hls_tui::{
+    alerts::{BoundedAlertHistory, TuiAlertRecord},
     app::{render_confidence_summary, render_screened_table},
     interaction::{
         WorkstationAction, WorkstationChartWindow, WorkstationCommandTarget, WorkstationDensity,
@@ -76,6 +81,7 @@ use serde::{Deserialize, Serialize};
 use tokio::time::{Interval, MissedTickBehavior, interval, sleep, sleep_until};
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 
+use crate::commands::alerts::load_playbook_file;
 use crate::commands::backfill::{self, BackfillArgs, DEFAULT_REST_URL};
 use crate::commands::metadata::{attach_metadata, load_metadata_enrichments};
 use crate::commands::record::{default_run_id, enabled_outputs, parse_symbols};
@@ -367,6 +373,10 @@ pub struct LiveArgs {
     #[arg(long)]
     pub sort: Option<String>,
 
+    /// Evaluate a validated local-only alert playbook in the explicit TUI.
+    #[arg(long)]
+    pub alert_playbook_file: Option<PathBuf>,
+
     #[arg(long)]
     pub record: bool,
 
@@ -441,6 +451,10 @@ pub struct TuiArgs {
     #[arg(long)]
     pub sort: Option<String>,
 
+    /// Evaluate a validated local-only alert playbook in the TUI.
+    #[arg(long)]
+    pub alert_playbook_file: Option<PathBuf>,
+
     #[arg(long)]
     pub record: bool,
 
@@ -494,6 +508,7 @@ impl TuiArgs {
             preset: self.preset,
             r#where: self.r#where,
             sort: self.sort,
+            alert_playbook_file: self.alert_playbook_file,
             record: self.record,
             raw: self.raw,
             parquet: self.parquet,
@@ -526,12 +541,102 @@ struct PersistedTuiPreferences {
 
 pub async fn run(args: LiveArgs) -> anyhow::Result<()> {
     validate_live_args(&args, LiveTerminalCapabilities::detect())?;
+    let alert_runtime = load_live_alert_runtime(args.alert_playbook_file.as_ref())?;
 
     if let Some(fixture_file) = args.fixture_file.clone() {
-        return run_fixture_live(args, &fixture_file).await;
+        return run_fixture_live(args, &fixture_file, alert_runtime).await;
     }
 
-    run_network_live(args).await
+    run_network_live(args, alert_runtime).await
+}
+
+struct LiveAlertRuntime {
+    playbook: AlertPlaybook,
+    evaluator: AlertEvaluator,
+    history: BoundedAlertHistory,
+    last_observation: Option<Vec<LiveAlertObservation>>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct LiveAlertObservation {
+    symbol: String,
+    confidence_score: u8,
+    spread_bps: Option<u64>,
+    spread_shock_bps: Option<u64>,
+    tob_depth_usd: Option<u64>,
+    tob_imbalance: Option<u64>,
+    signed_notional_flow_30s: Option<u64>,
+    bbo_ofi_proxy_30s: Option<u64>,
+    rv_1m: Option<u64>,
+    rv_5m: Option<u64>,
+    day_ntl_vlm: Option<u64>,
+}
+
+impl LiveAlertObservation {
+    fn capture(snapshots: &[FeatureSnapshot]) -> Vec<Self> {
+        let mut observations = snapshots
+            .iter()
+            .map(|snapshot| Self {
+                symbol: snapshot.symbol.clone(),
+                confidence_score: snapshot.confidence.score,
+                spread_bps: snapshot.spread_bps.map(f64::to_bits),
+                spread_shock_bps: snapshot.spread_shock_bps.map(f64::to_bits),
+                tob_depth_usd: snapshot.tob_depth_usd.map(f64::to_bits),
+                tob_imbalance: snapshot.tob_imbalance.map(f64::to_bits),
+                signed_notional_flow_30s: snapshot.signed_notional_flow_30s.map(f64::to_bits),
+                bbo_ofi_proxy_30s: snapshot.bbo_ofi_proxy_30s.map(f64::to_bits),
+                rv_1m: snapshot.rv_1m.map(f64::to_bits),
+                rv_5m: snapshot.rv_5m.map(f64::to_bits),
+                day_ntl_vlm: snapshot.day_ntl_vlm.map(f64::to_bits),
+            })
+            .collect::<Vec<_>>();
+        observations.sort_unstable_by(|left, right| left.symbol.cmp(&right.symbol));
+        observations
+    }
+}
+
+impl LiveAlertRuntime {
+    fn new(playbook: AlertPlaybook) -> anyhow::Result<Self> {
+        playbook.validate()?;
+        Ok(Self {
+            playbook,
+            evaluator: AlertEvaluator::default(),
+            history: BoundedAlertHistory::default(),
+            last_observation: None,
+        })
+    }
+
+    fn evaluate(&mut self, snapshots: &[FeatureSnapshot], now_ms: i64) -> anyhow::Result<()> {
+        let observation = LiveAlertObservation::capture(snapshots);
+        if self.last_observation.as_ref() == Some(&observation) {
+            return Ok(());
+        }
+        let evaluation = self.evaluator.evaluate(&self.playbook, snapshots, now_ms)?;
+        self.last_observation = Some(observation);
+        self.history.extend(evaluation.events);
+        Ok(())
+    }
+
+    fn records(&self) -> Vec<TuiAlertRecord> {
+        self.history.records().iter().cloned().collect()
+    }
+}
+
+fn load_live_alert_runtime(path: Option<&PathBuf>) -> anyhow::Result<Option<LiveAlertRuntime>> {
+    path.map(|path| LiveAlertRuntime::new(load_playbook_file(path)?))
+        .transpose()
+}
+
+fn evaluate_live_alerts(
+    runtime: &mut Option<LiveAlertRuntime>,
+    snapshots: &[FeatureSnapshot],
+    now_ms: i64,
+) -> anyhow::Result<Vec<TuiAlertRecord>> {
+    let Some(runtime) = runtime.as_mut() else {
+        return Ok(Vec::new());
+    };
+    runtime.evaluate(snapshots, now_ms)?;
+    Ok(runtime.records())
 }
 
 fn validate_live_args(args: &LiveArgs, terminals: LiveTerminalCapabilities) -> anyhow::Result<()> {
@@ -586,6 +691,11 @@ fn validate_live_args(args: &LiveArgs, terminals: LiveTerminalCapabilities) -> a
     }
     if args.fixture_file.is_some() && !args.once && !args.tui {
         bail!("fixture-backed interactive mode requires --tui when --once is absent");
+    }
+    if args.alert_playbook_file.is_some() && !args.tui {
+        bail!(
+            "--alert-playbook-file requires the explicit TUI surface (`hls tui` or `hls live --tui`)"
+        );
     }
     if args.fixture_file.is_none()
         && !(args.ws_url.starts_with("ws://") || args.ws_url.starts_with("wss://"))
@@ -653,7 +763,11 @@ pub async fn run_tui(args: TuiArgs) -> anyhow::Result<()> {
     run(args.into_live_args()).await
 }
 
-async fn run_fixture_live(args: LiveArgs, fixture_file: &PathBuf) -> anyhow::Result<()> {
+async fn run_fixture_live(
+    args: LiveArgs,
+    fixture_file: &PathBuf,
+    mut alert_runtime: Option<LiveAlertRuntime>,
+) -> anyhow::Result<()> {
     let raw = fs::read_to_string(fixture_file)
         .with_context(|| format!("read {}", fixture_file.display()))?;
 
@@ -704,15 +818,25 @@ async fn run_fixture_live(args: LiveArgs, fixture_file: &PathBuf) -> anyhow::Res
         };
         let color_mode = live_ratatui_color_mode(args.color, io::stdout().is_terminal());
         if args.tui {
+            let alerts =
+                evaluate_live_alerts(&mut alert_runtime, &snapshots, latest_update_ms(&state))?;
+            let mut snapshot_ui_state = WorkstationUiState::default();
+            if !alerts.is_empty() {
+                snapshot_ui_state.apply(
+                    WorkstationAction::FocusPane(WorkstationPane::Status),
+                    snapshots.len(),
+                );
+            }
             let model = live_tui_model(
                 &snapshots,
                 live_table_title(args.record),
                 &screen_request,
-                None,
+                Some(&snapshot_ui_state),
                 live_tui_candles(&state),
                 live_tui_trades(&state),
                 LiveTuiStatus::new("fixture", "REC ready", "fixture replay"),
-            );
+            )
+            .with_alerts(alerts);
             let table = render_live_tui_snapshot(&model, None, color_mode)?;
             print!("{table}");
         } else {
@@ -730,7 +854,7 @@ async fn run_fixture_live(args: LiveArgs, fixture_file: &PathBuf) -> anyhow::Res
         where_expr: args.r#where.clone(),
         sort: args.sort.clone(),
     };
-    run_interactive_fixture_tui(&args, state, screen_request, metadata).await
+    run_interactive_fixture_tui(&args, state, screen_request, metadata, alert_runtime).await
 }
 
 async fn run_interactive_fixture_tui(
@@ -738,6 +862,7 @@ async fn run_interactive_fixture_tui(
     state: LiveMarketState,
     mut screen_request: ScreenRequest,
     metadata: Vec<MetadataEnrichment>,
+    alert_runtime: Option<LiveAlertRuntime>,
 ) -> anyhow::Result<()> {
     let color_mode = live_ratatui_color_mode(args.color, io::stderr().is_terminal());
     let keyboard_interactive = io::stdin().is_terminal() && io::stderr().is_terminal();
@@ -769,7 +894,9 @@ async fn run_interactive_fixture_tui(
     } else {
         LiveTuiSessionEnforcement::Unmanaged
     };
-    let mut tui_renderer = match LiveTuiRenderer::new(renderer_enforcement) {
+    let mut tui_renderer = match LiveTuiRenderer::new(renderer_enforcement)
+        .map(|renderer| renderer.with_alert_runtime(alert_runtime))
+    {
         Ok(renderer) => renderer,
         Err(err) => {
             drop(terminal_mode);
@@ -828,7 +955,10 @@ async fn run_interactive_fixture_tui(
     session_result.map(|_| ())
 }
 
-async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
+async fn run_network_live(
+    args: LiveArgs,
+    alert_runtime: Option<LiveAlertRuntime>,
+) -> anyhow::Result<()> {
     let selection = load_live_symbols(&args).await?;
     let symbols = selection.symbols;
     let plan = live_subscription_plan(symbols.clone(), args.all_symbols, args.max_subscriptions);
@@ -905,7 +1035,10 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
         LiveTuiSessionEnforcement::Unmanaged
     };
     let mut tui_renderer = match render_live_tui
-        .then(|| LiveTuiRenderer::new(renderer_enforcement))
+        .then(|| {
+            LiveTuiRenderer::new(renderer_enforcement)
+                .map(|renderer| renderer.with_alert_runtime(alert_runtime))
+        })
         .transpose()
     {
         Ok(renderer) => renderer,
@@ -938,6 +1071,9 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
         .as_ref()
         .map(LiveDriveSummary::is_clean_shutdown)
         .unwrap_or(false);
+    let final_alerts = tui_renderer
+        .as_ref()
+        .map_or_else(Vec::new, LiveTuiRenderer::alert_records);
     let (record_summary_result, tui_preference_save) = after_live_tui_teardown(
         || {
             drop(tui_renderer);
@@ -993,6 +1129,7 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
     println!("parser_drops=0");
     println!("reconnects={}", summary.reconnects);
     println!("data_gaps={}", summary.data_gaps);
+    println!("alerts_emitted={}", final_alerts.len());
     println!("elapsed_secs={}", summary.elapsed_secs);
     println!(
         "stop_reason={}",
@@ -1040,7 +1177,8 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
                     summary.data_gaps
                 ),
             ),
-        );
+        )
+        .with_alerts(final_alerts);
         render_live_tui_snapshot(&model, None, output_color_mode)?
     } else {
         render_screened_table(
@@ -3972,6 +4110,7 @@ struct LiveTuiRenderer<W: Write = io::Stderr> {
     enforcement: LiveTuiSessionEnforcement,
     last_viewport: Option<RatatuiViewport>,
     presentation: LiveTuiPresentationCache,
+    alert_runtime: Option<LiveAlertRuntime>,
 }
 
 impl LiveTuiRenderer<io::Stderr> {
@@ -3990,11 +4129,23 @@ impl LiveTuiRenderer<io::Stderr> {
             enforcement,
             last_viewport: None,
             presentation: LiveTuiPresentationCache::default(),
+            alert_runtime: None,
         })
     }
 }
 
 impl<W: Write> LiveTuiRenderer<W> {
+    fn with_alert_runtime(mut self, alert_runtime: Option<LiveAlertRuntime>) -> Self {
+        self.alert_runtime = alert_runtime;
+        self
+    }
+
+    fn alert_records(&self) -> Vec<TuiAlertRecord> {
+        self.alert_runtime
+            .as_ref()
+            .map_or_else(Vec::new, LiveAlertRuntime::records)
+    }
+
     #[cfg(test)]
     fn with_fixed_viewport_writer(
         writer: W,
@@ -4019,6 +4170,7 @@ impl<W: Write> LiveTuiRenderer<W> {
             enforcement,
             last_viewport: None,
             presentation: LiveTuiPresentationCache::default(),
+            alert_runtime: None,
         })
     }
 }
@@ -4038,7 +4190,8 @@ impl<W: Write> LiveTuiFrameSink for LiveTuiRenderer<W> {
         model: &RatatuiFrameModel,
         color_mode: RatatuiColorMode,
     ) -> anyhow::Result<()> {
-        let model = self.presentation.present(model);
+        let alerts = evaluate_live_alerts(&mut self.alert_runtime, model.rows(), now_ms_i64()?)?;
+        let model = self.presentation.present(model).with_alerts(alerts);
         let terminal = self
             .terminal
             .as_mut()
@@ -6854,6 +7007,39 @@ mod tests {
             resolve_live_ratatui_color_mode(parsed.args.color, false),
             RatatuiColorMode::Color
         );
+    }
+
+    #[test]
+    fn live_tui_alerts_require_new_observable_market_evidence() {
+        let mut playbook: AlertPlaybook = serde_json::from_str(include_str!(
+            "../../../../tests/fixtures/microstructure/alert_playbook_tui_watch.json"
+        ))
+        .expect("alert playbook parses");
+        playbook.rules[0].cooldown_ms = 0;
+        let events = parse_ws_ndjson(include_str!(
+            "../../../../tests/fixtures/microstructure/resilience_shock.ndjson"
+        ))
+        .expect("fixture parses");
+        let mut state = LiveMarketState::new(["@107".to_owned()]);
+        for event in events {
+            state.apply(event).expect("fixture event applies");
+        }
+        let mut snapshots = FeatureEngine::default().snapshots(&state, latest_update_ms(&state));
+        let mut runtime = LiveAlertRuntime::new(playbook).expect("runtime initializes");
+
+        runtime
+            .evaluate(&snapshots, 1_710_002_014_000)
+            .expect("first evaluation succeeds");
+        runtime
+            .evaluate(&snapshots, 1_710_002_015_000)
+            .expect("unchanged redraw succeeds");
+        assert_eq!(runtime.records().len(), 1);
+
+        snapshots[0].spread_shock_bps = snapshots[0].spread_shock_bps.map(|value| value + 1.0);
+        runtime
+            .evaluate(&snapshots, 1_710_002_016_000)
+            .expect("changed observation succeeds");
+        assert_eq!(runtime.records().len(), 2);
     }
 
     #[test]

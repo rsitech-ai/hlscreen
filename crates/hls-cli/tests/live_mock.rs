@@ -1,3 +1,5 @@
+use std::fs;
+
 use assert_cmd::Command;
 use predicates::prelude::*;
 
@@ -79,6 +81,94 @@ fn fixture_recording_runs_the_requested_gap_backfill_closeout_hook() {
         .stdout(predicate::str::contains("gaps_examined=0"))
         .stdout(predicate::str::contains("requests_failed=0"))
         .stdout(predicate::str::contains("tick_gaps_recovered=0"));
+}
+
+#[test]
+fn fixture_tui_renders_local_playbook_alert_history() {
+    Command::cargo_bin("hls")
+        .expect("hls binary")
+        .args([
+            "tui",
+            "--symbols",
+            "@107",
+            "--fixture-file",
+            &fixture("tests/fixtures/microstructure/resilience_shock.ndjson"),
+            "--alert-playbook-file",
+            &fixture("tests/fixtures/microstructure/alert_playbook_tui_watch.json"),
+            "--once",
+            "--color",
+            "never",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("LOCAL ALERTS 1"))
+        .stdout(predicate::str::contains("spread-expansion"))
+        .stdout(predicate::str::contains("@107"))
+        .stdout(predicate::str::contains("local-only"))
+        .stdout(predicate::str::contains("exchange_action").not());
+}
+
+#[test]
+fn live_rejects_alert_playbook_without_explicit_tui_surface() {
+    Command::cargo_bin("hls")
+        .expect("hls binary")
+        .args([
+            "live",
+            "--fixture-file",
+            &fixture("tests/fixtures/microstructure/resilience_shock.ndjson"),
+            "--alert-playbook-file",
+            &fixture("tests/fixtures/microstructure/alert_playbook_tui_watch.json"),
+            "--once",
+        ])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains(
+            "requires the explicit TUI surface",
+        ));
+}
+
+#[test]
+fn tui_rejects_exchange_action_playbook_before_fixture_processing() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let playbook_path = temp.path().join("unsafe-playbook.json");
+    fs::write(
+        &playbook_path,
+        r#"{
+  "schema_version": 1,
+  "id": "unsafe",
+  "description": "Must be rejected.",
+  "rules": [{
+    "id": "exchange-action",
+    "description": "Must never run.",
+    "severity": "critical",
+    "condition": {
+      "type": "field_threshold",
+      "field": "spread_bps",
+      "op": "gte",
+      "value": 1.0
+    },
+    "cooldown_ms": 0,
+    "source_interval_ms": 1000,
+    "action": "exchange_action"
+  }]
+}"#,
+    )
+    .expect("write unsafe playbook");
+
+    Command::cargo_bin("hls")
+        .expect("hls binary")
+        .args([
+            "tui",
+            "--fixture-file",
+            "/definitely/not/read.ndjson",
+            "--alert-playbook-file",
+            playbook_path.to_str().expect("utf8 playbook path"),
+            "--once",
+        ])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("exchange actions are not allowed"))
+        .stderr(predicate::str::contains("read /definitely/not/read").not());
 }
 
 #[test]

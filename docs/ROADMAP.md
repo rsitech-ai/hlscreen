@@ -17,11 +17,13 @@ production operations and public-release proof.
   fee-profile assumptions, research metric/proxy labels, and local analog search.
 - Adaptive Ratatui workstation with PTY cleanup tests, keyboard/mouse navigation,
   resize-aware layouts, persisted display preferences, and deterministic captures.
-- Local-only alert playbooks, evaluation, cooldown suppression, and JSONL history.
+- Local-only alert playbooks, evaluation, cooldown suppression, JSONL history,
+  and bounded keyboard-navigable TUI alert history.
 - Read-only localhost HTTP routes, including an operator-terminated static loop
   and a bounded live-data preview. These are not a supported production service.
 - Read-only Wasm extension contracts that deny network, filesystem, private-data,
-  and trading permissions.
+  and trading permissions, plus a bounded worker ownership prerequisite that is
+  not yet enabled in live rendering.
 - Draft cargo-dist packaging and local archive/checksum smoke tests.
 - Manual and opt-in live-closeout public candle gap coverage with durable
   partial/unrepaired evidence; original trade/BBO gaps remain degraded.
