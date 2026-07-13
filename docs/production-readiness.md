@@ -50,6 +50,12 @@ Current post-merge evidence:
 The exact command, official-document checks, code-review findings, and gate
 results are in the [2026-07-10 post-merge production audit](reports/2026-07-10-post-merge-production-audit.md).
 
+Opt-in closeout repair is now available with `--backfill-gaps` on a normalized
+recorded live run, plus the standalone `hls backfill` command. This is coarse
+candle coverage only. REST failures are recorded as unrepaired attempts and
+produce a non-zero command result; repeat attempts are skipped unless `--retry`
+is explicit. No current readiness claim treats this as tick-level recovery.
+
 Earlier five-minute evidence remains below for comparison.
 
 Run: `allpairs-prodreadiness-20260708-201752`

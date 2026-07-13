@@ -55,6 +55,33 @@ fn live_once_renders_fixture_backed_read_only_table() {
 }
 
 #[test]
+fn fixture_recording_runs_the_requested_gap_backfill_closeout_hook() {
+    let temp = tempfile::tempdir().expect("tempdir");
+
+    Command::cargo_bin("hls")
+        .expect("hls binary")
+        .args([
+            "live",
+            "--fixture-file",
+            &fixture("tests/fixtures/hyperliquid/ws_mock_live.ndjson"),
+            "--once",
+            "--record",
+            "--normalized",
+            "--backfill-gaps",
+            "--run-id",
+            "fixture-backfill-closeout",
+            "--data-dir",
+        ])
+        .arg(temp.path())
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("backfill_run=complete"))
+        .stdout(predicate::str::contains("gaps_examined=0"))
+        .stdout(predicate::str::contains("requests_failed=0"))
+        .stdout(predicate::str::contains("tick_gaps_recovered=0"));
+}
+
+#[test]
 fn live_once_applies_screen_preset_before_rendering() {
     Command::cargo_bin("hls")
         .expect("hls binary")
