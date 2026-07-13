@@ -23,6 +23,8 @@ production operations and public-release proof.
 - Read-only Wasm extension contracts that deny network, filesystem, private-data,
   and trading permissions.
 - Draft cargo-dist packaging and local archive/checksum smoke tests.
+- Manual and opt-in live-closeout public candle gap coverage with durable
+  partial/unrepaired evidence; original trade/BBO gaps remain degraded.
 
 ## Release Status
 
@@ -31,10 +33,11 @@ binary smoke tests, and tag-gated workflow configuration exist. There is no revi
 
 ## Next Candidate Slices
 
-1. Reconnect recovery integration.
-   - Invoke the coarse public candle adapter automatically after recorded gaps.
+1. Reconnect recovery evidence.
+   - Add a fault-injected reconnect acceptance run around the implemented
+     opt-in coarse public candle closeout path.
    - Keep missing trades/BBO unrepaired and preserve degraded confidence.
-   - Add fault-injected reconnect acceptance evidence.
+   - Evaluate delayed public archives only as offline best-effort research data.
 2. Production service lifecycle.
    - Define supported configuration, persistence/recovery, authentication,
      resource limits, graceful restart, upgrade, rollback, and incident handling.

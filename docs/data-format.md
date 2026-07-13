@@ -81,14 +81,26 @@ mixed with repair provenance.
 | `confidence_impact` | `restored`, `partial`, or `degraded`. |
 | `notes` | Optional operator/debug note. |
 
-`hls-store::backfill` can run a public candle source over recorded gaps.
-Automatic invocation from `hls live --record` is not wired yet. Returned candles
-are appended to a normalized JSONL evidence file,
+`hls backfill` runs the public candle source over recorded gaps. An operator can
+also opt into the same clean-closeout path with
+`hls live --record --backfill-gaps`; normalized output is required. Returned
+candles are appended to a normalized JSONL evidence file,
 but they cannot reconstruct missing trades or BBO updates. Any non-empty candle
 result is therefore recorded as `partially_repaired` with
 `confidence_impact = partial`; the original gap stays unrecovered and replay
 keeps the reconnect-gap confidence penalty. Empty responses remain `unrepaired`
-with `confidence_impact = degraded`.
+with `confidence_impact = degraded`. Public REST failures are also persisted as
+unrepaired attempts with per-symbol failure notes, and the command exits non-zero
+after writing that evidence. Repeating the same gap/source/interval skips the
+existing attempt by default; `hls backfill --retry` explicitly requests another.
+
+```bash
+hls backfill --data-dir /var/tmp/hlscreen-data --run-id <run-id> --interval 1m
+
+hls live --all-symbols --duration-secs 900 --record --normalized \
+  --backfill-gaps --backfill-interval 1m \
+  --data-dir /var/tmp/hlscreen-data --run-id <run-id>
+```
 
 The backfill file row and attempt row are committed in one SQLite transaction.
 The candidate evidence file is created without replacement and remains pending
@@ -97,7 +109,7 @@ unregistered candidate file. This prevents a failed attempt from leaving a
 partial registry claim or an orphaned final artifact during normal error
 handling.
 
-Full trade/BBO reconstruction remains planned work.
+The original `data_gaps.recovered` flag remains false after candle coverage.
 
 ## Public Backfill Source Boundary
 
@@ -107,10 +119,16 @@ fields into local `CandleEvent` rows and accepts empty public responses as valid
 unrepaired-attempt input.
 
 This does not reconstruct missing WebSocket trades or top-of-book updates.
-Hyperliquid's public `l2Book` endpoint is a current snapshot, not historical
-BBO replay, and user fill endpoints require account addresses and are outside
-the read-only public-data boundary. Live closeout integration and richer repair
-sources remain future work.
+Hyperliquid's public [`l2Book` info endpoint](https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/info-endpoint)
+is a current snapshot, not historical BBO replay. The official
+[historical-data archive](https://hyperliquid.gitbook.io/hyperliquid-docs/historical-data)
+publishes L2 snapshots roughly monthly, warns that updates may be untimely or
+missing, and requires the requester to pay transfer costs. Separate node
+trade/fill archives are not a bounded,
+low-latency reconnect endpoint either. Therefore exact automatic live trade/BBO
+reconstruction is not supportable from the documented public API. A future
+offline archive importer may add best-effort research evidence, but it must not
+restore live-gap confidence or be described as lossless repair.
 
 ## Parquet Event Export
 
@@ -247,8 +265,8 @@ print(duckdb.sql("select symbol, confidence_level, spread_bps from read_parquet(
 PY
 ```
 
-Still planned: actual schema migrations when a v2 schema exists, tick-level
-trade/BBO reconstruction for gaps if a supported public source exists, and
+Still planned: actual schema migrations when a v2 schema exists, optional
+best-effort offline historical archive import, and
 DuckDB validation in CI/release gates. Feature/confidence Parquet is an
 analytical export; normalized-event Parquet is the replayable dataset.
 

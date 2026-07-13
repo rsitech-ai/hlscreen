@@ -31,12 +31,12 @@ Implemented today:
 - Health snapshots, reconnect simulation, TUI health rendering, and read-only local API helpers.
 - Deterministic public fixture benchmark packs through `hls bench`.
 - Low-cardinality metrics snapshots in `hls doctor --live --json`, including Prometheus text output.
+- Manual `hls backfill` and opt-in `hls live --record --backfill-gaps` coarse public candle coverage with durable partial/unrepaired attempt evidence.
 - Bounded standalone Wasm row-annotation extensions that reject imports, network/filesystem/private/trading permissions, oversized modules, hash mismatches, and excess memory/output.
 - Draft cargo-dist release packaging config and tag-gated packaging workflow.
 
 Not implemented yet:
 
-- Automatic live invocation of the coarse public candle backfill adapter after reconnect. Missing trades and BBO cannot be reconstructed, and reconnect gaps remain explicit.
 - Supported long-running localhost daemon/service lifecycle.
 - Published release binaries from a reviewed `v*` tag run.
 - Production alert delivery/operations, validated canonical production microstructure metrics, private account fee tiers, realized-fill modeling, service-backed analog search, and multi-day supervised soak proof.

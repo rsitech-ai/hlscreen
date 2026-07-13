@@ -50,6 +50,7 @@ use hls_hyperliquid::{
 };
 use hls_screen::ScreenRequest;
 use hls_store::{
+    backfill::is_supported_candle_interval,
     metadata::{MetadataRegistry, RecordingRun, SymbolRegistryEntry},
     normalized::StreamingNormalizedWriter,
     parquet::export_normalized_events_to_parquet,
@@ -75,6 +76,7 @@ use serde::{Deserialize, Serialize};
 use tokio::time::{Interval, MissedTickBehavior, interval, sleep, sleep_until};
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 
+use crate::commands::backfill::{self, BackfillArgs, DEFAULT_REST_URL};
 use crate::commands::metadata::{attach_metadata, load_metadata_enrichments};
 use crate::commands::record::{default_run_id, enabled_outputs, parse_symbols};
 use crate::commands::ws_rate_limit::RollingMessageRateLimiter;
@@ -377,6 +379,16 @@ pub struct LiveArgs {
     #[arg(long)]
     pub normalized: bool,
 
+    /// After a clean recorded run, append public candle coverage for reconnect gaps.
+    #[arg(long)]
+    pub backfill_gaps: bool,
+
+    #[arg(long, default_value = "1m")]
+    pub backfill_interval: String,
+
+    #[arg(long, default_value = DEFAULT_REST_URL)]
+    pub rest_url: String,
+
     #[arg(long)]
     pub run_id: Option<String>,
 
@@ -441,6 +453,16 @@ pub struct TuiArgs {
     #[arg(long)]
     pub normalized: bool,
 
+    /// After a clean recorded run, append public candle coverage for reconnect gaps.
+    #[arg(long)]
+    pub backfill_gaps: bool,
+
+    #[arg(long, default_value = "1m")]
+    pub backfill_interval: String,
+
+    #[arg(long, default_value = DEFAULT_REST_URL)]
+    pub rest_url: String,
+
     #[arg(long)]
     pub run_id: Option<String>,
 
@@ -476,6 +498,9 @@ impl TuiArgs {
             raw: self.raw,
             parquet: self.parquet,
             normalized: self.normalized,
+            backfill_gaps: self.backfill_gaps,
+            backfill_interval: self.backfill_interval,
+            rest_url: self.rest_url,
             run_id: self.run_id,
             data_dir: self.data_dir,
             fixture_file: self.fixture_file,
@@ -536,6 +561,19 @@ fn validate_live_args(args: &LiveArgs, terminals: LiveTerminalCapabilities) -> a
     }
     if !args.record && (args.raw || args.normalized || args.parquet || args.run_id.is_some()) {
         bail!("--raw, --normalized, --parquet, and --run-id require --record");
+    }
+    if args.backfill_gaps && !args.record {
+        bail!("--backfill-gaps requires --record");
+    }
+    let (_, normalized_enabled) = enabled_outputs(args.raw, args.normalized || args.parquet);
+    if args.backfill_gaps && !normalized_enabled {
+        bail!("--backfill-gaps requires normalized recording output");
+    }
+    if args.backfill_gaps && !is_supported_candle_interval(&args.backfill_interval) {
+        bail!("--backfill-interval must be a supported public candle interval");
+    }
+    if args.backfill_gaps {
+        backfill::validate_rest_url(&args.rest_url)?;
     }
     if let Some(run_id) = args.run_id.as_deref() {
         validate_run_id(run_id)?;
@@ -635,6 +673,7 @@ async fn run_fixture_live(args: LiveArgs, fixture_file: &PathBuf) -> anyhow::Res
         )?;
         println!("recording run: {}", summary.run_id);
         println!("clean_shutdown={}", summary.clean_shutdown);
+        run_requested_backfill(&args, &summary.run_id).await?;
         if args.parquet {
             let parquet = export_normalized_events_to_parquet(&args.data_dir, &summary.run_id)
                 .with_context(|| format!("export '{}' to parquet", summary.run_id))?;
@@ -937,6 +976,9 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
 
     let mut summary = drive_result?;
     let record_summary = record_summary_result?;
+    if let Some(record_summary) = &record_summary {
+        run_requested_backfill(&args, &record_summary.run_id).await?;
+    }
     let mut snapshots = live_feature_snapshots(&state, &summary, now_ms_i64()?);
     attach_metadata(&mut snapshots, metadata);
     summary.row_count = snapshots.len();
@@ -1008,6 +1050,28 @@ async fn run_network_live(args: LiveArgs) -> anyhow::Result<()> {
     };
     print!("{table}");
 
+    Ok(())
+}
+
+async fn run_requested_backfill(args: &LiveArgs, run_id: &str) -> anyhow::Result<()> {
+    if !args.backfill_gaps {
+        return Ok(());
+    }
+    let summary = backfill::execute(BackfillArgs {
+        run_id: run_id.to_owned(),
+        interval: args.backfill_interval.clone(),
+        rest_url: args.rest_url.clone(),
+        retry: false,
+        data_dir: args.data_dir.clone(),
+    })
+    .await?;
+    backfill::print_summary(&summary);
+    if summary.requests_failed > 0 {
+        bail!(
+            "{} public candle request(s) failed; unrepaired attempts were recorded",
+            summary.requests_failed
+        );
+    }
     Ok(())
 }
 
@@ -6802,6 +6866,31 @@ mod tests {
             ),
             (vec!["hls-live", "--raw"], "--record"),
             (vec!["hls-live", "--run-id", "orphan"], "--record"),
+            (vec!["hls-live", "--backfill-gaps"], "--record"),
+            (
+                vec!["hls-live", "--record", "--raw", "--backfill-gaps"],
+                "normalized",
+            ),
+            (
+                vec![
+                    "hls-live",
+                    "--record",
+                    "--backfill-gaps",
+                    "--backfill-interval",
+                    "2m",
+                ],
+                "supported public candle interval",
+            ),
+            (
+                vec![
+                    "hls-live",
+                    "--record",
+                    "--backfill-gaps",
+                    "--rest-url",
+                    "http://example.com",
+                ],
+                "HTTPS or an HTTP loopback",
+            ),
             (vec!["hls-live", "--max-subscriptions", "1001"], "official"),
             (
                 vec!["hls-live", "--duration-secs", "18446744073709551615"],

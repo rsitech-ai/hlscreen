@@ -131,6 +131,23 @@ fn public_candle_backfill_writes_coarse_rows_but_keeps_tick_gap_degraded() {
             .has_reason(ConfidenceReason::ReconnectGap),
         "coarse candle rows must not hide a missing trade/BBO interval"
     );
+
+    let repeated = backfill_public_gaps(
+        BackfillGapsOptions::new(&data_dir, "backfill-partial").with_interval("1m"),
+        &FailingCandleSource,
+    )
+    .expect("existing interval attempt is skipped without calling the source");
+    assert_eq!(repeated.gaps_examined, 0);
+    assert_eq!(repeated.gaps_skipped, 1);
+    assert_eq!(repeated.rows_written, 0);
+    assert_eq!(repeated.requests_failed, 0);
+    assert_eq!(
+        registry
+            .list_backfill_attempts("backfill-partial")
+            .expect("attempts after repeated command")
+            .len(),
+        1
+    );
 }
 
 #[test]
@@ -195,6 +212,51 @@ fn unrepaired_public_backfill_attempt_keeps_gap_confidence_degraded() {
             .has_reason(ConfidenceReason::ReconnectGap),
         "unrepaired backfill should keep reconnect-gap confidence penalty"
     );
+}
+
+#[test]
+fn public_source_failure_is_recorded_as_unrepaired_evidence() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let data_dir = temp.path().join("data");
+    let run_id = "backfill-source-failure";
+    record_fixture_ndjson(
+        include_str!("../../../tests/fixtures/microstructure/gap_replay.ndjson"),
+        RecordOptions::new(&data_dir, run_id, vec!["@107".to_owned()], false, true),
+    )
+    .expect("record fixture");
+    let registry = MetadataRegistry::open(data_dir.join("hls.sqlite")).expect("registry");
+    registry
+        .insert_gap(&DataGap::new(
+            run_id,
+            10,
+            1_710_000_060_000_000_000,
+            1_710_000_120_000_000_000,
+            "fixture reconnect gap",
+            vec!["@107".to_owned()],
+            false,
+        ))
+        .expect("insert gap");
+
+    let summary = backfill_public_gaps(
+        BackfillGapsOptions::new(&data_dir, run_id).with_interval("1m"),
+        &FailingCandleSource,
+    )
+    .expect("source failure is persisted instead of aborting before evidence");
+
+    assert_eq!(summary.gaps_unrepaired, 1);
+    assert_eq!(summary.requests_failed, 1);
+    assert_eq!(summary.rows_written, 0);
+    let attempts = registry
+        .list_backfill_attempts(run_id)
+        .expect("attempt evidence");
+    assert_eq!(attempts[0].status, BackfillStatus::Unrepaired);
+    assert_eq!(
+        attempts[0].confidence_impact,
+        BackfillConfidenceImpact::Degraded
+    );
+    let notes = attempts[0].notes.as_deref().expect("failure notes");
+    assert!(notes.contains("source_failures=@107:"));
+    assert!(notes.contains("injected REST outage"));
 }
 
 #[test]
@@ -314,5 +376,18 @@ impl CandleBackfillSource for FixtureCandleSource {
             .get(request.symbol)
             .cloned()
             .unwrap_or_default())
+    }
+}
+
+struct FailingCandleSource;
+
+impl CandleBackfillSource for FailingCandleSource {
+    fn candle_snapshot(
+        &self,
+        _request: &CandleBackfillRequest<'_>,
+    ) -> hls_core::HlsResult<Vec<CandleEvent>> {
+        Err(hls_core::HlsError::External(
+            "injected REST outage".to_owned(),
+        ))
     }
 }
