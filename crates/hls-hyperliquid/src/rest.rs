@@ -1,4 +1,4 @@
-use std::{collections::HashMap, time::Duration};
+use std::{collections::HashMap, net::IpAddr, time::Duration};
 
 use hls_core::{
     HlsError, HlsResult,
@@ -12,6 +12,33 @@ use serde_json::{Value, json};
 
 const DEFAULT_INFO_BASE_URL: &str = "https://api.hyperliquid.xyz";
 const DEFAULT_REST_TIMEOUT: Duration = Duration::from_secs(10);
+
+pub fn validate_public_rest_base_url(base_url: &str) -> HlsResult<()> {
+    let url = reqwest::Url::parse(base_url)
+        .map_err(|err| HlsError::Config(format!("public REST base URL is invalid: {err}")))?;
+    if !url.username().is_empty() || url.password().is_some() {
+        return Err(HlsError::Config(
+            "public REST base URL must not contain credentials".to_owned(),
+        ));
+    }
+    if url.query().is_some() || url.fragment().is_some() {
+        return Err(HlsError::Config(
+            "public REST base URL must not contain a query or fragment".to_owned(),
+        ));
+    }
+
+    let host = url
+        .host_str()
+        .ok_or_else(|| HlsError::Config("public REST base URL must contain a host".to_owned()))?;
+    let is_loopback = host.eq_ignore_ascii_case("localhost")
+        || host.parse::<IpAddr>().is_ok_and(|ip| ip.is_loopback());
+    if url.scheme() != "https" && !(url.scheme() == "http" && is_loopback) {
+        return Err(HlsError::Config(
+            "--rest-url must use HTTPS or an HTTP loopback address".to_owned(),
+        ));
+    }
+    Ok(())
+}
 
 #[derive(Clone, Debug)]
 pub struct HyperliquidRestClient {
@@ -88,20 +115,7 @@ impl HyperliquidRestClient {
             }))
             .await?;
         let candles = parse_candle_snapshot(&body)?;
-        for candle in &candles {
-            if candle.hl_coin != coin {
-                return Err(HlsError::Parse(format!(
-                    "candleSnapshot returned coin '{}' for requested coin '{coin}'",
-                    candle.hl_coin
-                )));
-            }
-            if candle.interval != interval {
-                return Err(HlsError::Parse(format!(
-                    "candleSnapshot returned interval '{}' for requested interval '{interval}'",
-                    candle.interval
-                )));
-            }
-        }
+        validate_candle_snapshot_response(&candles, coin, interval, start_time_ms, end_time_ms)?;
         Ok(candles)
     }
 
@@ -398,6 +412,36 @@ pub fn parse_candle_snapshot(raw: &str) -> HlsResult<Vec<CandleEvent>> {
             })
         })
         .collect()
+}
+
+fn validate_candle_snapshot_response(
+    candles: &[CandleEvent],
+    coin: &str,
+    interval: &str,
+    start_time_ms: i64,
+    end_time_ms: i64,
+) -> HlsResult<()> {
+    for candle in candles {
+        if candle.hl_coin != coin {
+            return Err(HlsError::Parse(format!(
+                "candleSnapshot returned coin '{}' for requested coin '{coin}'",
+                candle.hl_coin
+            )));
+        }
+        if candle.interval != interval {
+            return Err(HlsError::Parse(format!(
+                "candleSnapshot returned interval '{}' for requested interval '{interval}'",
+                candle.interval
+            )));
+        }
+        if candle.close_ts_ms < start_time_ms || candle.open_ts_ms > end_time_ms {
+            return Err(HlsError::Parse(format!(
+                "candleSnapshot returned candle [{}..={}] outside requested range [{start_time_ms}..={end_time_ms}]",
+                candle.open_ts_ms, candle.close_ts_ms
+            )));
+        }
+    }
+    Ok(())
 }
 
 pub fn parse_token_details(token_id: &str, raw: &str) -> HlsResult<PublicTokenDetails> {
@@ -709,4 +753,42 @@ fn matches_any(symbol: &MarketSymbol, selectors: &[String]) -> bool {
     selectors
         .iter()
         .any(|selector| symbol.matches_selector(selector))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        parse_candle_snapshot, validate_candle_snapshot_response, validate_public_rest_base_url,
+    };
+
+    #[test]
+    fn public_rest_base_url_rejects_query_and_fragment_components() {
+        for base_url in [
+            "https://api.hyperliquid.xyz?redirect=/info",
+            "https://api.hyperliquid.xyz#info",
+        ] {
+            let error = validate_public_rest_base_url(base_url)
+                .expect_err("base URL suffix components must fail closed");
+            assert!(error.to_string().contains("query or fragment"));
+        }
+    }
+
+    #[test]
+    fn candle_snapshot_response_rejects_rows_outside_requested_window() {
+        let candles = parse_candle_snapshot(
+            r#"[{"t":1710000000000,"T":1710000059999,"s":"@107","i":"1m","o":"35.0","c":"35.2","h":"35.4","l":"34.9","v":"25.0","n":12}]"#,
+        )
+        .expect("candle parses");
+
+        let error = validate_candle_snapshot_response(
+            &candles,
+            "@107",
+            "1m",
+            1_710_000_060_000,
+            1_710_000_120_000,
+        )
+        .expect_err("out-of-window candle must fail closed");
+
+        assert!(error.to_string().contains("outside requested range"));
+    }
 }
