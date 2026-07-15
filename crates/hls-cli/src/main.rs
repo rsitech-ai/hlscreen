@@ -7,6 +7,7 @@ use clap::{Parser, Subcommand};
 use crate::commands::{
     alerts::AlertsArgs,
     analog::AnalogArgs,
+    backfill::BackfillArgs,
     bench::BenchArgs,
     doctor::DoctorArgs,
     explain::ExplainArgs,
@@ -41,6 +42,7 @@ enum Command {
     Doctor(DoctorArgs),
     Bench(BenchArgs),
     Analog(AnalogArgs),
+    Backfill(BackfillArgs),
     Alerts(AlertsArgs),
     Symbols(SymbolsArgs),
     Live(LiveArgs),
@@ -73,6 +75,7 @@ async fn main() -> anyhow::Result<()> {
         Command::Doctor(args) => commands::doctor::run(args).await,
         Command::Bench(args) => commands::bench::run(args).await,
         Command::Analog(args) => commands::analog::run(args).await,
+        Command::Backfill(args) => commands::backfill::run(args).await,
         Command::Alerts(args) => commands::alerts::run(args).await,
         Command::Symbols(args) => commands::symbols::run(args).await,
         Command::Live(args) => commands::live::run(args).await,

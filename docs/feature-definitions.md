@@ -49,13 +49,17 @@ is private fill volume or an execution signal.
 
 `FeatureSnapshot.microstructure_metrics` carries metric-level evidence with a
 `support` value of `canonical`, `proxy`, or `unavailable`. The current runtime
-does not emit any production-validated canonical metric. Implemented values are
-bounded research proxies or explicit unavailable states.
+emits two canonical directly observed public-trade window statistics. Advanced
+microstructure estimators remain bounded research proxies or explicit
+unavailable states. See [metric-validation.md](metric-validation.md) for the
+versioned sampling and tolerance contract.
 
 Current metric contracts:
 
 | Metric | Support when value exists | Formula / rule | Unit | Unavailable when |
 | --- | --- | --- | --- | --- |
+| `public_trade_vwap_1m` | canonical | `sum(public_trade_price * size) / sum(size)` in the rolling exchange-time window | `price` | fewer than three public trades or non-positive size/notional |
+| `public_trade_return_1m` | canonical | `last_exchange_time_price / first_exchange_time_price - 1` | `decimal_return` | fewer than three public trades or invalid endpoint prices |
 | `amihud_1m` | proxy | bounded `abs(return_1m) / dollar_volume_1m` over public trades | `return_per_usd` | fewer than two trades or non-positive public notional |
 | `roll_effective_spread` | proxy | bounded adjacent public trade-price-change estimate | `price` | fewer than four trades or non-negative adjacent price-change covariance |
 | `bipower_variation_5m` | proxy | trade-to-trade adjacent absolute-return products without canonical time-bar sampling | `decimal_variance` | fewer than three valid public trades |
@@ -65,6 +69,9 @@ Current metric contracts:
 
 Important caveats:
 
+- Canonical support is limited to a deterministic formula over the public
+  events observed locally. It does not override reconnect-gap confidence or
+  prove complete venue-wide tick capture.
 - `amihud_1m`, `roll_effective_spread`, and `bipower_variation_5m` are bounded
   public-trade research formulas. Their windowing and sampling have not been
   validated as canonical production estimates.
@@ -286,9 +293,12 @@ they do not send exchange actions, query private account data, use wallet
 state, or deliver external notifications. File-backed playbooks can use the
 fixed spread-shock condition or the typed threshold/boolean grammar above.
 
-Live evaluation and Ratatui alert-history panes are not wired yet. Current alert
-behavior is an explicit standalone local command, not a scheduler or operational
-alert engine.
+`hls tui --alert-playbook-file <path>` and `hls live --tui
+--alert-playbook-file <path>` evaluate a validated local-only playbook on TUI
+draw ticks. The Status pane (`6`) shows bounded newest-first history; `j` and `k`
+navigate alert rows while that pane is focused. Evaluation does not run in the
+WebSocket receive critical section. This is still an operator-local view, not a
+scheduler, external delivery path, or operational alert engine.
 
 ## Historical Analog Search
 
@@ -321,10 +331,13 @@ execution simulation, or profitability claim.
 Still planned beyond the current `specs/006-alerts-and-analytics` local
 surface:
 
-- Live evaluation, external delivery, daemon scheduling, and TUI alert history
-  panes. The current local playbook grammar supports fixed spread-shock
-  rules, typed `field_threshold`, `all`/`any`/`not` boolean composition, and
-  explicit local JSONL evidence history with CLI listing.
+- External delivery, daemon scheduling, retention policy, and escalation
+  operations. The current local playbook grammar supports fixed spread-shock
+  rules, typed `field_threshold`, `all`/`any`/`not` boolean composition,
+  explicit local JSONL evidence history with CLI listing, and bounded newest-
+  first TUI history through `--alert-playbook-file`. TUI alerts are local-only,
+  evaluate on draw ticks outside WebSocket ingestion, and retain at most 64
+  rows or 32 KiB.
 - Larger database/service-backed historical analog indexes beyond the current
   local JSON index.
 - Richer adverse-selection/toxicity analytics beyond the current public-data
@@ -334,5 +347,7 @@ surface:
   and bounded `hls server --live --fee-profile-file`, but no private account
   fee-tier lookup.
 - Broader plugin runtime surfaces. The current extension layer supports bounded
-  standalone CLI row-annotation execution; live integration, plugin discovery,
-  TUI panels, and score/health annotation execution remain future work.
+  standalone CLI row-annotation execution plus a bounded nonblocking worker
+  ownership contract. Live integration remains disabled; plugin discovery, TUI
+  panels, worker telemetry, and score/health annotation execution remain future
+  work.

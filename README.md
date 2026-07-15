@@ -12,7 +12,12 @@ It is built for operators and researchers who want a local-first way to inspect 
 
 Current state: pre-1.0 read-only live-data preview with bounded local validation. Recording, replay, screening, deterministic terminal rendering, health checks, and local release-package dry runs are implemented, but unattended production readiness is not yet proven. It is not a trading bot, hosted service, or capital-touching execution system.
 
-Latest live validation: a 2026-07-10 15-minute all-symbol TUI/recording run covered `310` spot markets through `931` public subscriptions and processed `286,205` WebSocket messages / `294,144` normalized events. It stopped cleanly with `0` reconnects, `0` data gaps, and replay confidence parity over all `310` rows. See the [post-merge production audit](docs/reports/2026-07-10-post-merge-production-audit.md).
+Latest live validation: a 2026-07-13 15-minute supervised all-symbol run at
+commit `f590787` covered `310` spot markets through `931` public subscriptions
+and processed `295,794` WebSocket messages / `303,779` normalized events. It
+stopped cleanly with `0` reconnects, gaps, parser drops, or failed backfills,
+then passed replay confidence parity over all `310` rows. See the
+[machine-readable soak report](docs/evidence/soak/sota-allpairs-20260713-15m.json).
 
 Implemented today:
 
@@ -31,15 +36,21 @@ Implemented today:
 - Health snapshots, reconnect simulation, TUI health rendering, and read-only local API helpers.
 - Deterministic public fixture benchmark packs through `hls bench`.
 - Low-cardinality metrics snapshots in `hls doctor --live --json`, including Prometheus text output.
+- Manual `hls backfill` and opt-in `hls live --record --backfill-gaps` coarse public candle coverage with durable partial/unrepaired attempt evidence.
 - Bounded standalone Wasm row-annotation extensions that reject imports, network/filesystem/private/trading permissions, oversized modules, hash mismatches, and excess memory/output.
-- Draft cargo-dist release packaging config and tag-gated packaging workflow.
+- Hardened cargo-dist candidate packaging with pull-request artifact builds,
+  SHA-256 checksums, a source archive, CycloneDX SBOM, auditable Rust binaries,
+  SHA-pinned actions, and tag-only publication/provenance.
 
 Not implemented yet:
 
-- Automatic live invocation of the coarse public candle backfill adapter after reconnect. Missing trades and BBO cannot be reconstructed, and reconnect gaps remain explicit.
 - Supported long-running localhost daemon/service lifecycle.
 - Published release binaries from a reviewed `v*` tag run.
-- Production alert delivery/operations, validated canonical production microstructure metrics, private account fee tiers, realized-fill modeling, service-backed analog search, and multi-day supervised soak proof.
+- Production alert delivery/operations, validated canonical production
+  microstructure metrics, service-backed analog search, and multi-day supervised
+  soak proof.
+- Private account access, fee-tier lookup, and realized-fill modeling are outside
+  the public/read-only trust boundary rather than partially implemented.
 
 ## Screenshots
 
@@ -76,6 +87,10 @@ These committed SVGs are deterministic terminal captures generated from the curr
 ### Health Panel
 
 ![Operations health panel](docs/assets/screenshots/health-panel.svg)
+
+### Local Alert History
+
+![Local-only alert history](docs/assets/screenshots/alert-history.svg)
 
 ### Symbol Metadata
 
@@ -185,6 +200,18 @@ Run a short public live smoke for one symbol:
   --refresh-secs 5
 ```
 
+Optionally evaluate a local-only alert playbook in the TUI:
+
+```bash
+./target/debug/hls tui \
+  --symbols HYPE/USDC \
+  --alert-playbook-file tests/fixtures/microstructure/alert_playbook_tui_watch.json
+```
+
+Alert evaluation runs on draw ticks outside WebSocket ingestion. Press `6` to
+focus the Status pane, then use `j`/`k` to navigate the bounded newest-first
+history. The playbook validator rejects every action except `local_only`.
+
 Run the same smoke while recording raw and normalized local evidence:
 
 ```bash
@@ -202,7 +229,8 @@ Run the same smoke while recording raw and normalized local evidence:
 
 TTY keyboard controls for the Ratatui `hls tui` / `hls live --tui` cockpit:
 
-- `↑`/`↓` or `k`/`j`: move focused row.
+- `↑`/`↓` or `k`/`j`: move the focused market row, or navigate alert history
+  while the Status pane is focused.
 - `←`/`→` or `[`/`]`: cycle pane focus across watchlist, detail, chart, book, tape, and ops/status.
 - `PgUp`/`PgDn`, `Home`, `End`: jump through the visible board.
 - `w`/`1`, `i`/`2`, `c`/`3`, `b`/`4`, `r`/`5`, `o`/`6`: focus watchlist, instrument detail, chart, book, tape/recent trades, and ops/status panes.

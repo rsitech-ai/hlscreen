@@ -1,6 +1,6 @@
 use hls_core::{
     market_state::{AdverseSelectionProxy, SymbolMarketState, TradeEvent, TradeSide},
-    metrics::MicrostructureMetricSnapshot,
+    metrics::{MetricSamplingContract, MetricSamplingMode, MicrostructureMetricSnapshot},
 };
 
 use crate::{formulas::percent_return, resilience::bbo_ofi_proxy_30s};
@@ -15,6 +15,8 @@ pub fn microstructure_metric_snapshots(
     adverse_selection_proxy: AdverseSelectionProxy,
 ) -> Vec<MicrostructureMetricSnapshot> {
     vec![
+        public_trade_vwap_1m(state, now_ms),
+        public_trade_return_1m(state, now_ms),
         amihud_1m(state, now_ms),
         roll_effective_spread(state, now_ms),
         bipower_variation_5m(state, now_ms),
@@ -22,6 +24,81 @@ pub fn microstructure_metric_snapshots(
         signed_flow_toxicity_proxy_30s(state, now_ms),
         adverse_selection_metric(adverse_selection_proxy),
     ]
+}
+
+pub fn canonical_metric_contracts() -> Vec<MetricSamplingContract> {
+    vec![
+        public_trade_contract("public_trade_vwap_1m", "price"),
+        public_trade_contract("public_trade_return_1m", "decimal_return"),
+    ]
+}
+
+fn public_trade_contract(name: &str, unit: &str) -> MetricSamplingContract {
+    MetricSamplingContract {
+        metric_name: name.to_owned(),
+        version: 1,
+        window_ms: ONE_MINUTE_MS as u64,
+        minimum_observations: 3,
+        sampling_mode: MetricSamplingMode::ExchangeEventWindow,
+        unit: unit.to_owned(),
+        absolute_tolerance: 1e-12,
+        relative_tolerance: 1e-12,
+    }
+}
+
+fn public_trade_vwap_1m(state: &SymbolMarketState, now_ms: i64) -> MicrostructureMetricSnapshot {
+    let contract = public_trade_contract("public_trade_vwap_1m", "price");
+    let trades = trades_in_window(&state.trades, now_ms, contract.window_ms as i64);
+    if !contract.has_sufficient_observations(trades.len()) {
+        return MicrostructureMetricSnapshot::unavailable(
+            contract.metric_name,
+            contract.unit,
+            "need at least three valid public trades in the 1m exchange-time window",
+        );
+    }
+    let total_size = trades.iter().map(|trade| trade.size).sum::<f64>();
+    let total_notional = trades
+        .iter()
+        .map(|trade| trade.price * trade.size)
+        .sum::<f64>();
+    if !total_size.is_finite()
+        || !total_notional.is_finite()
+        || total_size <= 0.0
+        || total_notional <= 0.0
+    {
+        return MicrostructureMetricSnapshot::unavailable(
+            contract.metric_name,
+            contract.unit,
+            "public trade size and notional must be finite and positive",
+        );
+    }
+    MicrostructureMetricSnapshot::canonical(&contract, trades.len(), total_notional / total_size)
+}
+
+fn public_trade_return_1m(state: &SymbolMarketState, now_ms: i64) -> MicrostructureMetricSnapshot {
+    let contract = public_trade_contract("public_trade_return_1m", "decimal_return");
+    let trades = trades_in_window(&state.trades, now_ms, contract.window_ms as i64);
+    if !contract.has_sufficient_observations(trades.len()) {
+        return MicrostructureMetricSnapshot::unavailable(
+            contract.metric_name,
+            contract.unit,
+            "need at least three valid public trades in the 1m exchange-time window",
+        );
+    }
+    let value = percent_return(
+        trades.first().expect("nonempty").price,
+        trades.last().expect("nonempty").price,
+    );
+    match value {
+        Some(value) if value.is_finite() => {
+            MicrostructureMetricSnapshot::canonical(&contract, trades.len(), value)
+        }
+        _ => MicrostructureMetricSnapshot::unavailable(
+            contract.metric_name,
+            contract.unit,
+            "public trade prices must be finite and positive",
+        ),
+    }
 }
 
 fn amihud_1m(state: &SymbolMarketState, now_ms: i64) -> MicrostructureMetricSnapshot {
@@ -227,8 +304,10 @@ fn adverse_selection_metric(
 
 fn trades_in_window(trades: &[TradeEvent], now_ms: i64, window_ms: i64) -> Vec<&TradeEvent> {
     let start_ms = now_ms.saturating_sub(window_ms);
-    trades
+    let mut selected: Vec<_> = trades
         .iter()
         .filter(|trade| trade.exchange_ts_ms >= start_ms && trade.exchange_ts_ms <= now_ms)
-        .collect()
+        .collect();
+    selected.sort_by_key(|trade| (trade.exchange_ts_ms, trade.tid));
+    selected
 }

@@ -16,6 +16,8 @@ Supported bounded local use:
 - Render deterministic terminal output and health JSON.
 - Preview read-only localhost HTTP routes over current in-memory state.
 - Run a bounded localhost API preview backed by public live market-data snapshots with `hls server --live`.
+- Evaluate validated local-only alert playbooks in the TUI with bounded in-memory
+  history and no external delivery or exchange action.
 
 Not included:
 
@@ -27,7 +29,52 @@ Not included:
 - A production alert engine, validated canonical production microstructure metric suite, private account fee-tier lookup, realized fill model, or service-backed historical analog search.
 - Full schema-versioned analytical Parquet dataset family beyond the initial normalized-event export.
 
+## Release Engineering State
+
+The repository now has a least-privilege candidate release pipeline: fixed
+runners, full-SHA action pins, disabled checkout credential persistence,
+workflow concurrency, a pinned zizmor gate, disabled release caches/containers,
+shell-expression isolation, version-pinned build tooling,
+an all-target cargo-deny license/source policy,
+pull-request artifact builds, source archives, SHA-256 checksums, CycloneDX
+SBOM generation, cargo-auditable binaries, and tag-only artifact attestations.
+Local `dist plan`, packaging contract checks, and unpacked binary smoke are
+repository-owned gates. Clean-runner candidate uploads, provenance, and a public
+release remain unproven until the feature PR and a later explicitly approved
+tag workflow complete.
+
+Because GitHub artifact attestations for private repositories require Enterprise
+Cloud, the current private-repository state is an external release blocker. It
+does not block source development or ordinary PR CI.
+
 ## Latest Live Validation
+
+Run: `sota-allpairs-20260713-15m`
+
+Fresh supervised evidence at commit
+`f590787fd53c55c398b339bb631851e2af91857d`:
+
+- Measured duration: `902` seconds (`--duration-secs 900`)
+- Symbols: `310`
+- Public subscriptions: `931`
+- Raw WebSocket messages: `295,794`
+- Normalized market events: `303,779`
+- Reconnects / data gaps / parser drops: `0 / 0 / 0`
+- Failed public backfill requests: `0`
+- SQLite clean shutdown: `true`
+- Replay status: `baseline_written`, then `passed`
+- Replay drift / missing / extra: `0 / 0 / 0`
+- Peak settled RSS: `55,541,760` bytes
+- Final evidence size: `65,646,592` bytes
+
+The exact command, timestamps, resource samples, limits, counters, and replay
+results are committed in the
+[machine-readable 15-minute soak report](evidence/soak/sota-allpairs-20260713-15m.json).
+Its live stderr contained only expected 30-second progress records; both replay
+stderr logs were empty. This is fresh bounded all-symbol evidence, not multi-day
+or unattended production proof.
+
+Previous 15-minute evidence follows for comparison.
 
 Run: `audit-allpairs-20260710-15m`
 
@@ -49,6 +96,28 @@ Current post-merge evidence:
 
 The exact command, official-document checks, code-review findings, and gate
 results are in the [2026-07-10 post-merge production audit](reports/2026-07-10-post-merge-production-audit.md).
+
+Opt-in closeout repair is now available with `--backfill-gaps` on a normalized
+recorded live run, plus the standalone `hls backfill` command. This is coarse
+candle coverage only. REST failures are recorded as unrepaired attempts and
+produce a non-zero command result; repeat attempts are skipped unless `--retry`
+is explicit. No current readiness claim treats this as tick-level recovery.
+
+Machine-validated supervised soak evidence is available through
+`scripts/run-supervised-soak.sh`. Its versioned report records the exact commit
+and command, CPU/RSS/storage samples, reconnect and data-quality counters,
+shutdown state, and two replay-parity outcomes. The validator rejects dirty or
+short runs, missing samples, parser/backfill failures, unrepaired tick gaps,
+memory growth beyond the declared limit, and replay drift. This closes the
+repository tooling gap; no multi-day run has yet been completed and the
+deployment status remains experimental.
+
+The runner itself was exercised against the public feed on 2026-07-13 with a
+15-second requested capture (`ops-smoke-live-20260713`): 310 symbols, 931
+subscriptions, 2,829 WebSocket messages, 10,515 normalized events, zero
+reconnects/gaps/parser drops, clean closeout, and zero replay
+drift/missing/extra. This validates the bounded runner path only; it does not
+replace the required multi-day evidence.
 
 Earlier five-minute evidence remains below for comparison.
 
@@ -122,12 +191,9 @@ Screen presets over captured data:
 - `thin_books`: 11 rows, clean stderr, `quality watch`
 - `flow_pressure`: 3 rows, clean stderr, `quality good`
 
-Real live-data screenshot artifacts from this validation pass:
-
-- `/tmp/hlscreen-prodreadiness-20260708-201752/screenshots/flow-pressure-live.svg`
-- `/tmp/hlscreen-prodreadiness-20260708-201752/screenshots/flow-pressure-live.png`
-
-Committed README screenshots remain deterministic fixture/replay assets generated by:
+The original live-data captures were local audit evidence and are not distributed
+as repository assets. Committed README screenshots remain deterministic
+fixture/replay assets generated by:
 
 ```bash
 python3 scripts/generate-screenshots.py
@@ -146,6 +212,7 @@ Use this checklist for bounded local validation:
    cargo build --release --workspace --all-features --locked
    RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps --locked
    cargo audit --deny warnings --ignore RUSTSEC-2024-0436
+   cargo deny check licenses sources
    scripts/check-release-packaging.sh
    ```
 
@@ -172,6 +239,16 @@ Use this checklist for bounded local validation:
      --raw \
      --normalized \
      --run-id allpairs-$(date +%Y%m%d-%H%M%S) \
+     --data-dir "$HLS_DATA_DIR"
+   ```
+
+   For an evidence package with resource samples and automatic parity checks,
+   use:
+
+   ```bash
+   scripts/run-supervised-soak.sh \
+     --duration-secs 900 \
+     --sample-interval-secs 30 \
      --data-dir "$HLS_DATA_DIR"
    ```
 
@@ -219,11 +296,16 @@ Ready:
 
 - MIT license, contribution guide, support policy, security policy, code of conduct.
 - GitHub issue/PR templates, CI, Dependabot policy, and release packaging dry-run checks.
+- SHA-pinned least-privilege workflows, PR candidate artifact configuration,
+  source/checksum/SBOM generation, and tag-only provenance configuration.
 - Deterministic screenshots and diagrammed architecture docs.
 - Threat model, privacy doc, data format doc, feature definitions, and release checklist.
 
 Still required before a public binary release:
 
 - Review and tag a `v*` release.
+- Make the repository public or use an eligible Enterprise Cloud repository so
+  the required artifact attestations can run.
+- Verify the feature PR candidate artifacts on every supported runner.
 - Verify generated GitHub release artifacts, checksums, and installers.
 - Publish installation instructions only after the tag workflow succeeds.

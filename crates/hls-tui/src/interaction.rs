@@ -306,6 +306,7 @@ pub struct WorkstationUiState {
     help_open: bool,
     paused: bool,
     quit_requested: bool,
+    status_alert_index: usize,
 }
 
 impl Default for WorkstationUiState {
@@ -323,6 +324,7 @@ impl Default for WorkstationUiState {
             help_open: false,
             paused: false,
             quit_requested: false,
+            status_alert_index: 0,
         }
     }
 }
@@ -434,6 +436,10 @@ impl WorkstationUiState {
         self.quit_requested
     }
 
+    pub fn status_alert_index(&self) -> usize {
+        self.status_alert_index
+    }
+
     pub fn visible_row_limit(&self) -> usize {
         self.density.visible_rows()
     }
@@ -536,9 +542,12 @@ impl WorkstationUiState {
             }
             WorkstationPane::Detail => self.view = self.view.previous(),
             WorkstationPane::Chart => self.chart_window = self.chart_window.previous(),
-            WorkstationPane::Book | WorkstationPane::Tape | WorkstationPane::Status => {
+            WorkstationPane::Book | WorkstationPane::Tape => {
                 self.selected_symbol = None;
                 self.selected = self.selected.saturating_sub(1);
+            }
+            WorkstationPane::Status => {
+                self.status_alert_index = self.status_alert_index.saturating_sub(1);
             }
         }
 
@@ -555,11 +564,17 @@ impl WorkstationUiState {
             }
             WorkstationPane::Detail => self.view = self.view.next(),
             WorkstationPane::Chart => self.chart_window = self.chart_window.next(),
-            WorkstationPane::Book | WorkstationPane::Tape | WorkstationPane::Status => {
+            WorkstationPane::Book | WorkstationPane::Tape => {
                 if row_count > 0 {
                     self.selected_symbol = None;
                     self.selected = (self.selected + 1).min(row_count - 1);
                 }
+            }
+            WorkstationPane::Status => {
+                self.status_alert_index = self
+                    .status_alert_index
+                    .saturating_add(1)
+                    .min(crate::alerts::MAX_TUI_ALERT_ROWS.saturating_sub(1));
             }
         }
 

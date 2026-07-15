@@ -99,3 +99,24 @@ fn server_live_fixture_publishes_read_only_market_rows() {
         .stdout(predicate::str::contains("order").not())
         .stderr(predicate::str::contains("hls live server listening"));
 }
+
+#[test]
+fn server_live_rejects_zero_refresh_interval_before_starting() {
+    Command::cargo_bin("hls")
+        .expect("hls binary")
+        .args([
+            "server",
+            "--live",
+            "--refresh-secs",
+            "0",
+            "--fixture-file",
+            &fixture("tests/fixtures/hyperliquid/ws_mock_live.ndjson"),
+        ])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains(
+            "--refresh-secs must be greater than zero",
+        ))
+        .stderr(predicate::str::contains("panicked").not())
+        .stderr(predicate::str::contains("listening").not());
+}
