@@ -4,6 +4,10 @@ Raw records preserve exact public market-data payloads with local receive timest
 
 Normalized records are derived from raw records and cover trades, top-of-book quotes, asset contexts, all-market mids, candles, data gaps, and recording runs.
 
+Committed examples follow the [test fixture policy](../tests/fixtures/README.md),
+which classifies fixture groups and prohibits secrets, real accounts, private
+streams, and unredacted user data.
+
 Top-of-book metrics must be labeled as `tob_depth_usd` and `tob_imbalance`. They are not full book depth.
 
 ## WebSocket Fixture Format
