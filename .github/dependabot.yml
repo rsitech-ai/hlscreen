@@ -14,6 +14,8 @@ updates:
       - dependency-name: rusqlite
         update-types:
           - version-update:semver-minor
+    cooldown:
+      default-days: 7
 
   - package-ecosystem: github-actions
     directory: /
@@ -29,3 +31,5 @@ updates:
       - dependency-name: actions/checkout
         update-types:
           - version-update:semver-major
+    cooldown:
+      default-days: 7

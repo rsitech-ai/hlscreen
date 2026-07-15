@@ -27,8 +27,8 @@
 - [x] T011 [US2] Implement public `candleSnapshot` backfill adapter in `crates/hls-hyperliquid/src/rest.rs`
 - [x] T012 [US2] Record backfill attempt metadata in `crates/hls-store/src/metadata.rs`
 - [x] T013 [US2] Keep reconnect-gap confidence degraded when coarse candle evidence is appended
-- [ ] T018 [US2] Wire live closeout candle coverage without marking tick gaps recovered
-- [ ] T020 [US2] Implement full trade/BBO reconstruction from a verified historical public source, or document the source limitation as permanent
+- [x] T018 [US2] Wire live closeout candle coverage without marking tick gaps recovered
+- [x] T020 [US2] Document that the official real-time public API has no historical trade/BBO reconnect endpoint; delayed, requester-paid, potentially incomplete archives remain best-effort offline research inputs only
 
 ## Phase 5: User Story 3 - Preserve Schema Compatibility (Priority: P2)
 

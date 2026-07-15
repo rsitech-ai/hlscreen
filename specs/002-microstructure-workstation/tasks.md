@@ -12,13 +12,13 @@
 
 **Purpose**: Prepare fixture locations, docs, and module placeholders without changing runtime behavior.
 
-- [x] T001 Create microstructure fixture directories in `/Users/s1kor/dev/trading/rsibot/hlscreen/tests/fixtures/microstructure/`
-- [x] T002 [P] Create microstructure golden output directory in `/Users/s1kor/dev/trading/rsibot/hlscreen/tests/golden/microstructure/`
-- [x] T003 [P] Create microstructure documentation stub in `/Users/s1kor/dev/trading/rsibot/hlscreen/docs/microstructure.md`
-- [x] T004 [P] Create benchmark fixture README in `/Users/s1kor/dev/trading/rsibot/hlscreen/tests/fixtures/microstructure/README.md`
-- [x] T005 Add microstructure module exports placeholders in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/src/lib.rs`
-- [x] T006 Add microstructure module exports placeholders in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-features/src/lib.rs`
-- [x] T007 Add CLI command placeholder registration comments in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/src/commands/mod.rs`
+- [x] T001 Create microstructure fixture directories in `tests/fixtures/microstructure/`
+- [x] T002 [P] Create microstructure golden output directory in `tests/golden/microstructure/`
+- [x] T003 [P] Create microstructure documentation stub in `docs/microstructure.md`
+- [x] T004 [P] Create benchmark fixture README in `tests/fixtures/microstructure/README.md`
+- [x] T005 Add microstructure module exports placeholders in `crates/hls-core/src/lib.rs`
+- [x] T006 Add microstructure module exports placeholders in `crates/hls-features/src/lib.rs`
+- [x] T007 Add CLI command placeholder registration comments in `crates/hls-cli/src/commands/mod.rs`
 
 ---
 
@@ -30,21 +30,21 @@
 
 ### Tests for Foundation
 
-- [x] T008 [P] Add confidence model unit tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/tests/confidence_state.rs`
-- [x] T009 [P] Add score breakdown unit tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/tests/score_breakdown.rs`
-- [x] T010 [P] Add metrics contract unit tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/tests/metrics_contract.rs`
-- [x] T011 [P] Add benchmark manifest parsing tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-store/tests/benchmark_manifest.rs`
-- [x] T012 [P] Add read-only safety regression tests for new CLI fields in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/tests/microstructure_safety.rs`
+- [x] T008 [P] Add confidence model unit tests in `crates/hls-core/tests/confidence_state.rs`
+- [x] T009 [P] Add score breakdown unit tests in `crates/hls-core/tests/score_breakdown.rs`
+- [x] T010 [P] Add metrics contract unit tests in `crates/hls-core/tests/metrics_contract.rs`
+- [x] T011 [P] Add benchmark manifest parsing tests in `crates/hls-store/tests/benchmark_manifest.rs`
+- [x] T012 [P] Add read-only safety regression tests for new CLI fields in `crates/hls-cli/tests/microstructure_safety.rs`
 
 ### Implementation for Foundation
 
-- [x] T013 Implement `DataConfidenceSnapshot` and reason codes in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/src/confidence.rs`
-- [x] T014 Implement `ScoreBreakdown` and score component contracts in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/src/score.rs`
-- [x] T015 Implement metric definition registry and label validation in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/src/metrics.rs`
-- [x] T016 Implement benchmark fixture manifest model in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-store/src/benchmark.rs`
-- [x] T017 Wire new foundation modules into `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/src/lib.rs`
-- [x] T018 Wire benchmark module into `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-store/src/lib.rs`
-- [x] T019 Update feature definitions docs for confidence and score terminology in `/Users/s1kor/dev/trading/rsibot/hlscreen/docs/feature-definitions.md`
+- [x] T013 Implement `DataConfidenceSnapshot` and reason codes in `crates/hls-core/src/confidence.rs`
+- [x] T014 Implement `ScoreBreakdown` and score component contracts in `crates/hls-core/src/score.rs`
+- [x] T015 Implement metric definition registry and label validation in `crates/hls-core/src/metrics.rs`
+- [x] T016 Implement benchmark fixture manifest model in `crates/hls-store/src/benchmark.rs`
+- [x] T017 Wire new foundation modules into `crates/hls-core/src/lib.rs`
+- [x] T018 Wire benchmark module into `crates/hls-store/src/lib.rs`
+- [x] T019 Update feature definitions docs for confidence and score terminology in `docs/feature-definitions.md`
 
 **Checkpoint**: Foundation ready when `cargo test -p hls-core --test confidence_state --test score_breakdown --test metrics_contract` and `cargo test -p hls-store --test benchmark_manifest` pass.
 
@@ -58,23 +58,23 @@
 
 ### Tests for User Story 1
 
-- [x] T020 [P] [US1] Add reconnect-gap fixture in `/Users/s1kor/dev/trading/rsibot/hlscreen/tests/fixtures/microstructure/gap_replay.ndjson`
-- [x] T021 [P] [US1] Add sparse-trade fixture in `/Users/s1kor/dev/trading/rsibot/hlscreen/tests/fixtures/microstructure/sparse_trades.ndjson`
-- [x] T022 [P] [US1] Add duplicate-event confidence tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/tests/confidence_state.rs`
-- [x] T023 [P] [US1] Add replay parity tests for confidence snapshots in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-store/tests/replay_parity.rs`
-- [x] T024 [P] [US1] Add CLI replay parity test in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/tests/replay_parity_command.rs`
-- [x] T025 [P] [US1] Add TUI confidence rendering golden test in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-tui/tests/confidence_pane.rs`
+- [x] T020 [P] [US1] Add reconnect-gap fixture in `tests/fixtures/microstructure/gap_replay.ndjson`
+- [x] T021 [P] [US1] Add sparse-trade fixture in `tests/fixtures/microstructure/sparse_trades.ndjson`
+- [x] T022 [P] [US1] Add duplicate-event confidence tests in `crates/hls-core/tests/confidence_state.rs`
+- [x] T023 [P] [US1] Add replay parity tests for confidence snapshots in `crates/hls-store/tests/replay_parity.rs`
+- [x] T024 [P] [US1] Add CLI replay parity test in `crates/hls-cli/tests/replay_parity_command.rs`
+- [x] T025 [P] [US1] Add TUI confidence rendering golden test in `crates/hls-tui/tests/confidence_pane.rs`
 
 ### Implementation for User Story 1
 
-- [x] T026 [US1] Attach confidence snapshots to feature snapshots in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/src/market_state.rs`
-- [x] T027 [US1] Compute confidence from gaps, freshness, sparse data, duplicates, parser drops, and writer backlog in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-features/src/engine.rs`
-- [x] T028 [US1] Persist confidence snapshot metadata in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-store/src/metadata.rs`
-- [x] T029 [US1] Implement replay parity checker in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-store/src/replay.rs`
-- [x] T030 [US1] Add `--verify-parity` replay flag in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/src/commands/replay.rs`
-- [x] T031 [US1] Render confidence state in market board rows in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-tui/src/app.rs`
-- [x] T032 [US1] Include confidence summary in live/replay command output in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/src/commands/live.rs`
-- [x] T033 [US1] Document confidence states and replay parity in `/Users/s1kor/dev/trading/rsibot/hlscreen/docs/microstructure.md`
+- [x] T026 [US1] Attach confidence snapshots to feature snapshots in `crates/hls-core/src/market_state.rs`
+- [x] T027 [US1] Compute confidence from gaps, freshness, sparse data, duplicates, parser drops, and writer backlog in `crates/hls-features/src/engine.rs`
+- [x] T028 [US1] Persist confidence snapshot metadata in `crates/hls-store/src/metadata.rs`
+- [x] T029 [US1] Implement replay parity checker in `crates/hls-store/src/replay.rs`
+- [x] T030 [US1] Add `--verify-parity` replay flag in `crates/hls-cli/src/commands/replay.rs`
+- [x] T031 [US1] Render confidence state in market board rows in `crates/hls-tui/src/app.rs`
+- [x] T032 [US1] Include confidence summary in live/replay command output in `crates/hls-cli/src/commands/live.rs`
+- [x] T033 [US1] Document confidence states and replay parity in `docs/microstructure.md`
 
 **Checkpoint**: User Story 1 complete when gap/replay fixtures degrade confidence correctly and replay parity detects drift.
 
@@ -88,21 +88,21 @@
 
 ### Tests for User Story 2
 
-- [x] T034 [P] [US2] Add spread-shock fixture in `/Users/s1kor/dev/trading/rsibot/hlscreen/tests/fixtures/microstructure/resilience_shock.ndjson`
-- [x] T035 [P] [US2] Add brittle-thin-book fixture in `/Users/s1kor/dev/trading/rsibot/hlscreen/tests/fixtures/microstructure/thin_brittle_book.ndjson`
-- [x] T036 [P] [US2] Add liquidity resilience formula tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-features/tests/resilience.rs`
-- [x] T037 [P] [US2] Add tradeability classifier tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-features/tests/tradeability.rs`
-- [x] T038 [P] [US2] Add screen preset tests for resilience filters in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-screen/tests/microstructure_presets.rs`
+- [x] T034 [P] [US2] Add spread-shock fixture in `tests/fixtures/microstructure/resilience_shock.ndjson`
+- [x] T035 [P] [US2] Add brittle-thin-book fixture in `tests/fixtures/microstructure/thin_brittle_book.ndjson`
+- [x] T036 [P] [US2] Add liquidity resilience formula tests in `crates/hls-features/tests/resilience.rs`
+- [x] T037 [P] [US2] Add tradeability classifier tests in `crates/hls-features/tests/tradeability.rs`
+- [x] T038 [P] [US2] Add screen preset tests for resilience filters in `crates/hls-screen/tests/microstructure_presets.rs`
 
 ### Implementation for User Story 2
 
-- [x] T039 [US2] Implement liquidity resilience state machine in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-features/src/resilience.rs`
-- [x] T040 [US2] Implement spread shock and recovery metrics in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-features/src/resilience.rs`
-- [x] T041 [US2] Implement tradeability classifier in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-features/src/tradeability.rs`
-- [x] T042 [US2] Add BBO OFI proxy and signed flow fields to feature rows in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-screen/src/row.rs`
-- [x] T043 [US2] Add resilience and tradeability presets in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-screen/src/presets.rs`
-- [x] T044 [US2] Render resilience columns or detail lines in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-tui/src/app.rs`
-- [x] T045 [US2] Document BBO-only metric caveats in `/Users/s1kor/dev/trading/rsibot/hlscreen/docs/feature-definitions.md`
+- [x] T039 [US2] Implement liquidity resilience state machine in `crates/hls-features/src/resilience.rs`
+- [x] T040 [US2] Implement spread shock and recovery metrics in `crates/hls-features/src/resilience.rs`
+- [x] T041 [US2] Implement tradeability classifier in `crates/hls-features/src/tradeability.rs`
+- [x] T042 [US2] Add BBO OFI proxy and signed flow fields to feature rows in `crates/hls-screen/src/row.rs`
+- [x] T043 [US2] Add resilience and tradeability presets in `crates/hls-screen/src/presets.rs`
+- [x] T044 [US2] Render resilience columns or detail lines in `crates/hls-tui/src/app.rs`
+- [x] T045 [US2] Document BBO-only metric caveats in `docs/feature-definitions.md`
 
 **Checkpoint**: User Story 2 complete when fixture rows classify shock/recovery/thin states with expected labels and no full-book claims.
 
@@ -116,21 +116,21 @@
 
 ### Tests for User Story 3
 
-- [x] T046 [P] [US3] Add score component fixture in `/Users/s1kor/dev/trading/rsibot/hlscreen/tests/fixtures/microstructure/explainable_scores.json`
-- [x] T047 [P] [US3] Add score aggregation tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/tests/score_breakdown.rs`
-- [x] T048 [P] [US3] Add why-ranked TUI golden test in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-tui/tests/why_ranked_pane.rs`
-- [x] T049 [P] [US3] Add `hls explain` CLI test in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/tests/explain_command.rs`
+- [x] T046 [P] [US3] Add score component fixture in `tests/fixtures/microstructure/explainable_scores.json`
+- [x] T047 [P] [US3] Add score aggregation tests in `crates/hls-core/tests/score_breakdown.rs`
+- [x] T048 [P] [US3] Add why-ranked TUI golden test in `crates/hls-tui/tests/why_ranked_pane.rs`
+- [x] T049 [P] [US3] Add `hls explain` CLI test in `crates/hls-cli/tests/explain_command.rs`
 
 ### Implementation for User Story 3
 
-- [x] T050 [US3] Generate score breakdowns in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-features/src/engine.rs`
-- [x] T051 [US3] Add score component fields to screen rows in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-screen/src/row.rs`
-- [x] T052 [US3] Add score component filtering and sorting support in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-screen/src/dsl/evaluator.rs`
-- [x] T053 [US3] Implement why-ranked rendering in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-tui/src/detail.rs`
-- [x] T054 [US3] Export detail module from `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-tui/src/lib.rs`
-- [x] T055 [US3] Implement `hls explain` command in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/src/commands/explain.rs`
-- [x] T056 [US3] Register explain command in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/src/main.rs`
-- [x] T057 [US3] Document score components and caveats in `/Users/s1kor/dev/trading/rsibot/hlscreen/docs/microstructure.md`
+- [x] T050 [US3] Generate score breakdowns in `crates/hls-features/src/engine.rs`
+- [x] T051 [US3] Add score component fields to screen rows in `crates/hls-screen/src/row.rs`
+- [x] T052 [US3] Add score component filtering and sorting support in `crates/hls-screen/src/dsl/evaluator.rs`
+- [x] T053 [US3] Implement why-ranked rendering in `crates/hls-tui/src/detail.rs`
+- [x] T054 [US3] Export detail module from `crates/hls-tui/src/lib.rs`
+- [x] T055 [US3] Implement `hls explain` command in `crates/hls-cli/src/commands/explain.rs`
+- [x] T056 [US3] Register explain command in `crates/hls-cli/src/main.rs`
+- [x] T057 [US3] Document score components and caveats in `docs/microstructure.md`
 
 **Checkpoint**: User Story 3 complete when top rows have deterministic score breakdowns in CLI, TUI, and replay.
 
@@ -144,20 +144,20 @@
 
 ### Tests for User Story 4
 
-- [x] T058 [P] [US4] Add metadata enrichment fixtures in `/Users/s1kor/dev/trading/rsibot/hlscreen/tests/fixtures/microstructure/metadata_enrichment.json`
-- [x] T059 [P] [US4] Add public metadata adapter tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-hyperliquid/tests/metadata_enrichment.rs`
-- [x] T060 [P] [US4] Add metadata model tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/tests/metadata_enrichment.rs`
-- [x] T061 [P] [US4] Add metadata preset tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-screen/tests/metadata_presets.rs`
+- [x] T058 [P] [US4] Add metadata enrichment fixtures in `tests/fixtures/microstructure/metadata_enrichment.json`
+- [x] T059 [P] [US4] Add public metadata adapter tests in `crates/hls-hyperliquid/tests/metadata_enrichment.rs`
+- [x] T060 [P] [US4] Add metadata model tests in `crates/hls-core/tests/metadata_enrichment.rs`
+- [x] T061 [P] [US4] Add metadata preset tests in `crates/hls-screen/tests/metadata_presets.rs`
 
 ### Implementation for User Story 4
 
-- [x] T062 [US4] Implement metadata enrichment model in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/src/metadata.rs`
-- [x] T063 [US4] Add public metadata fetch/cache adapter in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-hyperliquid/src/rest.rs`
-- [x] T064 [US4] Persist metadata cache freshness in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-store/src/metadata.rs`
-- [x] T065 [US4] Add metadata fields to screen rows in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-screen/src/row.rs`
-- [x] T066 [US4] Add new-listing and metadata cohort presets in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-screen/src/presets.rs`
-- [x] T067 [US4] Surface metadata tags in terminal rows or details in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-tui/src/app.rs`
-- [x] T068 [US4] Document metadata source stability and unknown-field behavior in `/Users/s1kor/dev/trading/rsibot/hlscreen/docs/microstructure.md`
+- [x] T062 [US4] Implement metadata enrichment model in `crates/hls-core/src/metadata.rs`
+- [x] T063 [US4] Add public metadata fetch/cache adapter in `crates/hls-hyperliquid/src/rest.rs`
+- [x] T064 [US4] Persist metadata cache freshness in `crates/hls-store/src/metadata.rs`
+- [x] T065 [US4] Add metadata fields to screen rows in `crates/hls-screen/src/row.rs`
+- [x] T066 [US4] Add new-listing and metadata cohort presets in `crates/hls-screen/src/presets.rs`
+- [x] T067 [US4] Surface metadata tags in terminal rows or details in `crates/hls-tui/src/app.rs`
+- [x] T068 [US4] Document metadata source stability and unknown-field behavior in `docs/microstructure.md`
 
 **Checkpoint**: User Story 4 complete when metadata fields enrich rows without introducing private/account data or live-ingestion failures.
 
@@ -171,23 +171,23 @@
 
 ### Tests for User Story 5
 
-- [x] T069 [P] [US5] Add benchmark command tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/tests/bench_command.rs`
-- [x] T070 [P] [US5] Add metrics output tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/tests/metrics_output.rs`
-- [x] T071 [P] [US5] Add extension contract tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/tests/extension_contract.rs`
-- [x] T072 [P] [US5] Add release packaging check script tests in `/Users/s1kor/dev/trading/rsibot/hlscreen/tests/integration/release_packaging.rs`
+- [x] T069 [P] [US5] Add benchmark command tests in `crates/hls-cli/tests/bench_command.rs`
+- [x] T070 [P] [US5] Add metrics output tests in `crates/hls-cli/tests/metrics_output.rs`
+- [x] T071 [P] [US5] Add extension contract tests in `crates/hls-core/tests/extension_contract.rs`
+- [x] T072 [P] [US5] Add release packaging check script tests in `tests/integration/release_packaging.rs`
 
 ### Implementation for User Story 5
 
-- [x] T073 [US5] Implement benchmark pack runner in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-store/src/benchmark.rs`
-- [x] T074 [US5] Implement `hls bench` command in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/src/commands/bench.rs`
-- [x] T075 [US5] Register bench command in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/src/main.rs`
-- [x] T076 [US5] Implement metrics snapshot output helpers in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/src/metrics.rs`
-- [x] T077 [US5] Add metrics output to `hls doctor --live --json` in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-cli/src/commands/doctor.rs`
-- [x] T078 [US5] Implement read-only extension contract models in `/Users/s1kor/dev/trading/rsibot/hlscreen/crates/hls-core/src/extension.rs`
-- [x] T079 [US5] Add release packaging configuration draft in `/Users/s1kor/dev/trading/rsibot/hlscreen/dist-workspace.toml`
-- [x] T080 [US5] Add release packaging workflow draft in `/Users/s1kor/dev/trading/rsibot/hlscreen/.github/workflows/release.yml`
-- [x] T081 [US5] Update release documentation in `/Users/s1kor/dev/trading/rsibot/hlscreen/docs/RELEASING.md`
-- [x] T082 [US5] Add plugin/extension documentation in `/Users/s1kor/dev/trading/rsibot/hlscreen/docs/extensions.md`
+- [x] T073 [US5] Implement benchmark pack runner in `crates/hls-store/src/benchmark.rs`
+- [x] T074 [US5] Implement `hls bench` command in `crates/hls-cli/src/commands/bench.rs`
+- [x] T075 [US5] Register bench command in `crates/hls-cli/src/main.rs`
+- [x] T076 [US5] Implement metrics snapshot output helpers in `crates/hls-core/src/metrics.rs`
+- [x] T077 [US5] Add metrics output to `hls doctor --live --json` in `crates/hls-cli/src/commands/doctor.rs`
+- [x] T078 [US5] Implement read-only extension contract models in `crates/hls-core/src/extension.rs`
+- [x] T079 [US5] Add release packaging configuration draft in `dist-workspace.toml`
+- [x] T080 [US5] Add release packaging workflow draft in `.github/workflows/release.yml`
+- [x] T081 [US5] Update release documentation in `docs/RELEASING.md`
+- [x] T082 [US5] Add plugin/extension documentation in `docs/extensions.md`
 
 **Checkpoint**: User Story 5 complete when benchmark, metrics, release, and extension contracts can be validated without secrets.
 
@@ -197,16 +197,16 @@
 
 **Purpose**: Documentation, validation, screenshots, reports, and repo continuity.
 
-- [x] T083 [P] Update README roadmap and status in `/Users/s1kor/dev/trading/rsibot/hlscreen/README.md`
-- [x] T084 [P] Update architecture documentation in `/Users/s1kor/dev/trading/rsibot/hlscreen/docs/architecture.md`
-- [x] T085 [P] Update data format documentation in `/Users/s1kor/dev/trading/rsibot/hlscreen/docs/data-format.md`
-- [x] T086 [P] Update screenshot generator for new confidence/resilience output in `/Users/s1kor/dev/trading/rsibot/hlscreen/scripts/generate-screenshots.py`
-- [x] T087 [P] Add dated implementation report in `/Users/s1kor/dev/trading/rsibot/hlscreen/docs/reports/2026-07-08-microstructure-workstation.md`
-- [x] T088 Run full validation gate and record results in `/Users/s1kor/dev/trading/rsibot/hlscreen/PLAN.md`
-- [x] T089 Update durable repo memory in `/Users/s1kor/dev/trading/rsibot/hlscreen/MEMORY.md`
-- [x] T090 Update daily memory and lesson stores in `/Users/s1kor/dev/trading/rsibot/hlscreen/docs/agent-memory/agent_lessons.jsonl`
-- [x] T091 Review for read-only boundary regressions in `/Users/s1kor/dev/trading/rsibot/hlscreen/docs/THREAT_MODEL.md`
-- [x] T092 Close local planning notes in `/Users/s1kor/dev/trading/rsibot/hlscreen/TODO.md`
+- [x] T083 [P] Update README roadmap and status in `README.md`
+- [x] T084 [P] Update architecture documentation in `docs/architecture.md`
+- [x] T085 [P] Update data format documentation in `docs/data-format.md`
+- [x] T086 [P] Update screenshot generator for new confidence/resilience output in `scripts/generate-screenshots.py`
+- [x] T087 [P] Add dated implementation report in `docs/reports/2026-07-08-microstructure-workstation.md`
+- [x] T088 Run full validation gate and record results in `PLAN.md`
+- [x] T089 Update durable repo memory in `MEMORY.md`
+- [x] T090 Update daily memory and lesson stores in `docs/agent-memory/agent_lessons.jsonl`
+- [x] T091 Review for read-only boundary regressions in `docs/THREAT_MODEL.md`
+- [x] T092 Close local planning notes in `TODO.md`
 
 ---
 

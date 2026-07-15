@@ -1122,6 +1122,8 @@ version = "0.1.0"
 dependencies = [
  "hls-core",
  "hls-hyperliquid",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

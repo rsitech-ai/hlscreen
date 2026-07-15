@@ -1,0 +1,244 @@
+{
+  "schema_version": 1,
+  "run_id": "sota-allpairs-20260713-15m",
+  "commit": "f590787fd53c55c398b339bb631851e2af91857d",
+  "command": [
+    "target/release/hls",
+    "live",
+    "--all-symbols",
+    "--duration-secs",
+    "900",
+    "--refresh-secs",
+    "30",
+    "--record",
+    "--raw",
+    "--normalized",
+    "--backfill-gaps",
+    "--run-id",
+    "sota-allpairs-20260713-15m",
+    "--data-dir",
+    "/tmp/hlscreen-soak-20260713",
+    "--color",
+    "never"
+  ],
+  "started_at": "2026-07-13T12:42:36Z",
+  "ended_at": "2026-07-13T12:57:38Z",
+  "duration_secs": 902,
+  "exit_code": 0,
+  "clean_shutdown": true,
+  "samples": [
+    {
+      "elapsed_secs": 0,
+      "cpu_percent": 0.0,
+      "rss_bytes": 32768,
+      "data_bytes": 0
+    },
+    {
+      "elapsed_secs": 30,
+      "cpu_percent": 0.4,
+      "rss_bytes": 39960576,
+      "data_bytes": 4284416
+    },
+    {
+      "elapsed_secs": 60,
+      "cpu_percent": 0.4,
+      "rss_bytes": 49528832,
+      "data_bytes": 7135232
+    },
+    {
+      "elapsed_secs": 90,
+      "cpu_percent": 0.1,
+      "rss_bytes": 46530560,
+      "data_bytes": 9232384
+    },
+    {
+      "elapsed_secs": 120,
+      "cpu_percent": 0.6,
+      "rss_bytes": 48857088,
+      "data_bytes": 11329536
+    },
+    {
+      "elapsed_secs": 150,
+      "cpu_percent": 2.8,
+      "rss_bytes": 50757632,
+      "data_bytes": 13754368
+    },
+    {
+      "elapsed_secs": 180,
+      "cpu_percent": 1.4,
+      "rss_bytes": 51068928,
+      "data_bytes": 15851520
+    },
+    {
+      "elapsed_secs": 210,
+      "cpu_percent": 1.1,
+      "rss_bytes": 54263808,
+      "data_bytes": 18292736
+    },
+    {
+      "elapsed_secs": 240,
+      "cpu_percent": 0.2,
+      "rss_bytes": 51232768,
+      "data_bytes": 20389888
+    },
+    {
+      "elapsed_secs": 270,
+      "cpu_percent": 0.1,
+      "rss_bytes": 51249152,
+      "data_bytes": 21438464
+    },
+    {
+      "elapsed_secs": 300,
+      "cpu_percent": 0.4,
+      "rss_bytes": 51298304,
+      "data_bytes": 23875584
+    },
+    {
+      "elapsed_secs": 330,
+      "cpu_percent": 0.0,
+      "rss_bytes": 51347456,
+      "data_bytes": 25972736
+    },
+    {
+      "elapsed_secs": 360,
+      "cpu_percent": 1.9,
+      "rss_bytes": 51494912,
+      "data_bytes": 28401664
+    },
+    {
+      "elapsed_secs": 390,
+      "cpu_percent": 2.6,
+      "rss_bytes": 51724288,
+      "data_bytes": 30498816
+    },
+    {
+      "elapsed_secs": 420,
+      "cpu_percent": 1.3,
+      "rss_bytes": 55033856,
+      "data_bytes": 32927744
+    },
+    {
+      "elapsed_secs": 450,
+      "cpu_percent": 0.4,
+      "rss_bytes": 51855360,
+      "data_bytes": 35024896
+    },
+    {
+      "elapsed_secs": 480,
+      "cpu_percent": 0.7,
+      "rss_bytes": 51855360,
+      "data_bytes": 36073472
+    },
+    {
+      "elapsed_secs": 510,
+      "cpu_percent": 0.6,
+      "rss_bytes": 51953664,
+      "data_bytes": 38498304
+    },
+    {
+      "elapsed_secs": 540,
+      "cpu_percent": 0.4,
+      "rss_bytes": 52133888,
+      "data_bytes": 40595456
+    },
+    {
+      "elapsed_secs": 570,
+      "cpu_percent": 0.5,
+      "rss_bytes": 55312384,
+      "data_bytes": 43024384
+    },
+    {
+      "elapsed_secs": 600,
+      "cpu_percent": 0.3,
+      "rss_bytes": 55377920,
+      "data_bytes": 45121536
+    },
+    {
+      "elapsed_secs": 630,
+      "cpu_percent": 0.2,
+      "rss_bytes": 55410688,
+      "data_bytes": 47550464
+    },
+    {
+      "elapsed_secs": 660,
+      "cpu_percent": 0.6,
+      "rss_bytes": 52199424,
+      "data_bytes": 48599040
+    },
+    {
+      "elapsed_secs": 690,
+      "cpu_percent": 0.3,
+      "rss_bytes": 52232192,
+      "data_bytes": 50696192
+    },
+    {
+      "elapsed_secs": 720,
+      "cpu_percent": 0.2,
+      "rss_bytes": 55459840,
+      "data_bytes": 53129216
+    },
+    {
+      "elapsed_secs": 750,
+      "cpu_percent": 0.2,
+      "rss_bytes": 52248576,
+      "data_bytes": 55226368
+    },
+    {
+      "elapsed_secs": 780,
+      "cpu_percent": 0.2,
+      "rss_bytes": 55541760,
+      "data_bytes": 57643008
+    },
+    {
+      "elapsed_secs": 810,
+      "cpu_percent": 0.3,
+      "rss_bytes": 52346880,
+      "data_bytes": 59740160
+    },
+    {
+      "elapsed_secs": 840,
+      "cpu_percent": 1.2,
+      "rss_bytes": 52346880,
+      "data_bytes": 60788736
+    },
+    {
+      "elapsed_secs": 870,
+      "cpu_percent": 2.8,
+      "rss_bytes": 52363264,
+      "data_bytes": 63213568
+    },
+    {
+      "elapsed_secs": 900,
+      "cpu_percent": 1.3,
+      "rss_bytes": 52363264,
+      "data_bytes": 65310720
+    },
+    {
+      "elapsed_secs": 902,
+      "cpu_percent": 0.0,
+      "rss_bytes": 0,
+      "data_bytes": 65646592
+    }
+  ],
+  "summary": {
+    "symbols": 310,
+    "subscriptions": 931,
+    "ws_messages": 295794,
+    "market_events": 303779,
+    "reconnects": 0,
+    "data_gaps": 0,
+    "unrepaired_gaps": 0,
+    "parser_drops": 0,
+    "backfill_requests_failed": 0
+  },
+  "replay": {
+    "first_status": "baseline_written",
+    "second_status": "passed",
+    "drift": 0,
+    "missing": 0,
+    "extra": 0
+  },
+  "limits": {
+    "max_rss_growth_bytes": 268435456
+  }
+}

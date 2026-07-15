@@ -7,19 +7,50 @@ on:
   pull_request:
     branches:
       - main
+  schedule:
+    - cron: "17 3 * * 1"
 
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  rustsec:
-    name: RustSec advisory scan
-    runs-on: ubuntu-latest
+  actions-security:
+    name: GitHub Actions security
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+
+      - name: Audit GitHub Actions definitions
+        run: >-
+          uvx "zizmor@1.26.1"
+          --offline
+          --pedantic
+          --strict-collection
+          --color never
+          .github
+
+  rustsec:
+    name: RustSec advisory scan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          persist-credentials: false
 
       - name: Install Rust toolchain
         run: rustup toolchain install 1.88 --profile minimal
@@ -32,6 +63,26 @@ jobs:
         # Keep every vulnerability and all other warnings denied while upstream removes it.
         run: cargo audit --deny warnings --ignore RUSTSEC-2024-0436
 
+  dependency-policy:
+    name: Dependency license and source policy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          persist-credentials: false
+
+      - name: Install Rust toolchain
+        run: rustup toolchain install 1.88 --profile minimal
+
+      - name: Install cargo-deny
+        run: cargo install cargo-deny --version 0.20.2 --locked
+
+      - name: Enforce dependency licenses and registries
+        run: cargo deny check licenses sources
+
   pty-tui:
     name: PTY TUI (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
@@ -40,18 +91,20 @@ jobs:
       fail-fast: false
       matrix:
         os:
-          - ubuntu-latest
-          - macos-latest
+          - ubuntu-24.04
+          - macos-15
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          persist-credentials: false
 
       - name: Install Rust toolchain
         run: rustup toolchain install 1.88 --profile minimal
 
       - name: Cache cargo registry and PTY build outputs
-        uses: actions/cache@v5
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
         with:
           path: |
             ~/.cargo/registry
@@ -66,7 +119,7 @@ jobs:
 
   rust:
     name: Rust workspace
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
       CARGO_INCREMENTAL: 0
@@ -75,13 +128,16 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          persist-credentials: false
+          fetch-depth: 0
 
       - name: Install Rust toolchain
         run: rustup toolchain install 1.88 --profile minimal --component rustfmt --component clippy
 
       - name: Cache cargo registry
-        uses: actions/cache@v5
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
         with:
           path: |
             ~/.cargo/registry
@@ -110,3 +166,32 @@ jobs:
 
       - name: Diff hygiene
         run: git diff --check
+
+  public-contract-smoke:
+    name: Scheduled public API contract smoke
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          persist-credentials: false
+
+      - name: Install Rust toolchain
+        run: rustup toolchain install 1.88 --profile minimal
+
+      - name: Build release CLI
+        run: cargo build --release --locked -p hls-cli --bin hls
+
+      - name: Verify public metadata contract
+        run: ./target/release/hls symbols --top 5
+
+      - name: Verify bounded all-symbol public stream
+        run: >-
+          ./target/release/hls live
+          --all-symbols
+          --duration-secs 60
+          --refresh-secs 30
+          --color never
