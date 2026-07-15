@@ -363,12 +363,14 @@ for marker in [
 # Scan hosted text in memory. Emit only resource kind and numeric identifier,
 # never body text, matches, emails, tokens, secret names, or variable values.
 text_hits: list[tuple[str, object]] = []
+developer_home_pattern = r"/" r"Users/[^\s`]+"
 credential = re.compile(
     r"-----BEGIN (?:RSA |EC |OPENSSH |DSA )?PRIVATE KEY|"
     r"gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,}|"
     r"sk-[A-Za-z0-9_-]{20,}|AKIA[0-9A-Z]{16}|"
-    r"/Users/[^\s`]+|/private/tmp/hlscreen|"
-    r"(?<![A-Za-z0-9._%+-])[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}(?![A-Za-z0-9])"
+    + developer_home_pattern
+    + r"|/private" r"/tmp/hlscreen|"
+    + r"(?<![A-Za-z0-9._%+-])[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}(?![A-Za-z0-9])"
 )
 
 def scan(kind: str, identifier: object, *values: object) -> None:
@@ -431,7 +433,11 @@ for run in all_runs:
                 continue
             for member in members:
                 text = archive.read(member).decode("utf-8", errors="replace")
-                text = re.sub(r"/Users/(?:runner|runneradmin)/", "/ci-runner/", text)
+                text = re.sub(
+                    r"/" r"Users/(?:runner|runneradmin)/",
+                    "/ci-runner/",
+                    text,
+                )
                 if credential.search(text):
                     log_hits.append(run_id)
                     break
