@@ -1,0 +1,4 @@
+# Preserve third-party license text exactly as packaged upstream. Some selected
+# licenses intentionally contain CRLF or trailing spaces, so Git's whitespace
+# checker must not rewrite or reject this generated legal artifact.
+THIRD_PARTY_LICENSES.txt -text whitespace=-trailing-space,-cr-at-eol

@@ -16,13 +16,23 @@ This project is pre-1.0. Use this checklist before tagging a public release.
    RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps --locked
    cargo audit --deny warnings --ignore RUSTSEC-2024-0436
    cargo deny check licenses sources
+   scripts/check-third-party-licenses.sh
    scripts/check-release-packaging.sh
    git diff --check
    python3 scripts/generate-screenshots.py --check
    ```
-   Install the policy tool with
+   Install the policy tools with
    `cargo install cargo-deny --version 0.20.2 --locked` when it is not already
-   available. CI installs this exact version.
+   available and
+   `cargo install cargo-about --version 0.9.1 --locked --features cli` for the
+   deterministic attribution check. CI installs these exact versions.
+   The checker fetches only the locked graph first, then runs cargo-about with
+   `--offline`; cargo-about 0.9.1 does not support a `no-clearly-defined`
+   configuration field. Offline generation is the supported fail-closed mode
+   that disables ClearlyDefined and other mutable network enrichment. The
+   tradeoff is that a poorly packaged crate can expose less copyright detail
+   than network enrichment would recover, so dependency upgrades require a
+   manual notice review.
    `scripts/check-release-packaging.sh` runs the static release contract tests,
    the public-readiness scan, and the local artifact smoke described below.
    `RUSTSEC-2024-0436` is a narrow exception for the unmaintained `paste`
@@ -86,6 +96,8 @@ The release workflow provides:
 - workflow concurrency limits and a pinned pedantic zizmor security gate;
 - a cargo-deny policy across every supported release target that rejects
   unapproved licenses, registries, and Git dependencies;
+- deterministic third-party dependency attribution generated from `Cargo.lock`
+  with pinned cargo-about 0.9.1 and no mutable ClearlyDefined enrichment;
 - read-only top-level permissions, with `contents`, `id-token`, and
   `attestations` write permissions scoped only to the tag-only host job;
 - release build caching disabled, no dynamic container image, and no
@@ -116,7 +128,8 @@ Every release candidate needs:
 - a SHA-256 checksum file beside each archive;
 - the source archive and CycloneDX SBOM;
 - auditable dependency metadata in each Rust binary;
-- license, README, and changelog included in the archive;
+- project `LICENSE`, `THIRD_PARTY_LICENSES.txt`, `THIRD_PARTY_NOTICES.md`,
+  README, and changelog included in the archive;
 - unpacked binary smoke with `hls --help`;
 - read-only safety smoke with `hls doctor`;
 - bounded fixture live smoke with `hls live --fixture-file ... --once`;
