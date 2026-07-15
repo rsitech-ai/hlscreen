@@ -1,9 +1,9 @@
-use std::{env, fs, path::PathBuf};
+use std::{env, fs, path::PathBuf, process::Command};
 
 fn repo_root() -> PathBuf {
     env::var("HLS_REPO_ROOT")
         .map(PathBuf::from)
-        .unwrap_or_else(|_| env::current_dir().expect("current dir"))
+        .unwrap_or_else(|_| PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../.."))
 }
 
 fn read(path: &str) -> String {
@@ -11,6 +11,53 @@ fn read(path: &str) -> String {
     fs::read_to_string(&full_path).unwrap_or_else(|err| {
         panic!("read {}: {err}", full_path.display());
     })
+}
+
+#[test]
+fn distributable_crates_are_not_publishable() {
+    let output = Command::new(env!("CARGO"))
+        .args(["metadata", "--no-deps", "--format-version", "1"])
+        .current_dir(repo_root())
+        .output()
+        .expect("run cargo metadata");
+    assert!(
+        output.status.success(),
+        "cargo metadata failed: {}",
+        String::from_utf8_lossy(&output.stderr),
+    );
+
+    let metadata: serde_json::Value =
+        serde_json::from_slice(&output.stdout).expect("parse cargo metadata");
+    let packages = metadata["packages"]
+        .as_array()
+        .expect("cargo metadata packages array");
+    let workspace_members = metadata["workspace_members"]
+        .as_array()
+        .expect("cargo metadata workspace members array");
+    let mut package_ids: Vec<_> = packages
+        .iter()
+        .map(|package| package["id"].as_str().expect("package id"))
+        .collect();
+    let mut workspace_member_ids: Vec<_> = workspace_members
+        .iter()
+        .map(|member| member.as_str().expect("workspace member id"))
+        .collect();
+    package_ids.sort_unstable();
+    workspace_member_ids.sort_unstable();
+    assert_eq!(
+        package_ids, workspace_member_ids,
+        "metadata packages must cover every workspace member",
+    );
+
+    let publishable: Vec<_> = packages
+        .iter()
+        .filter(|package| package["publish"] != serde_json::json!([]))
+        .map(|package| package["name"].as_str().unwrap_or("<unnamed>"))
+        .collect();
+    assert!(
+        publishable.is_empty(),
+        "workspace packages must report publish == []: {publishable:?}",
+    );
 }
 
 #[test]
@@ -94,7 +141,10 @@ fn workflows_pin_runners_actions_and_release_permissions() {
             workflow.matches("persist-credentials: false").count(),
             "every checkout must disable credential persistence in {path}",
         );
-        for line in workflow.lines().filter(|line| line.trim().starts_with("uses:")) {
+        for line in workflow
+            .lines()
+            .filter(|line| line.trim().starts_with("uses:"))
+        {
             let reference = line
                 .split_once('@')
                 .map(|(_, reference)| reference.trim())
@@ -102,9 +152,15 @@ fn workflows_pin_runners_actions_and_release_permissions() {
                 .split_whitespace()
                 .next()
                 .unwrap_or_default();
-            assert_eq!(reference.len(), 40, "action is not SHA-pinned in {path}: {line}");
+            assert_eq!(
+                reference.len(),
+                40,
+                "action is not SHA-pinned in {path}: {line}"
+            );
             assert!(
-                reference.chars().all(|character| character.is_ascii_hexdigit()),
+                reference
+                    .chars()
+                    .all(|character| character.is_ascii_hexdigit()),
                 "action has a non-hex pin in {path}: {line}",
             );
         }
@@ -221,7 +277,8 @@ fn release_docs_and_roadmap_separate_local_proof_from_publication() {
     assert!(roadmap.contains("no reviewed `v*` release artifact publication"));
     assert!(roadmap.contains("These are not a supported production service"));
     assert!(
-        roadmap.contains("Validate supervisor templates before describing them as deployment support")
+        roadmap
+            .contains("Validate supervisor templates before describing them as deployment support")
     );
 }
 
