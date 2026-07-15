@@ -1,4 +1,9 @@
-use std::{env, fs, path::PathBuf, process::Command};
+use std::{
+    env, fs,
+    io::Write,
+    path::PathBuf,
+    process::{Command, Stdio},
+};
 
 fn repo_root() -> PathBuf {
     env::var("HLS_REPO_ROOT")
@@ -386,10 +391,11 @@ fn release_validation_scripts_cover_local_artifacts_checksums_and_public_readine
     assert!(public_scan.contains("Release tag created"));
     assert!(public_scan.contains("private_path_pattern"));
     assert!(public_scan.contains("credential_pattern"));
-    assert!(public_scan.matches("git grep -n -E -e").count() >= 2);
-    assert!(public_scan.contains("git log -p --all --no-ext-diff --no-textconv"));
+    assert!(public_scan.contains("git grep -n -E -e \"$private_path_pattern\""));
+    assert!(public_scan.contains("git grep -l -E -e \"$credential_pattern\""));
     assert!(public_scan.contains("credential_status > 1"));
-    assert!(public_scan.contains("history_credential_status > 1"));
+    assert!(public_scan.contains("scripts/check-history-secrets.sh"));
+    assert!(!public_scan.contains("history.patch"));
 
     let ci = read(".github/workflows/ci.yml");
     assert!(ci.contains("zizmor@1.26.1"));
@@ -740,4 +746,313 @@ fn public_docs_define_fixture_tooling_release_and_unreleased_contracts() {
         "docs/RELEASING.md",
         "tests/fixtures/README.md",
     ]);
+}
+
+#[test]
+fn public_readiness_gate_is_fail_closed_and_secret_safe() {
+    let readiness = read("scripts/check-public-readiness.sh");
+
+    for required in [
+        "THIRD_PARTY_LICENSES.txt",
+        "THIRD_PARTY_NOTICES.md",
+        "third_party/spec-kit/LICENSE",
+        "third_party/notices/manifest.json",
+        "docs/DEVELOPMENT_TOOLING.md",
+        "docs/OPEN_SOURCE_AUDIT.md",
+        "tests/fixtures/README.md",
+        "scripts/check.sh",
+        "scripts/check-history-secrets.sh",
+        "scripts/check-public-surface.sh",
+        "scripts/test-public-surface-gate.py",
+        "scripts/summarize-git-identities.py",
+    ] {
+        assert!(
+            readiness.contains(required),
+            "public readiness omits required file {required}",
+        );
+    }
+    for contract in [
+        "placeholder_pattern",
+        "obsolete_contact_pattern",
+        "private_path_pattern",
+        "credential_pattern",
+        "unsafe_wording_pattern",
+        "refs/tags/v0.1.0",
+        "possible committed credential",
+        "--redact=100",
+        "--log-opts=\\\"--all\\\"",
+    ] {
+        assert!(
+            readiness.contains(contract),
+            "public readiness omits fail-closed contract {contract}",
+        );
+    }
+    assert!(!readiness.contains("cat \"$scan_dir/credentials"));
+    assert!(!readiness.contains("cat \"$scan_dir/history-credentials"));
+    assert!(!readiness.contains("history.patch"));
+}
+
+#[test]
+fn history_secret_scan_pins_gitleaks_and_redacts_findings() {
+    let scanner = read("scripts/check-history-secrets.sh");
+
+    for contract in [
+        "8.30.1",
+        "gitleaks git",
+        "--redact=100",
+        "refs/scan/public-readiness",
+        "scan_id",
+        "$scan_namespace/heads",
+        "$scan_namespace/pulls",
+        "+refs/heads/*",
+        "+refs/pull/*/head",
+        "--all",
+        "RuleID",
+        "Commit",
+        "File",
+        "StartLine",
+        "path_sha256",
+        "ref_count",
+        "%ae%x09%ce",
+        "identity_summary",
+    ] {
+        assert!(
+            scanner.contains(contract),
+            "history scanner omits {contract}"
+        );
+    }
+    assert!(!scanner.contains("Match\""));
+    assert!(!scanner.contains("Secret\""));
+    assert!(!scanner.contains("path={path}"));
+    assert!(!scanner.contains("ref={refs}"));
+
+    let mut identity_check = Command::new("python3")
+        .arg("scripts/summarize-git-identities.py")
+        .current_dir(repo_root())
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .expect("run identity summarizer");
+    identity_check
+        .stdin
+        .take()
+        .expect("identity summarizer stdin")
+        .write_all(
+            b"12345+bot@users.noreply.github.com\t12345+bot@users.noreply.github.com\n\
+person@example.test\tperson@example.test\n",
+        )
+        .expect("write identity fixtures");
+    let identity_output = identity_check
+        .wait_with_output()
+        .expect("collect identity summary");
+    assert!(identity_output.status.success());
+    let identity_stdout = String::from_utf8_lossy(&identity_output.stdout);
+    assert!(identity_stdout.contains("identity_metadata=commits:2"));
+    assert!(identity_stdout.contains("author_non_noreply_occurrences:1"));
+    assert!(identity_stdout.contains("committer_non_noreply_occurrences:1"));
+    assert!(identity_stdout.contains("unique_non_noreply_mailboxes:1"));
+    assert!(!identity_stdout.contains('@'));
+
+    let embedded_python = scanner
+        .split("<<'PY'\n")
+        .nth(1)
+        .and_then(|source| source.rsplit_once("\nPY").map(|(source, _)| source))
+        .expect("history scanner has embedded Python");
+    let syntax = Command::new("python3")
+        .args([
+            "-c",
+            "import sys; compile(sys.argv[1], '<gitleaks-summary>', 'exec')",
+            embedded_python,
+        ])
+        .output()
+        .expect("compile embedded gitleaks summary Python");
+    assert!(
+        syntax.status.success(),
+        "embedded gitleaks summary Python is invalid: {}",
+        String::from_utf8_lossy(&syntax.stderr),
+    );
+
+    let temp = tempfile::tempdir().expect("temp dir");
+    let fake = temp.path().join("gitleaks");
+    fs::write(
+        &fake,
+        "#!/usr/bin/env bash\nif [[ ${1:-} == version ]]; then echo 8.30.0; exit 0; fi\nexit 99\n",
+    )
+    .expect("write fake gitleaks");
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let mut permissions = fs::metadata(&fake).expect("fake metadata").permissions();
+        permissions.set_mode(0o755);
+        fs::set_permissions(&fake, permissions).expect("make fake executable");
+    }
+    let path = format!(
+        "{}:{}",
+        temp.path().display(),
+        env::var("PATH").unwrap_or_default()
+    );
+    let output = Command::new("bash")
+        .arg("scripts/check-history-secrets.sh")
+        .env("PATH", path)
+        .current_dir(repo_root())
+        .output()
+        .expect("run history scanner with wrong version");
+    assert!(!output.status.success(), "wrong gitleaks version passed");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("exactly 8.30.1"),
+        "unexpected error: {stderr}"
+    );
+}
+
+#[test]
+fn hosted_public_surface_gate_is_bounded_read_only_and_mode_aware() {
+    let surface = read("scripts/check-public-surface.sh");
+    let ci = read(".github/workflows/ci.yml");
+
+    for contract in [
+        "private-candidate|public",
+        "expected_sha",
+        "git diff --quiet",
+        "origin/main",
+        "git remote get-url origin",
+        "origin does not match HLS_GITHUB_REPOSITORY",
+        "merge-base --is-ancestor",
+        "local origin/main does not match the hosted main SHA",
+        "public main does not point to expected_sha",
+        "private candidate SHA is not hosted on a branch or open pull request",
+        "visibility",
+        "default_branch",
+        "actions/runs",
+        "head_sha",
+        "steps",
+        "collaborators",
+        "hooks",
+        "keys",
+        "actions/secrets",
+        "actions/variables",
+        "environments",
+        "pages",
+        "deployments",
+        "releases",
+        "artifacts",
+        "historical Actions runs/logs outside expected_sha remain",
+        "candidate Actions logs contain suspicious content",
+        "zipfile.ZipFile",
+        "packages",
+        "issues/comments",
+        "pulls/comments",
+        "pulls?state=open",
+        "OPEN_SOURCE_AUDIT.md",
+        "rulesets",
+        "branches/main/protection",
+        "security_and_analysis",
+        "dependency_graph",
+        "dependabot/alerts",
+        "vulnerability-alerts",
+        "private-vulnerability-reporting",
+        "required_conversation_resolution",
+        "allow_force_pushes",
+        "allow_deletions",
+        "required hosted CI jobs did not all execute successfully",
+        "actions/permissions/selected-actions",
+        "sha_pinning_required",
+        "issues?state=all",
+        "discussions?per_page=100",
+        "--paginate",
+        "--slurp",
+        "Packages inventory needs owner UI confirmation",
+        "RETIRE_BEFORE_PUBLIC",
+        "UPDATE_AND_MERGE_BEFORE_PUBLIC",
+        "gh api",
+    ] {
+        assert!(surface.contains(contract), "surface gate omits {contract}");
+    }
+    for mutation in [
+        "gh api --method",
+        "gh repo edit",
+        "gh pr close",
+        "gh release create",
+    ] {
+        assert!(
+            !surface.contains(mutation),
+            "surface gate can mutate: {mutation}"
+        );
+    }
+    assert!(!surface.contains("secret.value"));
+    assert!(!surface.contains("variable.value"));
+
+    for required_context in [
+        "GitHub Actions security",
+        "RustSec advisory scan",
+        "Dependency license and source policy",
+        "PTY TUI (ubuntu-24.04)",
+        "PTY TUI (macos-15)",
+        "Rust workspace",
+    ] {
+        assert!(
+            surface.contains(required_context),
+            "surface policy omits required CI context {required_context}",
+        );
+        let workflow_context = if required_context.starts_with("PTY TUI") {
+            "name: PTY TUI (${{ matrix.os }})"
+        } else {
+            required_context
+        };
+        assert!(
+            ci.contains(workflow_context),
+            "CI workflow omits required surface context {required_context}",
+        );
+    }
+
+    let release = read(".github/workflows/release.yml");
+    let workflow_actions: std::collections::BTreeSet<_> = ci
+        .lines()
+        .chain(release.lines())
+        .filter_map(|line| line.trim().strip_prefix("uses:"))
+        .filter_map(|value| value.split_whitespace().next())
+        .collect();
+    let expected_action_allowlist: std::collections::BTreeSet<_> = [
+        "actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10",
+        "actions/cache@caa296126883cff596d87d8935842f9db880ef25",
+        "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+        "actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c",
+        "actions/attest@a1948c3f048ba23858d222213b7c278aabede763",
+        "astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b",
+    ]
+    .into_iter()
+    .collect();
+    assert_eq!(workflow_actions, expected_action_allowlist);
+    for action in expected_action_allowlist {
+        assert!(
+            surface.contains(action),
+            "surface policy omits workflow action {action}",
+        );
+    }
+
+    let output = Command::new("bash")
+        .args(["scripts/check-public-surface.sh", "wrong", "deadbeef"])
+        .current_dir(repo_root())
+        .output()
+        .expect("run public surface gate with invalid mode");
+    assert!(!output.status.success(), "invalid mode unexpectedly passed");
+    assert!(String::from_utf8_lossy(&output.stderr).contains(
+        "Usage: scripts/check-public-surface.sh [private-candidate|public] <expected-sha>"
+    ),);
+
+    let mock_test = Command::new("python3")
+        .arg("scripts/test-public-surface-gate.py")
+        .current_dir(repo_root())
+        .output()
+        .expect("run deterministic surface-gate API tests");
+    assert!(
+        mock_test.status.success(),
+        "surface-gate API tests failed:\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&mock_test.stdout),
+        String::from_utf8_lossy(&mock_test.stderr),
+    );
+    assert!(
+        String::from_utf8_lossy(&mock_test.stdout)
+            .contains("public_surface_mock_tests=passed cases=19")
+    );
 }
