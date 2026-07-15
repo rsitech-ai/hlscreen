@@ -21,6 +21,8 @@ cache-builds = false
 hosting = "github"
 # Generate and dist a source tarball
 source-tarball = true
+# Required legal and attribution files in every binary archive
+include = ["THIRD_PARTY_LICENSES.txt", "THIRD_PARTY_NOTICES.md"]
 # Checksums to generate for each App
 checksum = "sha256"
 # Whether to embed dependency information using cargo-auditable

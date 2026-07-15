@@ -16,6 +16,9 @@ categories.workspace = true
 name = "hls"
 path = "src/main.rs"
 
+[package.metadata.dist]
+dist = true
+
 [[test]]
 name = "release_packaging"
 path = "../../tests/integration/release_packaging.rs"

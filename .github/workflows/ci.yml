@@ -80,8 +80,14 @@ jobs:
       - name: Install cargo-deny
         run: cargo install cargo-deny --version 0.20.2 --locked
 
+      - name: Install cargo-about
+        run: cargo install cargo-about --version 0.9.1 --locked --features cli
+
       - name: Enforce dependency licenses and registries
         run: cargo deny check licenses sources
+
+      - name: Verify generated third-party licenses
+        run: scripts/check-third-party-licenses.sh
 
   pty-tui:
     name: PTY TUI (${{ matrix.os }})

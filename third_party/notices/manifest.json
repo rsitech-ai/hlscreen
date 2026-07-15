@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "notices": [
+    {
+      "package": "cfg_aliases",
+      "version": "0.1.1",
+      "source": "NOTICES.md",
+      "preserved": "third_party/notices/cfg_aliases-0.1.1-and-0.2.1-NOTICES.md"
+    },
+    {
+      "package": "cfg_aliases",
+      "version": "0.2.1",
+      "source": "NOTICES.md",
+      "preserved": "third_party/notices/cfg_aliases-0.1.1-and-0.2.1-NOTICES.md"
+    },
+    {
+      "package": "parquet",
+      "version": "59.1.0",
+      "source": "NOTICE.txt",
+      "preserved": "third_party/notices/parquet-59.1.0-NOTICE.txt"
+    }
+  ]
+}
