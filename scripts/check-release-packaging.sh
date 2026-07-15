@@ -4,12 +4,7 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 mkdir -p "$repo_root/target"
 
-HLS_REPO_ROOT="$repo_root" rustc \
-  --edition=2024 \
-  --test "$repo_root/tests/integration/release_packaging.rs" \
-  -o "$repo_root/target/release_packaging_test"
-
-HLS_REPO_ROOT="$repo_root" "$repo_root/target/release_packaging_test"
+HLS_REPO_ROOT="$repo_root" cargo test -p hls-cli --test release_packaging --locked
 
 python3 "$repo_root/scripts/harden-generated-release-workflow.py" \
   --check \
