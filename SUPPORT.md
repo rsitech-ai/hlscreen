@@ -16,7 +16,8 @@ If the problem is fixture-backed, include the exact fixture command. If the prob
 
 ## Where To Ask
 
-- Bugs: open a GitHub issue with the bug report template.
+- Questions and usage help: use the [Discussions Q&A category](https://github.com/s1korrrr/hlscreen/discussions/categories/q-a).
+- Bugs: open a GitHub issue with the bug report template. Reproducible defects belong in Issues, not Discussions.
 - Feature requests: open a GitHub issue with the feature request template.
 - Security issues: follow `SECURITY.md`, not public issues.
 

@@ -22,6 +22,10 @@ cargo build --workspace --all-features --locked
 
 The repository is pinned by `rust-toolchain.toml` and currently targets Rust 1.88 or newer.
 
+## Contribution Licensing
+
+By submitting a contribution, you agree that it is licensed under the MIT License that covers this repository. No Contributor License Agreement (CLA) is required. Submit only work that you have the right to license on those terms.
+
 ## Validation Before Opening A PR
 
 Run the full local gate before asking for review:
