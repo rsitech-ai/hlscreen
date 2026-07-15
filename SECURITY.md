@@ -19,13 +19,18 @@ Security-sensitive areas include:
 
 Do not open a public issue for security vulnerabilities.
 
-After the repository is public, use GitHub Security Advisories if available. If advisories are not available yet, contact the maintainer privately through GitHub and include:
+Use [GitHub private vulnerability reporting](https://github.com/s1korrrr/hlscreen/security/advisories/new) as the primary route. If that form is unavailable, email [info@rsitech.ai with the subject `hlscreen security report`](mailto:info@rsitech.ai?subject=hlscreen%20security%20report). Do not include credentials, private keys, or unnecessary personal data.
+
+Include:
 
 - A concise description of the issue.
 - Reproduction steps.
 - Affected commit or version.
 - Any logs or payloads needed to reproduce, with secrets removed.
 - Your assessment of impact.
+
+The maintainers aim to acknowledge receipt within 3 business days and provide
+an initial assessment within 10 business days. These are response targets, not guarantees; remediation and disclosure timing depend on the issue's scope and impact.
 
 ## Safety Boundary
 

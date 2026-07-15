@@ -89,6 +89,13 @@ build. Pull requests build and upload candidate artifacts to the workflow run,
 but cannot execute the publication job. Tag pushes are the only event that can
 publish a GitHub Release.
 
+GitHub Releases is the only supported binary distribution channel. Pull-request
+and workflow artifacts are review candidates with limited retention, not public
+releases or supported download channels. Do not redistribute workflow artifacts as releases. Source builds from a reviewed commit remain available under the
+repository's MIT license, but a binary is supported only after its archive,
+checksum, SBOM, and provenance are published together on the corresponding
+GitHub Release page.
+
 ## Supply-Chain Contract
 
 The release workflow provides:

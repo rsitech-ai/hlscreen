@@ -13,6 +13,39 @@ fn read(path: &str) -> String {
     })
 }
 
+fn assert_relative_markdown_links_exist(paths: &[&str]) {
+    for path in paths {
+        let document = read(path);
+        let parent = repo_root()
+            .join(path)
+            .parent()
+            .expect("document parent")
+            .to_path_buf();
+        let mut remainder = document.as_str();
+        while let Some(marker) = remainder.find("](") {
+            remainder = &remainder[marker + 2..];
+            let Some(end) = remainder.find(')') else {
+                panic!("unterminated Markdown link in {path}");
+            };
+            let raw_target = remainder[..end].trim().trim_matches(['<', '>']);
+            remainder = &remainder[end + 1..];
+            if raw_target.is_empty()
+                || raw_target.starts_with('#')
+                || raw_target.starts_with("http://")
+                || raw_target.starts_with("https://")
+                || raw_target.starts_with("mailto:")
+            {
+                continue;
+            }
+            let target = raw_target.split('#').next().unwrap_or_default();
+            assert!(
+                parent.join(target).exists(),
+                "broken relative Markdown link in {path}: {raw_target}",
+            );
+        }
+    }
+}
+
 #[test]
 fn distributable_crates_are_not_publishable() {
     let output = Command::new(env!("CARGO"))
@@ -546,4 +579,165 @@ fn soak_tooling_is_bounded_fail_closed_and_documented() {
     assert!(deployment.contains("run-supervised-soak.sh"));
     assert!(deployment.contains("validate-soak-report.py"));
     assert!(deployment.contains("not multi-day soak proof"));
+}
+
+#[test]
+fn public_docs_state_identity_contribution_and_build_contracts() {
+    let readme = read("README.md");
+    let contributing = read("CONTRIBUTING.md");
+
+    assert!(readme.contains("independent open-source project"));
+    assert!(readme.contains("not affiliated with, endorsed by, or sponsored by Hyperliquid"));
+    for prerequisite in [
+        "Git",
+        "Python 3",
+        "rustup",
+        "rustfmt",
+        "clippy",
+        "Xcode Command Line Tools",
+        "build-essential",
+        "pkg-config",
+        "MSVC C++ Build Tools",
+    ] {
+        assert!(
+            readme.contains(prerequisite),
+            "README omits build prerequisite {prerequisite}",
+        );
+    }
+    assert!(contributing.contains("licensed under the MIT License"));
+    assert!(contributing.contains("No Contributor License Agreement (CLA) is required"));
+}
+
+#[test]
+fn public_routes_are_actionable_and_separate_security_conduct_and_questions() {
+    let security = read("SECURITY.md");
+    let conduct = read("CODE_OF_CONDUCT.md");
+    let support = read("SUPPORT.md");
+    let issue_config = read(".github/ISSUE_TEMPLATE/config.yml");
+
+    assert!(security.contains("https://github.com/s1korrrr/hlscreen/security/advisories/new"));
+    assert!(security.contains("mailto:info@rsitech.ai?subject=hlscreen%20security%20report"));
+    assert!(security.contains("acknowledge receipt within 3 business days"));
+    assert!(security.contains("targets, not guarantees"));
+    assert!(conduct.contains("mailto:info@rsitech.ai?subject=hlscreen%20conduct%20report"));
+    assert!(conduct.contains("sole-maintainer project"));
+    assert!(conduct.contains("independent"));
+    assert!(conduct.contains("internal escalation channel"));
+    assert!(conduct.contains("https://support.github.com/contact/report-abuse"));
+    assert!(support.contains("https://github.com/s1korrrr/hlscreen/discussions/categories/q-a"));
+    assert!(support.contains("Reproducible defects belong in Issues"));
+    assert!(issue_config.contains("name: Questions and support"));
+    assert!(issue_config.starts_with("blank_issues_enabled: false\n"));
+
+    let mut contacts = Vec::new();
+    let mut current_name: Option<String> = None;
+    let mut current_url: Option<String> = None;
+    let mut current_about: Option<String> = None;
+    for line in issue_config.lines() {
+        let trimmed = line.trim();
+        if let Some(name) = trimmed.strip_prefix("- name: ") {
+            if let Some(previous_name) = current_name.take() {
+                contacts.push((
+                    previous_name,
+                    current_url.take().expect("contact link URL"),
+                    current_about.take().expect("contact link description"),
+                ));
+            }
+            current_name = Some(name.to_owned());
+        } else if let Some(url) = trimmed.strip_prefix("url: ") {
+            current_url = Some(url.to_owned());
+        } else if let Some(about) = trimmed.strip_prefix("about: ") {
+            current_about = Some(about.to_owned());
+        }
+    }
+    if let Some(name) = current_name {
+        contacts.push((
+            name,
+            current_url.expect("contact link URL"),
+            current_about.expect("contact link description"),
+        ));
+    }
+    assert_eq!(
+        contacts.len(),
+        2,
+        "expected questions and security contacts"
+    );
+    assert!(contacts.iter().any(|(name, url, about)| {
+        name == "Questions and support"
+            && url == "https://github.com/s1korrrr/hlscreen/discussions/categories/q-a"
+            && about.contains("Discussions Q&A")
+    }));
+    assert!(contacts.iter().any(|(name, url, about)| {
+        name == "Security issue"
+            && url == "https://github.com/s1korrrr/hlscreen/security/advisories/new"
+            && about.contains("privately")
+    }));
+}
+
+#[test]
+fn public_docs_define_fixture_tooling_release_and_unreleased_contracts() {
+    let fixtures = read("tests/fixtures/README.md");
+    let data_format = read("docs/data-format.md");
+    let tooling = read("docs/DEVELOPMENT_TOOLING.md");
+    let docs_index = read("docs/README.md");
+    let releasing = read("docs/RELEASING.md");
+    let changelog = read("CHANGELOG.md");
+
+    for classification in [
+        "Synthetic and minimized fixtures",
+        "Derived output fixtures",
+        "Validation-report fixtures",
+    ] {
+        assert!(fixtures.contains(classification));
+    }
+    for entry in fs::read_dir(repo_root().join("tests/fixtures")).expect("fixture directory") {
+        let entry = entry.expect("fixture directory entry");
+        if entry.file_type().expect("fixture entry type").is_dir() {
+            let name = entry.file_name();
+            let name = name.to_string_lossy();
+            assert!(
+                fixtures.contains(&format!("`{name}/`")),
+                "fixture directory is not classified: {name}",
+            );
+        }
+    }
+    for prohibited in [
+        "credentials",
+        "real accounts or wallets",
+        "private streams",
+        "unredacted user data",
+    ] {
+        assert!(fixtures.contains(prohibited));
+    }
+    assert!(data_format.contains("tests/fixtures/README.md"));
+    assert!(tooling.contains("developer-only"));
+    assert!(tooling.contains("integrity inventories"));
+    assert!(tooling.contains("project-authored"));
+    assert!(tooling.contains("reviewed, pinned update"));
+    assert!(tooling.contains("Shell and PowerShell"));
+    assert!(docs_index.contains("DEVELOPMENT_TOOLING.md"));
+    assert!(docs_index.contains("2026-07-13"));
+    assert!(docs_index.contains("specs/004-advanced-tui-workstation"));
+    assert!(docs_index.contains("specs/002-microstructure-workstation"));
+    assert!(
+        releasing.contains("GitHub Releases is the only supported binary distribution channel")
+    );
+    assert!(releasing.contains("Do not redistribute workflow artifacts as releases"));
+    assert!(
+        changelog.contains("0.1.0 is the intended first public release and has not been published")
+    );
+    assert!(!changelog.contains("## 0.1.0 -"));
+
+    assert_relative_markdown_links_exist(&[
+        "README.md",
+        "SECURITY.md",
+        "CODE_OF_CONDUCT.md",
+        "SUPPORT.md",
+        "CONTRIBUTING.md",
+        "docs/README.md",
+        "docs/data-format.md",
+        "docs/DEVELOPMENT_TOOLING.md",
+        "docs/RELEASING.md",
+        "tests/fixtures/README.md",
+    ]);
 }

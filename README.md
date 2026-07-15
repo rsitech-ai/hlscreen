@@ -8,6 +8,8 @@
 
 It is built for operators and researchers who want a local-first way to inspect public Hyperliquid spot microstructure without touching wallets, private keys, account streams, or order endpoints.
 
+`hlscreen` is an independent open-source project. It is not affiliated with, endorsed by, or sponsored by Hyperliquid. Hyperliquid names and marks belong to their respective owners.
+
 ## Status
 
 Current state: pre-1.0 read-only live-data preview with bounded local validation. Recording, replay, screening, deterministic terminal rendering, health checks, and local release-package dry runs are implemented, but unattended production readiness is not yet proven. It is not a trading bot, hosted service, or capital-touching execution system.
@@ -120,10 +122,19 @@ Scores and presets are screening heuristics only. They are not signals, recommen
 
 ## Quick Start
 
-Requirements:
+Build requirements:
 
-- Rust 1.88 or newer.
-- A network connection for public REST metadata and live public WebSocket commands.
+- [`rustup`](https://rustup.rs/) with the repository's Rust 1.88-or-newer
+  toolchain.
+- A native build toolchain for your platform:
+  - macOS: Xcode Command Line Tools (`xcode-select --install`).
+  - Debian/Ubuntu Linux: `build-essential`.
+  - Windows: MSVC C++ Build Tools with the Desktop development with C++ workload.
+
+Contributor validation additionally requires Git, Python 3, the `rustfmt` and
+`clippy` rustup components, and `pkg-config` on Linux. A network connection is
+needed for public REST metadata and live public WebSocket commands; fixture,
+replay, and local-only commands can run without exchange network access.
 
 Build:
 

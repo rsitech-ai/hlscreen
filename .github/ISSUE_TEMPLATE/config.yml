@@ -1,5 +1,8 @@
 blank_issues_enabled: false
 contact_links:
+  - name: Questions and support
+    url: https://github.com/s1korrrr/hlscreen/discussions/categories/q-a
+    about: Ask usage questions in the Discussions Q&A category; keep reproducible defects in Issues.
   - name: Security issue
     url: https://github.com/s1korrrr/hlscreen/security/advisories/new
-    about: Please report vulnerabilities privately through GitHub Security Advisories when the repository is public.
+    about: Report vulnerabilities privately through GitHub private vulnerability reporting, never a public issue.

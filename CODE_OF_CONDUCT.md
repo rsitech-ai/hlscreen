@@ -19,4 +19,10 @@ Unacceptable behavior:
 
 Maintainers may edit, hide, or remove comments and contributions that violate this code. Serious or repeated violations can lead to blocking from the project.
 
-To report conduct issues, contact the maintainer privately through GitHub.
+Report conduct issues by emailing [info@rsitech.ai with the subject `hlscreen conduct report`](mailto:info@rsitech.ai?subject=hlscreen%20conduct%20report). Include links or screenshots needed to understand the report, but remove secrets and unrelated personal data. Reports will be handled as privately as a fair review permits.
+
+This is currently a sole-maintainer project and does not offer an independent
+internal escalation channel. If the maintainer is involved or the project route
+is unsafe, use the abuse or safety reporting channel of the platform where the
+conduct occurred. For conduct on GitHub, use
+[GitHub's abuse-reporting channel](https://support.github.com/contact/report-abuse).
