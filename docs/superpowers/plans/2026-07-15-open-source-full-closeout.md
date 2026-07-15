@@ -12,7 +12,8 @@
 
 ## Hard boundaries and completion bar
 
-- Work only on `feat/andrzej_oss_full_closeout` in `/private/tmp/hlscreen-oss-full-closeout`; preserve the user's checkout and stale feature branch.
+- Work only on the isolated `feat/andrzej_oss_full_closeout` worktree; preserve
+  the user's existing checkout and branch.
 - Keep the GitHub repository private until every repository-controlled check passes, a redacted full-history secret scan covers remote branches and pull-request heads, and hosted CI succeeds on the exact candidate SHA.
 - Do not expose secret values in logs. Inventory secret/variable names only; secret scanning output may contain detector, ref, commit, path, and line number, never matched content.
 - Do not delete branches, close PRs, change visibility/settings, or create a tag/release until their preceding gate explicitly passes.
@@ -64,7 +65,12 @@
    - Spec Kit `0.11.1`, source URL, covered paths, `Copyright GitHub, Inc.`, and its complete MIT license;
    - the local archive containing project and third-party licenses/notices.
 2. Run the focused tests and confirm they fail for missing files/contracts.
-3. Configure `cargo-about` with the allow-list aligned to `deny.toml`, `ignore-dev-dependencies = true`, `no-clearly-defined = true`, all release targets, and only necessary built-in workarounds.
+3. Configure `cargo-about` with the allow-list aligned to `deny.toml`,
+   `ignore-dev-dependencies = true`, all release targets, and only necessary
+   built-in workarounds. Cargo-about 0.9.1 has no `no-clearly-defined` setting,
+   so use its documented `--offline` mode as the accepted fail-closed control
+   that disables ClearlyDefined and other mutable network enrichment; record
+   the loss-of-enrichment tradeoff in the audit and release guide.
 4. Create a deterministic template listing crate name/version and selected full license text, followed by the fixed Spec Kit section. Preserve upstream notices verbatim where license obligations require them.
 5. Install the pinned generator with `cargo install cargo-about --version 0.9.1 --locked --features cli`; generate and commit `THIRD_PARTY_LICENSES.txt`.
 6. Make `scripts/check-third-party-licenses.sh` generate to a temporary file using `--workspace --all-features --locked --fail --config about.toml`, compare with `cmp`, and clean up safely. The script must not mutate the committed notice.

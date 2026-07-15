@@ -72,9 +72,122 @@ fn dist_workspace_declares_tag_gated_release_artifacts() {
     assert!(dist.contains("hosting = \"github\""));
     assert!(dist.contains("github-attestations = true"));
     assert!(dist.contains("install-updater = false"));
+    assert!(dist.contains("THIRD_PARTY_LICENSES.txt"));
+    assert!(dist.contains("THIRD_PARTY_NOTICES.md"));
     let cargo = read("Cargo.toml");
     assert!(cargo.contains("[profile.dist]"));
     assert!(cargo.contains("inherits = \"release\""));
+}
+
+#[test]
+fn dependency_attribution_is_deterministic_and_matches_release_targets() {
+    let about = read("about.toml");
+    let deny = read("deny.toml");
+    let template = read("about.hbs");
+    let checker = read("scripts/check-third-party-licenses.sh");
+    let ci = read(".github/workflows/ci.yml");
+    let attributes = read(".gitattributes");
+
+    for target in [
+        "aarch64-apple-darwin",
+        "x86_64-apple-darwin",
+        "x86_64-pc-windows-msvc",
+        "x86_64-unknown-linux-gnu",
+    ] {
+        assert!(about.contains(target), "about.toml is missing {target}");
+        assert!(deny.contains(target), "deny.toml is missing {target}");
+    }
+    assert!(about.contains("ignore-dev-dependencies = true"));
+    assert!(!about.contains("no-clearly-defined ="));
+    assert!(template.contains("{{crate.name}} {{crate.version}}"));
+    assert!(template.contains("{{#each licenses}}"));
+    assert!(template.contains("{{{text}}}"));
+    assert!(checker.contains("cargo about generate"));
+    assert!(checker.contains("--workspace"));
+    assert!(checker.contains("--all-features"));
+    assert!(checker.contains("--locked"));
+    assert!(checker.contains("--offline"));
+    assert!(checker.contains("--output-file \"$generated\""));
+    assert!(checker.contains("--fail"));
+    assert!(checker.contains("--config about.toml"));
+    assert!(checker.contains("cmp"));
+    assert!(!checker.contains("--frozen"));
+    assert!(checker.contains("cargo-about 0.9.1"));
+    assert!(checker.contains("scripts/check-third-party-notices.py"));
+    assert!(ci.contains("cargo install cargo-about --version 0.9.1 --locked --features cli"));
+    assert!(ci.contains("scripts/check-third-party-licenses.sh"));
+    assert!(attributes.contains("THIRD_PARTY_LICENSES.txt -text"));
+    assert!(attributes.contains("whitespace=-trailing-space,-cr-at-eol"));
+}
+
+#[test]
+fn vendored_spec_kit_has_source_version_scope_and_complete_license() {
+    let notice = read("THIRD_PARTY_NOTICES.md");
+    let license = read("third_party/spec-kit/LICENSE");
+    let integration = read(".specify/integration.json");
+    let init_options = read(".specify/init-options.json");
+    let manifest = read(".specify/integrations/speckit.manifest.json");
+    let notice_manifest = read("third_party/notices/manifest.json");
+    let parquet_notice = read("third_party/notices/parquet-59.1.0-NOTICE.txt");
+    let notice_checker = read("scripts/check-third-party-notices.py");
+
+    assert!(integration.contains("\"version\": \"0.11.1\""));
+    assert!(init_options.contains("\"speckit_version\": \"0.11.1\""));
+    assert!(manifest.contains("\"version\": \"0.11.1\""));
+    assert!(notice.contains("Spec Kit 0.11.1"));
+    assert!(notice.contains("https://github.com/github/spec-kit/tree/v0.11.1"));
+    assert!(notice.contains("`.specify/`"));
+    assert!(notice.contains("`.agents/skills/speckit-*/`"));
+    assert!(notice.contains("Copyright GitHub, Inc."));
+    assert!(notice.contains("third_party/spec-kit/LICENSE"));
+    assert!(notice.contains("Apache Arrow"));
+    assert!(notice.contains("Copyright 2016-2026 The Apache Software Foundation"));
+    assert!(notice.contains("https://github.com/olliemath/chronoutil"));
+    assert!(notice.contains("https://github.com/jhorstmann/compact-thrift"));
+    assert!(notice.contains("third_party/notices/parquet-59.1.0-NOTICE.txt"));
+    assert!(notice_manifest.contains("\"package\": \"parquet\""));
+    assert!(notice_manifest.contains("\"version\": \"59.1.0\""));
+    assert!(notice_manifest.contains("\"source\": \"NOTICE.txt\""));
+    assert!(notice_manifest.contains("\"package\": \"cfg_aliases\""));
+    assert!(notice_manifest.contains("\"version\": \"0.1.1\""));
+    assert!(notice_manifest.contains("\"version\": \"0.2.1\""));
+    assert!(notice_manifest.contains("\"source\": \"NOTICES.md\""));
+    assert!(parquet_notice.contains("Apache Arrow"));
+    assert!(notice_checker.contains("\"cargo\","));
+    assert!(notice_checker.contains("\"metadata\","));
+    assert!(notice_checker.contains("\"--all-features\","));
+    assert!(notice_checker.contains("untracked packaged NOTICE files"));
+    assert!(notice_checker.contains("does not match its packaged source"));
+    assert!(license.contains("Copyright GitHub, Inc."));
+    assert!(license.contains("Permission is hereby granted, free of charge"));
+    assert!(license.contains("THE SOFTWARE IS PROVIDED \"AS IS\""));
+    assert!(license.contains("LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE"));
+}
+
+#[test]
+fn local_release_archive_stages_project_and_third_party_notices() {
+    let local_smoke = read("scripts/local-release-artifact-smoke.sh");
+    let releasing = read("docs/RELEASING.md");
+
+    for file in [
+        "LICENSE",
+        "THIRD_PARTY_LICENSES.txt",
+        "THIRD_PARTY_NOTICES.md",
+    ] {
+        assert!(
+            local_smoke.contains(&format!("$repo_root/{file}")),
+            "local archive does not stage {file}",
+        );
+        assert!(
+            local_smoke.contains(&format!("$unpack_dir/$package_name/{file}")),
+            "local archive does not validate unpacked {file}",
+        );
+        assert!(
+            local_smoke.contains(&format!("test -s \"$unpack_dir/$package_name/{file}\"")),
+            "local archive does not require non-empty {file}",
+        );
+        assert!(releasing.contains(file), "release docs omit {file}");
+    }
 }
 
 #[test]
@@ -202,6 +315,8 @@ fn distributable_crate_inherits_public_repository_metadata() {
     assert!(manifest.contains("repository.workspace = true"));
     assert!(manifest.contains("homepage.workspace = true"));
     assert!(manifest.contains("description.workspace = true"));
+    assert!(manifest.contains("[package.metadata.dist]"));
+    assert!(manifest.contains("dist = true"));
 }
 
 #[test]

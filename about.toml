@@ -1,0 +1,34 @@
+# Keep this allow-list aligned with deny.toml. The order is intentional:
+# cargo-about selects the first license that satisfies an OR expression.
+accepted = [
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "BSL-1.0",
+    "CDLA-Permissive-2.0",
+    "ISC",
+    "MIT",
+    "Unicode-3.0",
+    "Zlib",
+]
+targets = [
+    "aarch64-apple-darwin",
+    "x86_64-apple-darwin",
+    "x86_64-pc-windows-msvc",
+    "x86_64-unknown-linux-gnu",
+]
+ignore-build-dependencies = false
+ignore-dev-dependencies = true
+ignore-transitive-dependencies = false
+# cargo-about 0.9.1 has no `no-clearly-defined` config field. The checker uses
+# `--offline`, its supported fail-closed mode, to disable ClearlyDefined and all
+# other mutable network enrichment during generation.
+
+# These built-in cargo-about clarifications are required by the release graph.
+workarounds = [
+    "ring",
+    "rustls",
+]
+
+private = { ignore = true }
