@@ -17,7 +17,7 @@ This project is trading-adjacent infrastructure, so the contribution bar is inte
 ```bash
 git clone https://github.com/s1korrrr/hlscreen.git
 cd hlscreen
-cargo build --workspace --all-features
+cargo build --workspace --all-features --locked
 ```
 
 The repository is pinned by `rust-toolchain.toml` and currently targets Rust 1.88 or newer.
@@ -27,12 +27,14 @@ The repository is pinned by `rust-toolchain.toml` and currently targets Rust 1.8
 Run the full local gate before asking for review:
 
 ```bash
-cargo fmt --check
-cargo clippy --workspace --all-targets --all-features -- -D warnings
-cargo test --workspace --all-features
-cargo build --workspace --all-features
-git diff --check
+scripts/check.sh pr
 ```
+
+`scripts/check.sh fast` is the iteration loop: formatting, locked workspace
+check and tests, and diff hygiene. The default `scripts/check.sh` mode is `pr`,
+which adds full clippy, release, rustdoc, deterministic screenshot, and release
+packaging validation. Maintainers use `scripts/check.sh release` before tagging;
+it adds the pinned advisory, dependency-policy, attribution, and workflow audits.
 
 For changes touching screenshots or CLI output, regenerate screenshots:
 

@@ -413,6 +413,105 @@ fn rustsec_gate_keeps_one_documented_transitive_warning_exception() {
 }
 
 #[test]
+fn canonical_validation_entrypoint_has_bounded_modes_and_ci_doc_parity() {
+    let check = read("scripts/check.sh");
+
+    assert!(check.contains("mode=\"${1:-pr}\""));
+    assert!(check.contains("fast|pr|release)"));
+    assert!(check.contains("Usage: scripts/check.sh [fast|pr|release]"));
+    assert!(check.contains("run_fast_checks"));
+    assert!(check.contains("run_pr_checks"));
+    assert!(check.contains("run_release_checks"));
+    assert!(check.contains("cargo check --workspace --all-features --locked"));
+    assert!(check.contains("cargo test --workspace --all-features --locked"));
+    assert!(check.contains("cargo fmt --all -- --check"));
+    assert!(
+        check.contains(
+            "cargo clippy --workspace --all-targets --all-features --locked -- -D warnings"
+        )
+    );
+    assert!(check.contains("cargo build --release --workspace --all-features --locked"));
+    assert!(check.contains(
+        "RUSTDOCFLAGS=\"-D warnings\" cargo doc --workspace --all-features --no-deps --locked"
+    ));
+    assert!(check.contains("python3 scripts/generate-screenshots.py --check"));
+    assert!(check.contains("scripts/check-release-packaging.sh"));
+    assert!(check.contains("git diff --check"));
+    assert!(check.contains("cargo-audit 0.22.2"));
+    assert!(check.contains("cargo-audit --version"));
+    assert!(check.contains("cargo audit --deny warnings --ignore RUSTSEC-2024-0436"));
+    assert!(check.contains("cargo-deny 0.20.2"));
+    assert!(check.contains("cargo deny check licenses sources"));
+    assert!(check.contains("scripts/check-third-party-licenses.sh"));
+    assert!(check.contains("uvx \"zizmor@1.26.1\""));
+    assert!(!check.contains("--offline"));
+    assert!(check.contains("--pedantic"));
+    assert!(check.contains("--strict-collection"));
+
+    let unknown = Command::new("bash")
+        .args(["scripts/check.sh", "unknown"])
+        .current_dir(repo_root())
+        .output()
+        .expect("run validation entrypoint with unknown mode");
+    assert!(
+        !unknown.status.success(),
+        "unknown mode unexpectedly passed"
+    );
+    assert!(
+        String::from_utf8_lossy(&unknown.stderr)
+            .contains("Usage: scripts/check.sh [fast|pr|release]"),
+        "unknown mode did not print the bounded usage contract: {}",
+        String::from_utf8_lossy(&unknown.stderr),
+    );
+
+    let ci = read(".github/workflows/ci.yml");
+    let rust_job = ci
+        .split("  rust:")
+        .nth(1)
+        .expect("CI has Rust workspace job")
+        .split("  public-contract-smoke:")
+        .next()
+        .expect("Rust workspace job is bounded");
+    assert!(rust_job.contains("run: scripts/check.sh pr"));
+    assert!(rust_job.contains("timeout-minutes: 30"));
+    for duplicated_step in [
+        "- name: Format",
+        "- name: Clippy",
+        "- name: Test",
+        "- name: Build release",
+        "- name: Verify deterministic screenshots",
+        "- name: Release packaging check",
+        "- name: Diff hygiene",
+    ] {
+        assert!(
+            !rust_job.contains(duplicated_step),
+            "Rust CI duplicates canonical check step: {duplicated_step}",
+        );
+    }
+    for command in [
+        "uvx \"zizmor@1.26.1\"",
+        "cargo audit --deny warnings --ignore RUSTSEC-2024-0436",
+        "cargo deny check licenses sources",
+        "scripts/check-third-party-licenses.sh",
+    ] {
+        assert!(
+            ci.contains(command),
+            "CI release-policy parity omits {command}"
+        );
+        assert!(
+            check.contains(command),
+            "local release-policy parity omits {command}",
+        );
+    }
+    assert!(!ci.contains("zizmor@1.26.1\"\n          --offline"));
+
+    assert!(read("README.md").contains("scripts/check.sh fast"));
+    assert!(read("README.md").contains("scripts/check.sh pr"));
+    assert!(read("CONTRIBUTING.md").contains("scripts/check.sh pr"));
+    assert!(read("docs/RELEASING.md").contains("scripts/check.sh release"));
+}
+
+#[test]
 fn workspace_ci_bounds_heavy_rust_build_disk_usage() {
     let workflow = read(".github/workflows/ci.yml");
 

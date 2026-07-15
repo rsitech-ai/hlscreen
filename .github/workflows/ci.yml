@@ -35,7 +35,6 @@ jobs:
       - name: Audit GitHub Actions definitions
         run: >-
           uvx "zizmor@1.26.1"
-          --offline
           --pedantic
           --strict-collection
           --color never
@@ -126,7 +125,7 @@ jobs:
   rust:
     name: Rust workspace
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 30
     env:
       CARGO_INCREMENTAL: 0
       CARGO_PROFILE_DEV_DEBUG: 0
@@ -152,26 +151,8 @@ jobs:
           restore-keys: |
             cargo-registry-v1-${{ runner.os }}-
 
-      - name: Format
-        run: cargo fmt --all -- --check
-
-      - name: Clippy
-        run: cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
-
-      - name: Test
-        run: cargo test --workspace --all-features --locked
-
-      - name: Build release
-        run: cargo build --release --workspace --all-features --locked
-
-      - name: Verify deterministic screenshots
-        run: python3 scripts/generate-screenshots.py --check
-
-      - name: Release packaging check
-        run: scripts/check-release-packaging.sh
-
-      - name: Diff hygiene
-        run: git diff --check
+      - name: Validate pull request
+        run: scripts/check.sh pr
 
   public-contract-smoke:
     name: Scheduled public API contract smoke
