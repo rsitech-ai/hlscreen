@@ -16,12 +16,23 @@ require_text() {
 systemd="deploy/systemd/hlscreen-live.service"
 launchd="deploy/launchd/com.hlscreen.live.plist.template"
 
-for path in "$systemd" "$launchd" "docs/deployment.md"; do
+for path in \
+  "$systemd" \
+  "$launchd" \
+  "docs/deployment.md" \
+  "scripts/run-supervised-soak.sh" \
+  "scripts/validate-soak-report.py"; do
   if [[ ! -s "$path" ]]; then
     echo "missing supervisor packaging file: $path" >&2
     exit 1
   fi
 done
+
+require_text "--all-symbols" scripts/run-supervised-soak.sh
+require_text "--backfill-gaps" scripts/run-supervised-soak.sh
+require_text "--verify-parity" scripts/run-supervised-soak.sh
+require_text "max_rss_growth_bytes" scripts/validate-soak-report.py
+require_text "unrepaired_gaps" scripts/validate-soak-report.py
 
 require_text "hls server --live" "$systemd"
 require_text "--all-symbols" "$systemd"

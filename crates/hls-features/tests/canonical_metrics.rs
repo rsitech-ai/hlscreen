@@ -1,8 +1,33 @@
 use hls_core::{
     market_state::{LiveMarketState, MarketEvent, TopOfBookEvent, TradeEvent, TradeSide},
-    metrics::MetricSupport,
+    metrics::{MetricSamplingContract, MetricSupport},
 };
-use hls_features::engine::FeatureEngine;
+use hls_features::{engine::FeatureEngine, metrics::canonical_metric_contracts};
+use serde::Deserialize;
+
+#[derive(Debug, Deserialize)]
+struct CanonicalBenchmark {
+    schema_version: u32,
+    now_ms: i64,
+    trades: Vec<BenchmarkTrade>,
+    metrics: Vec<BenchmarkMetric>,
+}
+
+#[derive(Debug, Deserialize)]
+struct BenchmarkTrade {
+    exchange_ts_ms: i64,
+    price: f64,
+    size: f64,
+    side: String,
+    tid: u64,
+}
+
+#[derive(Debug, Deserialize)]
+struct BenchmarkMetric {
+    name: String,
+    contract: MetricSamplingContract,
+    expected: f64,
+}
 
 fn assert_close(actual: f64, expected: f64) {
     assert!(
@@ -76,6 +101,132 @@ fn public_trade_metric_formulas_are_exposed_as_research_proxies() {
     let toxicity = metric(&snapshot, "adverse_selection_toxicity_proxy");
     assert_eq!(toxicity.support, MetricSupport::Proxy);
     assert!(toxicity.value.expect("toxicity proxy value") >= 0.0);
+}
+
+#[test]
+fn canonical_public_trade_metrics_match_versioned_benchmark_contracts() {
+    let benchmark: CanonicalBenchmark = serde_json::from_str(include_str!(
+        "../../../tests/fixtures/microstructure/canonical_metric_benchmark.json"
+    ))
+    .expect("canonical benchmark parses");
+    assert_eq!(benchmark.schema_version, 1);
+
+    let mut state = LiveMarketState::new(["@107".to_owned()]);
+    for row in benchmark.trades {
+        state
+            .apply(MarketEvent::Trade(TradeEvent {
+                recv_ts_ns: row.exchange_ts_ms as u64 * 1_000_000,
+                exchange_ts_ms: row.exchange_ts_ms,
+                hl_coin: "@107".to_owned(),
+                side: match row.side.as_str() {
+                    "buy" => TradeSide::Buy,
+                    "sell" => TradeSide::Sell,
+                    side => panic!("unsupported benchmark side {side}"),
+                },
+                price: row.price,
+                size: row.size,
+                notional: row.price * row.size,
+                hash: format!("0x{:x}", row.tid),
+                tid: row.tid,
+                unique_trade_id: format!("@107:{}:{}", row.exchange_ts_ms, row.tid),
+            }))
+            .expect("benchmark trade applies");
+    }
+
+    let snapshot = FeatureEngine::default()
+        .snapshots(&state, benchmark.now_ms)
+        .into_iter()
+        .find(|snapshot| snapshot.symbol == "@107")
+        .expect("snapshot exists");
+
+    let runtime_contracts = canonical_metric_contracts();
+
+    for expected in benchmark.metrics {
+        expected.contract.validate().expect("contract is valid");
+        assert_eq!(expected.contract.metric_name, expected.name);
+        assert!(
+            runtime_contracts
+                .iter()
+                .any(|contract| contract == &expected.contract),
+            "fixture contract for {} must match the runtime contract",
+            expected.name
+        );
+        let actual = metric(&snapshot, &expected.name);
+        assert_eq!(actual.support, MetricSupport::Canonical);
+        assert_eq!(actual.unit, expected.contract.unit);
+        expected
+            .contract
+            .validate_value(actual.value.expect("canonical value"), expected.expected)
+            .expect("benchmark value is within tolerance");
+    }
+}
+
+#[test]
+fn benchmark_contract_rejects_values_outside_tolerance() {
+    let benchmark: CanonicalBenchmark = serde_json::from_str(include_str!(
+        "../../../tests/fixtures/microstructure/canonical_metric_benchmark.json"
+    ))
+    .expect("canonical benchmark parses");
+    let expected = &benchmark.metrics[0];
+
+    let error = expected
+        .contract
+        .validate_value(expected.expected + 0.01, expected.expected)
+        .expect_err("material benchmark drift must fail");
+    assert!(error.to_string().contains("outside tolerance"));
+}
+
+#[test]
+fn canonical_public_trade_metrics_require_the_contract_observation_floor() {
+    let now_ms = 1_000_000;
+    let mut state = LiveMarketState::new(["@107".to_owned()]);
+    for event in [
+        trade(now_ms - 20_000, 100.0, 1),
+        trade(now_ms - 10_000, 101.0, 2),
+    ] {
+        state.apply(event).expect("event applies");
+    }
+    let snapshot = FeatureEngine::default()
+        .snapshots(&state, now_ms)
+        .into_iter()
+        .next()
+        .expect("snapshot exists");
+
+    for name in ["public_trade_vwap_1m", "public_trade_return_1m"] {
+        let value = metric(&snapshot, name);
+        assert_eq!(value.support, MetricSupport::Unavailable);
+        assert!(value.value.is_none());
+        assert!(
+            value
+                .reason
+                .as_deref()
+                .unwrap_or_default()
+                .contains("three")
+        );
+    }
+}
+
+#[test]
+fn canonical_return_uses_exchange_time_order_and_excludes_future_events() {
+    let now_ms = 1_000_000;
+    let mut state = LiveMarketState::new(["@107".to_owned()]);
+    for event in [
+        trade(now_ms - 10_000, 102.0, 3),
+        trade(now_ms + 1, 999.0, 4),
+        trade(now_ms - 50_000, 100.0, 1),
+        trade(now_ms - 30_000, 101.0, 2),
+    ] {
+        state.apply(event).expect("event applies");
+    }
+    let snapshot = FeatureEngine::default()
+        .snapshots(&state, now_ms)
+        .into_iter()
+        .next()
+        .expect("snapshot exists");
+
+    let value = metric(&snapshot, "public_trade_return_1m");
+    assert_eq!(value.support, MetricSupport::Canonical);
+    assert_close(value.value.expect("return value"), 0.02);
 }
 
 #[test]
