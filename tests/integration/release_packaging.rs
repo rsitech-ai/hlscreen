@@ -910,6 +910,25 @@ fn hosted_public_surface_gate_is_bounded_read_only_and_mode_aware() {
     let surface = read("scripts/check-public-surface.sh");
     let ci = read(".github/workflows/ci.yml");
 
+    let embedded_python = surface
+        .rsplit("<<'PY'\n")
+        .next()
+        .and_then(|source| source.rsplit_once("\nPY").map(|(source, _)| source))
+        .expect("surface gate has embedded Python");
+    let syntax = Command::new("python3")
+        .args([
+            "-c",
+            "import sys; compile(sys.argv[1], '<public-surface>', 'exec')",
+            embedded_python,
+        ])
+        .output()
+        .expect("compile embedded surface-gate Python");
+    assert!(
+        syntax.status.success(),
+        "embedded surface-gate Python is invalid: {}",
+        String::from_utf8_lossy(&syntax.stderr),
+    );
+
     for contract in [
         "private-candidate|public",
         "expected_sha",
