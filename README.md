@@ -131,13 +131,15 @@ Build:
 cargo build --workspace --all-features --locked
 ```
 
-Run the local validation gate:
+Run the fast local validation gate while iterating:
 
 ```bash
-cargo fmt --all -- --check
-cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
-cargo test --workspace --all-features --locked
+scripts/check.sh fast
 ```
+
+This checks formatting, the locked workspace dependency graph, workspace tests,
+and diff hygiene. Use `scripts/check.sh pr` before opening a pull request; it
+adds full clippy, release, rustdoc, screenshot, and release-packaging checks.
 
 Initialize a local data directory:
 
@@ -441,11 +443,7 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a PR.
 The short version:
 
 ```bash
-cargo fmt --all -- --check
-cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
-cargo test --workspace --all-features --locked
-cargo build --workspace --all-features --locked
-git diff --check
+scripts/check.sh pr
 ```
 
 Security issues should follow [SECURITY.md](SECURITY.md). General support guidance is in [SUPPORT.md](SUPPORT.md).
