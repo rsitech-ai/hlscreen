@@ -9,23 +9,22 @@ This project is pre-1.0. Use this checklist before tagging a public release.
    - No README, screenshot, or release note implies trading advice or profitability.
 2. Run validation.
    ```bash
-   cargo fmt --all -- --check
-   cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
-   cargo test --workspace --all-features --locked
-   cargo build --release --workspace --all-features --locked
-   RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps --locked
-   cargo audit --deny warnings --ignore RUSTSEC-2024-0436
-   cargo deny check licenses sources
-   scripts/check-third-party-licenses.sh
-   scripts/check-release-packaging.sh
-   git diff --check
-   python3 scripts/generate-screenshots.py --check
+   scripts/check.sh release
    ```
+   The release mode includes the complete pull-request gate, then runs the
+   pinned advisory, dependency-policy, attribution, and GitHub Actions audits.
+   For a faster iteration loop use `scripts/check.sh fast`; before review use
+   `scripts/check.sh pr` (also the default when no mode is supplied).
    Install the policy tools with
+   `cargo install cargo-audit --version 0.22.2 --locked`,
    `cargo install cargo-deny --version 0.20.2 --locked` when it is not already
    available and
    `cargo install cargo-about --version 0.9.1 --locked --features cli` for the
-   deterministic attribution check. CI installs these exact versions.
+   deterministic attribution check. Install
+   [`uv`](https://docs.astral.sh/uv/getting-started/installation/) to run the
+   pinned `zizmor@1.26.1` workflow audit. That audit requires network access on
+   its first run to resolve the exact pinned package; CI uses the same command.
+   CI installs the exact Cargo tool versions above.
    The checker fetches only the locked graph first, then runs cargo-about with
    `--offline`; cargo-about 0.9.1 does not support a `no-clearly-defined`
    configuration field. Offline generation is the supported fail-closed mode
@@ -35,6 +34,9 @@ This project is pre-1.0. Use this checklist before tagging a public release.
    manual notice review.
    `scripts/check-release-packaging.sh` runs the static release contract tests,
    the public-readiness scan, and the local artifact smoke described below.
+   The release gate enforces
+   `cargo audit --deny warnings --ignore RUSTSEC-2024-0436` after verifying the
+   installed cargo-audit version.
    `RUSTSEC-2024-0436` is a narrow exception for the unmaintained `paste`
    proc-macro currently pulled by Apache Parquet 59.1.0. It is not a known
    vulnerability; every vulnerability and all other warnings remain denied.
