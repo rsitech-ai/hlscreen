@@ -928,6 +928,7 @@ person@example.test\tperson@example.test\n",
 #[test]
 fn hosted_public_surface_gate_is_bounded_read_only_and_mode_aware() {
     let surface = read("scripts/check-public-surface.sh");
+    let audit = read("docs/OPEN_SOURCE_AUDIT.md");
     let ci = read(".github/workflows/ci.yml");
 
     let embedded_python = surface
@@ -1022,6 +1023,32 @@ fn hosted_public_surface_gate_is_bounded_read_only_and_mode_aware() {
             "surface gate can mutate: {mutation}"
         );
     }
+    assert!(
+        surface.contains(
+            "Owner confirmation: Discussions and its answerable Q&A category are enabled"
+        ),
+        "surface gate must verify the standalone Discussions/Q&A confirmation"
+    );
+    assert!(
+        surface.contains(
+            "Owner confirmation: private vulnerability reporting enabled before public launch"
+        ),
+        "surface gate must verify the standalone private vulnerability reporting confirmation"
+    );
+    for marker in [
+        "Owner confirmation: Discussions and its answerable Q&A category are enabled",
+        "Owner confirmation: private vulnerability reporting enabled before public launch",
+    ] {
+        assert!(
+            audit.contains(marker),
+            "real publication audit must preserve the exact marker: {marker}"
+        );
+    }
+    assert!(
+        !surface
+            .contains("Owner confirmation: Discussions Q&A and private vulnerability reporting"),
+        "surface gate must not couple independently enabled Discussions and PVR controls"
+    );
     assert!(!surface.contains("secret.value"));
     assert!(!surface.contains("variable.value"));
 

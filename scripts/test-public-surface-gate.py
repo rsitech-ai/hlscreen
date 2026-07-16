@@ -380,7 +380,8 @@ def run_case(
                     "- [x] Owner confirmation: info@rsitech.ai monitoring checked",
                     "- [x] Owner confirmation: Git commit-author metadata exposure accepted",
                     "- [x] Owner confirmation: Historical developer-path and non-public email content exposure accepted",
-                    "- [x] Owner confirmation: Discussions Q&A and private vulnerability reporting enabled before public launch.",
+                    "- [x] Owner confirmation: Discussions and its answerable Q&A category are enabled.",
+                    "- [x] Owner confirmation: private vulnerability reporting enabled before public launch.",
                     "- Branch decision: `feat/andrzej_oss_full_closeout` — MERGE_BEFORE_PUBLIC.",
                     "",
                 ]
