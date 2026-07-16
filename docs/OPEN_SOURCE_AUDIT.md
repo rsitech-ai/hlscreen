@@ -99,6 +99,7 @@ purging sensitive history.
 - Branch decision: `feat/andrzej_hlscreen_open_source_readiness` — RETIRE_BEFORE_PUBLIC.
 - Branch decision: `feat/andrzej_hlscreen_oss_closeout` — RETIRE_BEFORE_PUBLIC.
 - Branch decision: `feat/andrzej_oss_full_closeout` — MERGE_BEFORE_PUBLIC.
+- Branch decision: `feat/andrzej_oss_postmerge_audit` — MERGE_BEFORE_PUBLIC.
 - Branch decision: `feat/andrzej_ratatui_live_tui` — RETIRE_BEFORE_PUBLIC.
 - Branch decision: `feat/andrzej_tui_runtime_hardening` — RETIRE_BEFORE_PUBLIC.
 - Branch decision: `dependabot/cargo/sha2-0.11.0` — RETIRE_BEFORE_PUBLIC.
