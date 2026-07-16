@@ -42,6 +42,10 @@ identity_summary="$(
   git log --all --format='%ae%x09%ce' \
     | python3 scripts/summarize-git-identities.py
 )"
+privacy_summary="$(
+  git log --all --format='commit %H%n%B' -p --no-ext-diff --text \
+    | python3 scripts/summarize-git-history-privacy.py
+)"
 
 set +e
 gitleaks git --redact=100 --no-banner --report-format=json \
@@ -50,7 +54,7 @@ scan_status=$?
 set -e
 
 if (( scan_status == 0 )); then
-  echo "history_secret_scan=passed tool=gitleaks version=$expected_version refs=$ref_count remote_heads=$remote_head_count pull_heads=$pull_head_count commits=$commit_count $identity_summary"
+  echo "history_secret_scan=passed tool=gitleaks version=$expected_version refs=$ref_count remote_heads=$remote_head_count pull_heads=$pull_head_count commits=$commit_count $identity_summary $privacy_summary"
   exit 0
 fi
 if (( scan_status != 1 )); then
