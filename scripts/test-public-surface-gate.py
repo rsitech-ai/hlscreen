@@ -263,11 +263,11 @@ elif endpoint == "repos/s1korrrr/hlscreen/actions/permissions":
 elif endpoint == "repos/s1korrrr/hlscreen/actions/permissions/selected-actions":
     patterns = [
         "actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10",
-        "actions/cache@caa296126883cff596d87d8935842f9db880ef25",
+        "actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9",
         "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
         "actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c",
         "actions/attest@a1948c3f048ba23858d222213b7c278aabede763",
-        "astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b",
+        "astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990",
     ]
     if scenario == "public_incomplete_actions":
         patterns.remove("actions/attest@a1948c3f048ba23858d222213b7c278aabede763")

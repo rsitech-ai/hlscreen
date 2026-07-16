@@ -108,15 +108,16 @@ hardening. No unique branch commit is selected for preservation.
 
 Each dependency update still receives its own compatibility review and green
 checks. The four runtime major-version proposals are deferred to separate
-post-0.1 work because they expand release scope; the two action updates stay in
-the closeout lane and must be rebased, reviewed, and pass hosted checks.
+post-0.1 work because they expand release scope. The two action updates were
+reviewed and integrated into the closeout candidate with exact SHA allowlist
+parity; their stale-base bot PRs must be closed before publication.
 
 - PR decision: `#28` — CLOSE_BEFORE_PUBLIC.
 - PR decision: `#42` — CLOSE_BEFORE_PUBLIC.
 - PR decision: `#43` — CLOSE_BEFORE_PUBLIC.
 - PR decision: `#44` — CLOSE_BEFORE_PUBLIC.
-- PR decision: `#45` — UPDATE_AND_MERGE_BEFORE_PUBLIC.
-- PR decision: `#46` — UPDATE_AND_MERGE_BEFORE_PUBLIC.
+- PR decision: `#45` — INTEGRATED_IN_CLOSEOUT_CLOSE_BEFORE_PUBLIC.
+- PR decision: `#46` — INTEGRATED_IN_CLOSEOUT_CLOSE_BEFORE_PUBLIC.
 
 ### Secret-history scan
 
