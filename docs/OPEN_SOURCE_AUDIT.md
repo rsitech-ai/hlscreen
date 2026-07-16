@@ -79,8 +79,9 @@ Snapshot date: 2026-07-16
   read-only and cannot approve pull-request reviews.
 - Hosted branch cleanup completed on 2026-07-16: the seven reviewed stale
   feature branches and the merged closeout candidate branch were deleted
-  remotely. Only `main` remains hosted; all local branches and worktrees were
-  preserved.
+  remotely. The initial cleanup left only `main`; PR `#48` temporarily adds the
+  reviewed post-merge audit branch, which is scheduled for deletion after
+  merge. All local branches and worktrees were preserved.
 - Security inventory: dependency alerts, code scanning, secret scanning, and
   push protection are not enabled while the repository is private on the
   current plan. `main` is not protected; GitHub requires a paid private plan or
