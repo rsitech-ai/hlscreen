@@ -63,8 +63,11 @@ This file tracks the public-release package for `hlscreen`.
   exception applies to the reviewed private merge, not public visibility or a
   release.
 - [x] Monitored security and conduct contact route confirmed by the owner.
-- [ ] Private vulnerability reporting and Packages inventory confirmed before
-  public launch.
+- [x] Packages inventory confirmed empty in the authenticated GitHub UI.
+- [x] Discussions enabled with an answerable Q&A category.
+- [ ] Private vulnerability reporting enabled before public launch; GitHub does
+  not expose the feature while the repository remains private on the current
+  plan.
 - [ ] Fresh feature-branch PR checks and candidate artifact uploads green.
 - [ ] Repository public or eligible for private-repository attestations before tagging.
 - [ ] Immediate public ruleset/protection and security features verified.

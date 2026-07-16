@@ -54,7 +54,7 @@ deterministic generator check and a fresh packaged-notice review.
 Snapshot date: 2026-07-16
 
 - Repository: `s1korrrr/hlscreen`, private, default branch `main`.
-- Audited private base: `9cdc32822636bd7159fbc87517e6ea05b38cfdf9`.
+- Audited private base: `1d5e9cd53c6982316b9d4698b4f605ddc753980c`.
 - Candidate identity contract: the exact 40-character SHA is supplied outside
   this tracked file to the private PR, hosted workflows, and
   `scripts/check-public-surface.sh`. Embedding the file's own candidate SHA here
@@ -66,26 +66,46 @@ Snapshot date: 2026-07-16
   PR (`#47`), no open Dependabot PRs, and no issues, tags, releases, Pages site,
   deployments, environments, deploy keys, webhooks, or configured
   repository/Dependabot/Codespaces secret or variable names.
-- Actions cleanup completed on 2026-07-16: all 90 artifacts and all 402
+- Actions cleanup completed on 2026-07-16: all 90 artifacts and all 410
   historical workflow runs were deleted through the authenticated GitHub API;
-  every deletion succeeded. Any run created by the final private push must be
+  every deletion succeeded. The current hosted inventory has zero workflow
+  runs and zero artifacts. Any run created by a later private push must be
   removed if it is refused before steps, or retained only after successful
   execution and an in-memory privacy scan.
 - Actions-history decision: DELETE_NON_CANDIDATE_RUNS_BEFORE_PUBLIC — completed
   for the pre-merge inventory.
-- The candidate and `main` pushes created three additional zero-step workflow
-  runs with the same billing annotation; all three were deleted after merge.
-- Actions currently allows all actions. Default `GITHUB_TOKEN` permissions are
+- The candidate, audit, and `main` pushes created additional zero-step workflow
+  runs with the same billing annotation; all were deleted after merge.
+- Actions is restricted to the six SHA-pinned actions referenced by the tracked
+  workflows: `actions/checkout`, `actions/cache`, `actions/upload-artifact`,
+  `actions/download-artifact`, `actions/attest`, and `astral-sh/setup-uv`.
+  GitHub-owned and verified actions are not allowed as broad categories, and
+  required SHA pinning is enabled. Default `GITHUB_TOKEN` permissions are
   read-only and cannot approve pull-request reviews.
 - Hosted branch cleanup completed on 2026-07-16: the seven reviewed stale
   feature branches and the merged closeout candidate branch were deleted
-  remotely. The initial cleanup left only `main`; PR `#48` temporarily adds the
-  reviewed post-merge audit branch, which is scheduled for deletion after
-  merge. All local branches and worktrees were preserved.
-- Security inventory: dependency alerts, code scanning, secret scanning, and
-  push protection are not enabled while the repository is private on the
-  current plan. `main` is not protected; GitHub requires a paid private plan or
-  public visibility before the prepared protection can be applied.
+  remotely. The reviewed post-merge audit branch was also deleted after PR
+  `#48` merged. The hosted inventory returned to `main` only; all local branches
+  and worktrees were preserved.
+- Repository metadata is set for publication discovery: a read-only product
+  description and the `cli`, `hyperliquid`, `market-data`, `ratatui`, `rust`,
+  `screener`, `terminal`, and `tui` topics. Discussions is enabled and its Q&A
+  category is answerable. Automatic head-branch deletion after merge is
+  enabled.
+- Security inventory: vulnerability alerts and Dependabot automated security
+  updates are enabled, with zero current Dependabot alerts. The authenticated
+  repository security overview confirms Dependabot alerts enabled and code
+  scanning disabled because Advanced Security is available only to
+  organizations on this private-plan surface. Secret scanning and push
+  protection return GitHub's `422` unavailable response. Private vulnerability
+  reporting has no repository API or UI surface while the repository remains
+  private on the current plan. `main` is not protected; the ruleset and branch
+  protection APIs require a paid private plan or public visibility.
+- The authenticated owner Packages view filtered to `hlscreen` reports zero
+  packages. The private-advisory URL returns GitHub's authenticated 404, and
+  the repository security navigation exposes only the security policy under
+  Reporting; there is no private-advisory draft surface to inspect until
+  private vulnerability reporting becomes available.
 
 ### Hosted branch decisions
 
@@ -101,6 +121,7 @@ purging sensitive history.
 - Branch decision: `feat/andrzej_hlscreen_oss_closeout` — RETIRE_BEFORE_PUBLIC.
 - Branch decision: `feat/andrzej_oss_full_closeout` — MERGE_BEFORE_PUBLIC.
 - Branch decision: `feat/andrzej_oss_postmerge_audit` — MERGE_BEFORE_PUBLIC.
+- Branch decision: `feat/andrzej_oss_private_settings` — MERGE_BEFORE_PUBLIC.
 - Branch decision: `feat/andrzej_ratatui_live_tui` — RETIRE_BEFORE_PUBLIC.
 - Branch decision: `feat/andrzej_tui_runtime_hardening` — RETIRE_BEFORE_PUBLIC.
 - Branch decision: `dependabot/cargo/sha2-0.11.0` — RETIRE_BEFORE_PUBLIC.
@@ -143,6 +164,9 @@ All six bot PRs are closed and their remote branches are deleted.
 - Post-merge verification at `bbaca40` passed with gitleaks 8.30.1 across 48
   hosted refs (one remote head and 47 pull-request heads), 354 reachable
   commits, and no leaks.
+- Final private-main verification at `1d5e9cd` passed with gitleaks 8.30.1
+  across 49 hosted refs (one remote head and 48 pull-request heads), 358
+  reachable commits, and no leaks.
 
 ### Commit-author metadata
 
@@ -170,16 +194,22 @@ content categories on 2026-07-16. No rewrite is authorized by this audit.
 - [x] Owner decision: proceed with reviewed private `main` integration despite
   the GitHub billing refusal; keep hosted proof blocking for public visibility
   and release publication.
-- [ ] Owner confirmation: Packages inventory checked in GitHub UI.
-- [ ] Owner confirmation: Private advisory drafts checked in GitHub UI.
+- [x] Owner confirmation: Packages inventory checked in GitHub UI.
+  The repository-filtered owner view reports zero packages.
+- [x] Owner confirmation: Private advisory drafts checked through the
+  authenticated private-advisory endpoint and repository Security navigation.
+  GitHub exposes no advisory draft surface while private vulnerability
+  reporting is unavailable.
 - [x] Owner confirmation: info@rsitech.ai monitoring checked for the documented
   security and conduct subjects and confirmed active; it is a monitored company
   address.
 - [x] Owner confirmation: Git commit-author metadata exposure accepted.
 - [x] Owner confirmation: Historical developer-path and non-public email
   content exposure accepted.
-- [ ] Owner confirmation: Discussions Q&A and private vulnerability reporting
-  enabled before public launch.
+- [x] Owner confirmation: Discussions and its answerable Q&A category are enabled.
+- [ ] Owner confirmation: private vulnerability reporting enabled before public launch.
+  GitHub does not expose this feature for the repository while it remains
+  private on the current plan.
 
 The owner also directed that the repository remain private until the complete
 production and publication gates are satisfied. The private merge exception is

@@ -577,9 +577,13 @@ if mode == "public":
     if metadata.get("has_discussions") is not True:
         failures.append("Discussions Q&A is not enabled")
     if (
-        "- [x] Owner confirmation: Discussions Q&A and private vulnerability reporting"
+        "- [x] Owner confirmation: Discussions and its answerable Q&A category are enabled"
     ) not in audit:
         failures.append("Discussions Q&A owner confirmation is incomplete")
+    if (
+        "- [x] Owner confirmation: private vulnerability reporting enabled before public launch"
+    ) not in audit:
+        failures.append("Private vulnerability reporting owner confirmation is incomplete")
     selected_actions = api(f"repos/{repo}/actions/permissions/selected-actions")
     expected_action_patterns = {
         "actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10",
