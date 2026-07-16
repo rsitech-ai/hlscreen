@@ -73,11 +73,14 @@ Snapshot date: 2026-07-16
   execution and an in-memory privacy scan.
 - Actions-history decision: DELETE_NON_CANDIDATE_RUNS_BEFORE_PUBLIC — completed
   for the pre-merge inventory.
+- The candidate and `main` pushes created three additional zero-step workflow
+  runs with the same billing annotation; all three were deleted after merge.
 - Actions currently allows all actions. Default `GITHUB_TOKEN` permissions are
   read-only and cannot approve pull-request reviews.
 - Hosted branch cleanup completed on 2026-07-16: the seven reviewed stale
-  feature branches were deleted remotely. Only `main` and the closeout
-  candidate remain hosted; all local branches and worktrees were preserved.
+  feature branches and the merged closeout candidate branch were deleted
+  remotely. Only `main` remains hosted; all local branches and worktrees were
+  preserved.
 - Security inventory: dependency alerts, code scanning, secret scanning, and
   push protection are not enabled while the repository is private on the
   current plan. `main` is not protected; GitHub requires a paid private plan or
@@ -130,11 +133,14 @@ All six bot PRs are closed and their remote branches are deleted.
 
 - Tool contract: gitleaks 8.30.1, `--redact=100`, remote heads and all
   `refs/pull/*/head` fetched into temporary scan refs, `--all` history.
-- Final private scan passed on 2026-07-16 with gitleaks 8.30.1 across 62
-  temporary refs (15 remote heads and 47 pull-request heads). The script
+- Pre-integration candidate scan passed on 2026-07-16 with gitleaks 8.30.1
+  across 62 temporary refs (15 remote heads and 47 pull-request heads). The script
   reported 353 reachable commits and no leaks. Record only pass/fail, exact
   tool version, ref counts, and commit count; never commit or paste a finding's
   matched content.
+- Post-merge verification at `bbaca40` passed with gitleaks 8.30.1 across 48
+  hosted refs (one remote head and 47 pull-request heads), 354 reachable
+  commits, and no leaks.
 
 ### Commit-author metadata
 
@@ -164,8 +170,8 @@ no leaks. The owner accepted these raw historical content categories on
   and release publication.
 - [ ] Owner confirmation: Packages inventory checked in GitHub UI.
 - [ ] Owner confirmation: Private advisory drafts checked in GitHub UI.
-- [x] Owner confirmation: info@rsitech.ai is a monitored company address for
-  the documented security and conduct subjects.
+- [x] Owner confirmation: info@rsitech.ai monitoring checked for the documented
+  security and conduct subjects; it is the owner's company address.
 - [x] Owner confirmation: Git commit-author metadata exposure accepted.
 - [x] Owner confirmation: Historical developer-path and non-public email
   content exposure accepted.
