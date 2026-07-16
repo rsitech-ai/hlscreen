@@ -72,10 +72,22 @@ elif endpoint.startswith("repos/s1korrrr/hlscreen/branches?"):
 elif endpoint.startswith("repos/s1korrrr/hlscreen/tags?"):
     direct_list([])
 elif endpoint.startswith("repos/s1korrrr/hlscreen/pulls?state=open"):
+    pulls = [] if public else [{
+        "number": 47,
+        "user": {"login": "s1korrrr"},
+        "head": {"sha": expected_sha},
+        "base": {"ref": "main"},
+    }]
     if scenario == "private_missing_pr_decision":
-        direct_list([{"number": 99, "user": {"login": "dependabot[bot]"}}])
-    else:
-        direct_list([])
+        pulls.append({"number": 99, "user": {"login": "dependabot[bot]"}})
+    if scenario == "private_extra_human_pr":
+        pulls.append({
+            "number": 48,
+            "user": {"login": "contributor"},
+            "head": {"sha": "9" * 40},
+            "base": {"ref": "main"},
+        })
+    direct_list(pulls)
 elif endpoint.startswith("repos/s1korrrr/hlscreen/actions/runs?"):
     candidate_ci_run = {
         "id": 7,
@@ -470,6 +482,12 @@ def main() -> None:
         expected_error="final recorded surface decision",
     )
     run_case(
+        "private_extra_human_pr",
+        "private-candidate",
+        expected_success=False,
+        expected_error="open human pull requests remain: count=1",
+    )
+    run_case(
         "private_second_page_artifact",
         "private-candidate",
         expected_success=False,
@@ -562,7 +580,7 @@ def main() -> None:
         expected_success=False,
         expected_error="Private vulnerability reporting is not enabled",
     )
-    print("public_surface_mock_tests=passed cases=24")
+    print("public_surface_mock_tests=passed cases=25")
 
 
 if __name__ == "__main__":
