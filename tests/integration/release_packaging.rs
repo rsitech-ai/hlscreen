@@ -765,6 +765,8 @@ fn public_readiness_gate_is_fail_closed_and_secret_safe() {
         "scripts/check-public-surface.sh",
         "scripts/test-public-surface-gate.py",
         "scripts/summarize-git-identities.py",
+        "scripts/summarize-git-history-privacy.py",
+        "scripts/test-history-privacy.py",
     ] {
         assert!(
             readiness.contains(required),
@@ -815,6 +817,8 @@ fn history_secret_scan_pins_gitleaks_and_redacts_findings() {
         "ref_count",
         "%ae%x09%ce",
         "identity_summary",
+        "privacy_summary",
+        "summarize-git-history-privacy.py",
     ] {
         assert!(
             scanner.contains(contract),
@@ -825,6 +829,22 @@ fn history_secret_scan_pins_gitleaks_and_redacts_findings() {
     assert!(!scanner.contains("Secret\""));
     assert!(!scanner.contains("path={path}"));
     assert!(!scanner.contains("ref={refs}"));
+
+    let privacy_mock = Command::new("python3")
+        .arg("scripts/test-history-privacy.py")
+        .current_dir(repo_root())
+        .output()
+        .expect("run history privacy metadata test");
+    assert!(
+        privacy_mock.status.success(),
+        "history privacy test failed:\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&privacy_mock.stdout),
+        String::from_utf8_lossy(&privacy_mock.stderr),
+    );
+    assert!(
+        String::from_utf8_lossy(&privacy_mock.stdout)
+            .contains("history_privacy_mock_tests=passed cases=1")
+    );
 
     let mut identity_check = Command::new("python3")
         .arg("scripts/summarize-git-identities.py")
@@ -974,6 +994,10 @@ fn hosted_public_surface_gate_is_bounded_read_only_and_mode_aware() {
         "allow_force_pushes",
         "allow_deletions",
         "required hosted CI jobs did not all execute successfully",
+        "hosted CI job inventory is not exact",
+        "no successful hosted Release run exists at expected_sha",
+        "required hosted Release jobs did not all execute successfully",
+        "candidate Release artifact inventory is not exact",
         "actions/permissions/selected-actions",
         "sha_pinning_required",
         "issues?state=all",
@@ -1072,6 +1096,6 @@ fn hosted_public_surface_gate_is_bounded_read_only_and_mode_aware() {
     );
     assert!(
         String::from_utf8_lossy(&mock_test.stdout)
-            .contains("public_surface_mock_tests=passed cases=19")
+            .contains("public_surface_mock_tests=passed cases=24")
     );
 }

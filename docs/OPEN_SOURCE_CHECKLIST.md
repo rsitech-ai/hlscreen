@@ -58,6 +58,9 @@ This file tracks the public-release package for `hlscreen`.
   pass the in-memory privacy scan.
 - [ ] Raw Git commit-author metadata exposure is accepted by the owner, or an
   explicitly authorized history rewrite is separately reviewed.
+- [ ] Historical developer-path and non-public email content exposure is
+  accepted by the owner, or an explicitly authorized history rewrite is
+  separately reviewed.
 - [ ] GitHub billing/spending permits Actions jobs to execute.
 - [ ] Private vulnerability reporting, Packages, and monitored contact routes
   confirmed by the owner.

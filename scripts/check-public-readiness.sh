@@ -37,6 +37,8 @@ required_files=(
   "scripts/check-public-surface.sh"
   "scripts/test-public-surface-gate.py"
   "scripts/summarize-git-identities.py"
+  "scripts/summarize-git-history-privacy.py"
+  "scripts/test-history-privacy.py"
   "scripts/harden-generated-release-workflow.py"
   ".github/workflows/ci.yml"
   ".github/workflows/release.yml"
@@ -81,6 +83,7 @@ require_text "CLOSE_BEFORE_PUBLIC" docs/OPEN_SOURCE_AUDIT.md
 require_text "UPDATE_AND_MERGE_BEFORE_PUBLIC" docs/OPEN_SOURCE_AUDIT.md
 require_text "Owner confirmation: Packages inventory checked in GitHub UI." docs/OPEN_SOURCE_AUDIT.md
 require_text "Git commit-author metadata exposure accepted" docs/OPEN_SOURCE_AUDIT.md
+require_text "Historical developer-path and non-public email" docs/OPEN_SOURCE_AUDIT.md
 require_text "DELETE_NON_CANDIDATE_RUNS_BEFORE_PUBLIC" docs/OPEN_SOURCE_AUDIT.md
 
 public_text_paths=(
@@ -181,8 +184,11 @@ fi
 # Full-history content is intentionally not materialized here: a crash could
 # leave an unredacted patch in temporary storage. The required history gate is
 # scripts/check-history-secrets.sh, which pins gitleaks, scans all fetched refs,
-# forces 100% redaction, and emits only bounded metadata.
+# forces 100% redaction, and streams the same reachable history through a
+# metadata-only privacy summarizer without emitting matched content.
 require_text "--redact=100" scripts/check-history-secrets.sh
 require_text "--log-opts=\"--all\"" scripts/check-history-secrets.sh
+require_text "summarize-git-history-privacy.py" scripts/check-history-secrets.sh
+require_text "history_privacy_metadata=" scripts/summarize-git-history-privacy.py
 
 echo "public_readiness=passed"

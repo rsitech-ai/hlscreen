@@ -53,8 +53,10 @@ Snapshot date: 2026-07-15
 
 - Repository: `s1korrrr/hlscreen`, private, default branch `main`.
 - Audited private base: `9cdc32822636bd7159fbc87517e6ea05b38cfdf9`.
-- Local closeout candidate at snapshot: `ab2f093` (not pushed; this value must
-  be replaced by the final candidate's full SHA before hosted proof).
+- Candidate identity contract: the exact 40-character SHA is supplied outside
+  this tracked file to the private PR, hosted workflows, and
+  `scripts/check-public-surface.sh`. Embedding the file's own candidate SHA here
+  would invalidate it whenever this audit changed.
 - Latest `main` CI run: `29411491370`, failed before executing job steps because
   of GitHub billing/spending state. It is not valid hosted proof.
 - Hosted inventory: 14 branches, six open Dependabot PRs, no issues, tags,
@@ -138,6 +140,20 @@ candidate. `.mailmap` cannot hide raw commit objects; publication therefore
 requires the owner either to accept that exposure or explicitly authorize a
 separately reviewed history rewrite. No rewrite is authorized by this audit.
 
+### Historical content privacy metadata
+
+The preliminary 60-ref metadata-only history pass streamed patch and commit
+message content without writing or printing matched values. Across 350 commits,
+it counted 672 developer-home path occurrences in 22 commits, five private
+temporary-worktree occurrences in five commits, and 15 non-public email
+occurrences in 13 commits. The summarizer counts matched commit-message text and
+added or removed patch lines while excluding diff headers and unchanged
+context. These are occurrence counts, not unique values or confirmed secrets;
+gitleaks separately reported no leaks. Publication still requires the owner
+either to accept these raw historical content categories or explicitly
+authorize a separately reviewed rewrite. No rewrite is authorized by this
+audit.
+
 ### Owner confirmations
 
 - [ ] Owner confirmation: GitHub billing/spending permits job execution.
@@ -147,5 +163,8 @@ separately reviewed history rewrite. No rewrite is authorized by this audit.
   security and conduct subjects.
 - [ ] Owner confirmation: Git commit-author metadata exposure accepted, or a
   separately reviewed history rewrite authorized.
+- [ ] Owner confirmation: Historical developer-path and non-public email
+  content exposure accepted, or a separately reviewed history rewrite
+  authorized.
 - [ ] Owner confirmation: Discussions Q&A and private vulnerability reporting
   enabled before public launch.

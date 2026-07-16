@@ -277,29 +277,91 @@ if not successful_ci:
 else:
     run_id = successful_ci[0].get("id")
     jobs, _ = object_items(f"repos/{repo}/actions/runs/{run_id}/jobs?filter=all&per_page=100", "jobs")
-    expected_ci_jobs = {
-        "GitHub Actions security",
-        "RustSec advisory scan",
-        "Dependency license and source policy",
-        "PTY TUI (ubuntu-24.04)",
-        "PTY TUI (macos-15)",
-        "Rust workspace",
+    expected_ci_conclusions = {
+        "GitHub Actions security": "success",
+        "RustSec advisory scan": "success",
+        "Dependency license and source policy": "success",
+        "PTY TUI (ubuntu-24.04)": "success",
+        "PTY TUI (macos-15)": "success",
+        "Rust workspace": "success",
+        "Scheduled public API contract smoke": "skipped",
     }
     jobs_by_name = {
         str(job.get("name")): job
         for job in jobs
         if isinstance(job, dict)
     }
+    if (
+        set(jobs_by_name) != set(expected_ci_conclusions)
+        or len(jobs) != len(expected_ci_conclusions)
+    ):
+        failures.append("hosted CI job inventory is not exact at expected_sha")
     bad_required_jobs = [
-        name for name in sorted(expected_ci_jobs)
+        name for name, conclusion in sorted(expected_ci_conclusions.items())
         if name not in jobs_by_name
-        or jobs_by_name[name].get("conclusion") != "success"
-        or not jobs_by_name[name].get("steps")
+        or jobs_by_name[name].get("conclusion") != conclusion
+        or (conclusion == "success" and not jobs_by_name[name].get("steps"))
     ]
     if bad_required_jobs:
         failures.append(
             "required hosted CI jobs did not all execute successfully at expected_sha: "
             f"count={len(bad_required_jobs)}"
+        )
+
+release_runs = [run for run in runs if isinstance(run, dict) and run.get("name") == "Release"]
+successful_release = [
+    run for run in release_runs
+    if run.get("head_sha") == expected_sha
+    and run.get("status") == "completed"
+    and run.get("conclusion") == "success"
+    and run.get("event") == "pull_request"
+]
+release_run_id: int | None = None
+if not successful_release:
+    failures.append("no successful hosted Release run exists at expected_sha")
+else:
+    release_run = max(successful_release, key=lambda run: int(run.get("id") or 0))
+    candidate_release_run_id = release_run.get("id")
+    if isinstance(candidate_release_run_id, int):
+        release_run_id = candidate_release_run_id
+    release_jobs, _ = object_items(
+        f"repos/{repo}/actions/runs/{release_run_id}/jobs?filter=all&per_page=100",
+        "jobs",
+    )
+    expected_release_conclusions = {
+        "Plan release": "success",
+        "build-local-artifacts (aarch64-apple-darwin)": "success",
+        "build-local-artifacts (x86_64-apple-darwin)": "success",
+        "build-local-artifacts (x86_64-pc-windows-msvc)": "success",
+        "build-local-artifacts (x86_64-unknown-linux-gnu)": "success",
+        "Build global artifacts": "success",
+        "Publish tag artifacts": "skipped",
+        "Confirm release announcement": "skipped",
+    }
+    release_jobs_by_name = {
+        str(job.get("name")): job
+        for job in release_jobs
+        if isinstance(job, dict)
+    }
+    if (
+        set(release_jobs_by_name) != set(expected_release_conclusions)
+        or len(release_jobs) != len(expected_release_conclusions)
+    ):
+        failures.append("hosted Release job inventory is not exact at expected_sha")
+    bad_release_jobs = [
+        name
+        for name, conclusion in expected_release_conclusions.items()
+        if name not in release_jobs_by_name
+        or release_jobs_by_name[name].get("conclusion") != conclusion
+        or (
+            conclusion == "success"
+            and not release_jobs_by_name[name].get("steps")
+        )
+    ]
+    if bad_release_jobs:
+        failures.append(
+            "required hosted Release jobs did not all execute successfully at expected_sha: "
+            f"count={len(bad_release_jobs)}"
         )
 
 collaborators = list_result(f"repos/{repo}/collaborators?affiliation=all&per_page=100")
@@ -328,7 +390,29 @@ if list_result(f"repos/{repo}/releases?per_page=100"):
     failures.append("releases exist before the first reviewed release")
 artifacts, _ = object_items(f"repos/{repo}/actions/artifacts?per_page=100", "artifacts")
 active_artifacts = [artifact for artifact in artifacts if isinstance(artifact, dict) and not artifact.get("expired")]
-if active_artifacts:
+expected_candidate_artifacts = {
+    "cargo-dist-cache",
+    "artifacts-plan-dist-manifest",
+    "artifacts-build-local-aarch64-apple-darwin",
+    "artifacts-build-local-x86_64-apple-darwin",
+    "artifacts-build-local-x86_64-pc-windows-msvc",
+    "artifacts-build-local-x86_64-unknown-linux-gnu",
+    "artifacts-build-global",
+}
+if mode == "private-candidate":
+    candidate_artifact_names = {
+        str(artifact.get("name"))
+        for artifact in active_artifacts
+        if isinstance(artifact.get("workflow_run"), dict)
+        and artifact["workflow_run"].get("id") == release_run_id
+        and artifact["workflow_run"].get("head_sha") == expected_sha
+    }
+    if (
+        candidate_artifact_names != expected_candidate_artifacts
+        or len(active_artifacts) != len(expected_candidate_artifacts)
+    ):
+        failures.append("candidate Release artifact inventory is not exact")
+elif active_artifacts:
     failures.append(f"unexpired Actions artifacts remain: count={len(active_artifacts)}")
 
 associated_packages = 0
@@ -356,6 +440,7 @@ for marker in [
     "- [x] Owner confirmation: Private advisory drafts checked",
     "- [x] Owner confirmation: info@rsitech.ai monitoring checked",
     "- [x] Owner confirmation: Git commit-author metadata exposure accepted",
+    "- [x] Owner confirmation: Historical developer-path and non-public email",
 ]:
     if marker not in audit:
         failures.append(marker.removeprefix("- [x] ") + " is incomplete")
