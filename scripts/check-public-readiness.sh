@@ -80,7 +80,7 @@ require_text "Branch decision:" docs/OPEN_SOURCE_AUDIT.md
 require_text "PR decision:" docs/OPEN_SOURCE_AUDIT.md
 require_text "RETIRE_BEFORE_PUBLIC" docs/OPEN_SOURCE_AUDIT.md
 require_text "CLOSE_BEFORE_PUBLIC" docs/OPEN_SOURCE_AUDIT.md
-require_text "UPDATE_AND_MERGE_BEFORE_PUBLIC" docs/OPEN_SOURCE_AUDIT.md
+require_text "INTEGRATED_IN_CLOSEOUT_CLOSE_BEFORE_PUBLIC" docs/OPEN_SOURCE_AUDIT.md
 require_text "Owner confirmation: Packages inventory checked in GitHub UI." docs/OPEN_SOURCE_AUDIT.md
 require_text "Git commit-author metadata exposure accepted" docs/OPEN_SOURCE_AUDIT.md
 require_text "Historical developer-path and non-public email" docs/OPEN_SOURCE_AUDIT.md
