@@ -246,3 +246,20 @@ git status --short --branch
 ## Current known external blocker
 
 At plan creation, GitHub Actions runs `29411491370` and `29411552416` fail before any job steps due an account payment/spending-limit condition. Repository work can continue, but private hosted proof, merge, public visibility, and release remain blocked until the owner clears billing and a fresh run succeeds on the candidate SHA.
+
+## 2026-07-16 owner-approved private integration exception
+
+The owner cannot clear GitHub billing and explicitly authorized continuing
+without hosted CI for this private merge. This exception applies only when the
+canonical local release gate and independent whole-branch review pass on the
+exact commit advanced to `main`. It does not turn refused zero-step Actions jobs
+into successful proof, and it does not authorize public visibility, a tag, or a
+release. The repository must remain private until the complete production and
+publication gates, including successful hosted CI and release artifacts, are
+available.
+
+The owner also authorized cleanup of obsolete GitHub releases, workflow runs,
+artifacts, and retired remote branches. Preserve all local branches/worktrees,
+do not rewrite history, advance the reviewed candidate to `main` without
+squashing its commits, and delete the remote candidate branch only after
+ancestry is verified.

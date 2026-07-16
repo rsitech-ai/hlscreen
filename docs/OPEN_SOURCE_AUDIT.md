@@ -37,19 +37,21 @@ deterministic generator check and a fresh packaged-notice review.
 
 ## Publication gates
 
-- [ ] Canonical local release gate passes on the candidate commit.
-- [ ] Redacted full-history secret scan covers remote branches and pull-request
+- [x] Canonical local release gate passes on the candidate commit.
+- [x] Redacted full-history secret scan covers remote branches and pull-request
   head refs.
 - [ ] Private hosted CI and release-plan artifacts pass on the exact candidate
   commit.
-- [ ] GitHub billing/spending state permits jobs to execute.
+- [ ] GitHub billing/spending state permits jobs to execute. The owner approved
+  a quota-only exception for private `main` integration on 2026-07-16; this
+  does not satisfy the public-visibility or release gate.
 - [ ] Repository visibility, ruleset/protection, and security features are
   verified after publication.
 - [ ] `v0.1.0` artifacts, checksums, SBOMs, and attestations are verified.
 
 ## Hosted surface snapshot
 
-Snapshot date: 2026-07-15
+Snapshot date: 2026-07-16
 
 - Repository: `s1korrrr/hlscreen`, private, default branch `main`.
 - Audited private base: `9cdc32822636bd7159fbc87517e6ea05b38cfdf9`.
@@ -57,19 +59,25 @@ Snapshot date: 2026-07-15
   this tracked file to the private PR, hosted workflows, and
   `scripts/check-public-surface.sh`. Embedding the file's own candidate SHA here
   would invalidate it whenever this audit changed.
-- Latest `main` CI run: `29411491370`, failed before executing job steps because
-  of GitHub billing/spending state. It is not valid hosted proof.
-- Hosted inventory: 14 branches, six open Dependabot PRs, no issues, tags,
-  releases, Pages site, deployments, environments, deploy keys, webhooks, or
-  configured repository/Dependabot/Codespaces secret or variable names.
-- Actions inventory: 396 historical workflow runs across 317 head SHAs and 90
-  unexpired artifacts; Actions currently allows all actions. Default
-  `GITHUB_TOKEN` permissions are read-only and cannot approve pull-request
-  reviews.
-- Actions-history decision: DELETE_NON_CANDIDATE_RUNS_BEFORE_PUBLIC. Retain only
-  final-candidate runs after their logs pass the in-memory privacy scan; remove
-  all older runs and artifacts before visibility changes so their logs do not
-  become public.
+- Exact-candidate CI run `29481365077` and Release run `29481365057` were
+  refused before executing job steps because of GitHub billing/spending state.
+  They were evidence of an account-level refusal, not valid hosted proof.
+- Before cleanup, the hosted inventory contained nine branches, one open human
+  PR (`#47`), no open Dependabot PRs, and no issues, tags, releases, Pages site,
+  deployments, environments, deploy keys, webhooks, or configured
+  repository/Dependabot/Codespaces secret or variable names.
+- Actions cleanup completed on 2026-07-16: all 90 artifacts and all 402
+  historical workflow runs were deleted through the authenticated GitHub API;
+  every deletion succeeded. Any run created by the final private push must be
+  removed if it is refused before steps, or retained only after successful
+  execution and an in-memory privacy scan.
+- Actions-history decision: DELETE_NON_CANDIDATE_RUNS_BEFORE_PUBLIC — completed
+  for the pre-merge inventory.
+- Actions currently allows all actions. Default `GITHUB_TOKEN` permissions are
+  read-only and cannot approve pull-request reviews.
+- Hosted branch cleanup completed on 2026-07-16: the seven reviewed stale
+  feature branches were deleted remotely. Only `main` and the closeout
+  candidate remain hosted; all local branches and worktrees were preserved.
 - Security inventory: dependency alerts, code scanning, secret scanning, and
   push protection are not enabled while the repository is private on the
   current plan. `main` is not protected; GitHub requires a paid private plan or
@@ -104,13 +112,12 @@ historical commits; its design commit is patch-equivalent to `61862a7` on
 `specs/004-advanced-tui-workstation` plan and the July 13-15 merged workstation
 hardening. No unique branch commit is selected for preservation.
 
-### Open dependency PR decisions
+### Dependency PR decisions
 
-Each dependency update still receives its own compatibility review and green
-checks. The four runtime major-version proposals are deferred to separate
-post-0.1 work because they expand release scope. The two action updates were
-reviewed and integrated into the closeout candidate with exact SHA allowlist
-parity; their stale-base bot PRs must be closed before publication.
+The four runtime major-version proposals are deferred to separate post-0.1
+work because they expand release scope. The two action updates were reviewed
+and integrated into the closeout candidate with exact SHA allowlist parity.
+All six bot PRs are closed and their remote branches are deleted.
 
 - PR decision: `#28` — CLOSE_BEFORE_PUBLIC.
 - PR decision: `#42` — CLOSE_BEFORE_PUBLIC.
@@ -123,49 +130,49 @@ parity; their stale-base bot PRs must be closed before publication.
 
 - Tool contract: gitleaks 8.30.1, `--redact=100`, remote heads and all
   `refs/pull/*/head` fetched into temporary scan refs, `--all` history.
-- Preliminary private scan: passed on 2026-07-15 with gitleaks 8.30.1 across 60
-  temporary refs (14 remote heads and 46 pull-request heads); the script
-  reported 348 reachable commits and no leaks. This predates the final
-  candidate and must be rerun at that exact SHA.
-- Final-candidate status: not yet run. Record only pass/fail, exact tool
-  version, ref counts, and commit count. Never commit or paste a finding's
+- Final private scan passed on 2026-07-16 with gitleaks 8.30.1 across 62
+  temporary refs (15 remote heads and 47 pull-request heads). The script
+  reported 353 reachable commits and no leaks. Record only pass/fail, exact
+  tool version, ref counts, and commit count; never commit or paste a finding's
   matched content.
 
 ### Commit-author metadata
 
-The preliminary 60-ref hosted inventory covers the same 348 commits as the
-gitleaks scan, including 46 pull-request heads. It found three unique mailboxes:
-one non-noreply mailbox appears in 337 author fields and 301 committer fields.
-Addresses are intentionally omitted. This inventory must be rerun on the final
-candidate. `.mailmap` cannot hide raw commit objects; publication therefore
-requires the owner either to accept that exposure or explicitly authorize a
-separately reviewed history rewrite. No rewrite is authorized by this audit.
+The final hosted inventory covers 353 reachable commits, including 47
+pull-request heads. It found three unique mailboxes: one non-noreply mailbox
+appears in 342 author fields and 306 committer fields. Addresses are
+intentionally omitted. `.mailmap` cannot hide raw commit objects. The owner
+accepted this raw metadata exposure on 2026-07-16; no history rewrite is
+authorized by this audit.
 
 ### Historical content privacy metadata
 
-The preliminary 60-ref metadata-only history pass streamed patch and commit
-message content without writing or printing matched values. Across 350 commits,
-it counted 672 developer-home path occurrences in 22 commits, five private
-temporary-worktree occurrences in five commits, and 15 non-public email
-occurrences in 13 commits. The summarizer counts matched commit-message text and
-added or removed patch lines while excluding diff headers and unchanged
-context. These are occurrence counts, not unique values or confirmed secrets;
-gitleaks separately reported no leaks. Publication still requires the owner
-either to accept these raw historical content categories or explicitly
-authorize a separately reviewed rewrite. No rewrite is authorized by this
-audit.
+The final metadata-only history pass streamed patch and commit message content
+without writing or printing matched values. Across 353 commits, it counted 672
+developer-home path occurrences in 22 commits, five private temporary-worktree
+occurrences in five commits, and 15 non-public email occurrences in 13 commits.
+The summarizer counts matched commit-message text and added or removed patch
+lines while excluding diff headers and unchanged context. These are occurrence
+counts, not unique values or confirmed secrets; gitleaks separately reported
+no leaks. The owner accepted these raw historical content categories on
+2026-07-16. No rewrite is authorized by this audit.
 
 ### Owner confirmations
 
-- [ ] Owner confirmation: GitHub billing/spending permits job execution.
+- [x] Owner decision: proceed with reviewed private `main` integration despite
+  the GitHub billing refusal; keep hosted proof blocking for public visibility
+  and release publication.
 - [ ] Owner confirmation: Packages inventory checked in GitHub UI.
 - [ ] Owner confirmation: Private advisory drafts checked in GitHub UI.
-- [ ] Owner confirmation: info@rsitech.ai monitoring checked for the documented
-  security and conduct subjects.
-- [ ] Owner confirmation: Git commit-author metadata exposure accepted, or a
-  separately reviewed history rewrite authorized.
-- [ ] Owner confirmation: Historical developer-path and non-public email
-  content exposure accepted, or a separately reviewed history rewrite
-  authorized.
+- [x] Owner confirmation: info@rsitech.ai is a monitored company address for
+  the documented security and conduct subjects.
+- [x] Owner confirmation: Git commit-author metadata exposure accepted.
+- [x] Owner confirmation: Historical developer-path and non-public email
+  content exposure accepted.
 - [ ] Owner confirmation: Discussions Q&A and private vulnerability reporting
   enabled before public launch.
+
+The owner also directed that the repository remain private until the complete
+production and publication gates are satisfied. The private merge exception is
+not permission to change visibility, tag, publish a release, or claim hosted
+production proof.
