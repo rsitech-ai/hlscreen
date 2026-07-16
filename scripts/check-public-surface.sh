@@ -229,7 +229,17 @@ for pull in open_pulls:
     login = str((pull.get("user") or {}).get("login", "")) if isinstance(pull.get("user"), dict) else ""
     number = pull.get("number")
     if login != "dependabot[bot]":
-        human_pulls.append(number)
+        head = pull.get("head")
+        base = pull.get("base")
+        is_candidate_pull = (
+            mode == "private-candidate"
+            and isinstance(head, dict)
+            and head.get("sha") == expected_sha
+            and isinstance(base, dict)
+            and base.get("ref") == "main"
+        )
+        if not is_candidate_pull:
+            human_pulls.append(number)
     else:
         decision = rf"^- PR decision: `#{number}` — (?:CLOSE_BEFORE_PUBLIC|UPDATE_AND_MERGE_BEFORE_PUBLIC)\.$"
         if not re.search(decision, audit, flags=re.MULTILINE):
