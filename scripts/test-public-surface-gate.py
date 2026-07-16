@@ -77,7 +77,7 @@ elif endpoint.startswith("repos/s1korrrr/hlscreen/pulls?state=open"):
     else:
         direct_list([])
 elif endpoint.startswith("repos/s1korrrr/hlscreen/actions/runs?"):
-    candidate_run = {
+    candidate_ci_run = {
         "id": 7,
         "name": "CI",
         "head_sha": expected_sha,
@@ -86,12 +86,24 @@ elif endpoint.startswith("repos/s1korrrr/hlscreen/actions/runs?"):
         "event": "push" if public else "pull_request",
         "head_branch": "main" if public else "feat/andrzej_oss_full_closeout",
     }
+    candidate_release_run = {
+        "id": 8,
+        "name": "Release",
+        "head_sha": expected_sha,
+        "status": "completed",
+        "conclusion": "failure" if scenario == "private_release_failure" else "success",
+        "event": "pull_request",
+        "head_branch": "feat/andrzej_oss_full_closeout",
+    }
+    candidate_runs = [candidate_ci_run]
+    if scenario != "private_missing_release":
+        candidate_runs.append(candidate_release_run)
     if "head_sha=" in endpoint:
-        emit([{"total_count": 1, "workflow_runs": [candidate_run]}])
+        emit([{"total_count": len(candidate_runs), "workflow_runs": candidate_runs}])
     elif scenario == "private_second_page_run":
         emit([
-            {"total_count": 2, "workflow_runs": [candidate_run]},
-            {"total_count": 2, "workflow_runs": [{
+            {"total_count": 3, "workflow_runs": candidate_runs},
+            {"total_count": 3, "workflow_runs": [{
                 "id": 99,
                 "name": "CI",
                 "head_sha": "2" * 40,
@@ -100,7 +112,7 @@ elif endpoint.startswith("repos/s1korrrr/hlscreen/actions/runs?"):
             }]},
         ])
     else:
-        emit([{"total_count": 1, "workflow_runs": [candidate_run]}])
+        emit([{"total_count": len(candidate_runs), "workflow_runs": candidate_runs}])
 elif endpoint.startswith("repos/s1korrrr/hlscreen/actions/runs/7/jobs?"):
     names = [
         "GitHub Actions security",
@@ -119,11 +131,50 @@ elif endpoint.startswith("repos/s1korrrr/hlscreen/actions/runs/7/jobs?"):
         }
         for index, name in enumerate(names, start=8)
     ]
+    jobs.append({
+        "id": 98,
+        "name": "Scheduled public API contract smoke",
+        "conclusion": "skipped",
+        "steps": [],
+    })
     if scenario == "private_prestep_failure":
-        jobs[-1]["conclusion"] = "failure"
-        jobs[-1]["steps"] = []
+        jobs[-2]["conclusion"] = "failure"
+        jobs[-2]["steps"] = []
+    if scenario == "private_extra_ci_job":
+        jobs.append({
+            "id": 99,
+            "name": "Unexpected CI job",
+            "conclusion": "success",
+            "steps": [{"name": "test", "conclusion": "success"}],
+        })
     emit([{"total_count": len(jobs), "jobs": jobs}])
-elif endpoint == "repos/s1korrrr/hlscreen/actions/runs/7/logs":
+elif endpoint.startswith("repos/s1korrrr/hlscreen/actions/runs/8/jobs?"):
+    conclusions = {
+        "Plan release": "success",
+        "build-local-artifacts (aarch64-apple-darwin)": "success",
+        "build-local-artifacts (x86_64-apple-darwin)": "success",
+        "build-local-artifacts (x86_64-pc-windows-msvc)": "success",
+        "build-local-artifacts (x86_64-unknown-linux-gnu)": "success",
+        "Build global artifacts": "success",
+        "Publish tag artifacts": "skipped",
+        "Confirm release announcement": "skipped",
+    }
+    if scenario == "private_release_job_failure":
+        conclusions["Build global artifacts"] = "failure"
+    jobs = [
+        {
+            "id": index,
+            "name": name,
+            "conclusion": conclusion,
+            "steps": [] if conclusion == "skipped" else [{"name": "test", "conclusion": conclusion}],
+        }
+        for index, (name, conclusion) in enumerate(conclusions.items(), start=20)
+    ]
+    emit([{"total_count": len(jobs), "jobs": jobs}])
+elif endpoint in {
+    "repos/s1korrrr/hlscreen/actions/runs/7/logs",
+    "repos/s1korrrr/hlscreen/actions/runs/8/logs",
+}:
     payload = io.BytesIO()
     with zipfile.ZipFile(payload, "w") as archive:
         content = "build ok\n"
@@ -159,13 +210,40 @@ elif endpoint.startswith("repos/s1korrrr/hlscreen/actions/variables?"):
 elif endpoint.startswith("repos/s1korrrr/hlscreen/environments?"):
     emit([{"total_count": 0, "environments": []}])
 elif endpoint.startswith("repos/s1korrrr/hlscreen/actions/artifacts?"):
+    expected_names = [
+        "cargo-dist-cache",
+        "artifacts-plan-dist-manifest",
+        "artifacts-build-local-aarch64-apple-darwin",
+        "artifacts-build-local-x86_64-apple-darwin",
+        "artifacts-build-local-x86_64-pc-windows-msvc",
+        "artifacts-build-local-x86_64-unknown-linux-gnu",
+        "artifacts-build-global",
+    ]
+    artifacts = [
+        {
+            "id": index,
+            "name": name,
+            "expired": False,
+            "workflow_run": {"id": 8, "head_sha": expected_sha},
+        }
+        for index, name in enumerate(expected_names, start=100)
+    ]
+    if public:
+        artifacts = []
+    if scenario == "private_bad_release_artifacts":
+        artifacts.pop()
     if scenario == "private_second_page_artifact":
         emit([
-            {"total_count": 1, "artifacts": []},
-            {"total_count": 1, "artifacts": [{"id": 12, "expired": False}]},
+            {"total_count": len(artifacts) + 1, "artifacts": artifacts},
+            {"total_count": len(artifacts) + 1, "artifacts": [{
+                "id": 12,
+                "name": "rogue-artifact",
+                "expired": False,
+                "workflow_run": {"id": 8, "head_sha": expected_sha},
+            }]},
         ])
     else:
-        emit([{"total_count": 0, "artifacts": []}])
+        emit([{"total_count": len(artifacts), "artifacts": artifacts}])
 elif endpoint.startswith("users/s1korrrr/packages?"):
     direct_list([])
 elif endpoint == "repos/s1korrrr/hlscreen/actions/permissions":
@@ -289,6 +367,7 @@ def run_case(
                     "- [x] Owner confirmation: Private advisory drafts checked",
                     "- [x] Owner confirmation: info@rsitech.ai monitoring checked",
                     "- [x] Owner confirmation: Git commit-author metadata exposure accepted",
+                    "- [x] Owner confirmation: Historical developer-path and non-public email content exposure accepted",
                     "- [x] Owner confirmation: Discussions Q&A and private vulnerability reporting enabled before public launch.",
                     "- Branch decision: `feat/andrzej_oss_full_closeout` — MERGE_BEFORE_PUBLIC.",
                     "",
@@ -394,7 +473,7 @@ def main() -> None:
         "private_second_page_artifact",
         "private-candidate",
         expected_success=False,
-        expected_error="unexpired Actions artifacts remain",
+        expected_error="candidate Release artifact inventory is not exact",
     )
     run_case(
         "private_second_page_run",
@@ -413,6 +492,36 @@ def main() -> None:
         "private-candidate",
         expected_success=False,
         expected_error="required hosted CI jobs did not all execute successfully",
+    )
+    run_case(
+        "private_extra_ci_job",
+        "private-candidate",
+        expected_success=False,
+        expected_error="hosted CI job inventory is not exact",
+    )
+    run_case(
+        "private_missing_release",
+        "private-candidate",
+        expected_success=False,
+        expected_error="no successful hosted Release run exists at expected_sha",
+    )
+    run_case(
+        "private_release_failure",
+        "private-candidate",
+        expected_success=False,
+        expected_error="no successful hosted Release run exists at expected_sha",
+    )
+    run_case(
+        "private_release_job_failure",
+        "private-candidate",
+        expected_success=False,
+        expected_error="required hosted Release jobs did not all execute successfully",
+    )
+    run_case(
+        "private_bad_release_artifacts",
+        "private-candidate",
+        expected_success=False,
+        expected_error="candidate Release artifact inventory is not exact",
     )
     run_case("public_ok", "public", expected_success=True)
     run_case("public_ruleset_only", "public", expected_success=True)
@@ -453,7 +562,7 @@ def main() -> None:
         expected_success=False,
         expected_error="Private vulnerability reporting is not enabled",
     )
-    print("public_surface_mock_tests=passed cases=19")
+    print("public_surface_mock_tests=passed cases=24")
 
 
 if __name__ == "__main__":
