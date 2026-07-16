@@ -144,24 +144,24 @@ All six bot PRs are closed and their remote branches are deleted.
 
 ### Commit-author metadata
 
-The final hosted inventory covers 353 reachable commits, including 47
+The post-merge `bbaca40` inventory covers 354 reachable commits, including 47
 pull-request heads. It found three unique mailboxes: one non-noreply mailbox
-appears in 342 author fields and 306 committer fields. Addresses are
+appears in 343 author fields and 307 committer fields. Addresses are
 intentionally omitted. `.mailmap` cannot hide raw commit objects. The owner
 accepted this raw metadata exposure on 2026-07-16; no history rewrite is
 authorized by this audit.
 
 ### Historical content privacy metadata
 
-The final metadata-only history pass streamed patch and commit message content
-without writing or printing matched values. Across 353 commits, it counted 672
-developer-home path occurrences in 22 commits, five private temporary-worktree
-occurrences in five commits, and 15 non-public email occurrences in 13 commits.
-The summarizer counts matched commit-message text and added or removed patch
-lines while excluding diff headers and unchanged context. These are occurrence
-counts, not unique values or confirmed secrets; gitleaks separately reported
-no leaks. The owner accepted these raw historical content categories on
-2026-07-16. No rewrite is authorized by this audit.
+The post-merge `bbaca40` metadata-only history pass streamed patch and commit
+message content without writing or printing matched values. Across 354 commits,
+it counted 672 developer-home path occurrences in 22 commits, five private
+temporary-worktree occurrences in five commits, and 15 non-public email
+occurrences in 13 commits. The summarizer counts matched commit-message text and
+added or removed patch lines while excluding diff headers and unchanged
+context. These are occurrence counts, not unique values or confirmed secrets;
+gitleaks separately reported no leaks. The owner accepted these raw historical
+content categories on 2026-07-16. No rewrite is authorized by this audit.
 
 ### Owner confirmations
 
@@ -171,7 +171,8 @@ no leaks. The owner accepted these raw historical content categories on
 - [ ] Owner confirmation: Packages inventory checked in GitHub UI.
 - [ ] Owner confirmation: Private advisory drafts checked in GitHub UI.
 - [x] Owner confirmation: info@rsitech.ai monitoring checked for the documented
-  security and conduct subjects; it is the owner's company address.
+  security and conduct subjects and confirmed active; it is a monitored company
+  address.
 - [x] Owner confirmation: Git commit-author metadata exposure accepted.
 - [x] Owner confirmation: Historical developer-path and non-public email
   content exposure accepted.
