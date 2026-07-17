@@ -96,16 +96,22 @@ failures: list[str] = []
 gh_bin = os.environ["HLS_GH_BIN"]
 
 
-def positive_timeout(name: str, default: int) -> int:
+def bounded_timeout(name: str, default: int, maximum: int) -> int:
     raw = os.environ.get(name, str(default))
-    if not re.fullmatch(r"[1-9][0-9]*", raw):
-        raise ValueError(f"{name} must be a positive integer")
+    maximum_text = str(maximum)
+    out_of_range = (
+        not re.fullmatch(r"[1-9][0-9]*", raw)
+        or len(raw) > len(maximum_text)
+        or (len(raw) == len(maximum_text) and raw > maximum_text)
+    )
+    if out_of_range:
+        raise ValueError(f"{name} must be an integer from 1 through {maximum}")
     return int(raw)
 
 
 try:
-    gh_read_timeout = positive_timeout("HLS_GH_READ_TIMEOUT_SECS", 120)
-    local_git_timeout = positive_timeout("HLS_LOCAL_GIT_TIMEOUT_SECS", 10)
+    gh_read_timeout = bounded_timeout("HLS_GH_READ_TIMEOUT_SECS", 120, 600)
+    local_git_timeout = bounded_timeout("HLS_LOCAL_GIT_TIMEOUT_SECS", 10, 60)
 except ValueError as error:
     print(error, file=sys.stderr)
     raise SystemExit(2) from None

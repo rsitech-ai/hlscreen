@@ -16,9 +16,11 @@ Supported bounded local use:
 - Render deterministic terminal output and health JSON.
 - Preview read-only localhost HTTP routes over current in-memory state.
 - Run a bounded localhost API preview backed by public live market-data snapshots with `hls server --live`.
-- Stop plain or live loopback servers cleanly with SIGINT/SIGTERM on Unix or
-  CTRL-C on Windows; listener/task cleanup and same-port restart are covered by
-  an isolated local smoke.
+- Stop loopback servers through the shared SIGINT/SIGTERM Unix and CTRL-C
+  Windows lifecycle. The isolated process smoke proves plain-server Unix
+  SIGTERM cleanup and same-port restart locally. Shared live cancellation and
+  signal mapping are unit-tested; a live process and Windows CTRL-C were not
+  runtime-proven by that smoke.
 - Evaluate validated local-only alert playbooks in the TUI with bounded in-memory
   history and no external delivery or exchange action.
 
@@ -37,7 +39,8 @@ REST backfill uses at most 1,100 weighted units per rolling minute; live/server
 WebSocket clients use at most 1,900 outbound messages and 29 new connections per
 rolling minute; analog replay samples every five minutes and retains at most 288
 candidates per symbol. The hosted-surface gate bounds each `gh` read to 120
-seconds and its local Git SHA read to 10 seconds by default. These controls
+seconds and its local Git SHA read to 10 seconds by default; validated test
+overrides are limited to 1–600 and 1–60 seconds respectively. These controls
 provide headroom and bounded failure, not unattended availability, complete
 historical analog coverage, or production-service readiness.
 
