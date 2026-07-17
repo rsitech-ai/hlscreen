@@ -761,11 +761,13 @@ where
     if !wait_for_rate_limit_slot(limiter, deadline).await {
         return Ok(false);
     }
+    // Reserve before the write so an ambiguous failed or partial send still
+    // consumes conservative outbound-message budget.
+    limiter.record(tokio::time::Instant::now());
     tokio::select! {
         result = sink.send(message) => result.context(context)?,
         _ = tokio::time::sleep_until(deadline) => return Ok(false),
     }
-    limiter.record(tokio::time::Instant::now());
     Ok(true)
 }
 

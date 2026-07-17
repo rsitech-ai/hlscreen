@@ -3,6 +3,7 @@ use hls_core::{HlsError, HlsResult};
 use crate::dsl::ast::{CmpOp, Expr, Field, SortDirection, SortField, ValueExpr};
 
 const MAX_FILTER_NESTING_DEPTH: usize = 256;
+const MAX_FILTER_BOOLEAN_OPERATORS: usize = 256;
 
 pub fn parse_filter(input: &str) -> HlsResult<Expr> {
     let tokens = tokenize(input)?;
@@ -61,16 +62,22 @@ enum Token {
 struct Parser {
     tokens: Vec<Token>,
     index: usize,
+    boolean_operators: usize,
 }
 
 impl Parser {
     fn new(tokens: Vec<Token>) -> Self {
-        Self { tokens, index: 0 }
+        Self {
+            tokens,
+            index: 0,
+            boolean_operators: 0,
+        }
     }
 
     fn parse_or(&mut self, depth: usize) -> HlsResult<Expr> {
         let mut expr = self.parse_and(depth)?;
         while self.consume(&Token::Or) {
+            self.reserve_boolean_operator()?;
             expr = Expr::Or(Box::new(expr), Box::new(self.parse_and(depth)?));
         }
         Ok(expr)
@@ -79,9 +86,20 @@ impl Parser {
     fn parse_and(&mut self, depth: usize) -> HlsResult<Expr> {
         let mut expr = self.parse_comparison(depth)?;
         while self.consume(&Token::And) {
+            self.reserve_boolean_operator()?;
             expr = Expr::And(Box::new(expr), Box::new(self.parse_comparison(depth)?));
         }
         Ok(expr)
+    }
+
+    fn reserve_boolean_operator(&mut self) -> HlsResult<()> {
+        if self.boolean_operators >= MAX_FILTER_BOOLEAN_OPERATORS {
+            return Err(HlsError::Parse(format!(
+                "filter complexity exceeds maximum of {MAX_FILTER_BOOLEAN_OPERATORS} boolean operators"
+            )));
+        }
+        self.boolean_operators += 1;
+        Ok(())
     }
 
     fn parse_comparison(&mut self, depth: usize) -> HlsResult<Expr> {
