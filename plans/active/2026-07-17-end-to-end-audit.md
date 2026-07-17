@@ -94,13 +94,17 @@
 - 2026-07-17: Use generic read-only subagents for independent documentation, architecture/security, and runtime/test review; the parent remains the only writer and owns final verification.
 - 2026-07-17: After validated findings expanded implementation scope, switch to serialized subagent-driven development: one assigned writer at a time with non-overlapping ownership, followed by an independent task review; the parent owns integration and final verification.
 - 2026-07-17: Treat `production-ready` as the repository's documented read-only local-service scope. Wallets, private streams, orders, and live-money execution remain prohibited and out of scope.
+- 2026-07-17: Reserve explicit headroom below Hyperliquid's documented IP limits: 1,100 weighted REST units/minute versus 1,200, 29 new WebSocket connections/minute versus 30, and 1,900 outbound WebSocket messages/minute versus 2,000.
+- 2026-07-17: Bound analog replay to deterministic five-minute samples and the 288 newest candidates per symbol. Cache accepted replay time and snapshot revision in market state so cadence decisions remain O(1) and ignored events do not trigger all-symbol recomputation.
 
 ## Progress Log
 
 - 2026-07-17: Completed HQ bootstrap, repository/remote inventory, plan/spec intake, baseline selection, and fresh audit branch creation.
 - 2026-07-17: Baseline `scripts/check.sh fast` passed; 249 additional focused tests and deterministic fixture/service smokes passed.
 - 2026-07-17: Reproduced and fixed reconnect-gap recovery truth and filter-parser stack exhaustion using failing-first regression tests; focused tests are green.
-- 2026-07-17: Next: review/commit task 1, then execute remediation tasks 2-6 with per-task review before the full runtime and release matrix.
+- 2026-07-17: Completed and independently approved selected-universe/candle-interval correctness, recorder/preference lifecycle hardening, and bounded public REST/WebSocket request behavior.
+- 2026-07-17: Completed and independently approved bounded analog replay after closing per-event all-symbol scans, terminal duplicate sweeps, ignored-event recomputation, and immediately-evicted-history edge cases. Core plus store verification passed 100 tests with warnings denied.
+- 2026-07-17: In progress: service signal lifecycle, validation timeout/isolation, supervisor process proof, and documentation truth. Next: run the full runtime/release matrix and final whole-branch review.
 
 ## Rollback / Recovery
 
