@@ -131,6 +131,9 @@ Local server lifecycle and validation are fail-closed but remain experimental:
   stops new HTTP accepts, live publication and public WebSocket work, drains
   connection tasks, releases the port, and exits zero. This is not an
   authenticated daemon or unattended service guarantee.
+  The local process smoke proves plain-server SIGTERM behavior on Unix. Shared
+  signal mapping and live-publisher cancellation are unit-tested; the live
+  process path and Windows CTRL-C branch are not runtime-proven by that smoke.
 - Public REST backfill is limited to 1,100 weighted units per rolling minute;
   live and server WebSocket clients keep outbound messages to 1,900 per rolling
   minute and new connections to 29 per rolling minute. Those are application
@@ -139,9 +142,10 @@ Local server lifecycle and validation are fail-closed but remain experimental:
 - Local analog replay keeps only five-minute samples and the newest 288
   candidates per symbol. It omits sub-five-minute and older historical states.
 - Hosted-surface reads are finite: 120 seconds per `gh` API call and 10 seconds
-  for the local Git SHA read by default. Positive-integer test overrides are
-  available through `HLS_GH_READ_TIMEOUT_SECS` and
-  `HLS_LOCAL_GIT_TIMEOUT_SECS`; a timeout is a redacted gate failure.
+  for the local Git SHA read by default. Test overrides are limited to 1–600
+  seconds through `HLS_GH_READ_TIMEOUT_SECS` and 1–60 seconds through
+  `HLS_LOCAL_GIT_TIMEOUT_SECS`; invalid or oversized values fail before
+  conversion, and a timeout is a redacted gate failure.
 
 See [Deployment status](docs/deployment.md) for the remaining supervisor,
 durability, authentication, observability, soak, and recovery limits.
