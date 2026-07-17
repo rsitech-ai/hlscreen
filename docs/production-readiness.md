@@ -16,6 +16,9 @@ Supported bounded local use:
 - Render deterministic terminal output and health JSON.
 - Preview read-only localhost HTTP routes over current in-memory state.
 - Run a bounded localhost API preview backed by public live market-data snapshots with `hls server --live`.
+- Stop plain or live loopback servers cleanly with SIGINT/SIGTERM on Unix or
+  CTRL-C on Windows; listener/task cleanup and same-port restart are covered by
+  an isolated local smoke.
 - Evaluate validated local-only alert playbooks in the TUI with bounded in-memory
   history and no external delivery or exchange action.
 
@@ -28,6 +31,15 @@ Not included:
 - Full tick-level public-data repair after live reconnect. Coarse public candle rows may be appended, but missing trades/BBO are not reconstructed and the original gap remains degraded.
 - A production alert engine, validated canonical production microstructure metric suite, private account fee-tier lookup, realized fill model, or service-backed historical analog search.
 - Full schema-versioned analytical Parquet dataset family beyond the initial normalized-event export.
+
+Current resource boundaries are finite but intentionally conservative: public
+REST backfill uses at most 1,100 weighted units per rolling minute; live/server
+WebSocket clients use at most 1,900 outbound messages and 29 new connections per
+rolling minute; analog replay samples every five minutes and retains at most 288
+candidates per symbol. The hosted-surface gate bounds each `gh` read to 120
+seconds and its local Git SHA read to 10 seconds by default. These controls
+provide headroom and bounded failure, not unattended availability, complete
+historical analog coverage, or production-service readiness.
 
 ## Release Engineering State
 

@@ -6,9 +6,13 @@ supervisor deployment package.
 The `hls server` command exposes read-only route helpers, an operator-terminated
 localhost loop over in-memory state, and a bounded live-data preview. The CLI
 rejects non-loopback bind addresses. These modes are useful for tests and local
-inspection, but they do not provide the supported lifecycle, durable state,
-authentication, upgrade policy, or operational guarantees expected from a
-production service.
+inspection. Plain and live server modes install SIGINT and SIGTERM listeners on
+Unix and a CTRL-C listener on Windows. A delivered signal stops acceptance,
+drops live publication/WebSocket work, drains the HTTP task, releases the
+listener, and exits zero with a clean-stop diagnostic. Listener setup or
+delivery failure is an error. This local lifecycle does not provide durable
+state, authentication, an upgrade policy, or the operational guarantees
+expected from a production service.
 
 The bounded live preview coalesces data-bearing WebSocket bursts into at most
 one full API snapshot recomputation every 250 ms and skips timer catch-up after
@@ -34,6 +38,27 @@ through public metadata.
 Experimental process-manager templates may exist in the repository while this
 work is developed. They are not an install path, release artifact, or evidence
 that unattended operation has been validated.
+
+The static packaging check uses a unique temporary evidence directory and an
+offline loopback process smoke. It requires `/health`, SIGTERM exit status zero,
+no remaining service PID, listener rebinding, and a healthy restart over the
+same port. Every readiness and shutdown wait is bounded, and failure logs are
+printed before the temporary directory is removed. Passing this smoke proves a
+local process contract only; it does not validate either supervisor template as
+a supported deployment.
+
+Hosted public-surface validation also has bounded subprocess reads. GitHub API
+reads default to 120 seconds and the local Git SHA read defaults to 10 seconds.
+Tests may override them with positive-integer
+`HLS_GH_READ_TIMEOUT_SECS` and `HLS_LOCAL_GIT_TIMEOUT_SECS` values. Timeouts are
+reported with query strings removed; invalid overrides fail before hosted
+inventory work. These bounds prevent a release gate from hanging, but they do
+not convert unavailable hosted evidence into success.
+
+The local analog index is deliberately incomplete: replay samples at five-minute
+cadence and retains at most the newest 288 candidates per symbol (one sampled
+day). Sub-five-minute states and older candidates are omitted. This bound keeps
+the in-memory index finite; it is not a service-backed historical search.
 
 ## Supervised Soak Evidence
 
@@ -88,17 +113,11 @@ cargo test -p hls-hyperliquid --test ws_parser
 # SIGINT/SIGTERM restore the TUI and complete closeout.
 cargo test -p hls-cli --test pty_tui fixture_tui_restores_terminal_when_signaled_during_initial_frame
 
-# Static supervisor boundaries plus bounded loopback fixture smoke.
+# Static supervisor boundaries plus isolated loopback lifecycle smoke.
 scripts/check-supervisor-packaging.sh
 
-# Clean process restart over the same read-only fixture configuration.
-for attempt in 1 2; do
-  target/debug/hls server \
-    --live \
-    --symbols @107 \
-    --fixture-file tests/fixtures/hyperliquid/ws_mock_live.ndjson \
-    --bind 127.0.0.1:0
-done
+# Hosted/local read subprocess timeout behavior (deterministic fake gh).
+python3 scripts/test-public-surface-gate.py
 ```
 
 Any failed command blocks deployment claims. A live reconnect also creates an
@@ -108,7 +127,8 @@ repeated without a gap.
 
 ## Required Before Deployment Support
 
-- A supported server lifecycle with restart and recovery acceptance tests.
+- Cross-platform supervisor installation, restart/recovery, upgrade, rollback,
+  and incident acceptance beyond the local process smoke.
 - Explicit persistence and recovery behavior across process restarts.
 - Authentication and authorization before any non-loopback exposure.
 - Structured service logs, metrics, health semantics, and alerting ownership.

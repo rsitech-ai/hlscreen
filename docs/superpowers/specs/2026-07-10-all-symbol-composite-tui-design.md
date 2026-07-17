@@ -1,8 +1,19 @@
 # All-Symbol Composite TUI Design
 
 **Date:** 2026-07-10
-**Status:** Approved
+**Status:** Historical design intent; superseded and not the current implementation contract
 **Scope:** Public, read-only Hyperliquid spot data and the unified Ratatui workstation
+
+> This document records a proposal that was approved for exploration but was
+> not implemented as written. It does **not** describe the current `hls tui`
+> default or prove all-symbol candle bootstrap, a market composite candle
+> series, selected-symbol L2 subscription switching, or a candle cache. The
+> current implementation plan is
+> [`specs/004-advanced-tui-workstation/plan.md`](../../../specs/004-advanced-tui-workstation/plan.md),
+> and the current CLI behavior is documented in the
+> [README](../../../README.md): `hls tui` defaults to the top 10 public spot
+> pairs, while broader collection is explicit. The remaining sections are
+> retained only as historical design rationale.
 
 ## Objective
 
@@ -21,6 +32,9 @@ must never present missing, approximated, or derived data as exchange-complete.
 - No persistence of private or execution-related state.
 
 ## Command Contract
+
+The command contract below is historical and was never made the current CLI
+contract.
 
 `hls tui` loads the complete discoverable Hyperliquid spot universe by default.
 
