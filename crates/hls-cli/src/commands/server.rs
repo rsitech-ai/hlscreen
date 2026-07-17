@@ -330,9 +330,10 @@ where
 {
     tokio::pin!(publisher);
     tokio::select! {
-        publish_result = &mut publisher => LiveServerCompletion::Published(publish_result),
-        signal_result = shutdown_signal.as_mut() => LiveServerCompletion::Signal(signal_result),
+        biased;
         joined = server => LiveServerCompletion::HttpStopped(map_http_server_join(joined)),
+        signal_result = shutdown_signal.as_mut() => LiveServerCompletion::Signal(signal_result),
+        publish_result = &mut publisher => LiveServerCompletion::Published(publish_result),
     }
 }
 
@@ -1108,6 +1109,41 @@ mod tests {
         ));
         assert!(dropped.load(Ordering::SeqCst));
         http_server.abort();
+    }
+
+    #[tokio::test]
+    async fn live_server_signal_precedes_a_simultaneously_ready_publisher() {
+        for _ in 0..128 {
+            let publisher = async { Ok(ServerLiveSummary::default()) };
+            let signal: ShutdownSignal =
+                Box::pin(async { Ok(ServerStopReason::Signal("SIGTERM")) });
+            let mut http_server = tokio::spawn(std::future::pending::<hls_core::HlsResult<()>>());
+
+            let completion = wait_for_live_completion(publisher, signal, &mut http_server).await;
+
+            assert!(matches!(
+                completion,
+                LiveServerCompletion::Signal(Ok(ServerStopReason::Signal("SIGTERM")))
+            ));
+            http_server.abort();
+        }
+    }
+
+    #[tokio::test]
+    async fn live_server_http_termination_precedes_other_ready_outcomes() {
+        let publisher = async { Ok(ServerLiveSummary::default()) };
+        let signal: ShutdownSignal = Box::pin(async { Ok(ServerStopReason::Signal("SIGTERM")) });
+        let mut http_server = tokio::spawn(async { Ok(()) });
+        while !http_server.is_finished() {
+            tokio::task::yield_now().await;
+        }
+
+        let completion = wait_for_live_completion(publisher, signal, &mut http_server).await;
+
+        assert!(matches!(
+            completion,
+            LiveServerCompletion::HttpStopped(Ok(()))
+        ));
     }
 
     #[tokio::test]

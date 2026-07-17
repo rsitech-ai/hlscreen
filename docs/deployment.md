@@ -40,19 +40,22 @@ work is developed. They are not an install path, release artifact, or evidence
 that unattended operation has been validated.
 
 The static packaging check uses a unique temporary evidence directory and an
-offline loopback process smoke. It requires `/health`, SIGTERM exit status zero,
-no remaining service PID, listener rebinding, and a healthy restart over the
-same port. Every readiness and shutdown wait is bounded, and failure logs are
-printed before the temporary directory is removed. Passing this smoke proves a
-local process contract only; it does not validate either supervisor template as
-a supported deployment.
+offline loopback process smoke for the plain server on Unix. It requires
+`/health`, SIGTERM exit status zero, no remaining service PID, listener
+rebinding, and a healthy restart over the same port. Every readiness and
+shutdown wait is bounded, and failure logs are printed before the temporary
+directory is removed. Shared signal mapping and live-publisher cancellation are
+unit-tested, but this smoke does not runtime-prove the live process path or the
+Windows CTRL-C branch. Passing it does not validate either supervisor template
+as a supported deployment.
 
 Hosted public-surface validation also has bounded subprocess reads. GitHub API
 reads default to 120 seconds and the local Git SHA read defaults to 10 seconds.
-Tests may override them with positive-integer
-`HLS_GH_READ_TIMEOUT_SECS` and `HLS_LOCAL_GIT_TIMEOUT_SECS` values. Timeouts are
-reported with query strings removed; invalid overrides fail before hosted
-inventory work. These bounds prevent a release gate from hanging, but they do
+Tests may set `HLS_GH_READ_TIMEOUT_SECS` from 1 through 600 seconds and
+`HLS_LOCAL_GIT_TIMEOUT_SECS` from 1 through 60 seconds. Validation rejects
+zero, non-integer, above-maximum, and arbitrarily long digit strings before
+integer conversion or hosted inventory work. Timeouts are reported with query
+strings removed. These bounds prevent a release gate from hanging, but they do
 not convert unavailable hosted evidence into success.
 
 The local analog index is deliberately incomplete: replay samples at five-minute

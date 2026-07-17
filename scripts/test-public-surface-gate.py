@@ -14,6 +14,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SURFACE_GATE = REPO_ROOT / "scripts/check-public-surface.sh"
+CASE_COUNT = 0
 
 FAKE_GH = r'''#!/usr/bin/env python3
 import io
@@ -370,6 +371,7 @@ def run_case(
     expected_absent: str = "",
     env_overrides: dict[str, str] | None = None,
 ) -> None:
+    global CASE_COUNT
     with tempfile.TemporaryDirectory(prefix="hlscreen-surface-test.") as temp:
         root = Path(temp)
         (root / "scripts").mkdir()
@@ -462,6 +464,7 @@ def run_case(
             fixture_token = "gh" + "p_" + ("A" * 20)
             if fixture_token in result.stdout or fixture_token in result.stderr:
                 raise AssertionError("surface gate emitted matched Actions log content")
+        CASE_COUNT += 1
 
 
 def main() -> None:
@@ -478,10 +481,31 @@ def main() -> None:
         "private_ok",
         "private-candidate",
         expected_success=False,
-        expected_error="HLS_GH_READ_TIMEOUT_SECS must be a positive integer",
+        expected_error="HLS_GH_READ_TIMEOUT_SECS must be an integer from 1 through 600",
         expected_absent="Traceback",
         env_overrides={"HLS_GH_READ_TIMEOUT_SECS": "0"},
     )
+    for name, maximum in (
+        ("HLS_GH_READ_TIMEOUT_SECS", 600),
+        ("HLS_LOCAL_GIT_TIMEOUT_SECS", 60),
+    ):
+        expected_error = f"{name} must be an integer from 1 through {maximum}"
+        run_case(
+            "private_ok",
+            "private-candidate",
+            expected_success=False,
+            expected_error=expected_error,
+            expected_absent="Traceback",
+            env_overrides={name: str(maximum + 1)},
+        )
+        run_case(
+            "private_ok",
+            "private-candidate",
+            expected_success=False,
+            expected_error=expected_error,
+            expected_absent="Traceback",
+            env_overrides={name: "9" * 5_000},
+        )
     run_case(
         "private_ok",
         "private-candidate",
@@ -613,7 +637,7 @@ def main() -> None:
         expected_success=False,
         expected_error="Private vulnerability reporting is not enabled",
     )
-    print("public_surface_mock_tests=passed cases=25")
+    print(f"public_surface_mock_tests=passed cases={CASE_COUNT}")
 
 
 if __name__ == "__main__":
