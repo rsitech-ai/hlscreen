@@ -103,3 +103,13 @@ fn rejects_non_finite_numeric_literals() {
 
     assert!(error.to_string().contains("finite"));
 }
+
+#[test]
+fn rejects_excessive_parenthesis_nesting_without_overflowing_the_stack() {
+    let nesting = 257;
+    let filter = format!("{}price > 1{}", "(".repeat(nesting), ")".repeat(nesting));
+
+    let error = parse_filter(&filter).expect_err("deeply nested filters must be bounded");
+
+    assert!(error.to_string().contains("nesting"));
+}

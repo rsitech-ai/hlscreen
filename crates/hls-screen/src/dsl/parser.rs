@@ -2,10 +2,12 @@ use hls_core::{HlsError, HlsResult};
 
 use crate::dsl::ast::{CmpOp, Expr, Field, SortDirection, SortField, ValueExpr};
 
+const MAX_FILTER_NESTING_DEPTH: usize = 256;
+
 pub fn parse_filter(input: &str) -> HlsResult<Expr> {
     let tokens = tokenize(input)?;
     let mut parser = Parser::new(tokens);
-    let expr = parser.parse_or()?;
+    let expr = parser.parse_or(0)?;
     parser.expect_end()?;
     Ok(expr)
 }
@@ -66,25 +68,30 @@ impl Parser {
         Self { tokens, index: 0 }
     }
 
-    fn parse_or(&mut self) -> HlsResult<Expr> {
-        let mut expr = self.parse_and()?;
+    fn parse_or(&mut self, depth: usize) -> HlsResult<Expr> {
+        let mut expr = self.parse_and(depth)?;
         while self.consume(&Token::Or) {
-            expr = Expr::Or(Box::new(expr), Box::new(self.parse_and()?));
+            expr = Expr::Or(Box::new(expr), Box::new(self.parse_and(depth)?));
         }
         Ok(expr)
     }
 
-    fn parse_and(&mut self) -> HlsResult<Expr> {
-        let mut expr = self.parse_comparison()?;
+    fn parse_and(&mut self, depth: usize) -> HlsResult<Expr> {
+        let mut expr = self.parse_comparison(depth)?;
         while self.consume(&Token::And) {
-            expr = Expr::And(Box::new(expr), Box::new(self.parse_comparison()?));
+            expr = Expr::And(Box::new(expr), Box::new(self.parse_comparison(depth)?));
         }
         Ok(expr)
     }
 
-    fn parse_comparison(&mut self) -> HlsResult<Expr> {
+    fn parse_comparison(&mut self, depth: usize) -> HlsResult<Expr> {
         if self.consume(&Token::LParen) {
-            let expr = self.parse_or()?;
+            if depth >= MAX_FILTER_NESTING_DEPTH {
+                return Err(HlsError::Parse(format!(
+                    "filter nesting exceeds maximum depth of {MAX_FILTER_NESTING_DEPTH}"
+                )));
+            }
+            let expr = self.parse_or(depth + 1)?;
             self.expect(Token::RParen, "expected ')'")?;
             return Ok(expr);
         }
