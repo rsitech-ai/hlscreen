@@ -789,7 +789,7 @@ async fn run_fixture_live(
         println!("recording run: {}", summary.run_id);
         println!("clean_shutdown={}", summary.clean_shutdown);
         if args.backfill_gaps {
-            backfill::run(BackfillArgs {
+            let outcome = backfill::run_with_outcome(BackfillArgs {
                 run_id: summary.run_id.clone(),
                 interval: args.backfill_interval.clone(),
                 rest_url: args.rest_url.clone(),
@@ -797,6 +797,9 @@ async fn run_fixture_live(
                 data_dir: args.data_dir.clone(),
             })
             .await?;
+            if !fixture_continues_after_backfill(outcome) {
+                return Ok(());
+            }
         }
         if args.parquet {
             let parquet = export_normalized_events_to_parquet(&args.data_dir, &summary.run_id)
@@ -2103,16 +2106,21 @@ where
     StopFuture: Future<Output = anyhow::Result<LiveStopReason>>,
 {
     let now = tokio::time::Instant::now();
-    if let Some(available_at) = limiter.next_available_at(now) {
-        match cancellable_send(sleep_until(available_at), stop_future).await? {
-            CancellableSendOutcome::Sent(()) => {}
-            CancellableSendOutcome::Stopped(stop_reason) => {
-                return Ok(CancellableSendOutcome::Stopped(stop_reason));
-            }
+    let available_at = limiter.next_available_at(now).unwrap_or(now);
+    tokio::pin!(stop_future);
+    tokio::select! {
+        biased;
+        stop_reason = &mut stop_future => {
+            return stop_reason.map(CancellableSendOutcome::Stopped);
         }
+        _ = sleep_until(available_at) => {}
     }
     limiter.record(tokio::time::Instant::now());
     Ok(CancellableSendOutcome::Sent(()))
+}
+
+fn fixture_continues_after_backfill(outcome: backfill::BackfillRunOutcome) -> bool {
+    outcome == backfill::BackfillRunOutcome::Completed
 }
 
 fn ws_message_text(message: Message) -> HlsResult<WsReadEvent> {
@@ -4970,6 +4978,38 @@ mod tests {
             CancellableSendOutcome::Stopped(LiveStopReason::Signal)
         );
         assert_eq!(tokio::time::Instant::now(), started);
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn ready_stop_beats_an_immediately_available_live_connection_slot() {
+        let started = tokio::time::Instant::now();
+        let mut limiter = RollingRateLimiter::new(1, Duration::from_secs(60));
+
+        assert_eq!(
+            wait_for_live_connection_slot(
+                &mut limiter,
+                std::future::ready(Ok(LiveStopReason::Signal)),
+            )
+            .await
+            .expect("stop succeeds"),
+            CancellableSendOutcome::Stopped(LiveStopReason::Signal)
+        );
+        assert_eq!(limiter.next_available_at(started), None);
+        limiter.record(started);
+        assert_eq!(
+            limiter.next_available_at(started),
+            Some(started + Duration::from_secs(60))
+        );
+    }
+
+    #[test]
+    fn stopped_fixture_backfill_does_not_continue_to_post_processing() {
+        assert!(!fixture_continues_after_backfill(
+            backfill::BackfillRunOutcome::Stopped
+        ));
+        assert!(fixture_continues_after_backfill(
+            backfill::BackfillRunOutcome::Completed
+        ));
     }
 
     #[test]
