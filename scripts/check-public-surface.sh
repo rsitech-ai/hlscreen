@@ -96,6 +96,25 @@ failures: list[str] = []
 gh_bin = os.environ["HLS_GH_BIN"]
 
 
+def positive_timeout(name: str, default: int) -> int:
+    raw = os.environ.get(name, str(default))
+    if not re.fullmatch(r"[1-9][0-9]*", raw):
+        raise ValueError(f"{name} must be a positive integer")
+    return int(raw)
+
+
+try:
+    gh_read_timeout = positive_timeout("HLS_GH_READ_TIMEOUT_SECS", 120)
+    local_git_timeout = positive_timeout("HLS_LOCAL_GIT_TIMEOUT_SECS", 10)
+except ValueError as error:
+    print(error, file=sys.stderr)
+    raise SystemExit(2) from None
+
+
+def redacted_endpoint(endpoint: str) -> str:
+    return endpoint.split("?", 1)[0]
+
+
 def api(
     endpoint: str,
     *,
@@ -105,21 +124,26 @@ def api(
     command = [gh_bin, "api", endpoint]
     if paginate:
         command.extend(["--paginate", "--slurp"])
-    result = subprocess.run(
-        command,
-        check=False,
-        capture_output=True,
-        text=True,
-    )
+    try:
+        result = subprocess.run(
+            command,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=gh_read_timeout,
+        )
+    except subprocess.TimeoutExpired:
+        failures.append(f"GitHub API read timed out: {redacted_endpoint(endpoint)}")
+        return None
     if result.returncode != 0:
         if optional:
             return None
-        failures.append(f"GitHub API read failed: {endpoint.split('?', 1)[0]}")
+        failures.append(f"GitHub API read failed: {redacted_endpoint(endpoint)}")
         return None
     try:
         return json.loads(result.stdout)
     except json.JSONDecodeError:
-        failures.append(f"GitHub API returned invalid JSON: {endpoint.split('?', 1)[0]}")
+        failures.append(f"GitHub API returned invalid JSON: {redacted_endpoint(endpoint)}")
         return None
 
 
@@ -163,25 +187,35 @@ def object_items(endpoint: str, key: str) -> tuple[list[dict[str, object]], int 
 
 
 def status_read(endpoint: str) -> bool:
-    result = subprocess.run(
-        [gh_bin, "api", endpoint],
-        check=False,
-        capture_output=True,
-        text=True,
-    )
+    try:
+        result = subprocess.run(
+            [gh_bin, "api", endpoint],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=gh_read_timeout,
+        )
+    except subprocess.TimeoutExpired:
+        failures.append(f"GitHub API status read timed out: {redacted_endpoint(endpoint)}")
+        return False
     return result.returncode == 0
 
 
 def api_zip(endpoint: str) -> bytes | None:
-    result = subprocess.run(
-        [gh_bin, "api", endpoint],
-        check=False,
-        capture_output=True,
-    )
+    try:
+        result = subprocess.run(
+            [gh_bin, "api", endpoint],
+            check=False,
+            capture_output=True,
+            timeout=gh_read_timeout,
+        )
+    except subprocess.TimeoutExpired:
+        failures.append(f"GitHub API binary read timed out: {redacted_endpoint(endpoint)}")
+        return None
     if result.returncode != 0:
         if b"HTTP 404" in result.stderr:
             return None
-        failures.append(f"GitHub API binary read failed: {endpoint}")
+        failures.append(f"GitHub API binary read failed: {redacted_endpoint(endpoint)}")
         return None
     return result.stdout
 
@@ -203,12 +237,17 @@ main_branches = [branch for branch in branches if branch.get("name") == "main"]
 hosted_main_sha = ""
 if len(main_branches) == 1 and isinstance(main_branches[0].get("commit"), dict):
     hosted_main_sha = str(main_branches[0]["commit"].get("sha", ""))
-local_origin_main = subprocess.run(
-    ["git", "rev-parse", "refs/remotes/origin/main"],
-    check=False,
-    capture_output=True,
-    text=True,
-).stdout.strip()
+try:
+    local_origin_main = subprocess.run(
+        ["git", "rev-parse", "refs/remotes/origin/main"],
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=local_git_timeout,
+    ).stdout.strip()
+except subprocess.TimeoutExpired:
+    failures.append("local Git read timed out: refs/remotes/origin/main")
+    local_origin_main = ""
 if not re.fullmatch(r"[0-9a-f]{40}", hosted_main_sha) or hosted_main_sha != local_origin_main:
     failures.append("local origin/main does not match the hosted main SHA")
 tags = list_result(f"repos/{repo}/tags?per_page=100")
