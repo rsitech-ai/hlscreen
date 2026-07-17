@@ -456,6 +456,8 @@ The screening DSL supports:
 - Literals: numbers, strings, booleans
 - Function: `abs(field)` for numeric fields
 - Sort syntax: `field:asc`, `field:desc`, `abs(field):asc`, `abs(field):desc`
+- Safety bounds: at most 256 nested parenthesis levels and 256 total boolean
+  operators per filter; oversized filters fail without replacing the active rule.
 
 Examples are in [examples/screen-rules.md](examples/screen-rules.md).
 

@@ -68,8 +68,7 @@ if [[ ! -s "$audit" ]]; then
   echo "missing $audit" >&2
   exit 1
 fi
-if ! command -v "$gh_bin" >/dev/null 2>&1 \
-  || ! "$gh_bin" auth status >/dev/null 2>&1; then
+if ! command -v "$gh_bin" >/dev/null 2>&1; then
   echo "authenticated GitHub CLI is required" >&2
   exit 1
 fi
@@ -115,6 +114,22 @@ try:
 except ValueError as error:
     print(error, file=sys.stderr)
     raise SystemExit(2) from None
+
+
+try:
+    auth_status = subprocess.run(
+        [gh_bin, "auth", "status"],
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=gh_read_timeout,
+    )
+except subprocess.TimeoutExpired:
+    print("GitHub CLI authentication check timed out", file=sys.stderr)
+    raise SystemExit(1) from None
+if auth_status.returncode != 0:
+    print("authenticated GitHub CLI is required", file=sys.stderr)
+    raise SystemExit(1)
 
 
 def redacted_endpoint(endpoint: str) -> str:

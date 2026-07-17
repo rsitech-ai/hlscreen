@@ -286,3 +286,32 @@ fn live_once_allows_zero_duration_fixture_without_tty() {
         .success()
         .stdout(predicate::str::contains("@107"));
 }
+
+#[test]
+fn live_rejects_oversized_boolean_filter_chains_without_stack_overflow() {
+    for operator in ["and", "or"] {
+        let separator = format!(" {operator} ");
+        let filter = std::iter::repeat_n("price > 0", 10_000)
+            .collect::<Vec<_>>()
+            .join(&separator);
+
+        Command::cargo_bin("hls")
+            .expect("hls binary")
+            .args([
+                "live",
+                "--symbols",
+                "@107",
+                "--fixture-file",
+                &fixture("tests/fixtures/hyperliquid/ws_mock_live.ndjson"),
+                "--once",
+                "--where",
+                &filter,
+                "--color",
+                "never",
+            ])
+            .assert()
+            .failure()
+            .stderr(predicate::str::contains("filter complexity exceeds"))
+            .stderr(predicate::str::contains("overflowed its stack").not());
+    }
+}

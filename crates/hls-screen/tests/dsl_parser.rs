@@ -113,3 +113,18 @@ fn rejects_excessive_parenthesis_nesting_without_overflowing_the_stack() {
 
     assert!(error.to_string().contains("nesting"));
 }
+
+#[test]
+fn bounds_total_boolean_filter_complexity() {
+    let accepted = std::iter::repeat_n("price > 0", 257)
+        .collect::<Vec<_>>()
+        .join(" and ");
+    parse_filter(&accepted).expect("the documented boolean-operator limit is accepted");
+
+    let rejected = std::iter::repeat_n("price > 0", 258)
+        .collect::<Vec<_>>()
+        .join(" or ");
+    let error = parse_filter(&rejected).expect_err("filters above the limit must be rejected");
+
+    assert!(error.to_string().contains("filter complexity exceeds"));
+}

@@ -1591,21 +1591,46 @@ async fn wait_for_live_stop(
 async fn send_live_message<S>(
     write: &mut S,
     message: Message,
+    outbound_rate_limiter: &mut RollingMessageRateLimiter,
     lifetime: LiveRunLifetime,
     shutdown_signal: &mut ShutdownSignal,
     keyboard_interactive: bool,
-    tui_state: Option<&mut WorkstationUiState>,
+    mut tui_state: Option<&mut WorkstationUiState>,
     state: &LiveMarketState,
     screen_request: &mut ScreenRequest,
     metadata: &[MetadataEnrichment],
     color_mode: RatatuiColorMode,
     started: Instant,
     summary: &LiveDriveSummary,
-    tui_frame_sink: Option<&mut LiveTuiRenderer>,
+    mut tui_frame_sink: Option<&mut LiveTuiRenderer>,
 ) -> anyhow::Result<CancellableSendOutcome<Result<(), S::Error>>>
 where
     S: futures_util::Sink<Message> + Unpin,
 {
+    let stop_future = wait_for_live_stop(
+        lifetime,
+        shutdown_signal,
+        keyboard_interactive,
+        tui_state.as_deref_mut(),
+        state,
+        screen_request,
+        metadata,
+        color_mode,
+        LiveProgressMode::Live,
+        started,
+        summary,
+        tui_frame_sink.as_deref_mut(),
+    );
+    match wait_for_live_outbound_message_slot(outbound_rate_limiter, stop_future).await? {
+        CancellableSendOutcome::Sent(()) => {}
+        CancellableSendOutcome::Stopped(stop_reason) => {
+            return Ok(CancellableSendOutcome::Stopped(stop_reason));
+        }
+    }
+
+    // Reserve before the write so failed or partially completed sends remain
+    // conservatively counted against the exchange's outbound-message limit.
+    outbound_rate_limiter.record(tokio::time::Instant::now());
     let stop_future = wait_for_live_stop(
         lifetime,
         shutdown_signal,
@@ -1648,7 +1673,7 @@ async fn drive_live_ws(
     };
     let mut conn_id = 0;
     let mut reconnect_attempt = 0;
-    let mut subscription_rate_limiter = RollingMessageRateLimiter::default();
+    let mut outbound_rate_limiter = RollingMessageRateLimiter::default();
     let mut connection_rate_limiter = RollingRateLimiter::new(
         LIVE_CONNECTION_RATE_BUDGET,
         crate::commands::ws_rate_limit::WS_OUTBOUND_RATE_WINDOW,
@@ -1661,7 +1686,7 @@ async fn drive_live_ws(
         let outcome = drive_live_connection(
             ws_url,
             subscription_messages,
-            &mut subscription_rate_limiter,
+            &mut outbound_rate_limiter,
             &mut connection_rate_limiter,
             conn_id,
             lifetime,
@@ -1771,7 +1796,7 @@ async fn drive_live_ws(
 async fn drive_live_connection(
     ws_url: &str,
     subscription_messages: &[String],
-    subscription_rate_limiter: &mut RollingMessageRateLimiter,
+    outbound_rate_limiter: &mut RollingMessageRateLimiter,
     connection_rate_limiter: &mut RollingRateLimiter,
     conn_id: u64,
     lifetime: LiveRunLifetime,
@@ -1850,33 +1875,10 @@ async fn drive_live_connection(
     let (mut write, mut read) = ws.split();
 
     for message in subscription_messages {
-        if let Some(available_at) =
-            subscription_rate_limiter.next_available_at(tokio::time::Instant::now())
-        {
-            let stop_future = wait_for_live_stop(
-                lifetime,
-                shutdown_signal,
-                keyboard_interactive,
-                tui_state.as_deref_mut(),
-                state,
-                screen_request,
-                metadata,
-                color_mode,
-                LiveProgressMode::Live,
-                started,
-                summary,
-                tui_frame_sink.as_deref_mut(),
-            );
-            match cancellable_send(sleep_until(available_at), stop_future).await? {
-                CancellableSendOutcome::Sent(()) => {}
-                CancellableSendOutcome::Stopped(stop_reason) => {
-                    return Ok(ConnectionOutcome::Stopped(stop_reason));
-                }
-            }
-        }
         match send_live_message(
             &mut write,
             Message::Text(message.clone().into()),
+            outbound_rate_limiter,
             lifetime,
             shutdown_signal,
             keyboard_interactive,
@@ -1905,7 +1907,6 @@ async fn drive_live_connection(
                 return Ok(ConnectionOutcome::Stopped(stop_reason));
             }
         }
-        subscription_rate_limiter.record(tokio::time::Instant::now());
     }
 
     let mut heartbeat = live_interval(Duration::from_secs(20));
@@ -1959,6 +1960,7 @@ async fn drive_live_connection(
                 match send_live_message(
                     &mut write,
                     Message::Text(ping_message().to_owned().into()),
+                    outbound_rate_limiter,
                     lifetime,
                     shutdown_signal,
                     keyboard_interactive,
@@ -2054,6 +2056,7 @@ async fn drive_live_connection(
                         match send_live_message(
                             &mut write,
                             reply,
+                            outbound_rate_limiter,
                             lifetime,
                             shutdown_signal,
                             keyboard_interactive,
@@ -2117,6 +2120,18 @@ where
     }
     limiter.record(tokio::time::Instant::now());
     Ok(CancellableSendOutcome::Sent(()))
+}
+
+async fn wait_for_live_outbound_message_slot<StopFuture>(
+    limiter: &mut RollingMessageRateLimiter,
+    stop_future: StopFuture,
+) -> anyhow::Result<CancellableSendOutcome<()>>
+where
+    StopFuture: Future<Output = anyhow::Result<LiveStopReason>>,
+{
+    let now = tokio::time::Instant::now();
+    let available_at = limiter.next_available_at(now).unwrap_or(now);
+    cancellable_send(sleep_until(available_at), stop_future).await
 }
 
 fn fixture_continues_after_backfill(outcome: backfill::BackfillRunOutcome) -> bool {
@@ -4901,7 +4916,7 @@ mod tests {
     }
 
     #[test]
-    fn reconnect_subscriptions_respect_a_rolling_outbound_rate_window() {
+    fn subscriptions_and_control_frames_share_one_outbound_rate_window() {
         let started = tokio::time::Instant::now();
         let mut limiter = RollingMessageRateLimiter::default();
 
@@ -4915,7 +4930,12 @@ mod tests {
             limiter.record(second_batch);
         }
         let third_batch = started + Duration::from_secs(2);
-        for _ in 0..52 {
+        for _ in 0..50 {
+            assert_eq!(limiter.next_available_at(third_batch), None);
+            limiter.record(third_batch);
+        }
+        // Heartbeats and protocol pongs use this same limiter as subscriptions.
+        for _ in 0..2 {
             assert_eq!(limiter.next_available_at(third_batch), None);
             limiter.record(third_batch);
         }

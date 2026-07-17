@@ -29,6 +29,8 @@ expected_sha = os.environ["HLS_EXPECTED_SHA"]
 main_sha = os.environ["HLS_MAIN_SHA"]
 args = sys.argv[1:]
 if args == ["auth", "status"]:
+    if scenario == "private_auth_timeout":
+        time.sleep(2)
     raise SystemExit(0)
 if len(args) < 2 or args[0] != "api":
     raise SystemExit(2)
@@ -469,6 +471,14 @@ def run_case(
 
 def main() -> None:
     run_case("private_ok", "private-candidate", expected_success=True)
+    run_case(
+        "private_auth_timeout",
+        "private-candidate",
+        expected_success=False,
+        expected_error="GitHub CLI authentication check timed out",
+        expected_absent="Traceback",
+        env_overrides={"HLS_GH_READ_TIMEOUT_SECS": "1"},
+    )
     run_case(
         "private_timeout",
         "private-candidate",
