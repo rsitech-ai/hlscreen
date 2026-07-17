@@ -337,6 +337,7 @@ pub struct LiveMarketState {
     latest_asset_context_recv_ns: HashMap<String, u64>,
     latest_all_mids_recv_ns: HashMap<String, u64>,
     latest_update_ms: Option<i64>,
+    snapshot_revision: u64,
 }
 
 impl LiveMarketState {
@@ -354,6 +355,7 @@ impl LiveMarketState {
             latest_asset_context_recv_ns: HashMap::new(),
             latest_all_mids_recv_ns: HashMap::new(),
             latest_update_ms: None,
+            snapshot_revision: 0,
         }
     }
 
@@ -365,10 +367,11 @@ impl LiveMarketState {
             return Ok(());
         }
 
-        let observed_update_ms = match event {
+        let (observed_update_ms, snapshot_changed) = match event {
             MarketEvent::AllMids(event) => {
                 let recv_ms = i64::try_from(event.recv_ts_ns / 1_000_000).unwrap_or(i64::MAX);
                 let mut applied = false;
+                let mut snapshot_changed = false;
                 for (hl_coin, mid) in event.mids_by_hl_coin {
                     if !self.states.contains_key(&hl_coin) {
                         continue;
@@ -382,16 +385,23 @@ impl LiveMarketState {
                     {
                         *latest_recv_ns = event.recv_ts_ns;
                         applied = true;
+                        let previous_mid = state.mid_px;
+                        let previous_update_ms = state.last_update_ms;
                         state.mid_px = Some(mid);
                         if recv_ms > 0 {
                             state.last_update_ms =
                                 Some(state.last_update_ms.unwrap_or(0).max(recv_ms));
                         }
+                        snapshot_changed |= previous_mid != state.mid_px
+                            || previous_update_ms != state.last_update_ms;
                     }
                 }
-                applied
-                    .then_some(recv_ms)
-                    .filter(|update_ms| *update_ms > 0)
+                (
+                    applied
+                        .then_some(recv_ms)
+                        .filter(|update_ms| *update_ms > 0),
+                    snapshot_changed,
+                )
             }
             MarketEvent::Trade(event) => {
                 let hl_coin = event.hl_coin.clone();
@@ -400,18 +410,18 @@ impl LiveMarketState {
                     HlsError::Config(format!("state for symbol '{hl_coin}' was not initialized"))
                 })?;
                 let trade_ids = self.trade_ids_by_symbol.entry(hl_coin).or_default();
-                state.apply_trade(event, trade_ids);
-                state.last_update_ms
+                let snapshot_changed = state.apply_trade(event, trade_ids);
+                (state.last_update_ms, snapshot_changed)
             }
             MarketEvent::TopOfBook(event) => {
                 let state = self.state_mut(&event.hl_coin)?;
-                state.apply_top_of_book(event);
-                state.last_update_ms
+                let snapshot_changed = state.apply_top_of_book(event);
+                (state.last_update_ms, snapshot_changed)
             }
             MarketEvent::OrderBook(event) => {
                 let state = self.state_mut(&event.hl_coin)?;
-                state.apply_order_book(event);
-                state.last_update_ms
+                let snapshot_changed = state.apply_order_book(event);
+                (state.last_update_ms, snapshot_changed)
             }
             MarketEvent::AssetContext(event) => {
                 let hl_coin = event.hl_coin.clone();
@@ -420,7 +430,7 @@ impl LiveMarketState {
                     .latest_asset_context_recv_ns
                     .entry(hl_coin.clone())
                     .or_default();
-                if event.recv_ts_ns >= *latest_recv_ns {
+                let snapshot_changed = if event.recv_ts_ns >= *latest_recv_ns {
                     *latest_recv_ns = event.recv_ts_ns;
                     self.states
                         .get_mut(&hl_coin)
@@ -429,20 +439,28 @@ impl LiveMarketState {
                                 "state for symbol '{hl_coin}' was not initialized"
                             ))
                         })?
-                        .apply_asset_context(event);
-                }
-                self.states
-                    .get(&hl_coin)
-                    .and_then(|state| state.last_update_ms)
+                        .apply_asset_context(event)
+                } else {
+                    false
+                };
+                (
+                    self.states
+                        .get(&hl_coin)
+                        .and_then(|state| state.last_update_ms),
+                    snapshot_changed,
+                )
             }
             MarketEvent::Candle(event) => {
                 let state = self.state_mut(&event.hl_coin)?;
-                state.apply_candle(event);
-                state.last_update_ms
+                let snapshot_changed = state.apply_candle(event);
+                (state.last_update_ms, snapshot_changed)
             }
         };
         if let Some(update_ms) = observed_update_ms {
             self.latest_update_ms = Some(self.latest_update_ms.unwrap_or(0).max(update_ms));
+        }
+        if snapshot_changed {
+            self.snapshot_revision = self.snapshot_revision.saturating_add(1);
         }
 
         Ok(())
@@ -458,6 +476,10 @@ impl LiveMarketState {
 
     pub fn latest_update_ms(&self) -> Option<i64> {
         self.latest_update_ms
+    }
+
+    pub fn snapshot_revision(&self) -> u64 {
+        self.snapshot_revision
     }
 
     fn state_mut(&mut self, hl_coin: &str) -> HlsResult<&mut SymbolMarketState> {
@@ -511,21 +533,21 @@ impl SymbolMarketState {
         }
     }
 
-    fn apply_trade(&mut self, event: TradeEvent, trade_ids: &mut HashSet<String>) {
+    fn apply_trade(&mut self, event: TradeEvent, trade_ids: &mut HashSet<String>) -> bool {
         self.rebuild_trade_ids_if_needed(trade_ids);
         let latest_ts_ms = self
             .last_trade_ts_ms
             .unwrap_or(event.exchange_ts_ms)
             .max(event.exchange_ts_ms);
         let cutoff_ms = latest_ts_ms.saturating_sub(TRADE_RETENTION_MS);
-        self.prune_trades_before(cutoff_ms, trade_ids);
+        let pruned = self.prune_trades_before(cutoff_ms, trade_ids);
 
         if event.exchange_ts_ms < cutoff_ms {
-            return;
+            return pruned;
         }
         if !trade_ids.insert(event.unique_trade_id.clone()) {
             self.duplicate_trade_count = self.duplicate_trade_count.saturating_add(1);
-            return;
+            return true;
         }
 
         self.last_update_ms = Some(
@@ -546,6 +568,7 @@ impl SymbolMarketState {
             .partition_point(|trade| trade.exchange_ts_ms <= event.exchange_ts_ms);
         self.trades.insert(insert_at, event);
         self.enforce_trade_count_limit(trade_ids);
+        true
     }
 
     fn rebuild_trade_ids_if_needed(&self, trade_ids: &mut HashSet<String>) {
@@ -559,13 +582,14 @@ impl SymbolMarketState {
         }
     }
 
-    fn prune_trades_before(&mut self, cutoff_ms: i64, trade_ids: &mut HashSet<String>) {
+    fn prune_trades_before(&mut self, cutoff_ms: i64, trade_ids: &mut HashSet<String>) -> bool {
         let stale_count = self
             .trades
             .partition_point(|trade| trade.exchange_ts_ms < cutoff_ms);
         for trade in self.trades.drain(..stale_count) {
             trade_ids.remove(&trade.unique_trade_id);
         }
+        stale_count > 0
     }
 
     fn enforce_trade_count_limit(&mut self, trade_ids: &mut HashSet<String>) {
@@ -578,7 +602,7 @@ impl SymbolMarketState {
         }
     }
 
-    fn apply_top_of_book(&mut self, event: TopOfBookEvent) {
+    fn apply_top_of_book(&mut self, event: TopOfBookEvent) -> bool {
         let is_current = self
             .bbo_events
             .last()
@@ -605,26 +629,37 @@ impl SymbolMarketState {
             let overflow = self.bbo_events.len() - MAX_BBO_EVENTS_PER_SYMBOL;
             self.bbo_events.drain(0..overflow);
         }
+        true
     }
 
-    fn apply_order_book(&mut self, event: OrderBookEvent) {
+    fn apply_order_book(&mut self, event: OrderBookEvent) -> bool {
         if self
             .order_book
             .as_ref()
             .is_some_and(|current| current.recv_ts_ns > event.recv_ts_ns)
         {
-            return;
+            return false;
         }
 
+        let previous_update_ms = self.last_update_ms;
+        let order_book_changed = self.order_book.as_ref() != Some(&event);
         self.last_update_ms = Some(
             self.last_update_ms
                 .unwrap_or(event.exchange_ts_ms)
                 .max(event.exchange_ts_ms),
         );
         self.order_book = Some(event);
+        order_book_changed || previous_update_ms != self.last_update_ms
     }
 
-    fn apply_asset_context(&mut self, event: AssetContextEvent) {
+    fn apply_asset_context(&mut self, event: AssetContextEvent) -> bool {
+        let previous = (
+            self.day_ntl_vlm,
+            self.prev_day_px,
+            self.mark_px,
+            self.mid_px,
+            self.last_update_ms,
+        );
         let recv_ms = i64::try_from(event.recv_ts_ns / 1_000_000).unwrap_or(i64::MAX);
         self.day_ntl_vlm = event.day_ntl_vlm;
         self.prev_day_px = event.prev_day_px;
@@ -633,27 +668,41 @@ impl SymbolMarketState {
         if recv_ms > 0 {
             self.last_update_ms = Some(self.last_update_ms.unwrap_or(0).max(recv_ms));
         }
+        previous
+            != (
+                self.day_ntl_vlm,
+                self.prev_day_px,
+                self.mark_px,
+                self.mid_px,
+                self.last_update_ms,
+            )
     }
 
-    fn apply_candle(&mut self, event: CandleEvent) {
+    fn apply_candle(&mut self, event: CandleEvent) -> bool {
+        let previous_update_ms = self.last_update_ms;
         self.last_update_ms = Some(
             self.last_update_ms
                 .unwrap_or(event.close_ts_ms)
                 .max(event.close_ts_ms),
         );
+        let mut earlier_candle_closed = false;
         for candle in self.candles.iter_mut().filter(|candle| {
             candle.interval == event.interval && candle.open_ts_ms < event.open_ts_ms
         }) {
+            earlier_candle_closed |= candle.completion != CandleCompletion::Closed;
             candle.completion = CandleCompletion::Closed;
         }
         if let Some(existing) = self.candles.iter_mut().find(|candle| {
             candle.interval == event.interval && candle.open_ts_ms == event.open_ts_ms
         }) {
             if existing.recv_ts_ns > event.recv_ts_ns {
-                return;
+                return previous_update_ms != self.last_update_ms || earlier_candle_closed;
             }
+            let replacement_changed = *existing != event;
             *existing = event;
-            return;
+            return previous_update_ms != self.last_update_ms
+                || earlier_candle_closed
+                || replacement_changed;
         }
 
         self.candles.push(event);
@@ -662,6 +711,7 @@ impl SymbolMarketState {
             let overflow = self.candles.len() - MAX_CANDLE_EVENTS_PER_SYMBOL;
             self.candles.drain(0..overflow);
         }
+        true
     }
 }
 
@@ -685,6 +735,7 @@ mod internal_tests {
 
         assert!(state.latest_all_mids_recv_ns.is_empty());
         assert_eq!(state.latest_update_ms(), None);
+        assert_eq!(state.snapshot_revision(), 0);
     }
 
     #[test]
@@ -698,6 +749,7 @@ mod internal_tests {
             }))
             .expect("selected all-mids symbol is applied");
         assert_eq!(state.latest_update_ms(), Some(2_000));
+        assert_eq!(state.snapshot_revision(), 1);
 
         state
             .apply(MarketEvent::AllMids(AllMidsEvent {
@@ -706,5 +758,6 @@ mod internal_tests {
             }))
             .expect("unknown all-mids symbol is ignored");
         assert_eq!(state.latest_update_ms(), Some(2_000));
+        assert_eq!(state.snapshot_revision(), 1);
     }
 }
