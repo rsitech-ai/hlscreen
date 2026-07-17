@@ -13,6 +13,70 @@ use serde_json::{Value, json};
 const DEFAULT_INFO_BASE_URL: &str = "https://api.hyperliquid.xyz";
 const DEFAULT_REST_TIMEOUT: Duration = Duration::from_secs(10);
 
+#[derive(Debug)]
+pub enum PublicRestError {
+    InvalidRequest(HlsError),
+    Transport(String),
+    HttpStatus {
+        status: reqwest::StatusCode,
+        retry_after: Option<Duration>,
+    },
+    Response(HlsError),
+}
+
+impl PublicRestError {
+    pub fn status(&self) -> Option<reqwest::StatusCode> {
+        match self {
+            Self::HttpStatus { status, .. } => Some(*status),
+            _ => None,
+        }
+    }
+
+    pub fn retry_after(&self) -> Option<Duration> {
+        match self {
+            Self::HttpStatus { retry_after, .. } => *retry_after,
+            _ => None,
+        }
+    }
+
+    pub fn is_too_many_requests(&self) -> bool {
+        self.status() == Some(reqwest::StatusCode::TOO_MANY_REQUESTS)
+    }
+
+    fn into_hls_error(self) -> HlsError {
+        match self {
+            Self::InvalidRequest(error) | Self::Response(error) => error,
+            error => HlsError::External(error.to_string()),
+        }
+    }
+}
+
+impl std::fmt::Display for PublicRestError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::InvalidRequest(error) => {
+                write!(formatter, "invalid public REST request: {error}")
+            }
+            Self::Transport(error) => write!(formatter, "Hyperliquid REST request failed: {error}"),
+            Self::HttpStatus {
+                status,
+                retry_after,
+            } => {
+                write!(formatter, "Hyperliquid REST returned HTTP {status}")?;
+                if let Some(delay) = retry_after {
+                    write!(formatter, " (Retry-After {} seconds)", delay.as_secs())?;
+                }
+                Ok(())
+            }
+            Self::Response(error) => {
+                write!(formatter, "invalid Hyperliquid REST response: {error}")
+            }
+        }
+    }
+}
+
+impl std::error::Error for PublicRestError {}
+
 pub fn validate_public_rest_base_url(base_url: &str) -> HlsResult<()> {
     let url = reqwest::Url::parse(base_url)
         .map_err(|err| HlsError::Config(format!("public REST base URL is invalid: {err}")))?;
@@ -87,24 +151,36 @@ impl HyperliquidRestClient {
         start_time_ms: i64,
         end_time_ms: i64,
     ) -> HlsResult<Vec<CandleEvent>> {
+        self.candle_snapshot_attempt(coin, interval, start_time_ms, end_time_ms)
+            .await
+            .map_err(PublicRestError::into_hls_error)
+    }
+
+    pub async fn candle_snapshot_attempt(
+        &self,
+        coin: &str,
+        interval: &str,
+        start_time_ms: i64,
+        end_time_ms: i64,
+    ) -> Result<Vec<CandleEvent>, PublicRestError> {
         if coin.trim().is_empty() {
-            return Err(HlsError::Config(
+            return Err(PublicRestError::InvalidRequest(HlsError::Config(
                 "candle snapshot coin must not be empty".to_owned(),
-            ));
+            )));
         }
         if interval.trim().is_empty() {
-            return Err(HlsError::Config(
+            return Err(PublicRestError::InvalidRequest(HlsError::Config(
                 "candle snapshot interval must not be empty".to_owned(),
-            ));
+            )));
         }
         if start_time_ms > end_time_ms {
-            return Err(HlsError::Config(
+            return Err(PublicRestError::InvalidRequest(HlsError::Config(
                 "candle snapshot start_time_ms must be <= end_time_ms".to_owned(),
-            ));
+            )));
         }
 
         let body = self
-            .post_info(json!({
+            .post_info_attempt(json!({
                 "type": "candleSnapshot",
                 "req": {
                     "coin": coin,
@@ -114,8 +190,9 @@ impl HyperliquidRestClient {
                 }
             }))
             .await?;
-        let candles = parse_candle_snapshot(&body)?;
-        validate_candle_snapshot_response(&candles, coin, interval, start_time_ms, end_time_ms)?;
+        let candles = parse_candle_snapshot(&body).map_err(PublicRestError::Response)?;
+        validate_candle_snapshot_response(&candles, coin, interval, start_time_ms, end_time_ms)
+            .map_err(PublicRestError::Response)?;
         Ok(candles)
     }
 
@@ -138,6 +215,12 @@ impl HyperliquidRestClient {
     }
 
     async fn post_info(&self, request: Value) -> HlsResult<String> {
+        self.post_info_attempt(request)
+            .await
+            .map_err(PublicRestError::into_hls_error)
+    }
+
+    async fn post_info_attempt(&self, request: Value) -> Result<String, PublicRestError> {
         let url = format!("{}/info", self.base_url.trim_end_matches('/'));
         let response = self
             .client
@@ -145,15 +228,25 @@ impl HyperliquidRestClient {
             .json(&request)
             .send()
             .await
-            .map_err(|err| HlsError::External(format!("Hyperliquid REST request failed: {err}")))?
-            .error_for_status()
-            .map_err(|err| {
-                HlsError::External(format!("Hyperliquid REST returned an error: {err}"))
-            })?;
+            .map_err(|err| PublicRestError::Transport(err.to_string()))?;
 
-        response.text().await.map_err(|err| {
-            HlsError::External(format!("Hyperliquid REST response read failed: {err}"))
-        })
+        if !response.status().is_success() {
+            let retry_after = response
+                .headers()
+                .get(reqwest::header::RETRY_AFTER)
+                .and_then(|value| value.to_str().ok())
+                .and_then(|value| value.trim().parse::<u64>().ok())
+                .map(Duration::from_secs);
+            return Err(PublicRestError::HttpStatus {
+                status: response.status(),
+                retry_after,
+            });
+        }
+
+        response
+            .text()
+            .await
+            .map_err(|err| PublicRestError::Transport(format!("response read failed: {err}")))
     }
 }
 
