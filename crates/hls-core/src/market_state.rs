@@ -603,15 +603,25 @@ impl SymbolMarketState {
     }
 
     fn apply_top_of_book(&mut self, event: TopOfBookEvent) -> bool {
-        let is_current = self
-            .bbo_events
-            .last()
-            .is_none_or(|latest| event.exchange_ts_ms >= latest.exchange_ts_ms);
-        self.last_update_ms = Some(
+        let next_update_ms = Some(
             self.last_update_ms
                 .unwrap_or(event.exchange_ts_ms)
                 .max(event.exchange_ts_ms),
         );
+        if self.bbo_events.len() >= MAX_BBO_EVENTS_PER_SYMBOL
+            && self
+                .bbo_events
+                .first()
+                .is_some_and(|oldest| event.exchange_ts_ms < oldest.exchange_ts_ms)
+            && next_update_ms == self.last_update_ms
+        {
+            return false;
+        }
+        let is_current = self
+            .bbo_events
+            .last()
+            .is_none_or(|latest| event.exchange_ts_ms >= latest.exchange_ts_ms);
+        self.last_update_ms = next_update_ms;
         if is_current {
             self.bid_px = event.bid_price;
             self.bid_sz = event.bid_size;
@@ -680,11 +690,21 @@ impl SymbolMarketState {
 
     fn apply_candle(&mut self, event: CandleEvent) -> bool {
         let previous_update_ms = self.last_update_ms;
-        self.last_update_ms = Some(
+        let next_update_ms = Some(
             self.last_update_ms
                 .unwrap_or(event.close_ts_ms)
                 .max(event.close_ts_ms),
         );
+        if self.candles.len() >= MAX_CANDLE_EVENTS_PER_SYMBOL
+            && self
+                .candles
+                .first()
+                .is_some_and(|oldest| event.open_ts_ms < oldest.open_ts_ms)
+            && next_update_ms == self.last_update_ms
+        {
+            return false;
+        }
+        self.last_update_ms = next_update_ms;
         let mut earlier_candle_closed = false;
         for candle in self.candles.iter_mut().filter(|candle| {
             candle.interval == event.interval && candle.open_ts_ms < event.open_ts_ms
@@ -759,5 +779,81 @@ mod internal_tests {
             .expect("unknown all-mids symbol is ignored");
         assert_eq!(state.latest_update_ms(), Some(2_000));
         assert_eq!(state.snapshot_revision(), 1);
+    }
+
+    #[test]
+    fn immediately_evicted_history_does_not_advance_snapshot_revision() {
+        let mut state = LiveMarketState::new(["@107".to_owned()]);
+        for index in 1..=MAX_BBO_EVENTS_PER_SYMBOL {
+            let exchange_ts_ms = 1_000 + i64::try_from(index).expect("test index fits i64");
+            state
+                .apply(MarketEvent::TopOfBook(TopOfBookEvent {
+                    recv_ts_ns: u64::try_from(exchange_ts_ms).expect("positive test timestamp"),
+                    exchange_ts_ms,
+                    hl_coin: "@107".to_owned(),
+                    bid_price: Some(100.0),
+                    bid_size: Some(1.0),
+                    bid_order_count: Some(1),
+                    ask_price: Some(101.0),
+                    ask_size: Some(1.0),
+                    ask_order_count: Some(1),
+                }))
+                .expect("quote applies");
+        }
+        let revision_after_quotes = state.snapshot_revision();
+        state
+            .apply(MarketEvent::TopOfBook(TopOfBookEvent {
+                recv_ts_ns: 1,
+                exchange_ts_ms: 1,
+                hl_coin: "@107".to_owned(),
+                bid_price: Some(1.0),
+                bid_size: Some(1.0),
+                bid_order_count: Some(1),
+                ask_price: Some(2.0),
+                ask_size: Some(1.0),
+                ask_order_count: Some(1),
+            }))
+            .expect("immediately evicted quote is accepted as a no-op");
+        assert_eq!(state.snapshot_revision(), revision_after_quotes);
+
+        for index in 1..=MAX_CANDLE_EVENTS_PER_SYMBOL {
+            let open_ts_ms = 10_000 + i64::try_from(index).expect("test index fits i64");
+            state
+                .apply(MarketEvent::Candle(CandleEvent {
+                    recv_ts_ns: u64::try_from(open_ts_ms).expect("positive test timestamp"),
+                    open_ts_ms,
+                    close_ts_ms: open_ts_ms + 1,
+                    hl_coin: "@107".to_owned(),
+                    interval: "1m".to_owned(),
+                    open: 100.0,
+                    high: 101.0,
+                    low: 99.0,
+                    close: 100.5,
+                    volume_base: 1.0,
+                    trade_count: 1,
+                    provenance: CandleProvenance::WebSocket,
+                    completion: CandleCompletion::Closed,
+                }))
+                .expect("candle applies");
+        }
+        let revision_after_candles = state.snapshot_revision();
+        state
+            .apply(MarketEvent::Candle(CandleEvent {
+                recv_ts_ns: 1,
+                open_ts_ms: 1,
+                close_ts_ms: 2,
+                hl_coin: "@107".to_owned(),
+                interval: "1m".to_owned(),
+                open: 1.0,
+                high: 2.0,
+                low: 0.5,
+                close: 1.5,
+                volume_base: 1.0,
+                trade_count: 1,
+                provenance: CandleProvenance::WebSocket,
+                completion: CandleCompletion::Closed,
+            }))
+            .expect("immediately evicted candle is accepted as a no-op");
+        assert_eq!(state.snapshot_revision(), revision_after_candles);
     }
 }
