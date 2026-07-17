@@ -1,4 +1,4 @@
-use std::{fs, net::SocketAddr, path::PathBuf, time::Duration};
+use std::{fs, future::Future, io, net::SocketAddr, path::PathBuf, pin::Pin, time::Duration};
 
 use anyhow::{Context, bail};
 use clap::Args;
@@ -46,6 +46,21 @@ const LIVE_API_PUBLISH_INTERVAL_MS: u64 = 250;
 const SERVER_RECONNECT_INITIAL_BACKOFF_MS: u64 = 1_000;
 const SERVER_RECONNECT_MAX_BACKOFF_MS: u64 = 30_000;
 const SERVER_CONNECTION_RATE_BUDGET: usize = 29;
+
+type ShutdownSignal = Pin<Box<dyn Future<Output = anyhow::Result<ServerStopReason>> + Send>>;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum ServerStopReason {
+    Signal(&'static str),
+}
+
+impl ServerStopReason {
+    fn label(self) -> &'static str {
+        match self {
+            Self::Signal(signal) => signal,
+        }
+    }
+}
 
 #[derive(Debug, Args)]
 pub struct ServerArgs {
@@ -110,21 +125,108 @@ pub async fn run(args: ServerArgs) -> anyhow::Result<()> {
         return run_live_server(args, bind).await;
     }
 
+    let shutdown_signal = install_shutdown_signal()?;
     let listener = TcpListener::bind(bind).await?;
     let address = listener.local_addr()?;
-    eprintln!("hls server listening on http://{address} (read-only, Ctrl-C to stop)");
-    serve_shared_until_shutdown(
+    let (shutdown_tx, shutdown_rx) = oneshot::channel();
+    let mut server = tokio::spawn(serve_shared_until_shutdown(
         listener,
         SharedApiState::new(ApiState::new(health, Vec::new())),
-        async {
-            if let Err(error) = tokio::signal::ctrl_c().await {
-                eprintln!("failed to install Ctrl-C handler: {error}");
-            }
+        async move {
+            let _ = shutdown_rx.await;
         },
-    )
-    .await?;
-    eprintln!("hls server stopped cleanly");
+    ));
+    eprintln!("hls server listening on http://{address} (read-only, SIGINT/SIGTERM to stop)");
+
+    let stop_result = tokio::select! {
+        signal_result = shutdown_signal => signal_result,
+        joined = &mut server => {
+            map_http_server_join(joined)?;
+            bail!("HTTP API server stopped before a shutdown signal was delivered");
+        }
+    };
+    let _ = shutdown_tx.send(());
+    let server_result = await_http_server(server).await;
+    let stop_reason = combine_signal_and_server_result(stop_result, server_result)?;
+    eprintln!("hls server stopped cleanly after {}", stop_reason.label());
     Ok(())
+}
+
+fn shutdown_listener_setup<T>(result: io::Result<T>) -> anyhow::Result<T> {
+    result.context("install server shutdown signal listener")
+}
+
+fn signal_stop_reason(
+    signal: &'static str,
+    delivery: Option<()>,
+) -> anyhow::Result<ServerStopReason> {
+    delivery
+        .with_context(|| format!("{signal} server shutdown listener closed before delivery"))
+        .map(|()| ServerStopReason::Signal(signal))
+}
+
+fn install_shutdown_signal() -> anyhow::Result<ShutdownSignal> {
+    #[cfg(unix)]
+    {
+        let mut interrupt = shutdown_listener_setup(tokio::signal::unix::signal(
+            tokio::signal::unix::SignalKind::interrupt(),
+        ))?;
+        let mut terminate = shutdown_listener_setup(tokio::signal::unix::signal(
+            tokio::signal::unix::SignalKind::terminate(),
+        ))?;
+        Ok(Box::pin(async move {
+            tokio::select! {
+                delivery = interrupt.recv() => signal_stop_reason("SIGINT", delivery),
+                delivery = terminate.recv() => signal_stop_reason("SIGTERM", delivery),
+            }
+        }))
+    }
+
+    #[cfg(windows)]
+    {
+        let mut interrupt = shutdown_listener_setup(tokio::signal::windows::ctrl_c())?;
+        Ok(Box::pin(async move {
+            signal_stop_reason("CTRL-C", interrupt.recv().await)
+        }))
+    }
+
+    #[cfg(not(any(unix, windows)))]
+    {
+        Ok(Box::pin(async {
+            tokio::signal::ctrl_c()
+                .await
+                .context("wait for server CTRL-C shutdown signal")?;
+            Ok(ServerStopReason::Signal("CTRL-C"))
+        }))
+    }
+}
+
+async fn await_http_server(
+    server: tokio::task::JoinHandle<hls_core::HlsResult<()>>,
+) -> anyhow::Result<()> {
+    map_http_server_join(server.await)
+}
+
+fn map_http_server_join(
+    joined: Result<hls_core::HlsResult<()>, tokio::task::JoinError>,
+) -> anyhow::Result<()> {
+    joined
+        .map_err(|err| HlsError::External(format!("HTTP API server task failed: {err}")))?
+        .map_err(anyhow::Error::from)
+}
+
+fn combine_signal_and_server_result(
+    signal_result: anyhow::Result<ServerStopReason>,
+    server_result: anyhow::Result<()>,
+) -> anyhow::Result<ServerStopReason> {
+    match (signal_result, server_result) {
+        (Ok(reason), Ok(())) => Ok(reason),
+        (Ok(_), Err(server_error)) => Err(server_error),
+        (Err(signal_error), Ok(())) => Err(signal_error),
+        (Err(signal_error), Err(server_error)) => {
+            Err(signal_error.context(format!("HTTP server shutdown also failed: {server_error}")))
+        }
+    }
 }
 
 fn parse_loopback_bind(raw: &str) -> anyhow::Result<SocketAddr> {
@@ -140,11 +242,12 @@ fn parse_loopback_bind(raw: &str) -> anyhow::Result<SocketAddr> {
 async fn run_live_server(args: ServerArgs, bind: SocketAddr) -> anyhow::Result<()> {
     validate_live_server_args(&args)?;
     let fee_profile = load_fee_profile(args.fee_profile_file.as_ref())?;
+    let shutdown_signal = install_shutdown_signal()?;
     let listener = TcpListener::bind(bind).await?;
     let address = listener.local_addr()?;
     let shared = SharedApiState::new(ApiState::new(connecting_health().snapshot(), Vec::new()));
     let (shutdown_tx, shutdown_rx) = oneshot::channel();
-    let server = tokio::spawn(serve_shared_until_shutdown(
+    let mut server = tokio::spawn(serve_shared_until_shutdown(
         listener,
         shared.clone(),
         async move {
@@ -157,25 +260,45 @@ async fn run_live_server(args: ServerArgs, bind: SocketAddr) -> anyhow::Result<(
         args.duration_secs
     );
 
-    let publish_result = if let Some(fixture_file) = &args.fixture_file {
-        publish_fixture_live_api(&args, fixture_file, &shared, fee_profile.as_ref())
-    } else {
-        publish_network_live_api(&args, &shared, fee_profile.as_ref()).await
+    let publisher = async {
+        if let Some(fixture_file) = &args.fixture_file {
+            publish_fixture_live_api(&args, fixture_file, &shared, fee_profile.as_ref())
+        } else {
+            publish_network_live_api(&args, &shared, fee_profile.as_ref()).await
+        }
     };
+    let completion = wait_for_live_completion(publisher, shutdown_signal, &mut server).await;
 
     let _ = shutdown_tx.send(());
-    let server_result = server
-        .await
-        .map_err(|err| HlsError::External(format!("live API server task failed: {err}")))?
-        .map_err(anyhow::Error::from);
-    let summary = match (publish_result, server_result) {
-        (Ok(summary), Ok(())) => summary,
-        (Ok(_), Err(server_error)) => return Err(server_error),
-        (Err(publish_error), Ok(())) => return Err(publish_error),
-        (Err(publish_error), Err(server_error)) => {
-            return Err(publish_error.context(format!(
-                "live API server shutdown also failed: {server_error}"
-            )));
+    let summary = match completion {
+        LiveServerCompletion::Published(publish_result) => {
+            let server_result = await_http_server(server).await;
+            match (publish_result, server_result) {
+                (Ok(summary), Ok(())) => summary,
+                (Ok(_), Err(server_error)) => return Err(server_error),
+                (Err(publish_error), Ok(())) => return Err(publish_error),
+                (Err(publish_error), Err(server_error)) => {
+                    return Err(publish_error.context(format!(
+                        "live API server shutdown also failed: {server_error}"
+                    )));
+                }
+            }
+        }
+        LiveServerCompletion::Signal(signal_result) => {
+            let server_result = await_http_server(server).await;
+            let stop_reason = combine_signal_and_server_result(signal_result, server_result)?;
+            eprintln!(
+                "hls live server stopped cleanly after {}",
+                stop_reason.label()
+            );
+            println!("server_live_run=stopped");
+            println!("listen=http://{address}");
+            println!("stop_reason={}", stop_reason.label());
+            return Ok(());
+        }
+        LiveServerCompletion::HttpStopped(server_result) => {
+            server_result?;
+            bail!("HTTP API server stopped before live publication completed");
         }
     };
 
@@ -189,6 +312,28 @@ async fn run_live_server(args: ServerArgs, bind: SocketAddr) -> anyhow::Result<(
     println!("reconnects={}", summary.reconnects);
     println!("data_gaps={}", summary.data_gaps);
     Ok(())
+}
+
+enum LiveServerCompletion {
+    Published(anyhow::Result<ServerLiveSummary>),
+    Signal(anyhow::Result<ServerStopReason>),
+    HttpStopped(anyhow::Result<()>),
+}
+
+async fn wait_for_live_completion<P>(
+    publisher: P,
+    mut shutdown_signal: ShutdownSignal,
+    server: &mut tokio::task::JoinHandle<hls_core::HlsResult<()>>,
+) -> LiveServerCompletion
+where
+    P: Future<Output = anyhow::Result<ServerLiveSummary>>,
+{
+    tokio::pin!(publisher);
+    tokio::select! {
+        publish_result = &mut publisher => LiveServerCompletion::Published(publish_result),
+        signal_result = shutdown_signal.as_mut() => LiveServerCompletion::Signal(signal_result),
+        joined = server => LiveServerCompletion::HttpStopped(map_http_server_join(joined)),
+    }
 }
 
 fn validate_live_server_args(args: &ServerArgs) -> anyhow::Result<()> {
@@ -900,8 +1045,70 @@ fn now_ns_u64() -> anyhow::Result<u64> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::{
+        pin::Pin,
+        sync::{
+            Arc,
+            atomic::{AtomicBool, Ordering},
+        },
+        task::{Context, Poll},
+    };
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
     use tokio_tungstenite::accept_async;
+
+    #[test]
+    fn server_shutdown_signal_mapping_is_successful_and_fail_closed() {
+        assert_eq!(
+            signal_stop_reason("SIGTERM", Some(())).expect("delivered SIGTERM"),
+            ServerStopReason::Signal("SIGTERM")
+        );
+
+        let delivery_error = signal_stop_reason("SIGINT", None)
+            .expect_err("closed signal listener must not report a clean stop");
+        assert!(delivery_error.to_string().contains("SIGINT"));
+
+        let setup_error = shutdown_listener_setup::<()>(Err(std::io::Error::other("setup failed")))
+            .expect_err("listener setup failure must propagate");
+        assert!(
+            setup_error
+                .to_string()
+                .contains("install server shutdown signal listener")
+        );
+    }
+
+    #[tokio::test]
+    async fn live_server_signal_cancels_a_pending_publisher() {
+        struct PendingPublisher(Arc<AtomicBool>);
+
+        impl Future for PendingPublisher {
+            type Output = anyhow::Result<ServerLiveSummary>;
+
+            fn poll(self: Pin<&mut Self>, _context: &mut Context<'_>) -> Poll<Self::Output> {
+                Poll::Pending
+            }
+        }
+
+        impl Drop for PendingPublisher {
+            fn drop(&mut self) {
+                self.0.store(true, Ordering::SeqCst);
+            }
+        }
+
+        let dropped = Arc::new(AtomicBool::new(false));
+        let signal: ShutdownSignal = Box::pin(async { Ok(ServerStopReason::Signal("SIGTERM")) });
+        let mut http_server = tokio::spawn(std::future::pending::<hls_core::HlsResult<()>>());
+
+        let completion =
+            wait_for_live_completion(PendingPublisher(dropped.clone()), signal, &mut http_server)
+                .await;
+
+        assert!(matches!(
+            completion,
+            LiveServerCompletion::Signal(Ok(ServerStopReason::Signal("SIGTERM")))
+        ));
+        assert!(dropped.load(Ordering::SeqCst));
+        http_server.abort();
+    }
 
     #[tokio::test]
     async fn live_server_releases_listener_when_publication_fails() {

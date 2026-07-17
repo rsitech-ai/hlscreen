@@ -8,6 +8,7 @@ import shutil
 import stat
 import subprocess
 import tempfile
+import time
 from pathlib import Path
 
 
@@ -19,6 +20,7 @@ import io
 import json
 import os
 import sys
+import time
 import zipfile
 
 scenario = os.environ.get("HLS_SURFACE_SCENARIO", "private_ok")
@@ -32,6 +34,11 @@ if len(args) < 2 or args[0] != "api":
 endpoint = args[1]
 slurp = "--slurp" in args
 public = scenario.startswith("public")
+
+if scenario == "private_timeout" and endpoint.startswith(
+    "repos/s1korrrr/hlscreen/branches?"
+):
+    time.sleep(2)
 
 def emit(value):
     print(json.dumps(value))
@@ -360,6 +367,8 @@ def run_case(
     packages_confirmed: bool = True,
     origin_matches: bool = True,
     expected_error: str = "",
+    expected_absent: str = "",
+    env_overrides: dict[str, str] | None = None,
 ) -> None:
     with tempfile.TemporaryDirectory(prefix="hlscreen-surface-test.") as temp:
         root = Path(temp)
@@ -425,12 +434,14 @@ def run_case(
                 "HLS_SURFACE_SCENARIO": scenario,
             }
         )
+        env.update(env_overrides or {})
         result = subprocess.run(
             ["bash", "scripts/check-public-surface.sh", mode, sha],
             cwd=root,
             env=env,
             capture_output=True,
             text=True,
+            timeout=10,
         )
         if (result.returncode == 0) != expected_success:
             raise AssertionError(
@@ -442,6 +453,11 @@ def run_case(
                 f"scenario {scenario} omitted {expected_error!r}\n"
                 f"stderr:\n{result.stderr}"
             )
+        if expected_absent and expected_absent in result.stderr:
+            raise AssertionError(
+                f"scenario {scenario} unexpectedly emitted {expected_absent!r}\n"
+                f"stderr:\n{result.stderr}"
+            )
         if scenario == "private_sensitive_log":
             fixture_token = "gh" + "p_" + ("A" * 20)
             if fixture_token in result.stdout or fixture_token in result.stderr:
@@ -450,6 +466,22 @@ def run_case(
 
 def main() -> None:
     run_case("private_ok", "private-candidate", expected_success=True)
+    run_case(
+        "private_timeout",
+        "private-candidate",
+        expected_success=False,
+        expected_error="GitHub API read timed out: repos/s1korrrr/hlscreen/branches",
+        expected_absent="Traceback",
+        env_overrides={"HLS_GH_READ_TIMEOUT_SECS": "1"},
+    )
+    run_case(
+        "private_ok",
+        "private-candidate",
+        expected_success=False,
+        expected_error="HLS_GH_READ_TIMEOUT_SECS must be a positive integer",
+        expected_absent="Traceback",
+        env_overrides={"HLS_GH_READ_TIMEOUT_SECS": "0"},
+    )
     run_case(
         "private_ok",
         "private-candidate",
