@@ -1,5 +1,5 @@
 use std::{
-    collections::{BTreeMap, HashSet},
+    collections::BTreeMap,
     fs,
     path::{Path, PathBuf},
 };
@@ -337,22 +337,36 @@ fn replay_window_candidates_with_policy(
     confidence_inputs: &ConfidenceInputs,
     policy: AnalogReplayPolicy,
 ) -> HlsResult<Vec<AnalogCandidate>> {
-    let selected_symbols: HashSet<_> = symbols.iter().cloned().collect();
+    let mut snapshot_sweeps = 0;
+    replay_window_candidates_with_policy_and_sweep_count(
+        events,
+        symbols,
+        confidence_inputs,
+        policy,
+        &mut snapshot_sweeps,
+    )
+}
+
+fn replay_window_candidates_with_policy_and_sweep_count(
+    events: &[MarketEvent],
+    symbols: Vec<String>,
+    confidence_inputs: &ConfidenceInputs,
+    policy: AnalogReplayPolicy,
+    snapshot_sweeps: &mut usize,
+) -> HlsResult<Vec<AnalogCandidate>> {
     let mut state = LiveMarketState::new(symbols);
     let engine = FeatureEngine::default();
     let mut candidates_by_symbol = BTreeMap::new();
     let mut last_sample_ts_ms = None;
     let mut replay_ts_ms = 0;
+    let mut events_since_capture = false;
     let sample_cadence_ms = policy.sample_cadence_ms.max(1);
     let max_candidates_per_symbol = policy.max_candidates_per_symbol.max(1);
 
     for event in events {
-        let affected_symbol = replay_clock_symbol(event, &selected_symbols);
         state.apply(event.clone())?;
-        let applied_update_ms = affected_symbol
-            .and_then(|symbol| state.symbol_state(symbol))
-            .and_then(|symbol_state| symbol_state.last_update_ms)
-            .unwrap_or_default();
+        events_since_capture = true;
+        let applied_update_ms = state.latest_update_ms().unwrap_or_default();
         replay_ts_ms = replay_ts_ms.max(applied_update_ms);
         let now_ms = replay_ts_ms;
         let sample_is_due = now_ms > 0
@@ -361,6 +375,7 @@ fn replay_window_candidates_with_policy(
                     && now_ms.saturating_sub(last_sample_ts_ms) >= sample_cadence_ms
             });
         if sample_is_due {
+            *snapshot_sweeps = (*snapshot_sweeps).saturating_add(1);
             capture_candidates(
                 &engine,
                 &state,
@@ -370,11 +385,13 @@ fn replay_window_candidates_with_policy(
                 &mut candidates_by_symbol,
             );
             last_sample_ts_ms = Some(now_ms);
+            events_since_capture = false;
         }
     }
 
     let final_ts_ms = replay_ts_ms;
-    if final_ts_ms > 0 {
+    if final_ts_ms > 0 && (events_since_capture || last_sample_ts_ms != Some(final_ts_ms)) {
+        *snapshot_sweeps = (*snapshot_sweeps).saturating_add(1);
         capture_candidates(
             &engine,
             &state,
@@ -389,22 +406,6 @@ fn replay_window_candidates_with_policy(
         .into_values()
         .flat_map(BTreeMap::into_values)
         .collect())
-}
-
-fn replay_clock_symbol<'a>(
-    event: &'a MarketEvent,
-    selected_symbols: &HashSet<String>,
-) -> Option<&'a str> {
-    match event {
-        MarketEvent::AllMids(event) => event
-            .mids_by_hl_coin
-            .keys()
-            .find(|symbol| selected_symbols.contains(*symbol))
-            .map(String::as_str),
-        _ => event
-            .hl_coin()
-            .filter(|symbol| selected_symbols.contains(*symbol)),
-    }
 }
 
 fn capture_candidates(
@@ -649,6 +650,34 @@ mod tests {
         assert_eq!(policy.sample_cadence_ms, 5 * 60 * 1_000);
         assert_eq!(policy.max_candidates_per_symbol, 288);
         assert_eq!(310 * policy.max_candidates_per_symbol, 89_280);
+    }
+
+    #[test]
+    fn terminal_cadence_sample_is_not_recomputed() {
+        let events = vec![
+            top_of_book("@107", 1_000, 100.0),
+            top_of_book("@107", 1_100, 101.0),
+        ];
+        let mut snapshot_sweeps = 0;
+
+        let candidates = replay_window_candidates_with_policy_and_sweep_count(
+            &events,
+            vec!["@107".to_owned()],
+            &ConfidenceInputs::default(),
+            AnalogReplayPolicy {
+                sample_cadence_ms: 100,
+                max_candidates_per_symbol: 10,
+            },
+            &mut snapshot_sweeps,
+        )
+        .expect("replay succeeds");
+
+        assert_eq!(snapshot_sweeps, 2);
+        assert_eq!(candidates.len(), 2);
+        assert_eq!(
+            candidates.last().map(|candidate| candidate.snapshot_ts_ms),
+            Some(1_100)
+        );
     }
 
     #[test]
