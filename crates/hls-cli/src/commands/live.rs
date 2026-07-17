@@ -58,7 +58,7 @@ use hls_store::{
     metadata::{MetadataRegistry, RecordingRun, SymbolRegistryEntry},
     normalized::StreamingNormalizedWriter,
     parquet::export_normalized_events_to_parquet,
-    paths::validate_run_id,
+    paths::{prepare_data_file_path, validate_run_id},
     raw::{RawMarketMessage, RawWriter},
     recorder::{RecordOptions, RecordSummary, record_fixture_ndjson},
 };
@@ -2186,6 +2186,7 @@ impl Drop for LiveRecorder {
 struct LiveRecorderWorker {
     registry: MetadataRegistry,
     run_id: String,
+    started_at_ms: i64,
     raw_writer: Option<RawWriter>,
     normalized_writer: Option<StreamingNormalizedWriter>,
     seq: u64,
@@ -2215,23 +2216,41 @@ impl LiveRecorderWorker {
             raw_enabled,
             normalized_enabled,
         ))?;
-        for symbol in &symbols {
-            registry.insert_symbol(&SymbolRegistryEntry::new(
-                symbol,
-                started_at_ms,
-                started_at_ms,
-            ))?;
-        }
+        let initialization = (|| {
+            for symbol in &symbols {
+                registry.insert_symbol(&SymbolRegistryEntry::new(
+                    symbol,
+                    started_at_ms,
+                    started_at_ms,
+                ))?;
+            }
+
+            let raw_writer = raw_enabled
+                .then(|| RawWriter::new(data_dir, run_id, 8 * 1024 * 1024))
+                .transpose()?;
+            let normalized_writer = normalized_enabled
+                .then(|| StreamingNormalizedWriter::new(data_dir, run_id))
+                .transpose()?;
+            Ok((raw_writer, normalized_writer))
+        })();
+        let (raw_writer, normalized_writer) = match initialization {
+            Ok(writers) => writers,
+            Err(primary_error) => {
+                return Err(terminalize_failed_recorder_construction(
+                    &registry,
+                    run_id,
+                    started_at_ms,
+                    primary_error,
+                ));
+            }
+        };
 
         Ok(Self {
             registry,
             run_id: run_id.to_owned(),
-            raw_writer: raw_enabled
-                .then(|| RawWriter::new(data_dir, run_id, 8 * 1024 * 1024))
-                .transpose()?,
-            normalized_writer: normalized_enabled
-                .then(|| StreamingNormalizedWriter::new(data_dir, run_id))
-                .transpose()?,
+            started_at_ms,
+            raw_writer,
+            normalized_writer,
             seq: 0,
             raw_messages: 0,
             normalized_events: 0,
@@ -2303,33 +2322,124 @@ impl LiveRecorderWorker {
     }
 
     fn finish(mut self, clean_shutdown: bool) -> HlsResult<RecordSummary> {
+        let mut failures = Vec::new();
         let mut raw_files = Vec::new();
         if let Some(raw_writer) = self.raw_writer.take() {
-            raw_files = raw_writer.finish()?;
-            for file in &raw_files {
-                self.registry.insert_file(file)?;
+            match raw_writer.finish() {
+                Ok(files) => {
+                    raw_files = files;
+                    for file in &raw_files {
+                        if let Err(error) = self.registry.insert_file(file) {
+                            record_recorder_closeout_failure(
+                                &mut failures,
+                                format!("register raw file '{}': {error}", file.path),
+                            );
+                        }
+                    }
+                }
+                Err(error) => record_recorder_closeout_failure(
+                    &mut failures,
+                    format!("finish raw writer: {error}"),
+                ),
             }
         }
 
         let mut normalized_files = Vec::new();
-        if let Some(normalized_writer) = self.normalized_writer.take()
-            && let Some(file) = normalized_writer.finish()?
-        {
-            self.registry.insert_file(&file)?;
-            normalized_files.push(file);
+        if let Some(normalized_writer) = self.normalized_writer.take() {
+            match normalized_writer.finish() {
+                Ok(Some(file)) => {
+                    if let Err(error) = self.registry.insert_file(&file) {
+                        record_recorder_closeout_failure(
+                            &mut failures,
+                            format!("register normalized file '{}': {error}", file.path),
+                        );
+                    }
+                    normalized_files.push(file);
+                }
+                Ok(None) => {}
+                Err(error) => record_recorder_closeout_failure(
+                    &mut failures,
+                    format!("finish normalized writer: {error}"),
+                ),
+            }
         }
 
-        self.registry
-            .finish_run(&self.run_id, now_ms_i64()?, clean_shutdown)?;
+        let ended_at_ms = match now_ms_i64() {
+            Ok(ended_at_ms) => ended_at_ms,
+            Err(error) => {
+                record_recorder_closeout_failure(
+                    &mut failures,
+                    format!(
+                        "resolve recorder end time: {error}; using run start time as explicit fallback"
+                    ),
+                );
+                self.started_at_ms
+            }
+        };
+        let effective_clean_shutdown = clean_shutdown && failures.is_empty();
+        if let Err(error) =
+            self.registry
+                .finish_run(&self.run_id, ended_at_ms, effective_clean_shutdown)
+        {
+            record_recorder_closeout_failure(
+                &mut failures,
+                format!("terminalize recording run '{}': {error}", self.run_id),
+            );
+        }
+
+        if !failures.is_empty() {
+            return Err(HlsError::External(format!(
+                "live recorder closeout failed: {}",
+                failures.join("; ")
+            )));
+        }
         Ok(RecordSummary {
             run_id: self.run_id,
             raw_files,
             normalized_files,
             raw_messages: self.raw_messages,
             normalized_events: self.normalized_events,
-            clean_shutdown,
+            clean_shutdown: effective_clean_shutdown,
         })
     }
+}
+
+fn terminalize_failed_recorder_construction(
+    registry: &MetadataRegistry,
+    run_id: &str,
+    started_at_ms: i64,
+    primary_error: HlsError,
+) -> HlsError {
+    let mut contexts = Vec::new();
+    let ended_at_ms = match now_ms_i64() {
+        Ok(ended_at_ms) => ended_at_ms,
+        Err(error) => {
+            contexts.push(format!(
+                "resolve recorder end time failed: {error}; used run start time as explicit fallback"
+            ));
+            started_at_ms
+        }
+    };
+    if let Err(error) = registry.finish_run(run_id, ended_at_ms, false) {
+        contexts.push(format!(
+            "terminalize failed recording run '{run_id}' failed: {error}"
+        ));
+    }
+
+    if contexts.is_empty() {
+        HlsError::External(format!(
+            "live recorder construction failed after run insertion: {primary_error}; run terminalized as unclean"
+        ))
+    } else {
+        HlsError::External(format!(
+            "live recorder construction failed after run insertion: {primary_error}; {}",
+            contexts.join("; ")
+        ))
+    }
+}
+
+fn record_recorder_closeout_failure(failures: &mut Vec<String>, failure: String) {
+    failures.push(failure);
 }
 
 fn render_live_progress<S>(
@@ -2518,6 +2628,7 @@ fn resolve_live_ratatui_color_mode(color: LiveTuiColor, auto_enabled: bool) -> R
     }
 }
 
+#[cfg(test)]
 fn tui_preferences_path(data_dir: &Path) -> PathBuf {
     data_dir.join(TUI_PREFERENCES_FILE)
 }
@@ -2541,10 +2652,9 @@ fn preflight_tui_preferences(data_dir: &Path) -> TuiPreferencePreflight {
 }
 
 fn try_load_tui_preferences(data_dir: &Path) -> anyhow::Result<WorkstationUiPreferences> {
-    let path = tui_preferences_path(data_dir);
-    if !path.exists() {
+    let Some(path) = checked_tui_preferences_path(data_dir, false)? else {
         return Ok(WorkstationUiPreferences::default());
-    }
+    };
 
     let raw = fs::read_to_string(&path).with_context(|| format!("read {}", path.display()))?;
     let persisted: PersistedTuiPreferences =
@@ -2558,11 +2668,120 @@ fn save_tui_preferences(
     data_dir: &Path,
     preferences: WorkstationUiPreferences,
 ) -> anyhow::Result<()> {
-    fs::create_dir_all(data_dir).with_context(|| format!("create {}", data_dir.display()))?;
-    let path = tui_preferences_path(data_dir);
+    let path = checked_tui_preferences_path(data_dir, true)?.ok_or_else(|| {
+        anyhow::anyhow!(
+            "TUI preferences destination was unavailable after creating '{}'",
+            data_dir.display()
+        )
+    })?;
     let raw = toml::to_string_pretty(&PersistedTuiPreferences::from_preferences(preferences))
         .context("encode TUI preferences")?;
-    fs::write(&path, raw).with_context(|| format!("write {}", path.display()))
+    let parent = path.parent().ok_or_else(|| {
+        anyhow::anyhow!("TUI preferences path '{}' has no parent", path.display())
+    })?;
+    let mut temporary = tempfile::Builder::new()
+        .prefix(".tui-preferences.toml.tmp-")
+        .tempfile_in(parent)
+        .with_context(|| format!("create temporary TUI preferences in {}", parent.display()))?;
+    temporary
+        .write_all(raw.as_bytes())
+        .with_context(|| format!("write temporary TUI preferences for {}", path.display()))?;
+    temporary
+        .as_file_mut()
+        .flush()
+        .with_context(|| format!("flush temporary TUI preferences for {}", path.display()))?;
+    temporary
+        .as_file()
+        .sync_all()
+        .with_context(|| format!("sync temporary TUI preferences for {}", path.display()))?;
+    reject_symlink_at_path(&path, "TUI preferences destination")?;
+    temporary.persist(&path).map_err(|error| {
+        anyhow::anyhow!(
+            "atomically replace TUI preferences '{}': {}",
+            path.display(),
+            error.error
+        )
+    })?;
+    Ok(())
+}
+
+fn checked_tui_preferences_path(
+    data_dir: &Path,
+    create_data_dir: bool,
+) -> anyhow::Result<Option<PathBuf>> {
+    match fs::symlink_metadata(data_dir) {
+        Ok(metadata) if metadata.file_type().is_symlink() => {
+            bail!(
+                "refusing symbolic link at TUI preferences data directory '{}'",
+                data_dir.display()
+            );
+        }
+        Ok(metadata) if !metadata.is_dir() => {
+            bail!(
+                "TUI preferences data path '{}' is not a directory",
+                data_dir.display()
+            );
+        }
+        Ok(_) => {}
+        Err(error) if error.kind() == io::ErrorKind::NotFound && !create_data_dir => {
+            return Ok(None);
+        }
+        Err(error) if error.kind() == io::ErrorKind::NotFound => {}
+        Err(error) => {
+            return Err(error).with_context(|| {
+                format!("inspect TUI preferences data path {}", data_dir.display())
+            });
+        }
+    }
+
+    let path = if create_data_dir {
+        prepare_data_file_path(data_dir, TUI_PREFERENCES_FILE).map_err(|error| {
+            anyhow::anyhow!(
+                "prepare TUI preferences path in '{}': {error}",
+                data_dir.display()
+            )
+        })?
+    } else {
+        let canonical_data_dir = fs::canonicalize(data_dir)
+            .with_context(|| format!("resolve TUI preferences data path {}", data_dir.display()))?;
+        canonical_data_dir.join(TUI_PREFERENCES_FILE)
+    };
+    match fs::symlink_metadata(&path) {
+        Ok(metadata) if metadata.file_type().is_symlink() => {
+            bail!(
+                "refusing symbolic link at TUI preferences destination '{}'",
+                path.display()
+            );
+        }
+        Ok(metadata) if !metadata.is_file() => {
+            bail!(
+                "TUI preferences destination '{}' is not a regular file",
+                path.display()
+            );
+        }
+        Ok(_) => Ok(Some(path)),
+        Err(error) if error.kind() == io::ErrorKind::NotFound && create_data_dir => Ok(Some(path)),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(None),
+        Err(error) => {
+            Err(error).with_context(|| format!("inspect TUI preferences path {}", path.display()))
+        }
+    }
+}
+
+fn reject_symlink_at_path(path: &Path, description: &str) -> anyhow::Result<()> {
+    match fs::symlink_metadata(path) {
+        Ok(metadata) if metadata.file_type().is_symlink() => {
+            bail!(
+                "refusing symbolic link at {description} '{}'",
+                path.display()
+            );
+        }
+        Ok(_) => Ok(()),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(()),
+        Err(error) => {
+            Err(error).with_context(|| format!("inspect {description} {}", path.display()))
+        }
+    }
 }
 
 impl PersistedTuiPreferences {
@@ -7140,6 +7359,107 @@ mod tests {
             preflight_tui_preferences(temp.path()).preferences,
             preferences
         );
+        let updated_preferences = WorkstationUiPreferences {
+            view: WorkstationView::Quality,
+            density: WorkstationDensity::Compact,
+            chart_window: WorkstationChartWindow::SixtyMinutes,
+        };
+        save_tui_preferences(temp.path(), updated_preferences)
+            .expect("existing regular preferences update atomically");
+        assert_eq!(
+            preflight_tui_preferences(temp.path()).preferences,
+            updated_preferences
+        );
+        let entries: Vec<_> = fs::read_dir(temp.path())
+            .expect("preference directory reads")
+            .map(|entry| entry.expect("preference entry reads").file_name())
+            .collect();
+        assert_eq!(entries, vec![TUI_PREFERENCES_FILE]);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn live_tui_preferences_load_rejects_symlink_destination() {
+        use std::os::unix::fs::symlink;
+
+        let temp = tempfile::tempdir().expect("tempdir");
+        let outside = temp.path().join("outside.toml");
+        fs::write(
+            &outside,
+            r#"
+view = "flow"
+density = "dense"
+chart_window = "30m"
+"#,
+        )
+        .expect("outside sentinel writes");
+        let data_dir = temp.path().join("data");
+        fs::create_dir(&data_dir).expect("data directory creates");
+        symlink(&outside, tui_preferences_path(&data_dir)).expect("preference symlink creates");
+
+        let error = try_load_tui_preferences(&data_dir)
+            .expect_err("preference load must reject a symbolic-link destination");
+
+        assert!(error.to_string().contains("symbolic link"), "{error:#}");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn live_tui_preferences_save_rejects_symlink_without_touching_target() {
+        use std::os::unix::fs::symlink;
+
+        let temp = tempfile::tempdir().expect("tempdir");
+        let outside = temp.path().join("outside.toml");
+        let sentinel = "outside sentinel\n";
+        fs::write(&outside, sentinel).expect("outside sentinel writes");
+        let data_dir = temp.path().join("data");
+        fs::create_dir(&data_dir).expect("data directory creates");
+        symlink(&outside, tui_preferences_path(&data_dir)).expect("preference symlink creates");
+
+        let error = save_tui_preferences(&data_dir, WorkstationUiPreferences::default())
+            .expect_err("preference save must reject a symbolic-link destination");
+
+        assert!(error.to_string().contains("symbolic link"), "{error:#}");
+        assert_eq!(
+            fs::read_to_string(&outside).expect("outside sentinel reads"),
+            sentinel
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn live_tui_preferences_reject_symlinked_data_directory() {
+        use std::os::unix::fs::symlink;
+
+        let temp = tempfile::tempdir().expect("tempdir");
+        let outside_dir = temp.path().join("outside");
+        fs::create_dir(&outside_dir).expect("outside directory creates");
+        fs::write(
+            tui_preferences_path(&outside_dir),
+            "view = \"flow\"\ndensity = \"dense\"\nchart_window = \"30m\"\n",
+        )
+        .expect("outside preferences write");
+        let data_dir = temp.path().join("linked-data");
+        symlink(&outside_dir, &data_dir).expect("data-directory symlink creates");
+
+        let load_error = try_load_tui_preferences(&data_dir)
+            .expect_err("preference load must reject a symbolic-link parent");
+        let save_error = save_tui_preferences(&data_dir, WorkstationUiPreferences::default())
+            .expect_err("preference save must reject a symbolic-link parent");
+
+        assert!(
+            load_error.to_string().contains("symbolic link"),
+            "{load_error:#}"
+        );
+        assert!(
+            save_error.to_string().contains("symbolic link"),
+            "{save_error:#}"
+        );
+        assert!(
+            fs::read_to_string(tui_preferences_path(&outside_dir))
+                .expect("outside preferences read")
+                .contains("view = \"flow\"")
+        );
     }
 
     #[test]
@@ -7376,6 +7696,135 @@ chart_window = "15m"
             .get_run(run_id)
             .expect("get run")
             .expect("run exists");
+        assert_eq!(run.clean_shutdown, Some(false));
+        assert!(run.ended_at_ms.is_some());
+    }
+
+    #[test]
+    fn live_recorder_worker_initialization_failure_terminalizes_inserted_run() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        let data_dir = temp.path().to_path_buf();
+        let run_id = "live-worker-init-failure-test";
+        let normalized_path =
+            data_dir.join(format!("normalized/events/run={run_id}/part-000000.ndjson"));
+        fs::create_dir_all(
+            normalized_path
+                .parent()
+                .expect("normalized path has parent"),
+        )
+        .expect("normalized directory creates");
+        fs::write(&normalized_path, "existing evidence\n").expect("conflicting file writes");
+
+        let construction_error = match LiveRecorderWorker::new(
+            &data_dir,
+            run_id,
+            vec!["@107".to_owned()],
+            false,
+            true,
+        ) {
+            Ok(_) => panic!("existing normalized evidence must fail worker construction"),
+            Err(error) => error,
+        };
+        assert!(
+            construction_error.to_string().contains("exists"),
+            "{construction_error}"
+        );
+
+        let registry = MetadataRegistry::open(data_dir.join("hls.sqlite"))
+            .expect("metadata registry reopens after initialization failure");
+        let run = registry
+            .get_run(run_id)
+            .expect("get run")
+            .expect("failed run remains as audit evidence");
+        assert_eq!(run.clean_shutdown, Some(false));
+        assert!(run.ended_at_ms.is_some());
+    }
+
+    #[test]
+    fn live_recorder_writer_closeout_failure_terminalizes_run_as_unclean() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        let data_dir = temp.path().to_path_buf();
+        let run_id = "live-worker-closeout-failure-test";
+        let mut worker =
+            LiveRecorderWorker::new(&data_dir, run_id, vec!["@107".to_owned()], true, false)
+                .expect("worker starts");
+        worker
+            .record_raw_line(
+                1_710_000_000_123_456_789,
+                3,
+                r#"{"channel":"trades","data":[]}"#,
+            )
+            .expect("raw event records");
+        let raw_path = data_dir.join(format!("raw/ws/run={run_id}/part-000000.ndjson.zst"));
+        fs::create_dir_all(raw_path.parent().expect("raw path has parent"))
+            .expect("raw directory creates");
+        fs::write(&raw_path, "existing evidence\n").expect("conflicting raw file writes");
+
+        worker
+            .finish(true)
+            .expect_err("raw writer closeout must preserve the existing file and fail");
+
+        let registry = MetadataRegistry::open(data_dir.join("hls.sqlite"))
+            .expect("metadata registry reopens after closeout failure");
+        let run = registry
+            .get_run(run_id)
+            .expect("get run")
+            .expect("failed run remains as audit evidence");
+        assert_eq!(run.clean_shutdown, Some(false));
+        assert!(run.ended_at_ms.is_some());
+    }
+
+    #[test]
+    fn live_recorder_file_registration_failures_are_combined_before_terminalization() {
+        use hls_store::metadata::FileRegistryEntry;
+
+        let temp = tempfile::tempdir().expect("tempdir");
+        let data_dir = temp.path().to_path_buf();
+        let run_id = "live-worker-registration-failure-test";
+        let mut worker =
+            LiveRecorderWorker::new(&data_dir, run_id, vec!["@107".to_owned()], true, true)
+                .expect("worker starts");
+        let line = r#"{"channel":"trades","data":[{"coin":"@107","side":"B","px":"35.00","sz":"2.0","time":1710000000000,"hash":"0xabc","tid":11}]}"#;
+        worker
+            .record_raw_line(1_710_000_000_123_456_789, 3, line)
+            .expect("raw event records");
+        worker
+            .record_events(&parse_ws_message(line).expect("normalized event parses"))
+            .expect("normalized event records");
+        let raw_path = format!("raw/ws/run={run_id}/part-000000.ndjson.zst");
+        let normalized_path = format!("normalized/events/run={run_id}/part-000000.ndjson");
+        for (path, event_type) in [
+            (&raw_path, "raw_ws"),
+            (&normalized_path, "normalized_jsonl"),
+        ] {
+            worker
+                .registry
+                .insert_file(&FileRegistryEntry {
+                    path: path.clone(),
+                    event_type: event_type.to_owned(),
+                    symbol: None,
+                    start_ts_ms: None,
+                    end_ts_ms: None,
+                    rows: 0,
+                    bytes: 0,
+                    created_at_ms: 0,
+                    run_id: run_id.to_owned(),
+                })
+                .expect("conflicting registry evidence inserts");
+        }
+
+        let error = worker
+            .finish(true)
+            .expect_err("duplicate file evidence must fail closeout");
+
+        assert!(error.to_string().contains(&raw_path), "{error}");
+        assert!(error.to_string().contains(&normalized_path), "{error}");
+        let registry = MetadataRegistry::open(data_dir.join("hls.sqlite"))
+            .expect("metadata registry reopens after registration failure");
+        let run = registry
+            .get_run(run_id)
+            .expect("get run")
+            .expect("failed run remains as audit evidence");
         assert_eq!(run.clean_shutdown, Some(false));
         assert!(run.ended_at_ms.is_some());
     }
