@@ -1123,6 +1123,6 @@ fn hosted_public_surface_gate_is_bounded_read_only_and_mode_aware() {
     );
     assert!(
         String::from_utf8_lossy(&mock_test.stdout)
-            .contains("public_surface_mock_tests=passed cases=25")
+            .contains("public_surface_mock_tests=passed cases=31")
     );
 }
