@@ -336,6 +336,7 @@ pub struct LiveMarketState {
     trade_ids_by_symbol: HashMap<String, HashSet<String>>,
     latest_asset_context_recv_ns: HashMap<String, u64>,
     latest_all_mids_recv_ns: HashMap<String, u64>,
+    latest_update_ms: Option<i64>,
 }
 
 impl LiveMarketState {
@@ -352,6 +353,7 @@ impl LiveMarketState {
             trade_ids_by_symbol: HashMap::new(),
             latest_asset_context_recv_ns: HashMap::new(),
             latest_all_mids_recv_ns: HashMap::new(),
+            latest_update_ms: None,
         }
     }
 
@@ -363,9 +365,10 @@ impl LiveMarketState {
             return Ok(());
         }
 
-        match event {
+        let observed_update_ms = match event {
             MarketEvent::AllMids(event) => {
                 let recv_ms = i64::try_from(event.recv_ts_ns / 1_000_000).unwrap_or(i64::MAX);
+                let mut applied = false;
                 for (hl_coin, mid) in event.mids_by_hl_coin {
                     if !self.states.contains_key(&hl_coin) {
                         continue;
@@ -378,6 +381,7 @@ impl LiveMarketState {
                         && let Some(state) = self.states.get_mut(&hl_coin)
                     {
                         *latest_recv_ns = event.recv_ts_ns;
+                        applied = true;
                         state.mid_px = Some(mid);
                         if recv_ms > 0 {
                             state.last_update_ms =
@@ -385,6 +389,9 @@ impl LiveMarketState {
                         }
                     }
                 }
+                applied
+                    .then_some(recv_ms)
+                    .filter(|update_ms| *update_ms > 0)
             }
             MarketEvent::Trade(event) => {
                 let hl_coin = event.hl_coin.clone();
@@ -394,12 +401,17 @@ impl LiveMarketState {
                 })?;
                 let trade_ids = self.trade_ids_by_symbol.entry(hl_coin).or_default();
                 state.apply_trade(event, trade_ids);
+                state.last_update_ms
             }
             MarketEvent::TopOfBook(event) => {
-                self.state_mut(&event.hl_coin)?.apply_top_of_book(event);
+                let state = self.state_mut(&event.hl_coin)?;
+                state.apply_top_of_book(event);
+                state.last_update_ms
             }
             MarketEvent::OrderBook(event) => {
-                self.state_mut(&event.hl_coin)?.apply_order_book(event);
+                let state = self.state_mut(&event.hl_coin)?;
+                state.apply_order_book(event);
+                state.last_update_ms
             }
             MarketEvent::AssetContext(event) => {
                 let hl_coin = event.hl_coin.clone();
@@ -419,10 +431,18 @@ impl LiveMarketState {
                         })?
                         .apply_asset_context(event);
                 }
+                self.states
+                    .get(&hl_coin)
+                    .and_then(|state| state.last_update_ms)
             }
             MarketEvent::Candle(event) => {
-                self.state_mut(&event.hl_coin)?.apply_candle(event);
+                let state = self.state_mut(&event.hl_coin)?;
+                state.apply_candle(event);
+                state.last_update_ms
             }
+        };
+        if let Some(update_ms) = observed_update_ms {
+            self.latest_update_ms = Some(self.latest_update_ms.unwrap_or(0).max(update_ms));
         }
 
         Ok(())
@@ -434,6 +454,10 @@ impl LiveMarketState {
 
     pub fn states(&self) -> impl Iterator<Item = &SymbolMarketState> {
         self.states.values()
+    }
+
+    pub fn latest_update_ms(&self) -> Option<i64> {
+        self.latest_update_ms
     }
 
     fn state_mut(&mut self, hl_coin: &str) -> HlsResult<&mut SymbolMarketState> {
@@ -660,5 +684,27 @@ mod internal_tests {
             .expect("unknown all-mids symbols are ignored");
 
         assert!(state.latest_all_mids_recv_ns.is_empty());
+        assert_eq!(state.latest_update_ms(), None);
+    }
+
+    #[test]
+    fn latest_update_cache_advances_only_for_selected_all_mids_data() {
+        let mut state = LiveMarketState::new(["@107".to_owned()]);
+
+        state
+            .apply(MarketEvent::AllMids(AllMidsEvent {
+                recv_ts_ns: 2_000_000_000,
+                mids_by_hl_coin: [("@107".to_owned(), 100.0)].into_iter().collect(),
+            }))
+            .expect("selected all-mids symbol is applied");
+        assert_eq!(state.latest_update_ms(), Some(2_000));
+
+        state
+            .apply(MarketEvent::AllMids(AllMidsEvent {
+                recv_ts_ns: 3_000_000_000,
+                mids_by_hl_coin: [("outside".to_owned(), 999.0)].into_iter().collect(),
+            }))
+            .expect("unknown all-mids symbol is ignored");
+        assert_eq!(state.latest_update_ms(), Some(2_000));
     }
 }
