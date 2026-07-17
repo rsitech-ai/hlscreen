@@ -4,7 +4,7 @@ use std::{
     fs,
     future::{Future, pending},
     io::{self, IsTerminal, Write},
-    path::{Path, PathBuf},
+    path::{Component, Path, PathBuf},
     pin::Pin,
     sync::{
         Mutex,
@@ -2078,18 +2078,111 @@ struct LiveRecorder {
 
 impl LiveRecorder {
     fn new(
-        data_dir: &PathBuf,
+        data_dir: &Path,
         run_id: &str,
         symbols: Vec<String>,
         raw_enabled: bool,
         normalized_enabled: bool,
     ) -> HlsResult<Self> {
-        let worker =
-            LiveRecorderWorker::new(data_dir, run_id, symbols, raw_enabled, normalized_enabled)?;
+        Self::new_with_spawner(
+            data_dir,
+            run_id,
+            symbols,
+            raw_enabled,
+            normalized_enabled,
+            |worker| {
+                thread::Builder::new()
+                    .name("hls-live-recorder".to_owned())
+                    .spawn(worker)
+            },
+        )
+    }
+
+    fn new_with_spawner<F>(
+        data_dir: &Path,
+        run_id: &str,
+        symbols: Vec<String>,
+        raw_enabled: bool,
+        normalized_enabled: bool,
+        spawn_worker: F,
+    ) -> HlsResult<Self>
+    where
+        F: FnOnce(
+            Box<dyn FnOnce() -> HlsResult<RecordSummary> + Send>,
+        ) -> io::Result<JoinHandle<HlsResult<RecordSummary>>>,
+    {
         let (sender, receiver) = mpsc::sync_channel(LIVE_RECORDER_QUEUE_CAPACITY);
-        let handle = thread::Builder::new()
-            .name("hls-live-recorder".to_owned())
-            .spawn(move || worker.run(receiver))?;
+        let (startup_sender, startup_receiver) = mpsc::sync_channel(1);
+        let worker_data_dir = data_dir.to_path_buf();
+        let worker_run_id = run_id.to_owned();
+        let worker = Box::new(move || {
+            let worker = match LiveRecorderWorker::new(
+                &worker_data_dir,
+                &worker_run_id,
+                symbols,
+                raw_enabled,
+                normalized_enabled,
+            ) {
+                Ok(worker) => worker,
+                Err(error) => {
+                    return match startup_sender.send(Err(error)) {
+                        Ok(()) => Err(HlsError::External(
+                            "live recorder initialization failed and was reported synchronously"
+                                .to_owned(),
+                        )),
+                        Err(send_error) => {
+                            match send_error.0 {
+                                Err(reported_error) => Err(HlsError::External(format!(
+                                    "live recorder initialization failed: {reported_error}; startup handshake also disconnected"
+                                ))),
+                                Ok(()) => Err(HlsError::External(
+                                    "live recorder startup handshake disconnected while reporting an invalid success state"
+                                        .to_owned(),
+                                )),
+                            }
+                        }
+                    };
+                }
+            };
+            if startup_sender.send(Ok(())).is_err() {
+                return match worker.finish(false) {
+                    Ok(_) => Err(HlsError::External(
+                        "live recorder startup handshake disconnected; run terminalized as unclean"
+                            .to_owned(),
+                    )),
+                    Err(closeout_error) => Err(HlsError::External(format!(
+                        "live recorder startup handshake disconnected; unclean terminalization also failed: {closeout_error}"
+                    ))),
+                };
+            }
+            worker.run(receiver)
+        });
+        let handle = spawn_worker(worker)?;
+
+        match startup_receiver.recv() {
+            Ok(Ok(())) => {}
+            Ok(Err(initialization_error)) => {
+                return match handle.join() {
+                    Ok(_) => Err(initialization_error),
+                    Err(_) => Err(HlsError::External(format!(
+                        "live recorder initialization failed: {initialization_error}; worker also panicked while reporting startup failure"
+                    ))),
+                };
+            }
+            Err(error) => {
+                return match handle.join() {
+                    Ok(Ok(_)) => Err(HlsError::External(format!(
+                        "live recorder startup handshake disconnected unexpectedly: {error}"
+                    ))),
+                    Ok(Err(worker_error)) => Err(HlsError::External(format!(
+                        "live recorder startup handshake disconnected unexpectedly: {error}; worker failed: {worker_error}"
+                    ))),
+                    Err(_) => Err(HlsError::External(format!(
+                        "live recorder startup handshake disconnected unexpectedly: {error}; worker panicked"
+                    ))),
+                };
+            }
+        }
 
         Ok(Self {
             run_id: run_id.to_owned(),
@@ -2196,7 +2289,7 @@ struct LiveRecorderWorker {
 
 impl LiveRecorderWorker {
     fn new(
-        data_dir: &PathBuf,
+        data_dir: &Path,
         run_id: &str,
         symbols: Vec<String>,
         raw_enabled: bool,
@@ -2709,7 +2802,8 @@ fn checked_tui_preferences_path(
     data_dir: &Path,
     create_data_dir: bool,
 ) -> anyhow::Result<Option<PathBuf>> {
-    match fs::symlink_metadata(data_dir) {
+    let data_dir = validate_tui_preferences_data_dir_components(data_dir)?;
+    match fs::symlink_metadata(&data_dir) {
         Ok(metadata) if metadata.file_type().is_symlink() => {
             bail!(
                 "refusing symbolic link at TUI preferences data directory '{}'",
@@ -2735,14 +2829,14 @@ fn checked_tui_preferences_path(
     }
 
     let path = if create_data_dir {
-        prepare_data_file_path(data_dir, TUI_PREFERENCES_FILE).map_err(|error| {
+        prepare_data_file_path(&data_dir, TUI_PREFERENCES_FILE).map_err(|error| {
             anyhow::anyhow!(
                 "prepare TUI preferences path in '{}': {error}",
                 data_dir.display()
             )
         })?
     } else {
-        let canonical_data_dir = fs::canonicalize(data_dir)
+        let canonical_data_dir = fs::canonicalize(&data_dir)
             .with_context(|| format!("resolve TUI preferences data path {}", data_dir.display()))?;
         canonical_data_dir.join(TUI_PREFERENCES_FILE)
     };
@@ -2766,6 +2860,94 @@ fn checked_tui_preferences_path(
             Err(error).with_context(|| format!("inspect TUI preferences path {}", path.display()))
         }
     }
+}
+
+fn validate_tui_preferences_data_dir_components(data_dir: &Path) -> anyhow::Result<PathBuf> {
+    if data_dir.as_os_str().is_empty() {
+        bail!("TUI preferences data directory must not be empty");
+    }
+    if data_dir
+        .components()
+        .any(|component| matches!(component, Component::ParentDir))
+    {
+        bail!(
+            "TUI preferences data directory '{}' must not contain parent components",
+            data_dir.display()
+        );
+    }
+
+    let (absolute_data_dir, boundary) = if data_dir.is_absolute() {
+        let mut boundary = PathBuf::new();
+        for component in data_dir.components() {
+            match component {
+                Component::Prefix(_) | Component::RootDir => {
+                    boundary.push(component.as_os_str());
+                }
+                Component::CurDir => {}
+                Component::Normal(_) => {
+                    boundary.push(component.as_os_str());
+                    break;
+                }
+                Component::ParentDir => {
+                    bail!(
+                        "TUI preferences data directory '{}' contains a parent component",
+                        data_dir.display()
+                    );
+                }
+            }
+        }
+        (data_dir.to_path_buf(), boundary)
+    } else {
+        let current_dir = std::env::current_dir()
+            .context("resolve current directory for relative TUI preferences data path")?;
+        (current_dir.join(data_dir), current_dir)
+    };
+
+    let relative = absolute_data_dir.strip_prefix(&boundary).with_context(|| {
+        format!(
+            "resolve TUI preferences data path '{}' beneath lexical boundary '{}'",
+            absolute_data_dir.display(),
+            boundary.display()
+        )
+    })?;
+    let mut current = boundary;
+    for component in relative.components() {
+        let Component::Normal(component) = component else {
+            if matches!(component, Component::CurDir) {
+                continue;
+            }
+            bail!(
+                "TUI preferences data directory '{}' contains an unsupported path component",
+                data_dir.display()
+            );
+        };
+        current.push(component);
+        match fs::symlink_metadata(&current) {
+            Ok(metadata) if metadata.file_type().is_symlink() => {
+                bail!(
+                    "refusing symbolic link in TUI preferences data path '{}'",
+                    current.display()
+                );
+            }
+            Ok(metadata) if !metadata.is_dir() => {
+                bail!(
+                    "TUI preferences data path component '{}' is not a directory",
+                    current.display()
+                );
+            }
+            Ok(_) => {}
+            Err(error) if error.kind() == io::ErrorKind::NotFound => break,
+            Err(error) => {
+                return Err(error).with_context(|| {
+                    format!(
+                        "inspect TUI preferences data path component {}",
+                        current.display()
+                    )
+                });
+            }
+        }
+    }
+    Ok(absolute_data_dir)
 }
 
 fn reject_symlink_at_path(path: &Path, description: &str) -> anyhow::Result<()> {
@@ -7462,6 +7644,48 @@ chart_window = "30m"
         );
     }
 
+    #[cfg(unix)]
+    #[test]
+    fn live_tui_preferences_reject_intermediate_symlink_parent() {
+        use std::os::unix::fs::symlink;
+
+        let temp = tempfile::tempdir().expect("tempdir");
+        let outside_dir = temp.path().join("outside/nested");
+        fs::create_dir_all(&outside_dir).expect("outside directory creates");
+        let outside_preferences = tui_preferences_path(&outside_dir);
+        let sentinel = "view = \"flow\"\ndensity = \"dense\"\nchart_window = \"30m\"\n";
+        fs::write(&outside_preferences, sentinel).expect("outside preferences write");
+        let requested_root = temp.path().join("requested");
+        fs::create_dir(&requested_root).expect("requested root creates");
+        let linked_parent = requested_root.join("linked-parent");
+        symlink(
+            outside_dir.parent().expect("outside directory has parent"),
+            &linked_parent,
+        )
+        .expect("intermediate parent symlink creates");
+        let data_dir = linked_parent.join("nested");
+
+        let load_result = try_load_tui_preferences(&data_dir);
+        let save_result = save_tui_preferences(&data_dir, WorkstationUiPreferences::default());
+
+        assert!(
+            load_result
+                .as_ref()
+                .is_err_and(|error| error.to_string().contains("symbolic link")),
+            "load followed intermediate parent: {load_result:?}"
+        );
+        assert!(
+            save_result
+                .as_ref()
+                .is_err_and(|error| error.to_string().contains("symbolic link")),
+            "save followed intermediate parent: {save_result:?}"
+        );
+        assert_eq!(
+            fs::read_to_string(&outside_preferences).expect("outside preferences read"),
+            sentinel
+        );
+    }
+
     #[test]
     fn live_tui_preferences_fall_back_for_bad_local_files() {
         let temp = tempfile::tempdir().expect("tempdir");
@@ -7715,16 +7939,11 @@ chart_window = "15m"
         .expect("normalized directory creates");
         fs::write(&normalized_path, "existing evidence\n").expect("conflicting file writes");
 
-        let construction_error = match LiveRecorderWorker::new(
-            &data_dir,
-            run_id,
-            vec!["@107".to_owned()],
-            false,
-            true,
-        ) {
-            Ok(_) => panic!("existing normalized evidence must fail worker construction"),
-            Err(error) => error,
-        };
+        let construction_error =
+            match LiveRecorder::new(&data_dir, run_id, vec!["@107".to_owned()], false, true) {
+                Ok(_) => panic!("existing normalized evidence must fail worker construction"),
+                Err(error) => error,
+            };
         assert!(
             construction_error.to_string().contains("exists"),
             "{construction_error}"
@@ -7738,6 +7957,36 @@ chart_window = "15m"
             .expect("failed run remains as audit evidence");
         assert_eq!(run.clean_shutdown, Some(false));
         assert!(run.ended_at_ms.is_some());
+    }
+
+    #[test]
+    fn live_recorder_spawn_failure_happens_before_run_insertion() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        let data_dir = temp.path().to_path_buf();
+        let run_id = "live-worker-spawn-failure-test";
+
+        let error = match LiveRecorder::new_with_spawner(
+            &data_dir,
+            run_id,
+            vec!["@107".to_owned()],
+            true,
+            true,
+            |_worker| Err(io::Error::other("injected thread spawn failure")),
+        ) {
+            Ok(_) => panic!("injected thread spawn failure must fail construction"),
+            Err(error) => error,
+        };
+
+        assert!(error.to_string().contains("injected thread spawn failure"));
+        let registry = MetadataRegistry::open(data_dir.join("hls.sqlite"))
+            .expect("metadata registry opens after spawn failure");
+        assert_eq!(
+            registry
+                .get_run(run_id)
+                .expect("get run after spawn failure"),
+            None,
+            "thread spawn failure must occur before inserting audit state"
+        );
     }
 
     #[test]
