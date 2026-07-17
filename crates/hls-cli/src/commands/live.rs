@@ -2128,7 +2128,7 @@ impl LiveRecorder {
             ended_at_ns,
             reason.to_owned(),
             symbols.to_vec(),
-            true,
+            false,
         )))
     }
 
@@ -7439,6 +7439,10 @@ chart_window = "15m"
         let gaps = registry.list_gaps("live-worker-test").expect("gaps list");
         assert_eq!(gaps[0].reason, "test reconnect");
         assert_eq!(gaps[0].affected_symbols, vec!["@107".to_owned()]);
+        assert!(
+            !gaps[0].recovered,
+            "a reconnect only restores the live connection, not the missing evidence"
+        );
     }
 
     #[test]
