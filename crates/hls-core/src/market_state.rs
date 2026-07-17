@@ -356,6 +356,13 @@ impl LiveMarketState {
     }
 
     pub fn apply(&mut self, event: MarketEvent) -> HlsResult<()> {
+        if event
+            .hl_coin()
+            .is_some_and(|hl_coin| !self.symbols.contains(hl_coin))
+        {
+            return Ok(());
+        }
+
         match event {
             MarketEvent::AllMids(event) => {
                 let recv_ms = i64::try_from(event.recv_ts_ns / 1_000_000).unwrap_or(i64::MAX);
@@ -430,14 +437,6 @@ impl LiveMarketState {
     }
 
     fn state_mut(&mut self, hl_coin: &str) -> HlsResult<&mut SymbolMarketState> {
-        if !self.symbols.contains(hl_coin) {
-            self.symbols.insert(hl_coin.to_owned());
-            self.states.insert(
-                hl_coin.to_owned(),
-                SymbolMarketState::new(hl_coin.to_owned()),
-            );
-        }
-
         self.states.get_mut(hl_coin).ok_or_else(|| {
             HlsError::Config(format!("state for symbol '{hl_coin}' was not initialized"))
         })

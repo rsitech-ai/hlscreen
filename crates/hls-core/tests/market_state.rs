@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use hls_core::market_state::{
-    AllMidsEvent, AssetContextEvent, CandleEvent, LiveMarketState, MarketEvent, TopOfBookEvent,
-    TradeEvent, TradeSide,
+    AllMidsEvent, AssetContextEvent, CandleEvent, LiveMarketState, MarketEvent, OrderBookEvent,
+    OrderBookLevel, TopOfBookEvent, TradeEvent, TradeSide,
 };
 
 #[test]
@@ -184,6 +184,71 @@ fn candle_updates_replace_current_interval_and_bound_history() {
     assert_eq!(
         symbol.candles.last().expect("last candle").open_ts_ms,
         1_710_000_000_000 + 599 * 60_000
+    );
+}
+
+#[test]
+fn per_symbol_events_outside_selected_universe_are_ignored() {
+    let mut state = LiveMarketState::new(["@107".to_owned()]);
+    let outside_symbol = "@999".to_owned();
+
+    let mut outside_trade = trade(1_710_000_000_000, 99.0, 1);
+    outside_trade.hl_coin = outside_symbol.clone();
+    outside_trade.unique_trade_id = "@999:1710000000000:1".to_owned();
+
+    let mut outside_quote = bbo(1_710_000_001_000, 99.0, 99.2);
+    outside_quote.hl_coin = outside_symbol.clone();
+
+    let mut outside_candle = candle(1_710_000_002_000, 99.0);
+    outside_candle.hl_coin = outside_symbol.clone();
+
+    for event in [
+        MarketEvent::Trade(outside_trade),
+        MarketEvent::TopOfBook(outside_quote),
+        MarketEvent::OrderBook(OrderBookEvent {
+            recv_ts_ns: 1_710_000_001_500_000_000,
+            exchange_ts_ms: 1_710_000_001_500,
+            hl_coin: outside_symbol.clone(),
+            bids: vec![OrderBookLevel {
+                price: 99.0,
+                size: 1.0,
+                order_count: 1,
+            }],
+            asks: vec![OrderBookLevel {
+                price: 99.2,
+                size: 1.0,
+                order_count: 1,
+            }],
+        }),
+        MarketEvent::AssetContext(AssetContextEvent {
+            recv_ts_ns: 1_710_000_001_750_000_000,
+            hl_coin: outside_symbol.clone(),
+            day_ntl_vlm: Some(1_000.0),
+            prev_day_px: Some(98.0),
+            mark_px: Some(99.1),
+            mid_px: Some(99.1),
+            circulating_supply: None,
+        }),
+        MarketEvent::Candle(outside_candle),
+    ] {
+        state
+            .apply(event)
+            .expect("outside events are ignored during selected-symbol replay");
+    }
+
+    state
+        .apply(MarketEvent::Trade(trade(1_710_000_003_000, 35.0, 2)))
+        .expect("selected-symbol replay continues after outside events");
+
+    assert_eq!(state.states().count(), 1);
+    assert!(state.symbol_state(&outside_symbol).is_none());
+    assert_eq!(
+        state
+            .symbol_state("@107")
+            .expect("selected symbol remains tracked")
+            .trades
+            .len(),
+        1
     );
 }
 
