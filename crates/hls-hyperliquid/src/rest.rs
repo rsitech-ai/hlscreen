@@ -9,6 +9,7 @@ use hls_core::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
+use time::{OffsetDateTime, format_description::well_known::Rfc2822};
 
 const DEFAULT_INFO_BASE_URL: &str = "https://api.hyperliquid.xyz";
 const DEFAULT_REST_TIMEOUT: Duration = Duration::from_secs(10);
@@ -235,8 +236,7 @@ impl HyperliquidRestClient {
                 .headers()
                 .get(reqwest::header::RETRY_AFTER)
                 .and_then(|value| value.to_str().ok())
-                .and_then(|value| value.trim().parse::<u64>().ok())
-                .map(Duration::from_secs);
+                .and_then(|value| parse_retry_after_at(value, OffsetDateTime::now_utc()));
             return Err(PublicRestError::HttpStatus {
                 status: response.status(),
                 retry_after,
@@ -248,6 +248,21 @@ impl HyperliquidRestClient {
             .await
             .map_err(|err| PublicRestError::Transport(format!("response read failed: {err}")))
     }
+}
+
+fn parse_retry_after_at(value: &str, now: OffsetDateTime) -> Option<Duration> {
+    let value = value.trim();
+    if let Ok(seconds) = value.parse::<u64>() {
+        return Some(Duration::from_secs(seconds));
+    }
+
+    let deadline = OffsetDateTime::parse(value, &Rfc2822).ok()?;
+    let remaining_ns = (deadline - now).whole_nanoseconds();
+    if remaining_ns <= 0 {
+        return Some(Duration::ZERO);
+    }
+    let rounded_seconds = remaining_ns.saturating_add(999_999_999) / 1_000_000_000;
+    u64::try_from(rounded_seconds).ok().map(Duration::from_secs)
 }
 
 fn default_http_client() -> reqwest::Client {
@@ -850,6 +865,11 @@ fn matches_any(symbol: &MarketSymbol, selectors: &[String]) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use std::time::Duration;
+
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    use tokio::net::TcpListener;
+
     use super::{
         parse_candle_snapshot, validate_candle_snapshot_response, validate_public_rest_base_url,
     };
@@ -883,5 +903,55 @@ mod tests {
         .expect_err("out-of-window candle must fail closed");
 
         assert!(error.to_string().contains("outside requested range"));
+    }
+
+    #[test]
+    fn retry_after_parses_delta_seconds_and_http_date_against_injected_time() {
+        let now = time::OffsetDateTime::parse(
+            "Wed, 21 Oct 2015 07:27:53 +0000",
+            &time::format_description::well_known::Rfc2822,
+        )
+        .unwrap();
+
+        assert_eq!(
+            super::parse_retry_after_at("7", now),
+            Some(Duration::from_secs(7))
+        );
+        assert_eq!(
+            super::parse_retry_after_at("Wed, 21 Oct 2015 07:28:00 GMT", now),
+            Some(Duration::from_secs(7))
+        );
+        assert_eq!(super::parse_retry_after_at("invalid", now), None);
+    }
+
+    #[tokio::test]
+    async fn loopback_http_date_retry_after_is_preserved_as_typed_metadata() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        let deadline = time::OffsetDateTime::now_utc() + time::Duration::seconds(120);
+        let retry_after = deadline
+            .format(&time::format_description::well_known::Rfc2822)
+            .unwrap()
+            .replace("+0000", "GMT");
+        let response = format!(
+            "HTTP/1.1 429 Too Many Requests\r\nRetry-After: {retry_after}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+        );
+        let server = tokio::spawn(async move {
+            let (mut stream, _) = listener.accept().await.unwrap();
+            let mut request = vec![0_u8; 8_192];
+            let _ = stream.read(&mut request).await.unwrap();
+            stream.write_all(response.as_bytes()).await.unwrap();
+            stream.shutdown().await.unwrap();
+        });
+
+        let error = super::HyperliquidRestClient::new(format!("http://{address}"))
+            .candle_snapshot_attempt("@107", "1m", 0, 0)
+            .await
+            .expect_err("loopback returns 429");
+        server.await.unwrap();
+
+        let delay = error.retry_after().expect("HTTP-date is typed");
+        assert!(delay > Duration::from_secs(60), "delay was {delay:?}");
+        assert!(delay <= Duration::from_secs(120), "delay was {delay:?}");
     }
 }
