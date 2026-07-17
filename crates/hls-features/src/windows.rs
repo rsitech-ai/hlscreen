@@ -69,12 +69,17 @@ fn trades_in_window(trades: &[TradeEvent], now_ms: i64, window_ms: u64) -> Vec<&
 
 fn latest_candle_z(candles: &[CandleEvent], value: impl Fn(&CandleEvent) -> f64) -> Option<f64> {
     let latest = candles.last()?;
-    let baseline = &candles[..candles.len() - 1];
-    if baseline.len() < 2 {
+    let baseline_values: Vec<f64> = candles[..candles.len() - 1]
+        .iter()
+        .filter(|candle| {
+            candle.interval == latest.interval && candle.open_ts_ms < latest.open_ts_ms
+        })
+        .map(&value)
+        .collect();
+    if baseline_values.len() < 2 {
         return Some(0.0);
     }
 
-    let baseline_values: Vec<f64> = baseline.iter().map(&value).collect();
     let mean = baseline_values.iter().sum::<f64>() / baseline_values.len() as f64;
     let variance = baseline_values
         .iter()
