@@ -28,6 +28,12 @@ const MAX_RETRY_DELAY: Duration = Duration::from_secs(30);
 
 type BackfillShutdown = Pin<Box<dyn Future<Output = anyhow::Result<()>> + Send>>;
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum BackfillRunOutcome {
+    Completed,
+    Stopped,
+}
+
 #[derive(Clone, Debug, Args)]
 pub struct BackfillArgs {
     #[arg(long)]
@@ -48,10 +54,14 @@ pub struct BackfillArgs {
 }
 
 pub async fn run(args: BackfillArgs) -> anyhow::Result<()> {
+    run_with_outcome(args).await.map(|_| ())
+}
+
+pub(crate) async fn run_with_outcome(args: BackfillArgs) -> anyhow::Result<BackfillRunOutcome> {
     let shutdown = install_backfill_shutdown_signal()?;
     let Some(summary) = execute_with_cancellation(args, shutdown).await? else {
         eprintln!("backfill_run=stopped stop_reason=signal");
-        return Ok(());
+        return Ok(BackfillRunOutcome::Stopped);
     };
     print_summary(&summary);
     if summary.requests_failed > 0 {
@@ -60,7 +70,7 @@ pub async fn run(args: BackfillArgs) -> anyhow::Result<()> {
             summary.requests_failed
         );
     }
-    Ok(())
+    Ok(BackfillRunOutcome::Completed)
 }
 
 pub(crate) async fn execute_with_cancellation<F>(
@@ -445,5 +455,41 @@ mod tests {
 
         assert!(outcome.is_none());
         assert_eq!(tokio::time::Instant::now(), started);
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn meaningful_retry_after_delay_is_honored_without_wall_clock_sleep() {
+        let started = tokio::time::Instant::now();
+        let mut cancellation = Box::pin(std::future::pending::<anyhow::Result<()>>());
+        let mut cancellation = cancellation.as_mut();
+        let wait = wait_or_cancel(
+            tokio::time::sleep(retry_delay(Some(Duration::from_secs(7)), 0)),
+            &mut cancellation,
+        );
+        tokio::pin!(wait);
+        tokio::select! {
+            result = &mut wait => panic!("Retry-After released early: {result:?}"),
+            _ = tokio::time::sleep(Duration::from_secs(6)) => {}
+        }
+        assert!(wait.await.unwrap().is_some());
+        assert_eq!(
+            tokio::time::Instant::now(),
+            started + Duration::from_secs(7)
+        );
+    }
+
+    #[tokio::test]
+    async fn loopback_retry_after_delta_seconds_is_preserved_as_typed_metadata() {
+        const RATE_LIMITED: &str = "HTTP/1.1 429 Too Many Requests\r\nRetry-After: 7\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
+        let (url, count, server) = loopback_server(vec![RATE_LIMITED]).await;
+
+        let error = HyperliquidRestClient::new(url)
+            .candle_snapshot_attempt("@107", "1m", 0, 0)
+            .await
+            .expect_err("loopback returns 429");
+        server.await.unwrap();
+
+        assert_eq!(count.load(Ordering::SeqCst), 1);
+        assert_eq!(error.retry_after(), Some(Duration::from_secs(7)));
     }
 }
