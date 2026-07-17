@@ -85,7 +85,7 @@ use crate::commands::alerts::load_playbook_file;
 use crate::commands::backfill::{self, BackfillArgs, DEFAULT_REST_URL};
 use crate::commands::metadata::{attach_metadata, load_metadata_enrichments};
 use crate::commands::record::{default_run_id, enabled_outputs, parse_symbols};
-use crate::commands::ws_rate_limit::RollingMessageRateLimiter;
+use crate::commands::ws_rate_limit::{RollingMessageRateLimiter, RollingRateLimiter};
 
 const DEFAULT_WS_URL: &str = "wss://api.hyperliquid.xyz/ws";
 const DEFAULT_LIVE_DURATION_SECS: u64 = 60;
@@ -104,6 +104,7 @@ const WS_MARKET_DATA_TIMEOUT: Duration = Duration::from_secs(60);
 const WS_MARKET_DATA_CHECK_INTERVAL: Duration = Duration::from_secs(5);
 const TUI_PREFERENCES_FILE: &str = "tui-preferences.toml";
 const MAX_DEFERRED_LIVE_DIAGNOSTICS: usize = 8;
+const LIVE_CONNECTION_RATE_BUDGET: usize = 29;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[repr(u8)]
@@ -787,7 +788,16 @@ async fn run_fixture_live(
         )?;
         println!("recording run: {}", summary.run_id);
         println!("clean_shutdown={}", summary.clean_shutdown);
-        run_requested_backfill(&args, &summary.run_id).await?;
+        if args.backfill_gaps {
+            backfill::run(BackfillArgs {
+                run_id: summary.run_id.clone(),
+                interval: args.backfill_interval.clone(),
+                rest_url: args.rest_url.clone(),
+                retry: false,
+                data_dir: args.data_dir.clone(),
+            })
+            .await?;
+        }
         if args.parquet {
             let parquet = export_normalized_events_to_parquet(&args.data_dir, &summary.run_id)
                 .with_context(|| format!("export '{}' to parquet", summary.run_id))?;
@@ -1113,7 +1123,13 @@ async fn run_network_live(
     let mut summary = drive_result?;
     let record_summary = record_summary_result?;
     if let Some(record_summary) = &record_summary {
-        run_requested_backfill(&args, &record_summary.run_id).await?;
+        run_requested_backfill(
+            &args,
+            &record_summary.run_id,
+            summary.stop_reason,
+            &mut shutdown_signal,
+        )
+        .await?;
     }
     let mut snapshots = live_feature_snapshots(&state, &summary, now_ms_i64()?);
     attach_metadata(&mut snapshots, metadata);
@@ -1192,18 +1208,35 @@ async fn run_network_live(
     Ok(())
 }
 
-async fn run_requested_backfill(args: &LiveArgs, run_id: &str) -> anyhow::Result<()> {
+async fn run_requested_backfill(
+    args: &LiveArgs,
+    run_id: &str,
+    live_stop_reason: Option<LiveStopReason>,
+    shutdown_signal: &mut ShutdownSignal,
+) -> anyhow::Result<()> {
     if !args.backfill_gaps {
         return Ok(());
     }
-    let summary = backfill::execute(BackfillArgs {
-        run_id: run_id.to_owned(),
-        interval: args.backfill_interval.clone(),
-        rest_url: args.rest_url.clone(),
-        retry: false,
-        data_dir: args.data_dir.clone(),
-    })
-    .await?;
+    if live_stop_reason == Some(LiveStopReason::Signal) {
+        eprintln!("backfill_run=stopped stop_reason=signal_before_backfill");
+        return Ok(());
+    }
+    let cancellation = async { shutdown_signal.as_mut().await.map(|_| ()) };
+    let Some(summary) = backfill::execute_with_cancellation(
+        BackfillArgs {
+            run_id: run_id.to_owned(),
+            interval: args.backfill_interval.clone(),
+            rest_url: args.rest_url.clone(),
+            retry: false,
+            data_dir: args.data_dir.clone(),
+        },
+        cancellation,
+    )
+    .await?
+    else {
+        eprintln!("backfill_run=stopped stop_reason=signal");
+        return Ok(());
+    };
     backfill::print_summary(&summary);
     if summary.requests_failed > 0 {
         bail!(
@@ -1613,6 +1646,10 @@ async fn drive_live_ws(
     let mut conn_id = 0;
     let mut reconnect_attempt = 0;
     let mut subscription_rate_limiter = RollingMessageRateLimiter::default();
+    let mut connection_rate_limiter = RollingRateLimiter::new(
+        LIVE_CONNECTION_RATE_BUDGET,
+        crate::commands::ws_rate_limit::WS_OUTBOUND_RATE_WINDOW,
+    );
     loop {
         if lifetime.has_expired_by(tokio::time::Instant::now()) {
             summary.mark_stopped(LiveStopReason::DurationElapsed);
@@ -1622,6 +1659,7 @@ async fn drive_live_ws(
             ws_url,
             subscription_messages,
             &mut subscription_rate_limiter,
+            &mut connection_rate_limiter,
             conn_id,
             lifetime,
             started,
@@ -1731,6 +1769,7 @@ async fn drive_live_connection(
     ws_url: &str,
     subscription_messages: &[String],
     subscription_rate_limiter: &mut RollingMessageRateLimiter,
+    connection_rate_limiter: &mut RollingRateLimiter,
     conn_id: u64,
     lifetime: LiveRunLifetime,
     started: Instant,
@@ -1746,6 +1785,26 @@ async fn drive_live_connection(
     summary: &mut LiveDriveSummary,
     shutdown_signal: &mut ShutdownSignal,
 ) -> anyhow::Result<ConnectionOutcome> {
+    let stop_future = wait_for_live_stop(
+        lifetime,
+        shutdown_signal,
+        keyboard_interactive,
+        tui_state.as_deref_mut(),
+        state,
+        screen_request,
+        metadata,
+        color_mode,
+        LiveProgressMode::Live,
+        started,
+        summary,
+        tui_frame_sink.as_deref_mut(),
+    );
+    match wait_for_live_connection_slot(connection_rate_limiter, stop_future).await? {
+        CancellableSendOutcome::Sent(()) => {}
+        CancellableSendOutcome::Stopped(stop_reason) => {
+            return Ok(ConnectionOutcome::Stopped(stop_reason));
+        }
+    }
     let connect_started_ns = now_ns_u64()?;
     let mut ui_events = live_interval(Duration::from_millis(TUI_KEY_POLL_MS));
     ui_events.tick().await;
@@ -2034,6 +2093,26 @@ async fn drive_live_connection(
             }
         }
     }
+}
+
+async fn wait_for_live_connection_slot<StopFuture>(
+    limiter: &mut RollingRateLimiter,
+    stop_future: StopFuture,
+) -> anyhow::Result<CancellableSendOutcome<()>>
+where
+    StopFuture: Future<Output = anyhow::Result<LiveStopReason>>,
+{
+    let now = tokio::time::Instant::now();
+    if let Some(available_at) = limiter.next_available_at(now) {
+        match cancellable_send(sleep_until(available_at), stop_future).await? {
+            CancellableSendOutcome::Sent(()) => {}
+            CancellableSendOutcome::Stopped(stop_reason) => {
+                return Ok(CancellableSendOutcome::Stopped(stop_reason));
+            }
+        }
+    }
+    limiter.record(tokio::time::Instant::now());
+    Ok(CancellableSendOutcome::Sent(()))
 }
 
 fn ws_message_text(message: Message) -> HlsResult<WsReadEvent> {
@@ -4843,6 +4922,54 @@ mod tests {
             ),
             None
         );
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn thirtieth_live_connection_waits_for_the_rolling_window() {
+        let started = tokio::time::Instant::now();
+        let mut limiter = RollingRateLimiter::new(
+            LIVE_CONNECTION_RATE_BUDGET,
+            crate::commands::ws_rate_limit::WS_OUTBOUND_RATE_WINDOW,
+        );
+        for _ in 0..LIVE_CONNECTION_RATE_BUDGET {
+            limiter.record(started);
+        }
+
+        let wait = wait_for_live_connection_slot(
+            &mut limiter,
+            pending::<anyhow::Result<LiveStopReason>>(),
+        );
+        tokio::pin!(wait);
+        tokio::select! {
+            result = &mut wait => panic!("30th attempt released early: {result:?}"),
+            _ = sleep(Duration::from_secs(59)) => {}
+        }
+        assert_eq!(
+            wait.await.expect("rate wait succeeds"),
+            CancellableSendOutcome::Sent(())
+        );
+        assert_eq!(
+            tokio::time::Instant::now(),
+            started + Duration::from_secs(60)
+        );
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn live_connection_rate_wait_is_cancelled_by_stop() {
+        let started = tokio::time::Instant::now();
+        let mut limiter = RollingRateLimiter::new(1, Duration::from_secs(60));
+        limiter.record(started);
+
+        assert_eq!(
+            wait_for_live_connection_slot(
+                &mut limiter,
+                std::future::ready(Ok(LiveStopReason::Signal)),
+            )
+            .await
+            .expect("stop succeeds"),
+            CancellableSendOutcome::Stopped(LiveStopReason::Signal)
+        );
+        assert_eq!(tokio::time::Instant::now(), started);
     }
 
     #[test]
