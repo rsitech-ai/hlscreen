@@ -364,8 +364,9 @@ fn replay_window_candidates_with_policy_and_sweep_count(
     let max_candidates_per_symbol = policy.max_candidates_per_symbol.max(1);
 
     for event in events {
+        let revision_before = state.snapshot_revision();
         state.apply(event.clone())?;
-        events_since_capture = true;
+        events_since_capture |= state.snapshot_revision() != revision_before;
         let applied_update_ms = state.latest_update_ms().unwrap_or_default();
         replay_ts_ms = replay_ts_ms.max(applied_update_ms);
         let now_ms = replay_ts_ms;
@@ -653,10 +654,11 @@ mod tests {
     }
 
     #[test]
-    fn terminal_cadence_sample_is_not_recomputed() {
+    fn terminal_cadence_sample_is_not_recomputed_after_ignored_event() {
         let events = vec![
             top_of_book("@107", 1_000, 100.0),
             top_of_book("@107", 1_100, 101.0),
+            top_of_book("outside", 999_999, 999.0),
         ];
         let mut snapshot_sweeps = 0;
 
