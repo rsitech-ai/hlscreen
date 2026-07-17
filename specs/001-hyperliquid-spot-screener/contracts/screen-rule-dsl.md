@@ -80,5 +80,7 @@ thin_books:
 - Unknown fields are rejected.
 - Unknown functions are rejected.
 - Type-incompatible comparisons are rejected.
+- Parenthesis nesting and total boolean operators are each limited to 256;
+  larger filters fail validation instead of entering recursive evaluation.
 - Invalid expressions do not replace the currently active valid expression.
 - Missing row values evaluate as non-matches for numeric comparisons.
