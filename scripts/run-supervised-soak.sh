@@ -233,6 +233,10 @@ live = read(live_path)
 first = read(replay_first_path)
 second = read(replay_second_path)
 data_gaps = value(live, "data_gaps")
+recorded_command = list(command)
+recorded_command[0] = "target/release/hls"
+data_dir_index = recorded_command.index("--data-dir") + 1
+recorded_command[data_dir_index] = "<data-dir>"
 report = {
     "schema_version": 2,
     "run_id": run_id,
@@ -245,7 +249,7 @@ report = {
         "cargo": cargo_version,
         "host": host_triple,
     },
-    "command": command,
+    "command": recorded_command,
     "started_at": started_at,
     "ended_at": ended_at,
     "duration_secs": int(duration),

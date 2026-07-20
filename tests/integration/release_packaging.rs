@@ -407,7 +407,7 @@ fn release_validation_scripts_cover_local_artifacts_checksums_and_public_readine
     assert!(public_scan.contains("SECURITY.md"));
     assert!(public_scan.contains("docs/ROADMAP.md"));
     assert!(public_scan.contains("docs/assets/screenshots/live-screen.svg"));
-    assert!(public_scan.contains("docs/evidence/soak/sota-allpairs-20260713-15m.json"));
+    assert!(public_scan.contains("docs/evidence/soak/sota-allpairs-20260720-15m.json"));
     assert!(public_scan.contains("scripts/harden-generated-release-workflow.py"));
     assert!(public_scan.contains("Release tag created"));
     assert!(public_scan.contains("private_path_pattern"));
@@ -432,7 +432,7 @@ fn release_validation_scripts_cover_local_artifacts_checksums_and_public_readine
     assert!(hardener.contains("finally:"));
     assert!(packaging_check.contains("validate-soak-report.py"));
     assert!(packaging_check.contains("soak-report-valid.json"));
-    assert!(packaging_check.contains("sota-allpairs-20260713-15m.json"));
+    assert!(packaging_check.contains("sota-allpairs-20260720-15m.json"));
     assert!(!packaging_check.contains("merge-base --is-ancestor"));
     assert!(packaging_check.contains("soak-report-invalid.json"));
     assert!(packaging_check.contains("soak-report-invalid-command.json"));
@@ -598,6 +598,7 @@ fn soak_tooling_is_bounded_fail_closed_and_documented() {
     assert!(runner.contains("git_dirty"));
     assert!(runner.contains("binary_sha256"));
     assert!(runner.contains("runtime_source_sha256"));
+    assert!(runner.contains("<data-dir>"));
     assert!(runner.contains("source tree or HEAD changed during soak evidence collection"));
     assert!(!runner.contains("--wallet"));
     assert!(!runner.contains("--private"));
@@ -780,7 +781,7 @@ fn public_docs_define_fixture_tooling_release_and_unreleased_contracts() {
     assert!(tooling.contains("reviewed, pinned update"));
     assert!(tooling.contains("Shell and PowerShell"));
     assert!(docs_index.contains("DEVELOPMENT_TOOLING.md"));
-    assert!(docs_index.contains("2026-07-13"));
+    assert!(docs_index.contains("2026-07-20"));
     assert!(docs_index.contains("specs/004-advanced-tui-workstation"));
     assert!(docs_index.contains("specs/002-microstructure-workstation"));
     assert!(

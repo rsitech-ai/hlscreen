@@ -32,7 +32,7 @@ required_files=(
   "docs/deployment.md"
   "docs/production-readiness.md"
   "docs/assets/screenshots/live-screen.svg"
-  "docs/evidence/soak/sota-allpairs-20260713-15m.json"
+  "docs/evidence/soak/sota-allpairs-20260720-15m.json"
   "tests/fixtures/README.md"
   "scripts/check.sh"
   "scripts/check-history-secrets.sh"
