@@ -23,6 +23,7 @@ required_files=(
   "deny.toml"
   "docs/RELEASING.md"
   "docs/releases/v0.1.0.md"
+  "docs/releases/v0.1.1.md"
   "docs/DEVELOPMENT_TOOLING.md"
   "docs/OPEN_SOURCE_AUDIT.md"
   "docs/ROADMAP.md"
@@ -101,7 +102,7 @@ require_text "DELETE_NON_CANDIDATE_RUNS_BEFORE_PUBLIC" docs/OPEN_SOURCE_AUDIT.md
 public_text_paths=(
   README.md MAINTAINERS.md CONTRIBUTING.md CODE_OF_CONDUCT.md SECURITY.md SUPPORT.md CHANGELOG.md
   .github/ISSUE_TEMPLATE docs/README.md docs/DEVELOPMENT_TOOLING.md
-  docs/OPEN_SOURCE_CHECKLIST.md docs/PRIVACY.md docs/RELEASING.md docs/releases/v0.1.0.md docs/ROADMAP.md
+  docs/OPEN_SOURCE_CHECKLIST.md docs/PRIVACY.md docs/RELEASING.md docs/releases/v0.1.0.md docs/releases/v0.1.1.md docs/ROADMAP.md
   docs/THREAT_MODEL.md docs/architecture.md docs/data-format.md docs/deployment.md
   docs/feature-definitions.md docs/production-readiness.md tests/fixtures/README.md
 )
