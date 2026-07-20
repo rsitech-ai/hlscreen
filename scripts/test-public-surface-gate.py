@@ -15,7 +15,9 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SURFACE_GATE = REPO_ROOT / "scripts/check-public-surface.sh"
 CASE_COUNT = 0
-CASE_TIMEOUT_SECS = 30
+# One private_ok pass already takes ~20s of sequential fake API reads locally.
+# Keep the case bounded, but leave headroom for loaded laptops and CI runners.
+CASE_TIMEOUT_SECS = 120
 
 FAKE_GH = r'''#!/usr/bin/env python3
 import io
@@ -33,7 +35,8 @@ main_sha = os.environ["HLS_MAIN_SHA"]
 args = sys.argv[1:]
 if args == ["auth", "status"]:
     if scenario == "private_auth_timeout":
-        time.sleep(2)
+        # Exceed the 2s read timeout used by the timeout scenarios.
+        time.sleep(3)
     raise SystemExit(0)
 if len(args) < 2 or args[0] != "api":
     raise SystemExit(2)
@@ -44,7 +47,8 @@ public = scenario.startswith("public")
 if scenario == "private_timeout" and endpoint.startswith(
     "repos/rsitech-ai/hlscreen/branches?"
 ):
-    time.sleep(2)
+    # Exceed the 2s read timeout used by the timeout scenarios.
+    time.sleep(3)
 
 def emit(value):
     print(json.dumps(value))
@@ -571,7 +575,8 @@ def main() -> None:
         expected_success=False,
         expected_error="GitHub CLI authentication check timed out",
         expected_absent="Traceback",
-        env_overrides={"HLS_GH_READ_TIMEOUT_SECS": "1"},
+        # Keep above cold Python startup cost for the fake gh helper under load.
+        env_overrides={"HLS_GH_READ_TIMEOUT_SECS": "2"},
     )
     run_case(
         "private_timeout",
@@ -579,7 +584,7 @@ def main() -> None:
         expected_success=False,
         expected_error="GitHub API read timed out: repos/rsitech-ai/hlscreen/branches",
         expected_absent="Traceback",
-        env_overrides={"HLS_GH_READ_TIMEOUT_SECS": "1"},
+        env_overrides={"HLS_GH_READ_TIMEOUT_SECS": "2"},
     )
     run_case(
         "private_ok",
