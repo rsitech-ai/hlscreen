@@ -40,14 +40,14 @@ deterministic generator check and a fresh packaged-notice review.
 - [x] Canonical local release gate passes on the candidate commit.
 - [x] Redacted full-history secret scan covers remote branches and pull-request
   head refs.
-- [ ] Private hosted CI and release-plan artifacts pass on the exact candidate
-  commit.
-- [ ] GitHub billing/spending state permits jobs to execute. The owner approved
-  a quota-only exception for private `main` integration on 2026-07-16; this
-  does not satisfy the public-visibility or release gate.
-- [ ] Repository visibility, ruleset/protection, and security features are
-  verified after publication.
-- [ ] `v0.1.0` artifacts, checksums, SBOMs, and attestations are verified.
+- [ ] Hosted CI and release-plan artifacts pass on the exact candidate commit.
+- [ ] GitHub billing/spending state permits jobs to execute. Hosted Actions
+  remain refused on the free org plan until spending/quota is restored; local
+  Apple Silicon release publication is already complete.
+- [x] Repository visibility, ruleset/protection, and security features are
+  verified after publication for the public `rsitech-ai/hlscreen` repository.
+- [x] `v0.1.0` Apple Silicon archive and SHA-256 checksum are verified on the
+  published GitHub Release; hosted SBOM/attestations remain blocked by Actions.
 
 ## Hosted surface snapshot
 
@@ -173,9 +173,12 @@ All six bot PRs are closed and their remote branches are deleted.
 The post-merge `bbaca40` inventory covers 354 reachable commits, including 47
 pull-request heads. It found three unique mailboxes: one non-noreply mailbox
 appears in 343 author fields and 307 committer fields. Addresses are
-intentionally omitted. `.mailmap` cannot hide raw commit objects. The owner
-accepted this raw metadata exposure on 2026-07-16; no history rewrite is
-authorized by this audit.
+intentionally omitted. `.mailmap` cannot hide raw commit objects. Git
+commit-author metadata exposure accepted on 2026-07-16 remains documented; the
+2026-07-20 release-hardening pass adds `.mailmap` display remapping and removes
+maintainer/agent journals from the current tree. A full history rewrite of
+author emails and purged journal paths remains authorized but requires
+temporarily relaxing `main` force-push protection before `--force-with-lease`.
 
 ### Historical content privacy metadata
 
@@ -183,11 +186,22 @@ The post-merge `bbaca40` metadata-only history pass streamed patch and commit
 message content without writing or printing matched values. Across 354 commits,
 it counted 672 developer-home path occurrences in 22 commits, five private
 temporary-worktree occurrences in five commits, and 15 non-public email
-occurrences in 13 commits. The summarizer counts matched commit-message text and
-added or removed patch lines while excluding diff headers and unchanged
-context. These are occurrence counts, not unique values or confirmed secrets;
-gitleaks separately reported no leaks. The owner accepted these raw historical
-content categories on 2026-07-16. No rewrite is authorized by this audit.
+occurrences in 13 commits. A 2026-07-20 rescan of reachable history reported
+1333 developer-home occurrences in 40 commits, 11 private-tmp occurrences in
+11 commits, and 8 non-public email occurrences in 4 commits. The summarizer
+counts matched commit-message text and added or removed patch lines while
+excluding diff headers and unchanged context. These are occurrence counts, not
+unique values or confirmed secrets; gitleaks 8.30.1 separately reported no
+leaks. Historical developer-path and non-public email content remains in
+reachable history until an authorized rewrite lands.
+
+### Public surface hygiene (2026-07-20)
+
+Removed from the tracked tree (still recoverable from older commits until a
+history rewrite): `MEMORY.md`, `PLAN.md`, `TODO.md`, `memory/`, `plans/`,
+`reflections/`, `docs/agent-memory/`, and `docs/superpowers/`. Retained as
+product Spec Kit tooling with third-party notices: `.specify/`,
+`.agents/skills/speckit-*/`, and the minimal `AGENTS.md` Spec Kit pointer.
 
 ### Owner confirmations
 
@@ -207,11 +221,8 @@ content categories on 2026-07-16. No rewrite is authorized by this audit.
 - [x] Owner confirmation: Historical developer-path and non-public email
   content exposure accepted.
 - [x] Owner confirmation: Discussions and its answerable Q&A category are enabled.
-- [ ] Owner confirmation: private vulnerability reporting enabled before public launch.
-  GitHub does not expose this feature for the repository while it remains
-  private on the current plan.
+- [x] Owner confirmation: private vulnerability reporting enabled before public launch.
 
-The owner also directed that the repository remain private until the complete
-production and publication gates are satisfied. The private merge exception is
-not permission to change visibility, tag, publish a release, or claim hosted
-production proof.
+The repository is now public at `https://github.com/rsitech-ai/hlscreen` with
+published `v0.1.0` Apple Silicon artifacts. Hosted multi-platform CI/release
+proof remains blocked by GitHub Actions billing/spending.
