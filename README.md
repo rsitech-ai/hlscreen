@@ -1,10 +1,14 @@
 # hlscreen
 
-[![CI](https://github.com/s1korrrr/hlscreen/actions/workflows/ci.yml/badge.svg)](https://github.com/s1korrrr/hlscreen/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![CI](https://github.com/rsitech-ai/hlscreen/actions/workflows/ci.yml/badge.svg)](https://github.com/rsitech-ai/hlscreen/actions/workflows/ci.yml)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Rust 1.88+](https://img.shields.io/badge/rust-1.88%2B-orange.svg)](rust-toolchain.toml)
 
 `hlscreen` is a read-only Rust workspace for Hyperliquid spot market-data recording, replay, feature calculation, and terminal screening.
+
+The project is publicly maintained by [RSI Tech](https://rsitech.ai). Copyright
+is owned by Rafal Sikora; project and confidential contact is
+[info@rsitech.ai](mailto:info@rsitech.ai).
 
 It is built for operators and researchers who want a local-first way to inspect public Hyperliquid spot microstructure without touching wallets, private keys, account streams, or order endpoints.
 
@@ -12,7 +16,7 @@ It is built for operators and researchers who want a local-first way to inspect 
 
 ## Status
 
-Current state: pre-1.0 read-only live-data preview with bounded local validation. Recording, replay, screening, deterministic terminal rendering, health checks, and local release-package dry runs are implemented, but unattended production readiness is not yet proven. It is not a trading bot, hosted service, or capital-touching execution system.
+Current release: `0.1.0`, a read-only live-data preview with bounded local validation. Recording, replay, screening, deterministic terminal rendering, health checks, and a native Apple Silicon macOS release package are implemented, but unattended production readiness and hosted multi-platform artifacts are not yet proven. It is not a trading bot, hosted service, or capital-touching execution system.
 
 Latest live validation: a 2026-07-20 15-minute supervised all-symbol run at
 commit `4306d6b` covered `314` spot markets through `943` public subscriptions
@@ -51,7 +55,9 @@ Implemented today:
 Not implemented yet:
 
 - Supported long-running localhost daemon/service lifecycle.
-- Published release binaries from a reviewed `v*` tag run.
+- Hosted release binaries for macOS Intel, Linux, and Windows; those targets
+  remain source-build only until their native-runner artifacts pass the same
+  package and runtime checks as the Apple Silicon archive.
 - Production alert delivery/operations, validated canonical production
   microstructure metrics, service-backed analog search, and multi-day supervised
   soak proof.
@@ -151,6 +157,26 @@ Local server lifecycle and validation are fail-closed but remain experimental:
 See [Deployment status](docs/deployment.md) for the remaining supervisor,
 durability, authentication, observability, soak, and recovery limits.
 
+## Download
+
+The `v0.1.0` release provides a native Apple Silicon macOS archive and matching
+SHA-256 checksum on the [GitHub Releases page](https://github.com/rsitech-ai/hlscreen/releases/latest).
+Download both files and verify them before unpacking:
+
+```bash
+shasum -a 256 -c hlscreen-aarch64-apple-darwin.tar.gz.sha256
+tar -xzf hlscreen-aarch64-apple-darwin.tar.gz
+./hlscreen-aarch64-apple-darwin/bin/hls --help
+./hlscreen-aarch64-apple-darwin/bin/hls doctor --data-dir /tmp/hlscreen-v0.1.0
+```
+
+macOS Intel, Linux, and Windows remain source-build targets for this release;
+no prebuilt archive is claimed for them.
+
+The Apple Silicon archive is unsigned and unnotarized. It is a native CLI
+package rather than a macOS app bundle, and this release does not claim Apple
+Developer ID or Gatekeeper validation.
+
 ## Quick Start
 
 Build requirements:
@@ -167,14 +193,14 @@ Contributor validation additionally requires Git, Python 3, the `rustfmt` and
 needed for public REST metadata and live public WebSocket commands; fixture,
 replay, and local-only commands can run without exchange network access.
 
-Platform contract for the first candidate release:
+Platform contract for the `v0.1.0` release:
 
 | Platform | Target | Current evidence |
 | --- | --- | --- |
-| macOS Apple Silicon | `aarch64-apple-darwin` | Primary development/runtime platform; local release smoke covered |
-| macOS Intel | `x86_64-apple-darwin` | Packaging configured; clean-runner candidate artifact proof pending |
-| Ubuntu-compatible x86-64 Linux | `x86_64-unknown-linux-gnu` | CI/build packaging configured; candidate artifact install proof pending |
-| Windows 10/11 x86-64 | `x86_64-pc-windows-msvc` | Packaging configured; Windows terminal and CTRL-C runtime proof pending |
+| macOS Apple Silicon | `aarch64-apple-darwin` | Published native archive; clean local package/install smoke and fresh-download verification |
+| macOS Intel | `x86_64-apple-darwin` | Source build configured; no published binary artifact |
+| Ubuntu-compatible x86-64 Linux | `x86_64-unknown-linux-gnu` | Source build configured; no published binary artifact |
+| Windows 10/11 x86-64 | `x86_64-pc-windows-msvc` | Source build configured; no published binary artifact or Windows terminal runtime proof |
 
 Rust 1.88 is the minimum supported Rust version. Other targets may build but
 are not part of the first release contract.
@@ -515,4 +541,6 @@ Security issues should follow [SECURITY.md](SECURITY.md). General support guidan
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+Licensed under the Apache License, Version 2.0. Copyright 2026 Rafal Sikora;
+publicly maintained by RSI Tech. See [LICENSE](LICENSE), [NOTICE](NOTICE), and
+[MAINTAINERS.md](MAINTAINERS.md).

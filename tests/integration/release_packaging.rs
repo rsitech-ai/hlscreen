@@ -112,6 +112,7 @@ fn dist_workspace_declares_tag_gated_release_artifacts() {
     assert!(dist.contains("install-updater = false"));
     assert!(dist.contains("THIRD_PARTY_LICENSES.txt"));
     assert!(dist.contains("THIRD_PARTY_NOTICES.md"));
+    assert!(dist.contains("NOTICE"));
     let cargo = read("Cargo.toml");
     assert!(cargo.contains("[profile.dist]"));
     assert!(cargo.contains("inherits = \"release\""));
@@ -209,6 +210,7 @@ fn local_release_archive_stages_project_and_third_party_notices() {
 
     for file in [
         "LICENSE",
+        "NOTICE",
         "THIRD_PARTY_LICENSES.txt",
         "THIRD_PARTY_NOTICES.md",
     ] {
@@ -377,6 +379,7 @@ fn dist_release_contract_builds_pr_artifacts_sbom_and_provenance() {
 fn distributable_crate_inherits_public_repository_metadata() {
     let manifest = read("crates/hls-cli/Cargo.toml");
 
+    assert!(manifest.contains("authors.workspace = true"));
     assert!(manifest.contains("repository.workspace = true"));
     assert!(manifest.contains("homepage.workspace = true"));
     assert!(manifest.contains("description.workspace = true"));
@@ -445,6 +448,8 @@ fn release_validation_scripts_cover_local_artifacts_checksums_and_public_readine
     assert!(packaging_check.contains("check-supervisor-packaging.sh"));
     assert!(packaging_check.contains("runtime-source-sha256.py"));
     assert!(packaging_check.contains("runtime_source_sha256"));
+    assert!(packaging_check.contains("soak_evidence_binary_match"));
+    assert!(packaging_check.contains("--binary"));
 }
 
 #[test]
@@ -675,8 +680,24 @@ fn public_docs_state_identity_contribution_and_build_contracts() {
             "README omits build prerequisite {prerequisite}",
         );
     }
-    assert!(contributing.contains("licensed under the MIT License"));
+    assert!(contributing.contains("licensed under the Apache"));
+    assert!(contributing.contains("License, Version 2.0"));
     assert!(contributing.contains("No Contributor License Agreement (CLA) is required"));
+
+    let license = read("LICENSE");
+    let notice = read("NOTICE");
+    let maintainers = read("MAINTAINERS.md");
+    let cargo = read("Cargo.toml");
+    assert!(license.contains("Apache License"));
+    assert!(license.contains("Version 2.0, January 2004"));
+    assert!(notice.contains("Copyright 2026 Rafal Sikora"));
+    assert!(notice.contains("Maintained publicly by RSI Tech"));
+    assert!(notice.contains("Website: https://rsitech.ai"));
+    assert!(notice.contains("Contact: info@rsitech.ai"));
+    assert!(maintainers.contains("publicly maintained by [RSI Tech]"));
+    assert!(cargo.contains("authors = [\"RSI Tech <info@rsitech.ai>\"]"));
+    assert!(cargo.contains("license = \"Apache-2.0\""));
+    assert!(cargo.contains("homepage = \"https://rsitech.ai\""));
 }
 
 #[test]
@@ -686,7 +707,7 @@ fn public_routes_are_actionable_and_separate_security_conduct_and_questions() {
     let support = read("SUPPORT.md");
     let issue_config = read(".github/ISSUE_TEMPLATE/config.yml");
 
-    assert!(security.contains("https://github.com/s1korrrr/hlscreen/security/advisories/new"));
+    assert!(security.contains("https://github.com/rsitech-ai/hlscreen/security/advisories/new"));
     assert!(security.contains("mailto:info@rsitech.ai?subject=hlscreen%20security%20report"));
     assert!(security.contains("acknowledge receipt within 3 business days"));
     assert!(security.contains("targets, not guarantees"));
@@ -695,7 +716,7 @@ fn public_routes_are_actionable_and_separate_security_conduct_and_questions() {
     assert!(conduct.contains("independent"));
     assert!(conduct.contains("internal escalation channel"));
     assert!(conduct.contains("https://support.github.com/contact/report-abuse"));
-    assert!(support.contains("https://github.com/s1korrrr/hlscreen/discussions/categories/q-a"));
+    assert!(support.contains("https://github.com/rsitech-ai/hlscreen/discussions/categories/q-a"));
     assert!(support.contains("Reproducible defects belong in Issues"));
     assert!(issue_config.contains("name: Questions and support"));
     assert!(issue_config.starts_with("blank_issues_enabled: false\n"));
@@ -735,12 +756,12 @@ fn public_routes_are_actionable_and_separate_security_conduct_and_questions() {
     );
     assert!(contacts.iter().any(|(name, url, about)| {
         name == "Questions and support"
-            && url == "https://github.com/s1korrrr/hlscreen/discussions/categories/q-a"
+            && url == "https://github.com/rsitech-ai/hlscreen/discussions/categories/q-a"
             && about.contains("Discussions Q&A")
     }));
     assert!(contacts.iter().any(|(name, url, about)| {
         name == "Security issue"
-            && url == "https://github.com/s1korrrr/hlscreen/security/advisories/new"
+            && url == "https://github.com/rsitech-ai/hlscreen/security/advisories/new"
             && about.contains("privately")
     }));
 }
@@ -794,10 +815,8 @@ fn public_docs_define_fixture_tooling_release_and_unreleased_contracts() {
         releasing.contains("GitHub Releases is the only supported binary distribution channel")
     );
     assert!(releasing.contains("Do not redistribute workflow artifacts as releases"));
-    assert!(
-        changelog.contains("0.1.0 is the intended first public release and has not been published")
-    );
-    assert!(!changelog.contains("## 0.1.0 -"));
+    assert!(changelog.contains("## 0.1.0 - 2026-07-20"));
+    assert!(!changelog.contains("has not been published"));
 
     assert_relative_markdown_links_exist(&[
         "README.md",
@@ -805,10 +824,12 @@ fn public_docs_define_fixture_tooling_release_and_unreleased_contracts() {
         "CODE_OF_CONDUCT.md",
         "SUPPORT.md",
         "CONTRIBUTING.md",
+        "MAINTAINERS.md",
         "docs/README.md",
         "docs/data-format.md",
         "docs/DEVELOPMENT_TOOLING.md",
         "docs/RELEASING.md",
+        "docs/releases/v0.1.0.md",
         "tests/fixtures/README.md",
     ]);
 }
@@ -818,12 +839,15 @@ fn public_readiness_gate_is_fail_closed_and_secret_safe() {
     let readiness = read("scripts/check-public-readiness.sh");
 
     for required in [
+        "NOTICE",
+        "MAINTAINERS.md",
         "THIRD_PARTY_LICENSES.txt",
         "THIRD_PARTY_NOTICES.md",
         "third_party/spec-kit/LICENSE",
         "third_party/notices/manifest.json",
         "docs/DEVELOPMENT_TOOLING.md",
         "docs/OPEN_SOURCE_AUDIT.md",
+        "docs/releases/v0.1.0.md",
         "tests/fixtures/README.md",
         "scripts/check.sh",
         "scripts/check-history-secrets.sh",
@@ -845,6 +869,7 @@ fn public_readiness_gate_is_fail_closed_and_secret_safe() {
         "credential_pattern",
         "unsafe_wording_pattern",
         "refs/tags/v0.1.0",
+        "# hlscreen v0.1.0",
         "possible committed credential",
         "--redact=100",
         "--log-opts=\\\"--all\\\"",
@@ -1190,6 +1215,6 @@ fn hosted_public_surface_gate_is_bounded_read_only_and_mode_aware() {
     );
     assert!(
         String::from_utf8_lossy(&mock_test.stdout)
-            .contains("public_surface_mock_tests=passed cases=34")
+            .contains("public_surface_mock_tests=passed cases=35")
     );
 }

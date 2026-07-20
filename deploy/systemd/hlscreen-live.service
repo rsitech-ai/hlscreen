@@ -1,6 +1,6 @@
 [Unit]
 Description=hlscreen read-only Hyperliquid spot live API
-Documentation=https://github.com/s1korrrr/hlscreen
+Documentation=https://github.com/rsitech-ai/hlscreen
 After=network-online.target
 Wants=network-online.target
 

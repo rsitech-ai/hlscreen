@@ -6,7 +6,7 @@ This project follows a practical changelog format and intends to use semantic ve
 
 ## Unreleased
 
-0.1.0 is the intended first public release and has not been published. The release date will be added only in the reviewed release commit.
+## 0.1.0 - 2026-07-20
 
 ### Added
 
@@ -24,9 +24,14 @@ This project follows a practical changelog format and intends to use semantic ve
 - Schema-versioned event and feature/confidence Parquet exports with manifests,
   local analog indexes, bounded local alert history, and supervisor smoke checks.
 - A complete help contract for every public CLI command and option.
+- Canonical RSI Tech organization ownership and public release metadata.
+- Apache-2.0 project licensing, Rafal Sikora copyright attribution, and RSI
+  Tech maintainer, website, and contact metadata.
 
 ### Changed
 
+- Normalized public human Git history to the approved Rafal Sikora GitHub
+  no-reply identity while preserving GitHub system committer metadata.
 - Hardened live ingestion with finite numeric validation, out-of-order state protection, bounded histories, market-data inactivity detection, rolling reconnect subscription limits, and confidence-aware gaps.
 - Disabled public REST redirects, capped successful REST bodies at 8 MiB, and
   limited cleartext WebSocket URLs to loopback fixtures.

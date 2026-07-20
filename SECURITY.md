@@ -19,7 +19,7 @@ Security-sensitive areas include:
 
 Do not open a public issue for security vulnerabilities.
 
-Use [GitHub private vulnerability reporting](https://github.com/s1korrrr/hlscreen/security/advisories/new) as the primary route. If that form is unavailable, email [info@rsitech.ai with the subject `hlscreen security report`](mailto:info@rsitech.ai?subject=hlscreen%20security%20report). Do not include credentials, private keys, or unnecessary personal data.
+Use [GitHub private vulnerability reporting](https://github.com/rsitech-ai/hlscreen/security/advisories/new) as the primary route. If that form is unavailable, email [info@rsitech.ai with the subject `hlscreen security report`](mailto:info@rsitech.ai?subject=hlscreen%20security%20report). Do not include credentials, private keys, or unnecessary personal data.
 
 Include:
 

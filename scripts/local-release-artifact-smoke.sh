@@ -22,6 +22,7 @@ mkdir -p "$stage_dir/bin" "$unpack_dir" "$smoke_data_dir"
 
 cp "$bin" "$stage_dir/bin/hls"
 cp "$repo_root/LICENSE" "$stage_dir/LICENSE"
+cp "$repo_root/NOTICE" "$stage_dir/NOTICE"
 cp "$repo_root/THIRD_PARTY_LICENSES.txt" "$stage_dir/THIRD_PARTY_LICENSES.txt"
 cp "$repo_root/THIRD_PARTY_NOTICES.md" "$stage_dir/THIRD_PARTY_NOTICES.md"
 cp "$repo_root/README.md" "$stage_dir/README.md"
@@ -51,6 +52,7 @@ fi
 
 tar -xzf "$archive" -C "$unpack_dir"
 test -s "$unpack_dir/$package_name/LICENSE"
+test -s "$unpack_dir/$package_name/NOTICE"
 test -s "$unpack_dir/$package_name/THIRD_PARTY_LICENSES.txt"
 test -s "$unpack_dir/$package_name/THIRD_PARTY_NOTICES.md"
 smoke_bin="$unpack_dir/$package_name/bin/hls"
