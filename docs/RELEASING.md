@@ -175,7 +175,7 @@ is install-smoke proof for the reviewed local artifact.
 | --- | --- | --- |
 | Source build | Implemented | `cargo build --release --workspace --all-features` |
 | Pull-request candidate artifacts | Configured; hosted proof blocked by GitHub Actions billing | Builds are defined for four targets but have not executed on the current hosted account |
-| GitHub Release artifacts | Apple Silicon macOS archive and checksum published for `v0.1.0`; unsigned and unnotarized | Other configured targets remain source-build only until native-runner package proof exists; Developer ID Application signing is not currently proven |
+| GitHub Release artifacts | Apple Silicon macOS archive and checksum published for `v0.1.0`; ad hoc linker signature only, not notarized | Other configured targets remain source-build only until native-runner package proof exists; Developer ID Application signing is not currently proven |
 | Shell installer | Configured by cargo-dist; unpublished | Do not advertise until a hosted release build verifies it |
 | PowerShell installer | Configured by cargo-dist; unpublished | Do not advertise until a hosted Windows release build verifies it |
 | Provenance | Configured for tag artifacts; unproven | Requires a successful eligible hosted tag workflow and downloaded attestation verification |

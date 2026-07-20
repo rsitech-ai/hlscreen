@@ -664,6 +664,8 @@ fn public_docs_state_identity_contribution_and_build_contracts() {
 
     assert!(readme.contains("independent open-source project"));
     assert!(readme.contains("not affiliated with, endorsed by, or sponsored by Hyperliquid"));
+    assert!(readme.contains("linker-generated ad hoc signature"));
+    assert!(readme.contains("does not claim Developer ID"));
     for prerequisite in [
         "Git",
         "Python 3",
