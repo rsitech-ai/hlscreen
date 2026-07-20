@@ -239,6 +239,8 @@ fn source_archive_excludes_maintainer_journals_and_agent_state() {
         "/memory export-ignore",
         "/plans export-ignore",
         "/reflections export-ignore",
+        "/docs/agent-memory export-ignore",
+        "/docs/superpowers export-ignore",
         "/PLAN.md export-ignore",
         "/MEMORY.md export-ignore",
         "/TODO.md export-ignore",
