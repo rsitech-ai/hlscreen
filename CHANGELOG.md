@@ -6,6 +6,29 @@ This project follows a practical changelog format and intends to use semantic ve
 
 ## Unreleased
 
+## 0.1.1 - 2026-07-20
+
+### Changed
+
+- Removed development-assistant working material from the repository and its
+  published Git history: maintainer journals (`PLAN.md`, `MEMORY.md`,
+  `TODO.md`, `memory/`, `plans/`, `reflections/`), assistant lesson stores and
+  planning notes (`docs/agent-memory/`, `docs/superpowers/`), vendored Spec Kit
+  workflow tooling (`.specify/`, `.agents/`, `specs/`,
+  `third_party/spec-kit/`), and internal release dossiers and session audit
+  reports (`docs/OPEN_SOURCE_AUDIT.md`, `docs/OPEN_SOURCE_CHECKLIST.md`,
+  `docs/DEVELOPMENT_TOOLING.md`, `docs/reports/`). Product source, tests,
+  fixtures, public documentation, and release evidence are unchanged.
+- Regenerated `THIRD_PARTY_LICENSES.txt` and `THIRD_PARTY_NOTICES.md` without
+  the removed vendored Spec Kit attribution; all Rust dependency licenses and
+  packaged notices are preserved.
+- Signed the Apple Silicon release binary with the maintainer's
+  `Developer ID Application` identity (Team `2NY8A789TN`) with hardened
+  runtime. The archive is still not notarized, and documentation states that
+  boundary explicitly.
+- Retired the internal hosted-surface publication gate scripts; the public
+  readiness, history secret-scan, packaging, and artifact smoke gates remain.
+
 ## 0.1.0 - 2026-07-20
 
 ### Added

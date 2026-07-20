@@ -2,7 +2,6 @@
 target/
 .hls/
 .hls-soak/
-.superpowers/sdd/
 __pycache__/
 *.py[cod]
 data/
@@ -11,3 +10,22 @@ data/
 *.sqlite
 *.ndjson.zst
 *.parquet
+
+# Local development-assistant and maintainer working state (never tracked)
+.agents/
+.claude/
+.codex/
+.cursor/
+.specify/
+.superpowers/
+/AGENTS.md
+/MEMORY.md
+/PLAN.md
+/TODO.md
+/memory/
+/plans/
+/reflections/
+/specs/
+/docs/agent-memory/
+/docs/superpowers/
+/docs/reports/

@@ -16,7 +16,7 @@ It is built for operators and researchers who want a local-first way to inspect 
 
 ## Status
 
-Current release: `0.1.0`, a read-only live-data preview with bounded local validation. Recording, replay, screening, deterministic terminal rendering, health checks, and a native Apple Silicon macOS release package are implemented, but unattended production readiness and hosted multi-platform artifacts are not yet proven. It is not a trading bot, hosted service, or capital-touching execution system.
+Current release: `0.1.1`, a read-only live-data preview with bounded local validation. Recording, replay, screening, deterministic terminal rendering, health checks, and a native Apple Silicon macOS release package are implemented, but unattended production readiness and hosted multi-platform artifacts are not yet proven. It is not a trading bot, hosted service, or capital-touching execution system.
 
 Latest live validation: a 2026-07-20 15-minute supervised all-symbol run at
 commit `4306d6b` covered `314` spot markets through `943` public subscriptions
@@ -66,7 +66,7 @@ Not implemented yet:
 
 ## Screenshots
 
-These committed SVGs are deterministic terminal captures generated from the current binary and used for documentation regression. Real public WebSocket smoke evidence is tracked in [Production readiness](docs/production-readiness.md) and dated reports under [docs/reports](docs/reports/).
+These committed SVGs are deterministic terminal captures generated from the current binary and used for documentation regression. Real public WebSocket smoke evidence is tracked in [Production readiness](docs/production-readiness.md) and the [machine-readable soak evidence](docs/evidence/soak/sota-allpairs-20260720-15m.json).
 
 ### Live Market Board
 
@@ -159,7 +159,7 @@ durability, authentication, observability, soak, and recovery limits.
 
 ## Download
 
-The `v0.1.0` release provides a native Apple Silicon macOS archive and matching
+The latest release provides a native Apple Silicon macOS archive and matching
 SHA-256 checksum on the [GitHub Releases page](https://github.com/rsitech-ai/hlscreen/releases/latest).
 Download both files and verify them before unpacking:
 
@@ -167,16 +167,19 @@ Download both files and verify them before unpacking:
 shasum -a 256 -c hlscreen-aarch64-apple-darwin.tar.gz.sha256
 tar -xzf hlscreen-aarch64-apple-darwin.tar.gz
 ./hlscreen-aarch64-apple-darwin/bin/hls --help
-./hlscreen-aarch64-apple-darwin/bin/hls doctor --data-dir /tmp/hlscreen-v0.1.0
+./hlscreen-aarch64-apple-darwin/bin/hls doctor --data-dir /tmp/hlscreen-doctor
 ```
 
 macOS Intel, Linux, and Windows remain source-build targets for this release;
 no prebuilt archive is claimed for them.
 
-The Apple Silicon archive is not Developer ID-signed and is not notarized. Its
-Mach-O binary carries only the linker-generated ad hoc signature, with no Apple
-team identifier. This native CLI package does not claim Developer ID or
-Gatekeeper validation.
+Starting with `v0.1.1`, the Apple Silicon Mach-O binary is signed with the
+maintainer's `Developer ID Application` identity (Team `2NY8A789TN`) with the
+hardened runtime enabled, but the archive is **not notarized**. Gatekeeper may
+therefore still warn on or block a quarantined download; verify the SHA-256
+checksum above and, if needed, inspect the signature with
+`codesign --verify --strict --display -vv bin/hls`. This native CLI package
+does not claim notarization or Gatekeeper validation.
 
 ## Quick Start
 
@@ -194,7 +197,7 @@ Contributor validation additionally requires Git, Python 3, the `rustfmt` and
 needed for public REST metadata and live public WebSocket commands; fixture,
 replay, and local-only commands can run without exchange network access.
 
-Platform contract for the `v0.1.0` release:
+Platform contract for the `v0.1.1` release:
 
 | Platform | Target | Current evidence |
 | --- | --- | --- |
@@ -521,12 +524,7 @@ Examples are in [examples/screen-rules.md](examples/screen-rules.md).
 - [Roadmap](docs/ROADMAP.md)
 - [Release checklist](docs/RELEASING.md)
 - [Extension contract](docs/extensions.md)
-- [Open source checklist](docs/OPEN_SOURCE_CHECKLIST.md)
-- [Production-readiness live refresh](docs/reports/2026-07-08-production-readiness-live-refresh.md)
-- [Live production hardening report](docs/reports/2026-07-08-live-production-hardening.md)
-- [Live smoke report](docs/reports/2026-07-08-live-smoke.md)
-- [Pre-merge audit](docs/reports/2026-07-08-pre-merge-audit.md)
-- [2026-07-10 end-to-end release audit](docs/reports/2026-07-10-end-to-end-release-audit.md)
+- [Latest supervised soak evidence](docs/evidence/soak/sota-allpairs-20260720-15m.json)
 
 ## Contributing
 

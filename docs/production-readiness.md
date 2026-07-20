@@ -111,7 +111,9 @@ Current post-merge evidence:
 - Replay drift/missing/extra: `0 / 0 / 0`
 
 The exact command, official-document checks, code-review findings, and gate
-results are in the [2026-07-10 post-merge production audit](reports/2026-07-10-post-merge-production-audit.md).
+results were recorded in the maintainer's internal post-merge production audit
+for that run; the machine-validated evidence lives in
+[`docs/evidence/soak/`](evidence/soak/sota-allpairs-20260720-15m.json).
 
 Opt-in closeout repair is now available with `--backfill-gaps` on a normalized
 recorded live run, plus the standalone `hls backfill` command. This is coarse

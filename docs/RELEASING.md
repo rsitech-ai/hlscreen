@@ -150,10 +150,9 @@ Every release candidate needs:
 - bounded fixture live smoke with `hls live --fixture-file ... --once`;
 - explicit release notes stating known limitations and read-only scope.
 
-The private-candidate surface gate downloads the exact workflow artifacts and
-fails closed on unsafe archive paths, checksum mismatches, malformed manifests
-or SBOM XML, missing installers/notices, and missing native validation steps.
-Artifact names alone are not release evidence.
+Artifact names alone are not release evidence: verify checksums, notices, and
+the unpacked binary smoke on the exact downloaded files before announcing a
+release.
 
 ## Local Artifact Smoke
 
@@ -175,7 +174,7 @@ is install-smoke proof for the reviewed local artifact.
 | --- | --- | --- |
 | Source build | Implemented | `cargo build --release --workspace --all-features` |
 | Pull-request candidate artifacts | Configured; hosted proof blocked by GitHub Actions billing | Builds are defined for four targets but have not executed on the current hosted account |
-| GitHub Release artifacts | Apple Silicon macOS archive and checksum published for `v0.1.0`; ad hoc linker signature only, not notarized | Other configured targets remain source-build only until native-runner package proof exists; Developer ID Application signing is not currently proven |
+| GitHub Release artifacts | Apple Silicon macOS archive and checksum published; `v0.1.1` binary is Developer ID Application-signed (Team `2NY8A789TN`, hardened runtime) but not notarized | Other configured targets remain source-build only until native-runner package proof exists; notarization requires stored notarytool credentials |
 | Shell installer | Configured by cargo-dist; unpublished | Do not advertise until a hosted release build verifies it |
 | PowerShell installer | Configured by cargo-dist; unpublished | Do not advertise until a hosted Windows release build verifies it |
 | Provenance | Configured for tag artifacts; unproven | Requires a successful eligible hosted tag workflow and downloaded attestation verification |
@@ -208,8 +207,8 @@ safety, or host-job privileges drift.
 ## Tagging
 
 ```bash
-git tag -a v0.1.0 -m "hlscreen v0.1.0"
-git push origin v0.1.0
+git tag -a v0.1.1 -m "hlscreen v0.1.1"
+git push origin v0.1.1
 ```
 
 ## Release Notes
