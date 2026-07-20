@@ -111,12 +111,16 @@ The release workflow provides:
   `attestations` write permissions scoped only to the tag-only host job;
 - release build caching disabled, no dynamic container image, and no
   expression interpolation directly into release shell commands;
+- explicit per-job timeouts for release planning, native builds, global
+  packaging, hosting, and announcement;
 - version-locked Cargo registry builds for cargo-dist 0.32.0,
   cargo-auditable 0.7.5, and cargo-cyclonedx 0.5.5; Cargo verifies registry
   package checksums before compilation;
 - a source archive and SHA-256 checksums;
 - a CycloneDX XML SBOM generated with `cargo-cyclonedx`;
 - dependency metadata embedded in release binaries with `cargo-auditable`;
+- native-runner archive validation before upload: checksum, required notices,
+  unpacked `--help`, doctor, fixture-live, and `cargo audit bin` metadata smoke;
 - GitHub artifact attestations for published tag artifacts.
 
 These controls follow GitHub's official
@@ -145,6 +149,11 @@ Every release candidate needs:
 - read-only safety smoke with `hls doctor`;
 - bounded fixture live smoke with `hls live --fixture-file ... --once`;
 - explicit release notes stating known limitations and read-only scope.
+
+The private-candidate surface gate downloads the exact workflow artifacts and
+fails closed on unsafe archive paths, checksum mismatches, malformed manifests
+or SBOM XML, missing installers/notices, and missing native validation steps.
+Artifact names alone are not release evidence.
 
 ## Local Artifact Smoke
 

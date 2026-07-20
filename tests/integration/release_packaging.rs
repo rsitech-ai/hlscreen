@@ -355,7 +355,13 @@ fn dist_release_contract_builds_pr_artifacts_sbom_and_provenance() {
     assert!(release.contains("cargo-dist 0.32.0 requires reviewed post-generation security fixes"));
     assert!(release.contains("cargo install cargo-dist --version 0.32.0 --locked"));
     assert!(release.contains("cargo install cargo-auditable --version 0.7.5 --locked"));
+    assert!(release.contains("cargo install cargo-audit --version 0.22.2 --locked"));
     assert!(release.contains("cargo install cargo-cyclonedx --version 0.5.5 --locked"));
+    assert!(release.contains("scripts/verify-dist-local-artifact.py"));
+    assert!(release.contains(
+        "      matrix: ${{ fromJson(needs.plan.outputs.val).ci.github.artifacts_matrix }}"
+    ));
+    assert_eq!(release.matches("timeout-minutes:").count(), 5);
     assert!(!release.contains("| sh"));
     assert!(!release.contains("| iex"));
     assert!(release.contains("artifacts/*.sha256"));
@@ -1058,6 +1064,8 @@ fn hosted_public_surface_gate_is_bounded_read_only_and_mode_aware() {
         "no successful hosted Release run exists at expected_sha",
         "required hosted Release jobs did not all execute successfully",
         "candidate Release artifact inventory is not exact",
+        "candidate Release artifact contents are invalid",
+        "actions/artifacts/{artifact_id}/zip",
         "actions/permissions/selected-actions",
         "sha_pinning_required",
         "issues?state=all",
@@ -1182,6 +1190,6 @@ fn hosted_public_surface_gate_is_bounded_read_only_and_mode_aware() {
     );
     assert!(
         String::from_utf8_lossy(&mock_test.stdout)
-            .contains("public_surface_mock_tests=passed cases=32")
+            .contains("public_surface_mock_tests=passed cases=34")
     );
 }
