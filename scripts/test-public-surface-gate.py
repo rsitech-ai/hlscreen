@@ -42,7 +42,7 @@ slurp = "--slurp" in args
 public = scenario.startswith("public")
 
 if scenario == "private_timeout" and endpoint.startswith(
-    "repos/s1korrrr/hlscreen/branches?"
+    "repos/rsitech-ai/hlscreen/branches?"
 ):
     time.sleep(2)
 
@@ -123,7 +123,7 @@ def candidate_artifact_payload(artifact_id):
             raise SystemExit(3)
     return output.getvalue()
 
-if endpoint == "repos/s1korrrr/hlscreen":
+if endpoint == "repos/rsitech-ai/hlscreen":
     security = {}
     if public:
         security = {
@@ -135,13 +135,14 @@ if endpoint == "repos/s1korrrr/hlscreen":
         if scenario == "public_security_disabled":
             security.pop("dependency_graph")
     emit({
+        "owner": {"login": "rsitech-ai", "type": "Organization"},
         "visibility": "public" if public else "private",
         "default_branch": "main",
         "has_pages": False,
         "has_discussions": public,
         "security_and_analysis": security,
     })
-elif endpoint.startswith("repos/s1korrrr/hlscreen/branches?"):
+elif endpoint.startswith("repos/rsitech-ai/hlscreen/branches?"):
     hosted_main_sha = "0" * 40 if scenario == "private_stale_main" else main_sha
     main = {"name": "main", "commit": {"sha": hosted_main_sha}}
     if scenario == "private_second_page_branch":
@@ -153,9 +154,9 @@ elif endpoint.startswith("repos/s1korrrr/hlscreen/branches?"):
             main,
             {"name": "feat/andrzej_oss_full_closeout", "commit": {"sha": expected_sha}},
         ])
-elif endpoint.startswith("repos/s1korrrr/hlscreen/tags?"):
+elif endpoint.startswith("repos/rsitech-ai/hlscreen/tags?"):
     direct_list([])
-elif endpoint.startswith("repos/s1korrrr/hlscreen/pulls?state=open"):
+elif endpoint.startswith("repos/rsitech-ai/hlscreen/pulls?state=open"):
     pulls = [] if public else [{
         "number": 47,
         "user": {"login": "s1korrrr"},
@@ -172,7 +173,7 @@ elif endpoint.startswith("repos/s1korrrr/hlscreen/pulls?state=open"):
             "base": {"ref": "main"},
         })
     direct_list(pulls)
-elif endpoint.startswith("repos/s1korrrr/hlscreen/actions/runs?"):
+elif endpoint.startswith("repos/rsitech-ai/hlscreen/actions/runs?"):
     candidate_ci_run = {
         "id": 7,
         "name": "CI",
@@ -209,7 +210,7 @@ elif endpoint.startswith("repos/s1korrrr/hlscreen/actions/runs?"):
         ])
     else:
         emit([{"total_count": len(candidate_runs), "workflow_runs": candidate_runs}])
-elif endpoint.startswith("repos/s1korrrr/hlscreen/actions/runs/7/jobs?"):
+elif endpoint.startswith("repos/rsitech-ai/hlscreen/actions/runs/7/jobs?"):
     names = [
         "GitHub Actions security",
         "RustSec advisory scan",
@@ -244,7 +245,7 @@ elif endpoint.startswith("repos/s1korrrr/hlscreen/actions/runs/7/jobs?"):
             "steps": [{"name": "test", "conclusion": "success"}],
         })
     emit([{"total_count": len(jobs), "jobs": jobs}])
-elif endpoint.startswith("repos/s1korrrr/hlscreen/actions/runs/8/jobs?"):
+elif endpoint.startswith("repos/rsitech-ai/hlscreen/actions/runs/8/jobs?"):
     conclusions = {
         "Plan release": "success",
         "build-local-artifacts (aarch64-apple-darwin)": "success",
@@ -272,8 +273,8 @@ elif endpoint.startswith("repos/s1korrrr/hlscreen/actions/runs/8/jobs?"):
         })
     emit([{"total_count": len(jobs), "jobs": jobs}])
 elif endpoint in {
-    "repos/s1korrrr/hlscreen/actions/runs/7/logs",
-    "repos/s1korrrr/hlscreen/actions/runs/8/logs",
+    "repos/rsitech-ai/hlscreen/actions/runs/7/logs",
+    "repos/rsitech-ai/hlscreen/actions/runs/8/logs",
 }:
     payload = io.BytesIO()
     with zipfile.ZipFile(payload, "w") as archive:
@@ -282,34 +283,37 @@ elif endpoint in {
             content = "masked fixture " + "gh" + "p_" + ("A" * 20) + "\n"
         archive.writestr("job.txt", content)
     sys.stdout.buffer.write(payload.getvalue())
-elif endpoint.startswith("repos/s1korrrr/hlscreen/collaborators?"):
-    direct_list([{"login": "s1korrrr", "role_name": "admin"}])
+elif endpoint.startswith("repos/rsitech-ai/hlscreen/collaborators?"):
+    if scenario == "private_unexpected_direct_collaborator":
+        direct_list([{"login": "contributor", "role_name": "push"}])
+    else:
+        direct_list([{"login": "s1korrrr", "role_name": "admin"}])
 elif endpoint.startswith((
-    "repos/s1korrrr/hlscreen/hooks?",
-    "repos/s1korrrr/hlscreen/keys?",
-    "repos/s1korrrr/hlscreen/deployments?",
-    "repos/s1korrrr/hlscreen/releases?",
-    "repos/s1korrrr/hlscreen/pulls?state=all",
-    "repos/s1korrrr/hlscreen/issues/comments?",
-    "repos/s1korrrr/hlscreen/pulls/comments?",
-    "repos/s1korrrr/hlscreen/issues?",
-    "repos/s1korrrr/hlscreen/comments?",
-    "repos/s1korrrr/hlscreen/discussions?",
+    "repos/rsitech-ai/hlscreen/hooks?",
+    "repos/rsitech-ai/hlscreen/keys?",
+    "repos/rsitech-ai/hlscreen/deployments?",
+    "repos/rsitech-ai/hlscreen/releases?",
+    "repos/rsitech-ai/hlscreen/pulls?state=all",
+    "repos/rsitech-ai/hlscreen/issues/comments?",
+    "repos/rsitech-ai/hlscreen/pulls/comments?",
+    "repos/rsitech-ai/hlscreen/issues?",
+    "repos/rsitech-ai/hlscreen/comments?",
+    "repos/rsitech-ai/hlscreen/discussions?",
 )):
     direct_list([])
 elif "/reviews?" in endpoint:
     direct_list([])
 elif endpoint.startswith((
-    "repos/s1korrrr/hlscreen/actions/secrets?",
-    "repos/s1korrrr/hlscreen/dependabot/secrets?",
-    "repos/s1korrrr/hlscreen/codespaces/secrets?",
+    "repos/rsitech-ai/hlscreen/actions/secrets?",
+    "repos/rsitech-ai/hlscreen/dependabot/secrets?",
+    "repos/rsitech-ai/hlscreen/codespaces/secrets?",
 )):
     emit([{"total_count": 0, "secrets": []}])
-elif endpoint.startswith("repos/s1korrrr/hlscreen/actions/variables?"):
+elif endpoint.startswith("repos/rsitech-ai/hlscreen/actions/variables?"):
     emit([{"total_count": 0, "variables": []}])
-elif endpoint.startswith("repos/s1korrrr/hlscreen/environments?"):
+elif endpoint.startswith("repos/rsitech-ai/hlscreen/environments?"):
     emit([{"total_count": 0, "environments": []}])
-elif endpoint.startswith("repos/s1korrrr/hlscreen/actions/artifacts?"):
+elif endpoint.startswith("repos/rsitech-ai/hlscreen/actions/artifacts?"):
     expected_names = [
         "cargo-dist-cache",
         "artifacts-plan-dist-manifest",
@@ -344,14 +348,14 @@ elif endpoint.startswith("repos/s1korrrr/hlscreen/actions/artifacts?"):
         ])
     else:
         emit([{"total_count": len(artifacts), "artifacts": artifacts}])
-elif endpoint.startswith("repos/s1korrrr/hlscreen/actions/artifacts/") and endpoint.endswith("/zip"):
+elif endpoint.startswith("repos/rsitech-ai/hlscreen/actions/artifacts/") and endpoint.endswith("/zip"):
     artifact_id = int(endpoint.rsplit("/", 2)[1])
     sys.stdout.buffer.write(candidate_artifact_payload(artifact_id))
-elif endpoint.startswith("users/s1korrrr/packages?"):
+elif endpoint.startswith("orgs/rsitech-ai/packages?"):
     direct_list([])
-elif endpoint == "repos/s1korrrr/hlscreen/actions/permissions":
+elif endpoint == "repos/rsitech-ai/hlscreen/actions/permissions":
     emit({"enabled": True, "allowed_actions": "selected", "sha_pinning_required": True})
-elif endpoint == "repos/s1korrrr/hlscreen/actions/permissions/selected-actions":
+elif endpoint == "repos/rsitech-ai/hlscreen/actions/permissions/selected-actions":
     patterns = [
         "actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10",
         "actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9",
@@ -367,14 +371,14 @@ elif endpoint == "repos/s1korrrr/hlscreen/actions/permissions/selected-actions":
         "verified_allowed": False,
         "patterns_allowed": patterns,
     })
-elif endpoint == "repos/s1korrrr/hlscreen/actions/permissions/workflow":
+elif endpoint == "repos/rsitech-ai/hlscreen/actions/permissions/workflow":
     emit({
         "default_workflow_permissions": "read",
         "can_approve_pull_request_reviews": False,
     })
-elif endpoint.startswith("repos/s1korrrr/hlscreen/rulesets?"):
+elif endpoint.startswith("repos/rsitech-ai/hlscreen/rulesets?"):
     direct_list([] if scenario == "public_classic_only" else [{"id": 1}])
-elif endpoint == "repos/s1korrrr/hlscreen/rulesets/1":
+elif endpoint == "repos/rsitech-ai/hlscreen/rulesets/1":
     required_checks = [
         {"context": "GitHub Actions security"},
         {"context": "RustSec advisory scan"},
@@ -405,7 +409,7 @@ elif endpoint == "repos/s1korrrr/hlscreen/rulesets/1":
             }},
         ],
     })
-elif endpoint == "repos/s1korrrr/hlscreen/branches/main/protection":
+elif endpoint == "repos/rsitech-ai/hlscreen/branches/main/protection":
     if scenario == "public_ruleset_only":
         raise SystemExit(1)
     valid = scenario != "public_bad_policy"
@@ -429,13 +433,13 @@ elif endpoint == "repos/s1korrrr/hlscreen/branches/main/protection":
         "allow_force_pushes": {"enabled": False},
         "allow_deletions": {"enabled": False},
     })
-elif endpoint == "repos/s1korrrr/hlscreen/code-scanning/default-setup":
+elif endpoint == "repos/rsitech-ai/hlscreen/code-scanning/default-setup":
     emit({"state": "configured"})
-elif endpoint == "repos/s1korrrr/hlscreen/vulnerability-alerts":
+elif endpoint == "repos/rsitech-ai/hlscreen/vulnerability-alerts":
     raise SystemExit(0)
-elif endpoint.startswith("repos/s1korrrr/hlscreen/dependabot/alerts?"):
+elif endpoint.startswith("repos/rsitech-ai/hlscreen/dependabot/alerts?"):
     emit([])
-elif endpoint == "repos/s1korrrr/hlscreen/private-vulnerability-reporting":
+elif endpoint == "repos/rsitech-ai/hlscreen/private-vulnerability-reporting":
     emit({"enabled": scenario != "public_pvr_disabled"})
 else:
     print(f"unexpected fake endpoint: {endpoint}", file=sys.stderr)
@@ -498,9 +502,9 @@ def run_case(
         subprocess.run(["git", "add", "candidate.txt"], cwd=root, check=True)
         subprocess.run(["git", "commit", "-qm", "candidate fixture"], cwd=root, check=True)
         origin = (
-            "https://github.com/s1korrrr/hlscreen.git"
+            "https://github.com/rsitech-ai/hlscreen.git"
             if origin_matches
-            else "https://github.com/s1korrrr/not-hlscreen.git"
+            else "https://github.com/rsitech-ai/not-hlscreen.git"
         )
         subprocess.run(["git", "remote", "add", "origin", origin], cwd=root, check=True)
         sha = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root, text=True).strip()
@@ -556,6 +560,12 @@ def run_case(
 def main() -> None:
     run_case("private_ok", "private-candidate", expected_success=True)
     run_case(
+        "private_unexpected_direct_collaborator",
+        "private-candidate",
+        expected_success=False,
+        expected_error="direct collaborator inventory differs from the sole expected admin",
+    )
+    run_case(
         "private_auth_timeout",
         "private-candidate",
         expected_success=False,
@@ -567,7 +577,7 @@ def main() -> None:
         "private_timeout",
         "private-candidate",
         expected_success=False,
-        expected_error="GitHub API read timed out: repos/s1korrrr/hlscreen/branches",
+        expected_error="GitHub API read timed out: repos/rsitech-ai/hlscreen/branches",
         expected_absent="Traceback",
         env_overrides={"HLS_GH_READ_TIMEOUT_SECS": "1"},
     )

@@ -26,7 +26,8 @@ fi
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_root"
-repo="${HLS_GITHUB_REPOSITORY:-s1korrrr/hlscreen}"
+repo="${HLS_GITHUB_REPOSITORY:-rsitech-ai/hlscreen}"
+expected_admin="${HLS_EXPECTED_ADMIN_LOGIN:-s1korrrr}"
 audit="docs/OPEN_SOURCE_AUDIT.md"
 gh_bin="${HLS_GH_BIN:-gh}"
 
@@ -74,7 +75,8 @@ if ! command -v "$gh_bin" >/dev/null 2>&1; then
 fi
 
 # All hosted reads below use `gh api`; the script contains no mutation method.
-HLS_GH_BIN="$gh_bin" python3 - "$mode" "$expected_sha" "$repo" "$audit" <<'PY'
+HLS_GH_BIN="$gh_bin" python3 - \
+  "$mode" "$expected_sha" "$repo" "$expected_admin" "$audit" <<'PY'
 from __future__ import annotations
 
 import json
@@ -93,7 +95,7 @@ from pathlib import PurePosixPath
 from urllib.parse import quote
 
 
-mode, expected_sha, repo, audit_path = sys.argv[1:]
+mode, expected_sha, repo, expected_admin, audit_path = sys.argv[1:]
 owner = repo.split("/", 1)[0]
 audit = Path(audit_path).read_text(encoding="utf-8")
 failures: list[str] = []
@@ -580,10 +582,10 @@ else:
             f"count={len(native_validation_failures)}"
         )
 
-collaborators = list_result(f"repos/{repo}/collaborators?affiliation=all&per_page=100")
-if len(collaborators) != 1 or collaborators[0].get("login") != owner \
+collaborators = list_result(f"repos/{repo}/collaborators?affiliation=direct&per_page=100")
+if len(collaborators) != 1 or collaborators[0].get("login") != expected_admin \
         or collaborators[0].get("role_name") != "admin":
-    failures.append("collaborator inventory differs from the sole expected owner/admin")
+    failures.append("direct collaborator inventory differs from the sole expected admin")
 if list_result(f"repos/{repo}/hooks?per_page=100"):
     failures.append("webhooks are configured")
 if list_result(f"repos/{repo}/keys?per_page=100"):
@@ -644,14 +646,18 @@ if mode == "private-candidate":
 elif active_artifacts:
     failures.append(f"unexpired Actions artifacts remain: count={len(active_artifacts)}")
 
+owner_type = ""
+if isinstance(metadata.get("owner"), dict):
+    owner_type = str(metadata["owner"].get("type", ""))
+package_owner_endpoint = "orgs" if owner_type == "Organization" else "users"
 associated_packages = 0
 for package_type in ("container", "npm", "maven", "rubygems", "nuget"):
     packages = list_result(
-        f"users/{owner}/packages?package_type={quote(package_type)}&per_page=100",
+        f"{package_owner_endpoint}/{owner}/packages?package_type={quote(package_type)}&per_page=100",
         optional=True,
     )
     if not packages and api(
-        f"users/{owner}/packages?package_type={quote(package_type)}&per_page=1",
+        f"{package_owner_endpoint}/{owner}/packages?package_type={quote(package_type)}&per_page=1",
         optional=True,
     ) is None:
         continue

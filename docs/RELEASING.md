@@ -92,7 +92,7 @@ publish a GitHub Release.
 GitHub Releases is the only supported binary distribution channel. Pull-request
 and workflow artifacts are review candidates with limited retention, not public
 releases or supported download channels. Do not redistribute workflow artifacts as releases. Source builds from a reviewed commit remain available under the
-repository's MIT license, but a binary is supported only after its archive,
+repository's Apache-2.0 license, but a binary is supported only after its archive,
 checksum, SBOM, and provenance are published together on the corresponding
 GitHub Release page.
 
@@ -143,7 +143,7 @@ Every release candidate needs:
 - a SHA-256 checksum file beside each archive;
 - the source archive and CycloneDX SBOM;
 - auditable dependency metadata in each Rust binary;
-- project `LICENSE`, `THIRD_PARTY_LICENSES.txt`, `THIRD_PARTY_NOTICES.md`,
+- project `LICENSE`, `NOTICE`, `THIRD_PARTY_LICENSES.txt`, `THIRD_PARTY_NOTICES.md`,
   README, and changelog included in the archive;
 - unpacked binary smoke with `hls --help`;
 - read-only safety smoke with `hls doctor`;
@@ -174,11 +174,11 @@ is install-smoke proof for the reviewed local artifact.
 | Channel | Status | Proof / Next step |
 | --- | --- | --- |
 | Source build | Implemented | `cargo build --release --workspace --all-features` |
-| Pull-request candidate artifacts | Configured; clean-runner proof pending on this PR | Builds four target archives, source, checksums, installers, and SBOM without publishing |
-| GitHub Release artifacts | Local artifact/checksum proof implemented; public publication pending | Requires public/Enterprise attestation support and a reviewed `v*` tag workflow |
-| Shell installer | Configured by cargo-dist; unpublished | Verify from PR artifact, then from the reviewed tag run |
-| PowerShell installer | Configured by cargo-dist; unpublished | Verify from PR artifact, then from the reviewed tag run |
-| Provenance | Configured for tag artifacts; unproven | Requires a successful eligible tag workflow and downloaded attestation verification |
+| Pull-request candidate artifacts | Configured; hosted proof blocked by GitHub Actions billing | Builds are defined for four targets but have not executed on the current hosted account |
+| GitHub Release artifacts | Apple Silicon macOS archive and checksum published for `v0.1.0`; unsigned and unnotarized | Other configured targets remain source-build only until native-runner package proof exists; Developer ID Application signing is not currently proven |
+| Shell installer | Configured by cargo-dist; unpublished | Do not advertise until a hosted release build verifies it |
+| PowerShell installer | Configured by cargo-dist; unpublished | Do not advertise until a hosted Windows release build verifies it |
+| Provenance | Configured for tag artifacts; unproven | Requires a successful eligible hosted tag workflow and downloaded attestation verification |
 
 Release docs must not claim binary installation is public-ready until a reviewed
 artifact and checksum exist on a completed release page.
@@ -232,5 +232,7 @@ Release notes should include:
 - Schema-versioned normalized-event and feature/confidence Parquet export exists
   with manifests and DuckDB smoke; replay currently supports normalized-event
   Parquet only.
-- Release packaging is drafted and locally smoke-tested; the first public GitHub release is not proven until a reviewed `v*` tag run succeeds.
+- The `v0.1.0` Apple Silicon macOS archive is locally built and smoke-tested;
+  hosted multi-platform artifacts, installers, SBOM publication, and provenance
+  remain blocked until GitHub Actions jobs can execute successfully.
 - This is not trading advice and does not execute orders.

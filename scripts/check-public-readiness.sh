@@ -8,6 +8,8 @@ trap 'rm -rf "$scan_dir"' EXIT
 
 required_files=(
   "LICENSE"
+  "NOTICE"
+  "MAINTAINERS.md"
   "THIRD_PARTY_LICENSES.txt"
   "THIRD_PARTY_NOTICES.md"
   "third_party/spec-kit/LICENSE"
@@ -20,6 +22,7 @@ required_files=(
   "CHANGELOG.md"
   "deny.toml"
   "docs/RELEASING.md"
+  "docs/releases/v0.1.0.md"
   "docs/DEVELOPMENT_TOOLING.md"
   "docs/OPEN_SOURCE_AUDIT.md"
   "docs/ROADMAP.md"
@@ -73,6 +76,13 @@ require_text "Release Artifact Status" docs/RELEASING.md
 require_text "not a published release" docs/RELEASING.md
 require_text "does not currently provide a production daemon" docs/deployment.md
 require_text "independent open-source project" README.md
+require_text "Apache License, Version 2.0" README.md
+require_text "Copyright 2026 Rafal Sikora" NOTICE
+require_text "Maintained publicly by RSI Tech" NOTICE
+require_text "Website: https://rsitech.ai" NOTICE
+require_text "Contact: info@rsitech.ai" NOTICE
+require_text "publicly maintained by \[RSI Tech\]" MAINTAINERS.md
+require_text "info@rsitech.ai" MAINTAINERS.md
 require_text "No Contributor License Agreement (CLA) is required" CONTRIBUTING.md
 require_text "Synthetic and minimized fixtures" tests/fixtures/README.md
 require_text "developer-only" docs/DEVELOPMENT_TOOLING.md
@@ -89,9 +99,9 @@ require_text "Historical developer-path and non-public email" docs/OPEN_SOURCE_A
 require_text "DELETE_NON_CANDIDATE_RUNS_BEFORE_PUBLIC" docs/OPEN_SOURCE_AUDIT.md
 
 public_text_paths=(
-  README.md CONTRIBUTING.md CODE_OF_CONDUCT.md SECURITY.md SUPPORT.md CHANGELOG.md
+  README.md MAINTAINERS.md CONTRIBUTING.md CODE_OF_CONDUCT.md SECURITY.md SUPPORT.md CHANGELOG.md
   .github/ISSUE_TEMPLATE docs/README.md docs/DEVELOPMENT_TOOLING.md
-  docs/OPEN_SOURCE_CHECKLIST.md docs/PRIVACY.md docs/RELEASING.md docs/ROADMAP.md
+  docs/OPEN_SOURCE_CHECKLIST.md docs/PRIVACY.md docs/RELEASING.md docs/releases/v0.1.0.md docs/ROADMAP.md
   docs/THREAT_MODEL.md docs/architecture.md docs/data-format.md docs/deployment.md
   docs/feature-definitions.md docs/production-readiness.md tests/fixtures/README.md
 )
@@ -128,11 +138,9 @@ if (( obsolete_contact_status == 0 )); then
   exit 1
 fi
 
-if git show-ref --verify --quiet refs/tags/v0.1.0; then
-  :
-elif grep -qE '^## \[?0\.1\.0\]? - [0-9]{4}-[0-9]{2}-[0-9]{2}' CHANGELOG.md; then
-  echo "CHANGELOG.md dates 0.1.0 before refs/tags/v0.1.0 exists" >&2
-  exit 1
+if ! git show-ref --verify --quiet refs/tags/v0.1.0 \
+  && grep -qE '^## \[?0\.1\.0\]? - [0-9]{4}-[0-9]{2}-[0-9]{2}' CHANGELOG.md; then
+  require_text "# hlscreen v0.1.0" docs/releases/v0.1.0.md
 fi
 
 unsafe_wording_pattern="wallet_enabled[[:space:]]*=[[:space:]]*true|trading_enabled[[:space:]]*=[[:space:]]*true|guaranteed profit|profit guaranteed|place orders for you|private_key[[:space:]]*="

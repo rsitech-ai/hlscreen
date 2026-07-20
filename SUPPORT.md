@@ -21,7 +21,7 @@ local paths, account identifiers, private endpoints, and secrets.
 
 ## Where To Ask
 
-- Questions and usage help: use the [Discussions Q&A category](https://github.com/s1korrrr/hlscreen/discussions/categories/q-a).
+- Questions and usage help: use the [Discussions Q&A category](https://github.com/rsitech-ai/hlscreen/discussions/categories/q-a).
 - Bugs: open a GitHub issue with the bug report template. Reproducible defects belong in Issues, not Discussions.
 - Feature requests: open a GitHub issue with the feature request template.
 - Security issues: follow `SECURITY.md`, not public issues.
