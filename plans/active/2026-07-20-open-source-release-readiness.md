@@ -126,6 +126,39 @@
   on the uncommitted implementation tree.
 - 2026-07-20: Current: review and commit the stable runtime/tooling slice, then
   run the required 15-minute exact-source soak and refresh retained evidence.
+- 2026-07-20: Committed runtime/tooling hardening as `4306d6b`; after reclaiming
+  37 GiB of ignored Cargo output, ran a fresh 902-second all-symbol soak at that
+  commit. It covered 314 symbols / 943 subscriptions / 314,923 WebSocket
+  messages / 322,858 market events, shut down cleanly, and passed two replays
+  with zero drift, missing, or extra rows.
+- 2026-07-20: Sanitized and committed schema-v2 evidence as `a99ca40`. Exact
+  runtime-source and binary hashes validate, and no developer/temp path remains
+  in the retained report.
+- 2026-07-20: Final local proof passed: `scripts/check.sh release`, pinned
+  gitleaks 8.30.1 across 50 hosted refs, 407-entry source archive inventory,
+  cargo-dist 0.32.0 native artifact/checksum/unpack/runtime/auditable metadata,
+  and an isolated clean-clone build plus quickstart/fixture smokes.
+- 2026-07-20: Live hosted-surface gate correctly remains blocked: final SHA is
+  not hosted, no successful CI/release run or exact artifact inventory exists at
+  that SHA, and one historical Actions run remains outside the expected SHA.
+- 2026-07-20: Current: independent final whole-diff review and consolidated
+  approval/blocker handoff. No push, PR, tag, release, ownership, visibility,
+  settings, license, or history mutation was performed.
+- 2026-07-20: Independent final review found two local release-engineering
+  gaps: hosted candidate acceptance inspected artifact names rather than bytes,
+  and release jobs had no explicit time limits. Both were remediated with
+  native-runner archive/auditable/runtime validation, downloaded artifact-byte
+  inspection in the read-only hosted gate, and five enforced job timeouts.
+  Deterministic surface tests now cover 34 scenarios, including malformed
+  artifacts and a missing native validation step.
+- 2026-07-20: Final state is locally repo-ready, Apple Silicon package-ready,
+  and bounded-runtime-proven. Public publication remains on HOLD until the
+  consolidated owner, push/PR, hosted matrix, GitHub settings, visibility,
+  signing, and tag approvals/gates are satisfied.
+- 2026-07-20: Committed the independently re-reviewed release-gate remediation
+  as `e536571`. The reviewer returned GO for both remediations after the exact
+  matrix-nesting regression assertion, and the canonical `scripts/check.sh
+  release` gate passed on the final content tree.
 
 ## Rollback / Recovery
 
