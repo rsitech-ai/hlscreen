@@ -15,6 +15,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SURFACE_GATE = REPO_ROOT / "scripts/check-public-surface.sh"
 CASE_COUNT = 0
+CASE_TIMEOUT_SECS = 30
 
 FAKE_GH = r'''#!/usr/bin/env python3
 import io
@@ -525,7 +526,10 @@ def run_case(
             env=env,
             capture_output=True,
             text=True,
-            timeout=10,
+            # One case exercises the complete surface through dozens of
+            # subprocess-backed fake API reads. Keep the case bounded while
+            # leaving enough headroom for loaded CI runners.
+            timeout=CASE_TIMEOUT_SECS,
         )
         if (result.returncode == 0) != expected_success:
             raise AssertionError(
