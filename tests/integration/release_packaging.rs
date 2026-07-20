@@ -229,6 +229,23 @@ fn local_release_archive_stages_project_and_third_party_notices() {
 }
 
 #[test]
+fn source_archive_excludes_maintainer_journals_and_agent_state() {
+    let attributes = read(".gitattributes");
+    for path in [
+        "/.agents export-ignore",
+        "/.specify export-ignore",
+        "/memory export-ignore",
+        "/plans export-ignore",
+        "/reflections export-ignore",
+        "/PLAN.md export-ignore",
+        "/MEMORY.md export-ignore",
+        "/TODO.md export-ignore",
+    ] {
+        assert!(attributes.contains(path), "source archive includes {path}");
+    }
+}
+
+#[test]
 fn release_workflow_is_pull_request_plan_and_tag_publish_only() {
     let workflow = read(".github/workflows/release.yml");
 
@@ -336,7 +353,11 @@ fn dist_release_contract_builds_pr_artifacts_sbom_and_provenance() {
     assert!(release.contains("steps.cargo-cyclonedx.outputs.paths"));
     assert!(!release.contains("steps.cargo-cyclonedx.output.paths"));
     assert!(release.contains("cargo-dist 0.32.0 requires reviewed post-generation security fixes"));
-    assert!(release.contains("cargo-auditable/releases/download/v0.7.5"));
+    assert!(release.contains("cargo install cargo-dist --version 0.32.0 --locked"));
+    assert!(release.contains("cargo install cargo-auditable --version 0.7.5 --locked"));
+    assert!(release.contains("cargo install cargo-cyclonedx --version 0.5.5 --locked"));
+    assert!(!release.contains("| sh"));
+    assert!(!release.contains("| iex"));
     assert!(release.contains("artifacts/*.sha256"));
     assert!(release.contains("needs.plan.outputs.publishing == 'true'"));
     assert!(!release.contains("pull_request_target"));
@@ -412,9 +433,12 @@ fn release_validation_scripts_cover_local_artifacts_checksums_and_public_readine
     assert!(packaging_check.contains("validate-soak-report.py"));
     assert!(packaging_check.contains("soak-report-valid.json"));
     assert!(packaging_check.contains("sota-allpairs-20260713-15m.json"));
-    assert!(packaging_check.contains("merge-base --is-ancestor"));
+    assert!(!packaging_check.contains("merge-base --is-ancestor"));
     assert!(packaging_check.contains("soak-report-invalid.json"));
     assert!(packaging_check.contains("soak-report-invalid-command.json"));
+    assert!(packaging_check.contains("check-supervisor-packaging.sh"));
+    assert!(packaging_check.contains("runtime-source-sha256.py"));
+    assert!(packaging_check.contains("runtime_source_sha256"));
 }
 
 #[test]
@@ -571,11 +595,19 @@ fn soak_tooling_is_bounded_fail_closed_and_documented() {
     assert!(runner.contains("--verify-parity"));
     assert!(runner.contains("kill -TERM"));
     assert!(runner.contains("report.json"));
+    assert!(runner.contains("git_dirty"));
+    assert!(runner.contains("binary_sha256"));
+    assert!(runner.contains("runtime_source_sha256"));
+    assert!(runner.contains("source tree or HEAD changed during soak evidence collection"));
     assert!(!runner.contains("--wallet"));
     assert!(!runner.contains("--private"));
 
     let validator = read("scripts/validate-soak-report.py");
     assert!(validator.contains("schema_version"));
+    assert!(validator.contains("schema_version must equal 2"));
+    assert!(validator.contains("git_dirty"));
+    assert!(validator.contains("binary_sha256"));
+    assert!(validator.contains("--binary"));
     assert!(validator.contains("clean_shutdown"));
     assert!(validator.contains("unrepaired_gaps"));
     assert!(validator.contains("parser_drops"));
@@ -585,6 +617,32 @@ fn soak_tooling_is_bounded_fail_closed_and_documented() {
     assert!(deployment.contains("run-supervised-soak.sh"));
     assert!(deployment.contains("validate-soak-report.py"));
     assert!(deployment.contains("not multi-day soak proof"));
+}
+
+#[test]
+fn public_docs_do_not_claim_unwired_runtime_features_and_list_local_writes() {
+    let features = read("docs/feature-definitions.md");
+    assert!(features.contains("not integrated into the production CLI or TUI"));
+
+    let data_format = read("docs/data-format.md");
+    assert!(data_format.contains("not loaded by the current CLI or TUI"));
+
+    let privacy = read("docs/PRIVACY.md");
+    for local_write in [
+        "config.toml",
+        "tui-preferences.toml",
+        "alerts.jsonl",
+        "Parquet",
+        "schema manifest",
+    ] {
+        assert!(
+            privacy.contains(local_write),
+            "privacy documentation omits local write: {local_write}",
+        );
+    }
+
+    let readme = read("README.md");
+    assert!(readme.contains("Runtime commands currently use explicit CLI flags"));
 }
 
 #[test]

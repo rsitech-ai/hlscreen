@@ -6,12 +6,15 @@ use hls_store::benchmark::run_benchmark_pack;
 
 #[derive(Debug, Args)]
 pub struct BenchArgs {
+    /// Versioned benchmark manifest to validate.
     #[arg(long)]
     pub manifest: PathBuf,
 
+    /// Repository root used to resolve public fixture paths.
     #[arg(long, default_value = ".")]
     pub repo_root: PathBuf,
 
+    /// Emit the benchmark report as JSON.
     #[arg(long)]
     pub json: bool,
 }

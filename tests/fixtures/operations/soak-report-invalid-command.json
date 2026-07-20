@@ -1,7 +1,11 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "run_id": "soak-fixture-invalid-command",
   "commit": "0123456789abcdef0123456789abcdef01234567",
+  "git_dirty": false,
+  "binary_sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  "runtime_source_sha256": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+  "build": {"rustc": "rustc 1.88.0", "cargo": "cargo 1.88.0", "host": "aarch64-apple-darwin"},
   "command": ["echo", "not-a-live-capture"],
   "started_at": "2026-07-13T10:00:00Z",
   "ended_at": "2026-07-13T10:15:00Z",

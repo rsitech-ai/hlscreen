@@ -27,6 +27,8 @@ required_files=(
   "docs/PRIVACY.md"
   "docs/THREAT_MODEL.md"
   "docs/architecture.md"
+  "docs/data-format.md"
+  "docs/feature-definitions.md"
   "docs/deployment.md"
   "docs/production-readiness.md"
   "docs/assets/screenshots/live-screen.svg"
@@ -91,7 +93,7 @@ public_text_paths=(
   .github/ISSUE_TEMPLATE docs/README.md docs/DEVELOPMENT_TOOLING.md
   docs/OPEN_SOURCE_CHECKLIST.md docs/PRIVACY.md docs/RELEASING.md docs/ROADMAP.md
   docs/THREAT_MODEL.md docs/architecture.md docs/data-format.md docs/deployment.md
-  docs/production-readiness.md tests/fixtures/README.md
+  docs/feature-definitions.md docs/production-readiness.md tests/fixtures/README.md
 )
 
 placeholder_pattern='(^|[^[:alnum:]_])(TODO|TBD|FIXME|CHANGEME)([^[:alnum:]_]|$)|YOUR_(USER|NAME|EMAIL|ORG)|example\.(com|org)'

@@ -1,7 +1,11 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "run_id": "soak-fixture-valid",
   "commit": "0123456789abcdef0123456789abcdef01234567",
+  "git_dirty": false,
+  "binary_sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  "runtime_source_sha256": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+  "build": {"rustc": "rustc 1.88.0", "cargo": "cargo 1.88.0", "host": "aarch64-apple-darwin"},
   "command": [
     "hls", "live", "--all-symbols", "--duration-secs", "900",
     "--refresh-secs", "30", "--record", "--raw", "--normalized",

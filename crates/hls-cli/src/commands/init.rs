@@ -7,12 +7,15 @@ use hls_hyperliquid::rest::HyperliquidRestClient;
 
 #[derive(Debug, Args)]
 pub struct InitArgs {
+    /// Directory where `config.toml` is created.
     #[arg(long, default_value = ".hls")]
     pub data_dir: PathBuf,
 
+    /// Overwrite an existing config file in the selected data directory.
     #[arg(long)]
     pub force: bool,
 
+    /// Query the public Hyperliquid REST endpoint after writing the config.
     #[arg(long)]
     pub check_live: bool,
 }
@@ -30,7 +33,11 @@ pub async fn run(args: InitArgs) -> anyhow::Result<()> {
     }
 
     let config = default_config_for_data_dir(args.data_dir.clone());
-    fs::write(&config_path, config_to_toml(&config)?)
+    let config_text = format!(
+        "# Runtime commands currently use explicit CLI flags; doctor validates this file's safety settings.\n{}",
+        config_to_toml(&config)?,
+    );
+    fs::write(&config_path, config_text)
         .with_context(|| format!("write config {}", config_path.display()))?;
 
     println!("config: {}", config_path.display());

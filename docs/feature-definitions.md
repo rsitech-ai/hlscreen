@@ -32,8 +32,9 @@ These scores are screen ordering aids only. They are not predictions, recommenda
 
 ## Market Composite
 
-`hls tui` builds a chained market index from official 1m constituent candles;
-it never averages incompatible raw asset prices. The index starts at `100`.
+The library contains a tested chained market-index builder for official 1m
+constituent candles, but it is not integrated into the production CLI or TUI.
+It never averages incompatible raw asset prices. The index starts at `100`.
 Constituent weights are proportional to the square root of finite positive
 24-hour quote notional, capped at 10%, and renormalized within each available
 minute. Missing constituents reduce the displayed liquidity-weight coverage

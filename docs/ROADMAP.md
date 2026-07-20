@@ -11,8 +11,10 @@ production operations and public-release proof.
   active asset context, and candles.
 - Bounded live mode with heartbeat, reconnect/resubscribe, explicit data gaps,
   fail-closed recording backpressure, and all-symbol subscription budgeting.
-- Compressed raw capture, normalized JSONL, SQLite metadata, candle cache, and
-  schema-versioned analytical Parquet export/replay.
+- Compressed raw capture, normalized JSONL, SQLite metadata, and
+  schema-versioned analytical Parquet event/feature export and event replay.
+  A tested candle-cache adapter exists but is not wired into the current CLI or
+  TUI.
 - Deterministic replay, confidence parity, feature calculations, screening DSL,
   fee-profile assumptions, research metric/proxy labels, and local analog search.
 - Adaptive Ratatui workstation with PTY cleanup tests, keyboard/mouse navigation,
@@ -39,24 +41,29 @@ binary smoke tests, and tag-gated workflow configuration exist. There is no revi
 
 ## Next Candidate Slices
 
-1. Reconnect recovery evidence.
+1. Runtime integration truth.
+   - Wire configuration precedence beyond `doctor`, or keep generated config
+     explicitly advisory.
+   - Integrate the tested market-composite and candle-cache adapters only with
+     user-visible coverage, provenance, and failure-state tests.
+2. Reconnect recovery evidence.
    - Add a fault-injected reconnect acceptance run around the implemented
      opt-in coarse public candle closeout path.
    - Keep missing trades/BBO unrepaired and preserve degraded confidence.
    - Evaluate delayed public archives only as offline best-effort research data.
-2. Production service lifecycle.
+3. Production service lifecycle.
    - Define supported configuration, persistence/recovery, authentication,
      resource limits, graceful restart, upgrade, rollback, and incident handling.
    - Validate supervisor templates before describing them as deployment support.
-3. Alert operations.
+4. Alert operations.
    - Add explicit scheduling, delivery, deduplication, ownership, retention, and
      escalation semantics without introducing exchange actions.
-4. Evidence quality.
+5. Evidence quality.
    - Validate canonical metric definitions against research references and data
      sufficiency requirements.
    - Replace file-backed analog search with an indexed service only when scale
      evidence requires it.
-5. Release and soak proof.
+6. Release and soak proof.
    - Run multi-hour and multi-day supervised public-data soaks with CPU, memory,
      latency, reconnect, gap, and replay-parity evidence.
    - Review a `v*` tag workflow, artifacts, checksums, clean-runner installation,

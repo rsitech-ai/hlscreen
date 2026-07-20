@@ -32,7 +32,8 @@ Not included:
 - Public release binaries/checksums from a reviewed `v*` tag.
 - Full tick-level public-data repair after live reconnect. Coarse public candle rows may be appended, but missing trades/BBO are not reconstructed and the original gap remains degraded.
 - A production alert engine, validated canonical production microstructure metric suite, private account fee-tier lookup, realized fill model, or service-backed historical analog search.
-- Full schema-versioned analytical Parquet dataset family beyond the initial normalized-event export.
+- Parquet replay for feature/confidence datasets; those datasets can be exported
+  today, but replay currently supports normalized-event Parquet only.
 
 Current resource boundaries are finite but intentionally conservative: public
 REST backfill uses at most 1,100 weighted units per rolling minute; live/server

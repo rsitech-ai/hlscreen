@@ -4,11 +4,9 @@
 
 ## Validation
 
-- [ ] `cargo fmt --check`
-- [ ] `cargo clippy --workspace --all-targets --all-features -- -D warnings`
-- [ ] `cargo test --workspace --all-features`
-- [ ] `cargo build --workspace --all-features`
-- [ ] `git diff --check`
+- [ ] `scripts/check.sh pr`
+- [ ] Any intentionally skipped platform/live checks are listed below with the
+      exact reason.
 
 ## Read-Only Safety
 
@@ -20,3 +18,9 @@
 
 - [ ] README and docs were updated if behavior changed.
 - [ ] Screenshots were regenerated with `python3 scripts/generate-screenshots.py` if CLI output changed.
+
+## Compatibility / Release Notes
+
+- Supported platform impact:
+- User-visible behavior or migration note:
+- Checks not run and why:

@@ -54,8 +54,9 @@ hls.sqlite
 ```
 
 It tracks `runs`, `files`, `symbols`, `data_gaps`, `backfill_attempts`,
-`confidence_snapshots`, and the schema-versioned `public_candle_cache` used by
-`hls tui`. Cached candles are keyed by `(symbol, interval, open_ts_ms)` and
+`confidence_snapshots`, and a schema-versioned `public_candle_cache`. The cache
+adapter is tested but not loaded by the current CLI or TUI. Cached candles are
+keyed by `(symbol, interval, open_ts_ms)` and
 retain receive timestamp, `websocket`/`rest_bootstrap` provenance, and
 `open`/`closed` completion state. Receive-older updates cannot replace newer
 rows. Confidence snapshots are keyed

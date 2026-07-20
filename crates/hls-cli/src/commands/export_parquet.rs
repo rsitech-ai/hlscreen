@@ -12,12 +12,15 @@ use hls_store::{
 
 #[derive(Debug, Args)]
 pub struct ExportParquetArgs {
+    /// Recorded run to export.
     #[arg(long)]
     pub run_id: String,
 
+    /// Local recording directory and export destination root.
     #[arg(long, default_value = ".hls")]
     pub data_dir: PathBuf,
 
+    /// Dataset family to export: normalized events, feature snapshots, or both.
     #[arg(long, value_enum, default_value_t = ParquetDataset::Events)]
     pub dataset: ParquetDataset,
 }
