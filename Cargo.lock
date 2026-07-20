@@ -1074,7 +1074,7 @@ checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 
 [[package]]
 name = "hls-cli"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "assert_cmd",
@@ -1103,7 +1103,7 @@ dependencies = [
 
 [[package]]
 name = "hls-core"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "serde",
  "serde_json",
@@ -1118,7 +1118,7 @@ dependencies = [
 
 [[package]]
 name = "hls-features"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "hls-core",
  "hls-hyperliquid",
@@ -1128,7 +1128,7 @@ dependencies = [
 
 [[package]]
 name = "hls-hyperliquid"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "hls-core",
  "reqwest",
@@ -1140,14 +1140,14 @@ dependencies = [
 
 [[package]]
 name = "hls-screen"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "hls-core",
 ]
 
 [[package]]
 name = "hls-server"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "hls-core",
  "hls-screen",
@@ -1159,7 +1159,7 @@ dependencies = [
 
 [[package]]
 name = "hls-store"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "hls-core",
  "hls-features",
@@ -1175,7 +1175,7 @@ dependencies = [
 
 [[package]]
 name = "hls-tui"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "hls-core",
  "hls-features",
