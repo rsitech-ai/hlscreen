@@ -820,6 +820,7 @@ fn public_docs_define_fixture_tooling_release_and_unreleased_contracts() {
     );
     assert!(releasing.contains("Do not redistribute workflow artifacts as releases"));
     assert!(changelog.contains("## 0.1.0 - 2026-07-20"));
+    assert!(changelog.contains("## 0.1.1 - 2026-07-20"));
     assert!(!changelog.contains("has not been published"));
 
     assert_relative_markdown_links_exist(&[
@@ -834,6 +835,7 @@ fn public_docs_define_fixture_tooling_release_and_unreleased_contracts() {
         "docs/DEVELOPMENT_TOOLING.md",
         "docs/RELEASING.md",
         "docs/releases/v0.1.0.md",
+        "docs/releases/v0.1.1.md",
         "tests/fixtures/README.md",
     ]);
 }
@@ -852,6 +854,7 @@ fn public_readiness_gate_is_fail_closed_and_secret_safe() {
         "docs/DEVELOPMENT_TOOLING.md",
         "docs/OPEN_SOURCE_AUDIT.md",
         "docs/releases/v0.1.0.md",
+        "docs/releases/v0.1.1.md",
         "tests/fixtures/README.md",
         "scripts/check.sh",
         "scripts/check-history-secrets.sh",
