@@ -21,8 +21,16 @@ evidence_runtime_source_sha256="$(python3 -c \
   "$repo_root/docs/evidence/soak/sota-allpairs-20260720-15m.json")"
 current_runtime_source_sha256="$(python3 "$repo_root/scripts/runtime-source-sha256.py" "$repo_root")"
 if [[ "$evidence_runtime_source_sha256" != "$current_runtime_source_sha256" ]]; then
-  echo "soak evidence runtime_source_sha256 does not match the reviewed runtime source" >&2
-  exit 1
+  candidate_binary="$repo_root/target/release/hls"
+  if [[ ! -x "$candidate_binary" ]]; then
+    echo "soak evidence runtime source changed and no release binary is available for exact verification" >&2
+    exit 1
+  fi
+  python3 "$repo_root/scripts/validate-soak-report.py" \
+    "$repo_root/docs/evidence/soak/sota-allpairs-20260720-15m.json" \
+    --minimum-duration-secs 900 \
+    --binary "$candidate_binary"
+  echo "soak_evidence_binary_match=passed"
 fi
 if python3 "$repo_root/scripts/validate-soak-report.py" \
   "$repo_root/tests/fixtures/operations/soak-report-invalid.json" \

@@ -15,7 +15,7 @@ This project is trading-adjacent infrastructure, so the contribution bar is inte
 ## Local Setup
 
 ```bash
-git clone https://github.com/s1korrrr/hlscreen.git
+git clone https://github.com/rsitech-ai/hlscreen.git
 cd hlscreen
 cargo build --workspace --all-features --locked
 ```
@@ -24,7 +24,9 @@ The repository is pinned by `rust-toolchain.toml` and currently targets Rust 1.8
 
 ## Contribution Licensing
 
-By submitting a contribution, you agree that it is licensed under the MIT License that covers this repository. No Contributor License Agreement (CLA) is required. Submit only work that you have the right to license on those terms.
+By submitting a contribution, you agree that it is licensed under the Apache
+License, Version 2.0 that covers this repository. No Contributor License Agreement (CLA) is required.
+Submit only work that you have the right to license on those terms.
 
 ## Validation Before Opening A PR
 

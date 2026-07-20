@@ -12,6 +12,8 @@ Start with the public README, then use these files for deeper implementation and
 - [Threat model](THREAT_MODEL.md)
 - [Roadmap](ROADMAP.md)
 - [Release checklist](RELEASING.md)
+- [Maintainers](../MAINTAINERS.md)
+- [v0.1.0 release notes](releases/v0.1.0.md)
 - [Open source checklist](OPEN_SOURCE_CHECKLIST.md)
 - [Latest supervised all-symbol proof (2026-07-20)](evidence/soak/sota-allpairs-20260720-15m.json)
 - [Production-readiness live refresh (2026-07-08)](reports/2026-07-08-production-readiness-live-refresh.md)
