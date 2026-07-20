@@ -65,27 +65,27 @@ does not block source development or ordinary PR CI.
 
 ## Latest Live Validation
 
-Run: `sota-allpairs-20260713-15m`
+Run: `oss-release-20260720`
 
 Fresh supervised evidence at commit
-`f590787fd53c55c398b339bb631851e2af91857d`:
+`4306d6b28b69d5dee2f24e7ca844f989c77f96df`:
 
 - Measured duration: `902` seconds (`--duration-secs 900`)
-- Symbols: `310`
-- Public subscriptions: `931`
-- Raw WebSocket messages: `295,794`
-- Normalized market events: `303,779`
+- Symbols: `314`
+- Public subscriptions: `943`
+- Raw WebSocket messages: `314,923`
+- Normalized market events: `322,858`
 - Reconnects / data gaps / parser drops: `0 / 0 / 0`
 - Failed public backfill requests: `0`
 - SQLite clean shutdown: `true`
 - Replay status: `baseline_written`, then `passed`
 - Replay drift / missing / extra: `0 / 0 / 0`
-- Peak settled RSS: `55,541,760` bytes
-- Final evidence size: `65,646,592` bytes
+- Peak settled RSS: `42,401,792` bytes
+- Final evidence size: `70,344,704` bytes
 
 The exact command, timestamps, resource samples, limits, counters, and replay
 results are committed in the
-[machine-readable 15-minute soak report](evidence/soak/sota-allpairs-20260713-15m.json).
+[machine-readable 15-minute soak report](evidence/soak/sota-allpairs-20260720-15m.json).
 Its live stderr contained only expected 30-second progress records; both replay
 stderr logs were empty. This is fresh bounded all-symbol evidence, not multi-day
 or unattended production proof.

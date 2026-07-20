@@ -1,0 +1,252 @@
+{
+  "schema_version": 2,
+  "run_id": "oss-release-20260720",
+  "commit": "4306d6b28b69d5dee2f24e7ca844f989c77f96df",
+  "git_dirty": false,
+  "binary_sha256": "3eae3a09645007630198afca7777ad7ca07c51fa66755ab78eb6f470dfb6d4c2",
+  "runtime_source_sha256": "d1b4dac41ba552dce10418d2db5f36c7e2fe813a24662be648c95bc9005710ec",
+  "build": {
+    "rustc": "rustc 1.88.0 (6b00bc388 2025-06-23)",
+    "cargo": "cargo 1.88.0 (873a06493 2025-05-10)",
+    "host": "aarch64-apple-darwin"
+  },
+  "command": [
+    "target/release/hls",
+    "live",
+    "--all-symbols",
+    "--duration-secs",
+    "900",
+    "--refresh-secs",
+    "30",
+    "--record",
+    "--raw",
+    "--normalized",
+    "--backfill-gaps",
+    "--run-id",
+    "oss-release-20260720",
+    "--data-dir",
+    "<data-dir>",
+    "--color",
+    "never"
+  ],
+  "started_at": "2026-07-20T14:30:20Z",
+  "ended_at": "2026-07-20T14:45:22Z",
+  "duration_secs": 902,
+  "exit_code": 0,
+  "clean_shutdown": true,
+  "samples": [
+    {
+      "elapsed_secs": 0,
+      "cpu_percent": 0,
+      "rss_bytes": 32768,
+      "data_bytes": 0
+    },
+    {
+      "elapsed_secs": 31,
+      "cpu_percent": 1.7,
+      "rss_bytes": 40976384,
+      "data_bytes": 4284416
+    },
+    {
+      "elapsed_secs": 60,
+      "cpu_percent": 0.3,
+      "rss_bytes": 35569664,
+      "data_bytes": 7155712
+    },
+    {
+      "elapsed_secs": 90,
+      "cpu_percent": 0.2,
+      "rss_bytes": 37928960,
+      "data_bytes": 10301440
+    },
+    {
+      "elapsed_secs": 120,
+      "cpu_percent": 0.3,
+      "rss_bytes": 39321600,
+      "data_bytes": 11350016
+    },
+    {
+      "elapsed_secs": 150,
+      "cpu_percent": 0.6,
+      "rss_bytes": 36405248,
+      "data_bytes": 14848000
+    },
+    {
+      "elapsed_secs": 180,
+      "cpu_percent": 0.2,
+      "rss_bytes": 39108608,
+      "data_bytes": 15896576
+    },
+    {
+      "elapsed_secs": 210,
+      "cpu_percent": 0.3,
+      "rss_bytes": 42401792,
+      "data_bytes": 18345984
+    },
+    {
+      "elapsed_secs": 240,
+      "cpu_percent": 0.6,
+      "rss_bytes": 41910272,
+      "data_bytes": 20443136
+    },
+    {
+      "elapsed_secs": 270,
+      "cpu_percent": 0.9,
+      "rss_bytes": 31342592,
+      "data_bytes": 22888448
+    },
+    {
+      "elapsed_secs": 300,
+      "cpu_percent": 0.2,
+      "rss_bytes": 34291712,
+      "data_bytes": 24985600
+    },
+    {
+      "elapsed_secs": 330,
+      "cpu_percent": 0.7,
+      "rss_bytes": 34897920,
+      "data_bytes": 27435008
+    },
+    {
+      "elapsed_secs": 360,
+      "cpu_percent": 0.5,
+      "rss_bytes": 34537472,
+      "data_bytes": 29532160
+    },
+    {
+      "elapsed_secs": 390,
+      "cpu_percent": 1.5,
+      "rss_bytes": 36814848,
+      "data_bytes": 31629312
+    },
+    {
+      "elapsed_secs": 420,
+      "cpu_percent": 0.9,
+      "rss_bytes": 37978112,
+      "data_bytes": 34099200
+    },
+    {
+      "elapsed_secs": 450,
+      "cpu_percent": 0.8,
+      "rss_bytes": 35962880,
+      "data_bytes": 36196352
+    },
+    {
+      "elapsed_secs": 480,
+      "cpu_percent": 0.7,
+      "rss_bytes": 40878080,
+      "data_bytes": 38658048
+    },
+    {
+      "elapsed_secs": 510,
+      "cpu_percent": 0.6,
+      "rss_bytes": 42369024,
+      "data_bytes": 40755200
+    },
+    {
+      "elapsed_secs": 540,
+      "cpu_percent": 1.7,
+      "rss_bytes": 41418752,
+      "data_bytes": 43212800
+    },
+    {
+      "elapsed_secs": 570,
+      "cpu_percent": 2.1,
+      "rss_bytes": 34308096,
+      "data_bytes": 45309952
+    },
+    {
+      "elapsed_secs": 600,
+      "cpu_percent": 0.1,
+      "rss_bytes": 22609920,
+      "data_bytes": 47407104
+    },
+    {
+      "elapsed_secs": 630,
+      "cpu_percent": 0,
+      "rss_bytes": 30818304,
+      "data_bytes": 49848320
+    },
+    {
+      "elapsed_secs": 660,
+      "cpu_percent": 0.2,
+      "rss_bytes": 33751040,
+      "data_bytes": 51945472
+    },
+    {
+      "elapsed_secs": 690,
+      "cpu_percent": 0.1,
+      "rss_bytes": 38649856,
+      "data_bytes": 54407168
+    },
+    {
+      "elapsed_secs": 720,
+      "cpu_percent": 1.1,
+      "rss_bytes": 38699008,
+      "data_bytes": 56504320
+    },
+    {
+      "elapsed_secs": 750,
+      "cpu_percent": 0.4,
+      "rss_bytes": 37617664,
+      "data_bytes": 58957824
+    },
+    {
+      "elapsed_secs": 780,
+      "cpu_percent": 0.1,
+      "rss_bytes": 33177600,
+      "data_bytes": 61054976
+    },
+    {
+      "elapsed_secs": 810,
+      "cpu_percent": 1,
+      "rss_bytes": 36995072,
+      "data_bytes": 63508480
+    },
+    {
+      "elapsed_secs": 840,
+      "cpu_percent": 1.1,
+      "rss_bytes": 35553280,
+      "data_bytes": 65605632
+    },
+    {
+      "elapsed_secs": 870,
+      "cpu_percent": 0.3,
+      "rss_bytes": 32587776,
+      "data_bytes": 67702784
+    },
+    {
+      "elapsed_secs": 900,
+      "cpu_percent": 0,
+      "rss_bytes": 28164096,
+      "data_bytes": 70156288
+    },
+    {
+      "elapsed_secs": 902,
+      "cpu_percent": 0,
+      "rss_bytes": 0,
+      "data_bytes": 70344704
+    }
+  ],
+  "summary": {
+    "symbols": 314,
+    "subscriptions": 943,
+    "ws_messages": 314923,
+    "market_events": 322858,
+    "reconnects": 0,
+    "data_gaps": 0,
+    "unrepaired_gaps": 0,
+    "parser_drops": 0,
+    "backfill_requests_failed": 0
+  },
+  "replay": {
+    "first_status": "baseline_written",
+    "second_status": "passed",
+    "drift": 0,
+    "missing": 0,
+    "extra": 0
+  },
+  "limits": {
+    "max_rss_growth_bytes": 268435456
+  }
+}

@@ -77,7 +77,7 @@ scripts/run-supervised-soak.sh \
 
 It requires a clean source tree, builds the locked release binary unless an
 explicit candidate binary is supplied, checks available disk space, records the
-exact all-symbol command, Git commit, runtime-source SHA-256, binary SHA-256,
+portable all-symbol command, Git commit, runtime-source SHA-256, binary SHA-256,
 toolchain, and host, forwards termination signals, samples
 CPU/RSS/storage growth, records raw and normalized public data, invokes coarse
 gap backfill, and runs replay parity twice. It publishes `report.json`
@@ -102,7 +102,7 @@ valid, while any tracked runtime input change invalidates the evidence.
 
 A passing 15-minute report is bounded smoke evidence, not multi-day soak proof.
 The latest reviewed example is the
-[2026-07-13 all-symbol report](evidence/soak/sota-allpairs-20260713-15m.json).
+[2026-07-20 all-symbol report](evidence/soak/sota-allpairs-20260720-15m.json).
 For a two-day candidate, run with `--duration-secs 172800` under direct operator
 supervision and retain the entire evidence directory. The runner is not a
 process supervisor and does not promote the experimental templates to a

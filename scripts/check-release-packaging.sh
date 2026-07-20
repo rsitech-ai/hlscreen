@@ -14,11 +14,11 @@ python3 "$repo_root/scripts/validate-soak-report.py" \
   "$repo_root/tests/fixtures/operations/soak-report-valid.json" \
   --minimum-duration-secs 900
 python3 "$repo_root/scripts/validate-soak-report.py" \
-  "$repo_root/docs/evidence/soak/sota-allpairs-20260713-15m.json" \
+  "$repo_root/docs/evidence/soak/sota-allpairs-20260720-15m.json" \
   --minimum-duration-secs 900
 evidence_runtime_source_sha256="$(python3 -c \
   'import json, sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["runtime_source_sha256"])' \
-  "$repo_root/docs/evidence/soak/sota-allpairs-20260713-15m.json")"
+  "$repo_root/docs/evidence/soak/sota-allpairs-20260720-15m.json")"
 current_runtime_source_sha256="$(python3 "$repo_root/scripts/runtime-source-sha256.py" "$repo_root")"
 if [[ "$evidence_runtime_source_sha256" != "$current_runtime_source_sha256" ]]; then
   echo "soak evidence runtime_source_sha256 does not match the reviewed runtime source" >&2
