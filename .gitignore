@@ -2,7 +2,10 @@
 target/
 .hls/
 .hls-soak/
-.superpowers/sdd/
+.superpowers/
+.cursor/
+.claude/
+.codex/
 __pycache__/
 *.py[cod]
 data/
@@ -11,3 +14,15 @@ data/
 *.sqlite
 *.ndjson.zst
 *.parquet
+
+# Local maintainer / agent working journals (not product inputs)
+MEMORY.md
+PLAN.md
+TODO.md
+SOUL.md
+USER.md
+/memory/
+/plans/
+/reflections/
+/docs/agent-memory/
+/docs/superpowers/

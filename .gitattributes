@@ -3,13 +3,15 @@
 # checker must not rewrite or reject this generated legal artifact.
 THIRD_PARTY_LICENSES.txt -text whitespace=-trailing-space,-cr-at-eol
 
-# Keep maintainer journals and repository automation out of cargo-dist's source
-# archive. They remain reviewable in Git history and the public repository.
+# Keep accidental recreations of maintainer journals and Spec Kit automation out
+# of cargo-dist's source archive. Spec Kit remains in the Git tree for contributors.
 /.agents export-ignore
 /.specify export-ignore
 /memory export-ignore
 /plans export-ignore
 /reflections export-ignore
+/docs/agent-memory export-ignore
+/docs/superpowers export-ignore
 /PLAN.md export-ignore
 /MEMORY.md export-ignore
 /TODO.md export-ignore

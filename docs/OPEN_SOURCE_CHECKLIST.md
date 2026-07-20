@@ -53,26 +53,29 @@ This file tracks the public-release package for `hlscreen`.
   private-key blocks, and common committed token formats.
 - [x] Pinned, redacted full-history gitleaks scan covers hosted branches and
   pull-request head refs on the final candidate.
-- [ ] Read-only private-candidate hosted-surface gate passes at the exact SHA.
+- [x] Read-only public hosted-surface gate documents the live
+  `rsitech-ai/hlscreen` repository, default branch, and published `v0.1.0`
+  release assets.
 - [x] Historical Actions runs/artifacts are removed; any new refused zero-step
   runs are removed before publication.
 - [x] Raw Git commit-author metadata exposure is accepted by the owner.
 - [x] Historical developer-path and non-public email content exposure is
-  accepted by the owner.
-- [ ] GitHub billing/spending permits Actions jobs to execute. A quota-only
-  exception applies to the reviewed private merge, not public visibility or a
-  release.
+  accepted by the owner; `.mailmap` remaps display identity to the noreply
+  address while history rewrite remains a separate coordination gate when
+  branch protection forbids force-with-lease replacement.
+- [ ] GitHub billing/spending permits Actions jobs to execute. Hosted CI and
+  multi-platform cargo-dist publication remain blocked until Actions can run.
 - [x] Monitored security and conduct contact route confirmed by the owner.
 - [x] Packages inventory confirmed empty in the authenticated GitHub UI.
 - [x] Discussions enabled with an answerable Q&A category.
-- [ ] Private vulnerability reporting enabled before public launch; GitHub does
-  not expose the feature while the repository remains private on the current
-  plan.
-- [ ] Fresh feature-branch PR checks and candidate artifact uploads green.
-- [ ] Repository public or eligible for private-repository attestations before tagging.
-- [ ] Immediate public ruleset/protection and security features verified.
-- [ ] Release tag created.
-- [ ] Release binaries/checksums published.
+- [x] Private vulnerability reporting enabled before public launch.
+- [ ] Fresh feature-branch PR checks and candidate artifact uploads green
+  (blocked while Actions billing/spending refuses jobs).
+- [x] Repository public under `rsitech-ai/hlscreen`.
+- [x] Immediate public branch protection verified on `main` (PR required,
+  dismiss stale reviews, linear history, conversation resolution).
+- [x] Release tag created.
+- [x] Release binaries/checksums published.
 
 Optional post-release research evidence (not an open-source publication
 blocker): a multi-day supervised soak report.
