@@ -18,9 +18,11 @@ CASE_COUNT = 0
 
 FAKE_GH = r'''#!/usr/bin/env python3
 import io
+import hashlib
 import json
 import os
 import sys
+import tarfile
 import time
 import zipfile
 
@@ -48,6 +50,77 @@ def emit(value):
 
 def direct_list(items):
     emit([items] if slurp else items)
+
+def candidate_artifact_payload(artifact_id):
+    output = io.BytesIO()
+    with zipfile.ZipFile(output, "w") as outer:
+        if artifact_id == 100:
+            outer.writestr("dist", b"mock-dist")
+        elif artifact_id == 101:
+            outer.writestr("plan-dist-manifest.json", "{}")
+        elif 102 <= artifact_id <= 105:
+            targets = [
+                "aarch64-apple-darwin",
+                "x86_64-apple-darwin",
+                "x86_64-pc-windows-msvc",
+                "x86_64-unknown-linux-gnu",
+            ]
+            target = targets[artifact_id - 102]
+            root = f"hls-cli-{target}"
+            members = {
+                f"{root}/LICENSE": b"MIT\n",
+                f"{root}/THIRD_PARTY_LICENSES.txt": b"licenses\n",
+                f"{root}/THIRD_PARTY_NOTICES.md": b"notices\n",
+                f"{root}/README.md": b"readme\n",
+                f"{root}/CHANGELOG.md": b"changes\n",
+            }
+            if scenario == "private_malformed_artifact" and artifact_id == 102:
+                members.pop(f"{root}/LICENSE")
+            if target.endswith("windows-msvc"):
+                members[f"{root}/hls.exe"] = b"binary"
+                nested = io.BytesIO()
+                with zipfile.ZipFile(nested, "w") as archive:
+                    for name, content in members.items():
+                        archive.writestr(name, content)
+                suffix = ".zip"
+            else:
+                members[f"{root}/hls"] = b"binary"
+                nested = io.BytesIO()
+                with tarfile.open(fileobj=nested, mode="w:xz") as archive:
+                    for name, content in members.items():
+                        info = tarfile.TarInfo(name)
+                        info.size = len(content)
+                        archive.addfile(info, io.BytesIO(content))
+                suffix = ".tar.xz"
+            archive_name = f"{root}{suffix}"
+            archive_bytes = nested.getvalue()
+            outer.writestr(archive_name, archive_bytes)
+            outer.writestr(
+                archive_name + ".sha256",
+                hashlib.sha256(archive_bytes).hexdigest() + "  " + archive_name + "\n",
+            )
+            outer.writestr(f"{target}-dist-manifest.json", "{}")
+        elif artifact_id == 106:
+            source_name = "hls-cli-source.tar.gz"
+            source = io.BytesIO()
+            with tarfile.open(fileobj=source, mode="w:gz") as archive:
+                content = b"MIT\n"
+                info = tarfile.TarInfo("hls-cli-source/LICENSE")
+                info.size = len(content)
+                archive.addfile(info, io.BytesIO(content))
+            source_bytes = source.getvalue()
+            outer.writestr("global-dist-manifest.json", "{}")
+            outer.writestr(source_name, source_bytes)
+            outer.writestr(
+                source_name + ".sha256",
+                hashlib.sha256(source_bytes).hexdigest() + "  " + source_name + "\n",
+            )
+            outer.writestr("hls-cli.cdx.xml", '<bom xmlns="http://cyclonedx.org/schema/bom/1.6"/>')
+            outer.writestr("hls-cli-installer.sh", "#!/bin/sh\n")
+            outer.writestr("hls-cli-installer.ps1", "# installer\n")
+        else:
+            raise SystemExit(3)
+    return output.getvalue()
 
 if endpoint == "repos/s1korrrr/hlscreen":
     security = {}
@@ -183,15 +256,19 @@ elif endpoint.startswith("repos/s1korrrr/hlscreen/actions/runs/8/jobs?"):
     }
     if scenario == "private_release_job_failure":
         conclusions["Build global artifacts"] = "failure"
-    jobs = [
-        {
+    jobs = []
+    for index, (name, conclusion) in enumerate(conclusions.items(), start=20):
+        steps = [] if conclusion == "skipped" else [{"name": "test", "conclusion": conclusion}]
+        if name.startswith("build-local-artifacts ("):
+            validation = "Validate packaged artifact (Windows)" if "windows" in name else "Validate packaged artifact (Unix)"
+            if scenario != "private_missing_artifact_validation":
+                steps.append({"name": validation, "conclusion": conclusion})
+        jobs.append({
             "id": index,
             "name": name,
             "conclusion": conclusion,
-            "steps": [] if conclusion == "skipped" else [{"name": "test", "conclusion": conclusion}],
-        }
-        for index, (name, conclusion) in enumerate(conclusions.items(), start=20)
-    ]
+            "steps": steps,
+        })
     emit([{"total_count": len(jobs), "jobs": jobs}])
 elif endpoint in {
     "repos/s1korrrr/hlscreen/actions/runs/7/logs",
@@ -266,6 +343,9 @@ elif endpoint.startswith("repos/s1korrrr/hlscreen/actions/artifacts?"):
         ])
     else:
         emit([{"total_count": len(artifacts), "artifacts": artifacts}])
+elif endpoint.startswith("repos/s1korrrr/hlscreen/actions/artifacts/") and endpoint.endswith("/zip"):
+    artifact_id = int(endpoint.rsplit("/", 2)[1])
+    sys.stdout.buffer.write(candidate_artifact_payload(artifact_id))
 elif endpoint.startswith("users/s1korrrr/packages?"):
     direct_list([])
 elif endpoint == "repos/s1korrrr/hlscreen/actions/permissions":
@@ -603,10 +683,22 @@ def main() -> None:
         expected_error="required hosted Release jobs did not all execute successfully",
     )
     run_case(
+        "private_missing_artifact_validation",
+        "private-candidate",
+        expected_success=False,
+        expected_error="native artifact validation did not execute successfully",
+    )
+    run_case(
         "private_bad_release_artifacts",
         "private-candidate",
         expected_success=False,
         expected_error="candidate Release artifact inventory is not exact",
+    )
+    run_case(
+        "private_malformed_artifact",
+        "private-candidate",
+        expected_success=False,
+        expected_error="candidate Release artifact contents are invalid",
     )
     run_case("public_ok", "public", expected_success=True)
     run_case("public_ruleset_only", "public", expected_success=True)

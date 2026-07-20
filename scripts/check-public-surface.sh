@@ -79,12 +79,17 @@ from __future__ import annotations
 
 import json
 import io
+import hashlib
 import os
 import re
+import stat
 import subprocess
 import sys
+import tarfile
 import zipfile
+import xml.etree.ElementTree as ET
 from pathlib import Path
+from pathlib import PurePosixPath
 from urllib.parse import quote
 
 
@@ -222,7 +227,7 @@ def status_read(endpoint: str) -> bool:
     return result.returncode == 0
 
 
-def api_zip(endpoint: str) -> bytes | None:
+def api_zip(endpoint: str, *, optional: bool = False) -> bytes | None:
     try:
         result = subprocess.run(
             [gh_bin, "api", endpoint],
@@ -234,11 +239,130 @@ def api_zip(endpoint: str) -> bytes | None:
         failures.append(f"GitHub API binary read timed out: {redacted_endpoint(endpoint)}")
         return None
     if result.returncode != 0:
-        if b"HTTP 404" in result.stderr:
+        if optional and b"HTTP 404" in result.stderr:
             return None
         failures.append(f"GitHub API binary read failed: {redacted_endpoint(endpoint)}")
         return None
     return result.stdout
+
+
+def safe_archive_name(name: str) -> PurePosixPath:
+    path = PurePosixPath(name.replace("\\", "/"))
+    if path.is_absolute() or not path.parts or ".." in path.parts:
+        raise ValueError(f"unsafe member path: {name!r}")
+    return path
+
+
+def verify_sha256_file(files: dict[str, bytes], archive_name: str) -> None:
+    checksum_name = f"{archive_name}.sha256"
+    checksum = files.get(checksum_name)
+    if checksum is None:
+        raise ValueError(f"missing {checksum_name}")
+    fields = checksum.decode("utf-8").split()
+    if not fields or not re.fullmatch(r"[0-9a-fA-F]{64}", fields[0]):
+        raise ValueError(f"invalid {checksum_name}")
+    actual = hashlib.sha256(files[archive_name]).hexdigest()
+    if fields[0].lower() != actual:
+        raise ValueError(f"checksum mismatch for {archive_name}")
+
+
+def inspect_distribution_archive(name: str, payload: bytes, target: str) -> None:
+    required = {
+        "LICENSE",
+        "THIRD_PARTY_LICENSES.txt",
+        "THIRD_PARTY_NOTICES.md",
+        "README.md",
+        "CHANGELOG.md",
+    }
+    basenames: set[str] = set()
+    executable = "hls.exe" if target.endswith("windows-msvc") else "hls"
+    if name.endswith(".zip"):
+        with zipfile.ZipFile(io.BytesIO(payload)) as bundle:
+            for member in bundle.infolist():
+                path = safe_archive_name(member.filename)
+                unix_mode = member.external_attr >> 16
+                if stat.S_ISLNK(unix_mode) or member.file_size > 128 * 1024 * 1024:
+                    raise ValueError(f"unsafe nested zip member: {member.filename!r}")
+                if not member.is_dir():
+                    basenames.add(path.name)
+    else:
+        with tarfile.open(fileobj=io.BytesIO(payload), mode="r:*") as bundle:
+            for member in bundle.getmembers():
+                path = safe_archive_name(member.name)
+                if member.issym() or member.islnk() or member.isdev() \
+                        or member.size > 128 * 1024 * 1024:
+                    raise ValueError(f"unsafe nested tar member: {member.name!r}")
+                if member.isfile():
+                    basenames.add(path.name)
+    missing = sorted(required - basenames)
+    if missing or executable not in basenames:
+        raise ValueError(
+            f"{target} archive omits executable or required notices: count={len(missing)}"
+        )
+
+
+def validate_candidate_artifact(artifact: dict[str, object]) -> None:
+    artifact_id = artifact.get("id")
+    artifact_name = str(artifact.get("name", ""))
+    if not isinstance(artifact_id, int):
+        raise ValueError(f"artifact {artifact_name!r} has no numeric id")
+    payload = api_zip(f"repos/{repo}/actions/artifacts/{artifact_id}/zip")
+    if payload is None:
+        raise ValueError(f"could not download {artifact_name}")
+    if len(payload) > 512 * 1024 * 1024:
+        raise ValueError(f"artifact {artifact_name} exceeds the download limit")
+    files: dict[str, bytes] = {}
+    with zipfile.ZipFile(io.BytesIO(payload)) as bundle:
+        for member in bundle.infolist():
+            path = safe_archive_name(member.filename)
+            unix_mode = member.external_attr >> 16
+            if stat.S_ISLNK(unix_mode) or member.file_size > 256 * 1024 * 1024:
+                raise ValueError(f"unsafe artifact member: {member.filename!r}")
+            if member.is_dir():
+                continue
+            if path.name in files:
+                raise ValueError(f"duplicate artifact basename: {path.name}")
+            files[path.name] = bundle.read(member)
+
+    if artifact_name == "cargo-dist-cache":
+        if set(files) != {"dist"} or not files["dist"]:
+            raise ValueError("cargo-dist-cache has unexpected contents")
+        return
+    if artifact_name == "artifacts-plan-dist-manifest":
+        plan = json.loads(files.get("plan-dist-manifest.json", b"").decode("utf-8"))
+        if not isinstance(plan, dict):
+            raise ValueError("plan dist manifest is not an object")
+        return
+    if artifact_name.startswith("artifacts-build-local-"):
+        target = artifact_name.removeprefix("artifacts-build-local-")
+        suffix = ".zip" if target.endswith("windows-msvc") else ".tar.xz"
+        archives = sorted(name for name in files if target in name and name.endswith(suffix))
+        manifests = sorted(name for name in files if name.endswith("-dist-manifest.json"))
+        if len(archives) != 1 or len(manifests) != 1:
+            raise ValueError(f"{target} artifact lacks an exact archive/manifest pair")
+        manifest = json.loads(files[manifests[0]].decode("utf-8"))
+        if not isinstance(manifest, dict):
+            raise ValueError(f"{target} dist manifest is not an object")
+        verify_sha256_file(files, archives[0])
+        inspect_distribution_archive(archives[0], files[archives[0]], target)
+        return
+    if artifact_name == "artifacts-build-global":
+        manifests = [name for name in files if name.endswith("-dist-manifest.json")]
+        sources = [name for name in files if name.endswith("-source.tar.gz")]
+        sboms = [name for name in files if name.endswith(".cdx.xml")]
+        if len(manifests) != 1 or len(sources) != 1 or not sboms:
+            raise ValueError("global artifact lacks manifest, source archive, or SBOM")
+        manifest = json.loads(files[manifests[0]].decode("utf-8"))
+        if not isinstance(manifest, dict):
+            raise ValueError("global dist manifest is not an object")
+        verify_sha256_file(files, sources[0])
+        for sbom in sboms:
+            ET.fromstring(files[sbom])
+        if not any(name.endswith(".sh") for name in files) \
+                or not any(name.endswith(".ps1") for name in files):
+            raise ValueError("global artifact lacks shell or PowerShell installer")
+        return
+    raise ValueError(f"unexpected candidate artifact: {artifact_name}")
 
 
 metadata = api(f"repos/{repo}")
@@ -436,6 +560,25 @@ else:
             "required hosted Release jobs did not all execute successfully at expected_sha: "
             f"count={len(bad_release_jobs)}"
         )
+    native_validation_failures = []
+    for name, job in release_jobs_by_name.items():
+        if not name.startswith("build-local-artifacts ("):
+            continue
+        steps = job.get("steps") if isinstance(job.get("steps"), list) else []
+        validations = [
+            step
+            for step in steps
+            if isinstance(step, dict)
+            and str(step.get("name", "")).startswith("Validate packaged artifact (")
+            and step.get("conclusion") == "success"
+        ]
+        if len(validations) != 1:
+            native_validation_failures.append(name)
+    if native_validation_failures:
+        failures.append(
+            "native artifact validation did not execute successfully: "
+            f"count={len(native_validation_failures)}"
+        )
 
 collaborators = list_result(f"repos/{repo}/collaborators?affiliation=all&per_page=100")
 if len(collaborators) != 1 or collaborators[0].get("login") != owner \
@@ -485,6 +628,19 @@ if mode == "private-candidate":
         or len(active_artifacts) != len(expected_candidate_artifacts)
     ):
         failures.append("candidate Release artifact inventory is not exact")
+    else:
+        invalid_candidate_artifacts = []
+        for artifact in sorted(active_artifacts, key=lambda item: str(item.get("name", ""))):
+            try:
+                validate_candidate_artifact(artifact)
+            except (KeyError, OSError, ValueError, zipfile.BadZipFile, tarfile.TarError,
+                    UnicodeDecodeError, json.JSONDecodeError, ET.ParseError) as error:
+                invalid_candidate_artifacts.append(str(artifact.get("name", "")))
+        if invalid_candidate_artifacts:
+            failures.append(
+                "candidate Release artifact contents are invalid: "
+                f"count={len(invalid_candidate_artifacts)}"
+            )
 elif active_artifacts:
     failures.append(f"unexpired Actions artifacts remain: count={len(active_artifacts)}")
 
@@ -580,7 +736,7 @@ for run in all_runs:
     run_id = run.get("id")
     if run.get("head_sha") != expected_sha or not isinstance(run_id, int):
         continue
-    payload = api_zip(f"repos/{repo}/actions/runs/{run_id}/logs")
+    payload = api_zip(f"repos/{repo}/actions/runs/{run_id}/logs", optional=True)
     if payload is None:
         continue
     try:
