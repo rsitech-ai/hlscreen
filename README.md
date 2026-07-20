@@ -173,9 +173,10 @@ tar -xzf hlscreen-aarch64-apple-darwin.tar.gz
 macOS Intel, Linux, and Windows remain source-build targets for this release;
 no prebuilt archive is claimed for them.
 
-The Apple Silicon archive is unsigned and unnotarized. It is a native CLI
-package rather than a macOS app bundle, and this release does not claim Apple
-Developer ID or Gatekeeper validation.
+The Apple Silicon archive is not Developer ID-signed and is not notarized. Its
+Mach-O binary carries only the linker-generated ad hoc signature, with no Apple
+team identifier. This native CLI package does not claim Developer ID or
+Gatekeeper validation.
 
 ## Quick Start
 

@@ -32,6 +32,8 @@ This project follows a practical changelog format and intends to use semantic ve
 
 - Normalized public human Git history to the approved Rafal Sikora GitHub
   no-reply identity while preserving GitHub system committer metadata.
+- Documented the Apple Silicon binary's linker-generated ad hoc signature
+  without implying Developer ID signing or notarization.
 - Hardened live ingestion with finite numeric validation, out-of-order state protection, bounded histories, market-data inactivity detection, rolling reconnect subscription limits, and confidence-aware gaps.
 - Disabled public REST redirects, capped successful REST bodies at 8 MiB, and
   limited cleartext WebSocket URLs to loopback fixtures.
