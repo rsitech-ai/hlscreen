@@ -14,12 +14,13 @@ It is built for operators and researchers who want a local-first way to inspect 
 
 Current state: pre-1.0 read-only live-data preview with bounded local validation. Recording, replay, screening, deterministic terminal rendering, health checks, and local release-package dry runs are implemented, but unattended production readiness is not yet proven. It is not a trading bot, hosted service, or capital-touching execution system.
 
-Latest live validation: a 2026-07-13 15-minute supervised all-symbol run at
-commit `f590787` covered `310` spot markets through `931` public subscriptions
-and processed `295,794` WebSocket messages / `303,779` normalized events. It
+Latest live validation: a 2026-07-20 15-minute supervised all-symbol run at
+commit `4306d6b` covered `314` spot markets through `943` public subscriptions
+and processed `314,923` WebSocket messages / `322,858` normalized events. It
 stopped cleanly with `0` reconnects, gaps, parser drops, or failed backfills,
-then passed replay confidence parity over all `310` rows. See the
-[machine-readable soak report](docs/evidence/soak/sota-allpairs-20260713-15m.json).
+then passed two replay confidence checks with zero drift, missing, or extra
+rows. See the
+[machine-readable soak report](docs/evidence/soak/sota-allpairs-20260720-15m.json).
 
 Implemented today:
 

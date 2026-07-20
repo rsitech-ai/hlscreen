@@ -13,7 +13,7 @@ Start with the public README, then use these files for deeper implementation and
 - [Roadmap](ROADMAP.md)
 - [Release checklist](RELEASING.md)
 - [Open source checklist](OPEN_SOURCE_CHECKLIST.md)
-- [Latest supervised all-symbol proof (2026-07-13)](evidence/soak/sota-allpairs-20260713-15m.json)
+- [Latest supervised all-symbol proof (2026-07-20)](evidence/soak/sota-allpairs-20260720-15m.json)
 - [Production-readiness live refresh (2026-07-08)](reports/2026-07-08-production-readiness-live-refresh.md)
 - [Latest end-to-end release audit](reports/2026-07-10-end-to-end-release-audit.md)
 - [All-data E2E audit](reports/2026-07-08-all-data-e2e-audit.md)

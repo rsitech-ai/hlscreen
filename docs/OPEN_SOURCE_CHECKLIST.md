@@ -40,7 +40,7 @@ This file tracks the public-release package for `hlscreen`.
   This is retained as history and does not satisfy the current candidate gate.
 - [x] Current live all-symbol public-data smoke recorded in `docs/reports/2026-07-08-production-readiness-live-refresh.md`.
 - [x] Fresh machine-validated 15-minute all-symbol supervised report committed
-  at `docs/evidence/soak/sota-allpairs-20260713-15m.json`.
+  at `docs/evidence/soak/sota-allpairs-20260720-15m.json`.
 - [x] Public-readiness scan: `scripts/check-public-readiness.sh`.
 - [x] Local release artifact/checksum/install smoke: `scripts/local-release-artifact-smoke.sh`.
 - [x] CI release packaging gate includes static release contract tests, public-readiness scan, and local artifact smoke.
