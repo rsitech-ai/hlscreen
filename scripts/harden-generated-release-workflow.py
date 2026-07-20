@@ -57,6 +57,12 @@ def harden(contents: str) -> str:
     )
     contents = replace_once(
         contents,
+        '    runs-on: "ubuntu-22.04"\n    outputs:',
+        '    runs-on: "ubuntu-22.04"\n    timeout-minutes: 20\n    outputs:',
+        "plan timeout",
+    )
+    contents = replace_once(
+        contents,
         '''      - name: Install dist
         # we specify bash to get pipefail; it guards against the `curl` command
         # failing. otherwise `sh` won't catch that `curl` returned non-0
@@ -152,6 +158,14 @@ def harden(contents: str) -> str:
         if: runner.os == 'Windows'
         shell: pwsh
         run: cargo install cargo-auditable --version 0.7.5 --locked
+      - name: Install cargo-audit (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: cargo install cargo-audit --version 0.22.2 --locked
+      - name: Install cargo-audit (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: cargo install cargo-audit --version 0.22.2 --locked
 ''',
         "cargo-auditable installer",
     )
@@ -175,9 +189,58 @@ def harden(contents: str) -> str:
     )
     contents = replace_once(
         contents,
+        '''          cp dist-manifest.json "$BUILD_MANIFEST_NAME"
+      - name: "Upload artifacts"
+''',
+        '''          cp dist-manifest.json "$BUILD_MANIFEST_NAME"
+      - name: Validate packaged artifact (Unix)
+        if: runner.os != 'Windows'
+        env:
+          DIST_TARGET: ${{ join(matrix.targets, '') }}
+        shell: bash
+        run: python3 scripts/verify-dist-local-artifact.py --artifact-dir target/distrib --target "$DIST_TARGET"
+      - name: Validate packaged artifact (Windows)
+        if: runner.os == 'Windows'
+        env:
+          DIST_TARGET: ${{ join(matrix.targets, '') }}
+        shell: pwsh
+        run: python scripts/verify-dist-local-artifact.py --artifact-dir target/distrib --target "$env:DIST_TARGET"
+      - name: "Upload artifacts"
+''',
+        "local artifact validation",
+    )
+    contents = replace_once(
+        contents,
+        '    runs-on: ${{ matrix.runner }}\n    env:',
+        '    runs-on: ${{ matrix.runner }}\n    timeout-minutes: 45\n    env:',
+        "local artifact timeout",
+    )
+    contents = replace_once(
+        contents,
         "  build-global-artifacts:\n    needs:",
         "  build-global-artifacts:\n    name: Build global artifacts\n    needs:",
         "global job name",
+    )
+    contents = replace_once(
+        contents,
+        '''  build-global-artifacts:
+    name: Build global artifacts
+    needs:
+      - plan
+      - build-local-artifacts
+    runs-on: "ubuntu-22.04"
+    env:
+''',
+        '''  build-global-artifacts:
+    name: Build global artifacts
+    needs:
+      - plan
+      - build-local-artifacts
+    runs-on: "ubuntu-22.04"
+    timeout-minutes: 30
+    env:
+''',
+        "global artifact timeout",
     )
     contents = replace_once(
         contents,
@@ -220,6 +283,12 @@ def harden(contents: str) -> str:
         "  host:\n    needs:",
         "  host:\n    name: Publish tag artifacts\n    needs:",
         "host job name",
+    )
+    contents = replace_once(
+        contents,
+        '    runs-on: "ubuntu-22.04"\n    outputs:\n      val:',
+        '    runs-on: "ubuntu-22.04"\n    timeout-minutes: 15\n    outputs:\n      val:',
+        "host timeout",
     )
     contents = replace_once(
         contents,
@@ -273,6 +342,35 @@ def harden(contents: str) -> str:
         "  announce:\n    needs:",
         "  announce:\n    name: Confirm release announcement\n    needs:",
         "announce job name",
+    )
+    contents = replace_once(
+        contents,
+        '''  announce:
+    name: Confirm release announcement
+    needs:
+      - plan
+      - host
+    # use "always() && ..." to allow us to wait for all publish jobs while
+    # still allowing individual publish jobs to skip themselves (for prereleases).
+    # "host" however must run to completion, no skipping allowed!
+    if: ${{ always() && needs.host.result == 'success' }}
+    runs-on: "ubuntu-22.04"
+    env:
+''',
+        '''  announce:
+    name: Confirm release announcement
+    needs:
+      - plan
+      - host
+    # use "always() && ..." to allow us to wait for all publish jobs while
+    # still allowing individual publish jobs to skip themselves (for prereleases).
+    # "host" however must run to completion, no skipping allowed!
+    if: ${{ always() && needs.host.result == 'success' }}
+    runs-on: "ubuntu-22.04"
+    timeout-minutes: 10
+    env:
+''',
+        "announce timeout",
     )
     return contents
 
