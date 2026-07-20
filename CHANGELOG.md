@@ -6,6 +6,15 @@ This project follows a practical changelog format and intends to use semantic ve
 
 ## Unreleased
 
+## 0.1.1 - 2026-07-20
+
+### Changed
+
+- Removed maintainer/agent working journals from the tracked public tree while
+  retaining vendored Spec Kit contributor tooling and product `specs/`.
+- Added `.mailmap` display remapping to the approved GitHub noreply identity.
+- Stabilized hosted public-surface mock timeouts under loaded local runners.
+
 ## 0.1.0 - 2026-07-20
 
 ### Added
