@@ -1,5 +1,8 @@
 # MEMORY
 
+> Historical repository continuity notes, not an end-user product contract.
+> Current behavior is documented in `README.md` and `docs/`.
+
 ## Repo Overview
 - Workspace type: new project folder inside the `rsibot/` super-repo.
 - Primary languages/frameworks: planned Rust Cargo workspace for read-only Hyperliquid spot market-data ingestion, recording, features, CLI/TUI, and optional local API.

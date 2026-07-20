@@ -1,5 +1,8 @@
 # TODO
 
+> Historical implementation checklist. Current public-release gates live in
+> `docs/OPEN_SOURCE_CHECKLIST.md`.
+
 - [x] Confirm owning repo(s) and affected files
   DoD: File/module scope is listed in `PLAN.md`.
 

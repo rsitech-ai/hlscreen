@@ -166,6 +166,18 @@ Contributor validation additionally requires Git, Python 3, the `rustfmt` and
 needed for public REST metadata and live public WebSocket commands; fixture,
 replay, and local-only commands can run without exchange network access.
 
+Platform contract for the first candidate release:
+
+| Platform | Target | Current evidence |
+| --- | --- | --- |
+| macOS Apple Silicon | `aarch64-apple-darwin` | Primary development/runtime platform; local release smoke covered |
+| macOS Intel | `x86_64-apple-darwin` | Packaging configured; clean-runner candidate artifact proof pending |
+| Ubuntu-compatible x86-64 Linux | `x86_64-unknown-linux-gnu` | CI/build packaging configured; candidate artifact install proof pending |
+| Windows 10/11 x86-64 | `x86_64-pc-windows-msvc` | Packaging configured; Windows terminal and CTRL-C runtime proof pending |
+
+Rust 1.88 is the minimum supported Rust version. Other targets may build but
+are not part of the first release contract.
+
 Build:
 
 ```bash
@@ -188,6 +200,11 @@ Initialize a local data directory:
 ./target/debug/hls init --data-dir /tmp/hlscreen-smoke
 ./target/debug/hls doctor --data-dir /tmp/hlscreen-smoke
 ```
+
+`hls init` writes `config.toml` as a reviewed configuration draft.
+Runtime commands currently use explicit CLI flags; `hls doctor` loads the file to
+validate its read-only safety settings. Treat the command help as the current
+configuration contract until runtime-wide config precedence is implemented.
 
 Fetch read-only public spot metadata:
 
@@ -437,6 +454,10 @@ Local recording writes under the configured data directory:
 - `raw/ws/run=<run-id>/part-*.ndjson.zst`
 - `normalized/events/run=<run-id>/part-*.ndjson`
 - `hls.sqlite`
+
+Other opt-in commands can write `config.toml`, `tui-preferences.toml`, alert
+history JSONL, analog-index JSON, confidence baselines, and Parquet datasets
+with schema manifests. See the privacy document for the complete inventory.
 
 These files are local artifacts and should not be committed.
 

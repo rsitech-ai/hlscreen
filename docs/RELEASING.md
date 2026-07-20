@@ -111,7 +111,9 @@ The release workflow provides:
   `attestations` write permissions scoped only to the tag-only host job;
 - release build caching disabled, no dynamic container image, and no
   expression interpolation directly into release shell commands;
-- version-pinned cargo-dist 0.32.0 and cargo-auditable 0.7.5 installers;
+- version-locked Cargo registry builds for cargo-dist 0.32.0,
+  cargo-auditable 0.7.5, and cargo-cyclonedx 0.5.5; Cargo verifies registry
+  package checksums before compilation;
 - a source archive and SHA-256 checksums;
 - a CycloneDX XML SBOM generated with `cargo-cyclonedx`;
 - dependency metadata embedded in release binaries with `cargo-auditable`;
@@ -175,7 +177,7 @@ artifact and checksum exist on a completed release page.
 The GitHub release workflow starts from the pinned `dist` generator. Repository
 tooling applies and verifies deterministic post-generation corrections for
 least privilege, SBOM upload, concurrency, cache/container safety, versioned
-installers, and shell-expression isolation. After editing
+tool installation, and shell-expression isolation. After editing
 `dist-workspace.toml`, run:
 
 ```bash
@@ -218,6 +220,8 @@ Release notes should include:
 - Local alert evaluation and bounded TUI history are implemented, but delivery,
   escalation, ownership, and durable retention are not an operational alert engine.
 - Current microstructure analytics are research formulas/proxies, not a validated canonical production metric suite.
-- Initial normalized-event Parquet export exists with schema manifests, JSONL parity, and DuckDB smoke. Full schema-versioned feature/confidence Parquet datasets are still planned.
+- Schema-versioned normalized-event and feature/confidence Parquet export exists
+  with manifests and DuckDB smoke; replay currently supports normalized-event
+  Parquet only.
 - Release packaging is drafted and locally smoke-tested; the first public GitHub release is not proven until a reviewed `v*` tag run succeeds.
 - This is not trading advice and does not execute orders.

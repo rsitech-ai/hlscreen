@@ -13,15 +13,19 @@ use hls_hyperliquid::rest::{
 
 #[derive(Debug, Args)]
 pub struct SymbolsArgs {
+    /// Maximum number of volume-ranked markets to return.
     #[arg(long, default_value_t = 20)]
     pub top: usize,
 
+    /// Display names or feed identifiers to include in addition to ranking.
     #[arg(long)]
     pub include: Vec<String>,
 
+    /// Display names or feed identifiers to exclude.
     #[arg(long)]
     pub exclude: Vec<String>,
 
+    /// Emit selected markets as JSON.
     #[arg(long)]
     pub json: bool,
 

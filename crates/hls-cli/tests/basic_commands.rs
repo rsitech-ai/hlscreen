@@ -106,6 +106,11 @@ fn init_creates_config_under_requested_data_dir() {
         .stdout(predicate::str::contains("read_only=true"));
 
     assert!(data_dir.join("config.toml").exists());
+    let config = fs::read_to_string(data_dir.join("config.toml")).expect("read config");
+    assert!(
+        config.contains("Runtime commands currently use explicit CLI flags"),
+        "generated config must explain that non-safety runtime settings are not consumed",
+    );
 }
 
 #[test]

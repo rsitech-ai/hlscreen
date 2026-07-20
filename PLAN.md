@@ -1,5 +1,9 @@
 # PLAN
 
+> Historical development journal. For current product behavior and release
+> status, use `README.md`, `docs/production-readiness.md`, and
+> `docs/OPEN_SOURCE_CHECKLIST.md`.
+
 ## Task
 - Objective: Implement and validate the first coherent Rust slice for the read-only Hyperliquid spot screener: workspace setup, core config/symbol primitives, fixture-backed REST metadata parsing, and CLI `init`/`doctor`/`symbols`.
 - Owner repo(s): standalone `hlscreen/` project folder inside the dirty `rsibot/` workspace. Do not mutate parent `rsibot/`, `hummingbot/`, `hummingbot-api/`, or `quants-lab/` work.

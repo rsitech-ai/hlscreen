@@ -8,11 +8,16 @@ Run:
 
 ```bash
 cargo --version
-cargo test --workspace --all-features
+rustc --version --verbose
+scripts/check.sh fast
 ./target/debug/hls doctor --live --json
 ```
 
-If the problem is fixture-backed, include the exact fixture command. If the problem is live REST metadata, include whether `hls symbols --top 5` works from your network.
+Include your OS/version, CPU architecture, terminal and shell versions, the
+exact command, and whether it ran in a real TTY. If the problem is
+fixture-backed, include the exact fixture command. If the problem is live REST
+metadata, include whether `hls symbols --top 5` works from your network. Redact
+local paths, account identifiers, private endpoints, and secrets.
 
 ## Where To Ask
 

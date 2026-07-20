@@ -18,12 +18,15 @@ use crate::{HLS_RENDERER_ID, HLS_VERSION, commands::live::live_terminal_color_di
 
 #[derive(Debug, Args)]
 pub struct DoctorArgs {
+    /// Local data directory to inspect; created when terminal-only diagnostics are not selected.
     #[arg(long, default_value = ".hls")]
     pub data_dir: PathBuf,
 
+    /// Check the public REST endpoint and render a live health snapshot.
     #[arg(long)]
     pub live: bool,
 
+    /// Emit machine-readable JSON instead of text diagnostics.
     #[arg(long)]
     pub json: bool,
 

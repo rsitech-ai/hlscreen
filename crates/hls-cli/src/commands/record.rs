@@ -10,25 +10,32 @@ use hls_store::{
 
 #[derive(Debug, Args)]
 pub struct RecordArgs {
+    /// Comma-separated feed identifiers to retain from the fixture stream.
     #[arg(long)]
     pub symbols: Option<String>,
 
+    /// Stable local recording identifier; generated when omitted.
     #[arg(long)]
     pub run_id: Option<String>,
 
+    /// Store compressed raw fixture messages.
     #[arg(long)]
     pub raw: bool,
 
+    /// Store normalized replayable market events.
     #[arg(long)]
     pub normalized: bool,
 
+    /// Export normalized events to Parquet after recording.
     #[arg(long)]
     pub parquet: bool,
 
+    /// Local recording directory.
     #[arg(long, default_value = ".hls")]
     pub data_dir: PathBuf,
 
-    #[arg(long, hide = true)]
+    /// Deterministic public/synthetic NDJSON fixture to record; use `live --record` for network data.
+    #[arg(long)]
     pub fixture_file: Option<PathBuf>,
 }
 

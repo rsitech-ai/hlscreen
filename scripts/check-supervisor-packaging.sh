@@ -93,8 +93,8 @@ require_text "<key>KeepAlive</key>" "$launchd"
 unsafe_evidence="$evidence_dir/unsafe.txt"
 if grep -RInE "wallet|private[-_ ]?key|place order|cancel order|withdraw|API_SECRET|SECRET_KEY" \
   deploy/systemd deploy/launchd >"$unsafe_evidence"; then
-  echo "supervisor templates contain unsafe trading/private-data wording:" >&2
-  cat "$unsafe_evidence" >&2
+  echo "supervisor templates contain unsafe trading/private-data wording at:" >&2
+  cut -d: -f1-2 "$unsafe_evidence" >&2
   exit 1
 fi
 

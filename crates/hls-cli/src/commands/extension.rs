@@ -12,24 +12,30 @@ use hls_store::replay::{ReplayOptions, replay_run};
 
 #[derive(Debug, Args)]
 pub struct ExtensionArgs {
+    /// Validated local extension manifest JSON file.
     #[arg(long)]
     pub manifest: PathBuf,
 
+    /// Exported WebAssembly function to invoke.
     #[arg(long, default_value = "annotate_row")]
     pub entrypoint: String,
 
+    /// Feed identifier whose feature snapshot is passed to the extension.
     #[arg(long)]
     pub symbol: String,
 
+    /// Recorded run to replay.
     #[arg(long)]
     pub run_id: Option<String>,
 
+    /// Local recording directory.
     #[arg(long, default_value = ".hls")]
     pub data_dir: PathBuf,
 
     #[arg(long, hide = true)]
     pub fixture_file: Option<PathBuf>,
 
+    /// Emit extension annotations as JSON.
     #[arg(long)]
     pub json: bool,
 }

@@ -20,6 +20,7 @@ use hls_hyperliquid::{
         subscriptions::{
             OFFICIAL_WS_SUBSCRIPTION_LIMIT, StreamKind, SubscriptionPlan, ping_message,
         },
+        validate_public_ws_url,
     },
 };
 use hls_server::{ApiState, SharedApiState, handle_get, serve_shared_until_shutdown};
@@ -76,24 +77,31 @@ pub struct ServerArgs {
     #[arg(long)]
     pub live: bool,
 
+    /// Comma-separated display names or feed identifiers for the live preview.
     #[arg(long)]
     pub symbols: Option<String>,
 
+    /// Maximum number of volume-ranked symbols when explicit symbols are absent.
     #[arg(long, default_value_t = 50)]
     pub top: usize,
 
+    /// Stream every currently available spot symbol within subscription limits.
     #[arg(long)]
     pub all_symbols: bool,
 
+    /// Stop a live preview after this many seconds; zero runs until a signal.
     #[arg(long, default_value_t = DEFAULT_LIVE_DURATION_SECS)]
     pub duration_secs: u64,
 
+    /// Seconds between live health refreshes.
     #[arg(long, default_value_t = DEFAULT_REFRESH_SECS)]
     pub refresh_secs: u64,
 
+    /// Maximum public WebSocket subscriptions allowed in the selected plan.
     #[arg(long, default_value_t = DEFAULT_MAX_SUBSCRIPTIONS)]
     pub max_subscriptions: usize,
 
+    /// Secure public WebSocket URL, or a cleartext loopback URL for tests.
     #[arg(long, default_value = DEFAULT_WS_URL)]
     pub ws_url: String,
 
@@ -365,10 +373,8 @@ fn validate_live_server_args(args: &ServerArgs) -> anyhow::Result<()> {
     {
         bail!("--symbols must contain at least one non-empty selector");
     }
-    if args.fixture_file.is_none()
-        && !(args.ws_url.starts_with("ws://") || args.ws_url.starts_with("wss://"))
-    {
-        bail!("--ws-url must use the ws:// or wss:// scheme");
+    if args.fixture_file.is_none() {
+        validate_public_ws_url(&args.ws_url)?;
     }
     if tokio::time::Instant::now()
         .checked_add(Duration::from_secs(args.duration_secs))

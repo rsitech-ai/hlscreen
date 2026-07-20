@@ -48,6 +48,20 @@ body:
       label: Rust version
       placeholder: rustc --version
   - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Include OS/version, CPU architecture, terminal name/version, shell, and whether the command ran in a real TTY.
+      placeholder: macOS 15 / arm64 / Ghostty 1.x / zsh / real TTY
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics
+      description: Paste redacted output from `cargo --version`, `rustc --version --verbose`, and the relevant `hls ... --help` command.
+      render: text
+  - type: textarea
     id: logs
     attributes:
       label: Relevant output

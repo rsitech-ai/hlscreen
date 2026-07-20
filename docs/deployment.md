@@ -75,8 +75,10 @@ scripts/run-supervised-soak.sh \
   --data-dir /var/tmp/hlscreen-soak
 ```
 
-It builds or uses the release binary, checks available disk space, records the
-exact all-symbol command and Git commit, forwards termination signals, samples
+It requires a clean source tree, builds the locked release binary unless an
+explicit candidate binary is supplied, checks available disk space, records the
+exact all-symbol command, Git commit, runtime-source SHA-256, binary SHA-256,
+toolchain, and host, forwards termination signals, samples
 CPU/RSS/storage growth, records raw and normalized public data, invokes coarse
 gap backfill, and runs replay parity twice. It publishes `report.json`
 atomically beside retained stdout/stderr and resource samples.
@@ -92,6 +94,11 @@ python3 scripts/validate-soak-report.py \
   /var/tmp/hlscreen-soak/soak-reports/<run-id>/report.json \
   --minimum-duration-secs 900
 ```
+
+Add `--binary /path/to/hls` to the validator when verifying the retained report
+against the exact candidate binary. Repository release packaging also
+recomputes `runtime_source_sha256`; a later documentation-only commit remains
+valid, while any tracked runtime input change invalidates the evidence.
 
 A passing 15-minute report is bounded smoke evidence, not multi-day soak proof.
 The latest reviewed example is the

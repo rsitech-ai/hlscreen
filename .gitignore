@@ -1,7 +1,10 @@
 .DS_Store
 target/
 .hls/
+.hls-soak/
 .superpowers/sdd/
+__pycache__/
+*.py[cod]
 data/
 *.log
 *.db

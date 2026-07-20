@@ -36,12 +36,15 @@ pub(crate) enum BackfillRunOutcome {
 
 #[derive(Clone, Debug, Args)]
 pub struct BackfillArgs {
+    /// Recorded run whose unresolved gaps should be examined.
     #[arg(long)]
     pub run_id: String,
 
+    /// Public candle interval used for coarse gap coverage.
     #[arg(long, default_value = "1m")]
     pub interval: String,
 
+    /// HTTPS public REST base URL, or an HTTP loopback URL for tests.
     #[arg(long, default_value = DEFAULT_REST_URL)]
     pub rest_url: String,
 
@@ -49,6 +52,7 @@ pub struct BackfillArgs {
     #[arg(long)]
     pub retry: bool,
 
+    /// Local recording directory.
     #[arg(long, default_value = ".hls")]
     pub data_dir: PathBuf,
 }
