@@ -11,14 +11,14 @@ This project follows a practical changelog format and intends to use semantic ve
 ### Changed
 
 - Removed development-assistant working material from the repository and its
-  published Git history: maintainer journals (`PLAN.md`, `MEMORY.md`,
-  `TODO.md`, `memory/`, `plans/`, `reflections/`), assistant lesson stores and
-  planning notes (`docs/agent-memory/`, `docs/superpowers/`), vendored Spec Kit
-  workflow tooling (`.specify/`, `.agents/`, `specs/`,
+  published Git history: maintainer plan/memory/task journals and their
+  directories (`memory/`, `plans/`, `reflections/`), assistant lesson stores
+  and planning notes (`docs/agent-memory/`, `docs/superpowers/`), vendored
+  Spec Kit workflow tooling (`.specify/`, `.agents/`, `specs/`,
   `third_party/spec-kit/`), and internal release dossiers and session audit
-  reports (`docs/OPEN_SOURCE_AUDIT.md`, `docs/OPEN_SOURCE_CHECKLIST.md`,
-  `docs/DEVELOPMENT_TOOLING.md`, `docs/reports/`). Product source, tests,
-  fixtures, public documentation, and release evidence are unchanged.
+  reports (`docs/reports/` and the internal open-source audit and checklist
+  documents). Product source, tests, fixtures, public documentation, and
+  release evidence are unchanged.
 - Regenerated `THIRD_PARTY_LICENSES.txt` and `THIRD_PARTY_NOTICES.md` without
   the removed vendored Spec Kit attribution; all Rust dependency licenses and
   packaged notices are preserved.

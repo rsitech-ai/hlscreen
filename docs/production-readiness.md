@@ -65,23 +65,23 @@ does not block source development or ordinary PR CI.
 
 ## Latest Live Validation
 
-Run: `oss-release-20260720`
+Run: `oss-release-v011-20260720`
 
 Fresh supervised evidence at commit
-`4306d6b28b69d5dee2f24e7ca844f989c77f96df`:
+`6d3c50b69065d5f71395c7c38a9af7dc9b6e9d21`:
 
 - Measured duration: `902` seconds (`--duration-secs 900`)
 - Symbols: `314`
 - Public subscriptions: `943`
-- Raw WebSocket messages: `314,923`
-- Normalized market events: `322,858`
+- Raw WebSocket messages: `294,054`
+- Normalized market events: `302,296`
 - Reconnects / data gaps / parser drops: `0 / 0 / 0`
 - Failed public backfill requests: `0`
 - SQLite clean shutdown: `true`
 - Replay status: `baseline_written`, then `passed`
 - Replay drift / missing / extra: `0 / 0 / 0`
-- Peak settled RSS: `42,401,792` bytes
-- Final evidence size: `70,344,704` bytes
+- Peak settled RSS: `31,866,880` bytes
+- Final evidence size: `64,946,176` bytes
 
 The exact command, timestamps, resource samples, limits, counters, and replay
 results are committed in the

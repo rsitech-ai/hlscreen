@@ -1,10 +1,10 @@
 {
   "schema_version": 2,
-  "run_id": "oss-release-20260720",
-  "commit": "4306d6b28b69d5dee2f24e7ca844f989c77f96df",
+  "run_id": "oss-release-v011-20260720",
+  "commit": "6d3c50b69065d5f71395c7c38a9af7dc9b6e9d21",
   "git_dirty": false,
-  "binary_sha256": "3eae3a09645007630198afca7777ad7ca07c51fa66755ab78eb6f470dfb6d4c2",
-  "runtime_source_sha256": "d1b4dac41ba552dce10418d2db5f36c7e2fe813a24662be648c95bc9005710ec",
+  "binary_sha256": "921edca456aface3554732636bafecfcb9a82760f239b6facd9921cf2e78fcce",
+  "runtime_source_sha256": "0060d820d7c586280673a4637d18dfd7cf5ed44cd1aa0cad04dd5dd3ce83d9cc",
   "build": {
     "rustc": "rustc 1.88.0 (6b00bc388 2025-06-23)",
     "cargo": "cargo 1.88.0 (873a06493 2025-05-10)",
@@ -23,216 +23,216 @@
     "--normalized",
     "--backfill-gaps",
     "--run-id",
-    "oss-release-20260720",
+    "oss-release-v011-20260720",
     "--data-dir",
     "<data-dir>",
     "--color",
     "never"
   ],
-  "started_at": "2026-07-20T14:30:20Z",
-  "ended_at": "2026-07-20T14:45:22Z",
+  "started_at": "2026-07-20T22:28:54Z",
+  "ended_at": "2026-07-20T22:43:56Z",
   "duration_secs": 902,
   "exit_code": 0,
   "clean_shutdown": true,
   "samples": [
     {
       "elapsed_secs": 0,
-      "cpu_percent": 0,
+      "cpu_percent": 0.0,
       "rss_bytes": 32768,
       "data_bytes": 0
     },
     {
-      "elapsed_secs": 31,
-      "cpu_percent": 1.7,
-      "rss_bytes": 40976384,
-      "data_bytes": 4284416
+      "elapsed_secs": 30,
+      "cpu_percent": 0.6,
+      "rss_bytes": 31866880,
+      "data_bytes": 4026368
     },
     {
       "elapsed_secs": 60,
-      "cpu_percent": 0.3,
-      "rss_bytes": 35569664,
-      "data_bytes": 7155712
+      "cpu_percent": 0.4,
+      "rss_bytes": 24608768,
+      "data_bytes": 5980160
     },
     {
       "elapsed_secs": 90,
-      "cpu_percent": 0.2,
-      "rss_bytes": 37928960,
-      "data_bytes": 10301440
+      "cpu_percent": 2.0,
+      "rss_bytes": 26099712,
+      "data_bytes": 8708096
     },
     {
       "elapsed_secs": 120,
-      "cpu_percent": 0.3,
-      "rss_bytes": 39321600,
-      "data_bytes": 11350016
+      "cpu_percent": 1.0,
+      "rss_bytes": 20545536,
+      "data_bytes": 10612736
     },
     {
       "elapsed_secs": 150,
-      "cpu_percent": 0.6,
-      "rss_bytes": 36405248,
-      "data_bytes": 14848000
+      "cpu_percent": 3.7,
+      "rss_bytes": 22282240,
+      "data_bytes": 12931072
     },
     {
       "elapsed_secs": 180,
-      "cpu_percent": 0.2,
-      "rss_bytes": 39108608,
-      "data_bytes": 15896576
+      "cpu_percent": 1.4,
+      "rss_bytes": 19562496,
+      "data_bytes": 14811136
     },
     {
       "elapsed_secs": 210,
-      "cpu_percent": 0.3,
-      "rss_bytes": 42401792,
-      "data_bytes": 18345984
+      "cpu_percent": 0.9,
+      "rss_bytes": 21528576,
+      "data_bytes": 17031168
     },
     {
       "elapsed_secs": 240,
-      "cpu_percent": 0.6,
-      "rss_bytes": 41910272,
-      "data_bytes": 20443136
+      "cpu_percent": 0.1,
+      "rss_bytes": 17973248,
+      "data_bytes": 18984960
     },
     {
       "elapsed_secs": 270,
-      "cpu_percent": 0.9,
-      "rss_bytes": 31342592,
-      "data_bytes": 22888448
+      "cpu_percent": 3.1,
+      "rss_bytes": 20594688,
+      "data_bytes": 20905984
     },
     {
       "elapsed_secs": 300,
-      "cpu_percent": 0.2,
-      "rss_bytes": 34291712,
-      "data_bytes": 24985600
+      "cpu_percent": 1.0,
+      "rss_bytes": 27246592,
+      "data_bytes": 23113728
     },
     {
       "elapsed_secs": 330,
-      "cpu_percent": 0.7,
-      "rss_bytes": 34897920,
-      "data_bytes": 27435008
+      "cpu_percent": 2.3,
+      "rss_bytes": 18972672,
+      "data_bytes": 25047040
     },
     {
       "elapsed_secs": 360,
-      "cpu_percent": 0.5,
-      "rss_bytes": 34537472,
-      "data_bytes": 29532160
+      "cpu_percent": 0.4,
+      "rss_bytes": 24297472,
+      "data_bytes": 27340800
     },
     {
       "elapsed_secs": 390,
-      "cpu_percent": 1.5,
-      "rss_bytes": 36814848,
-      "data_bytes": 31629312
+      "cpu_percent": 1.0,
+      "rss_bytes": 17448960,
+      "data_bytes": 29331456
     },
     {
-      "elapsed_secs": 420,
-      "cpu_percent": 0.9,
-      "rss_bytes": 37978112,
-      "data_bytes": 34099200
+      "elapsed_secs": 421,
+      "cpu_percent": 0.4,
+      "rss_bytes": 26345472,
+      "data_bytes": 31645696
     },
     {
       "elapsed_secs": 450,
-      "cpu_percent": 0.8,
-      "rss_bytes": 35962880,
-      "data_bytes": 36196352
+      "cpu_percent": 0.5,
+      "rss_bytes": 18825216,
+      "data_bytes": 33587200
     },
     {
       "elapsed_secs": 480,
-      "cpu_percent": 0.7,
-      "rss_bytes": 40878080,
-      "data_bytes": 38658048
+      "cpu_percent": 3.1,
+      "rss_bytes": 18415616,
+      "data_bytes": 35557376
     },
     {
       "elapsed_secs": 510,
-      "cpu_percent": 0.6,
-      "rss_bytes": 42369024,
-      "data_bytes": 40755200
+      "cpu_percent": 0.3,
+      "rss_bytes": 21807104,
+      "data_bytes": 37830656
     },
     {
       "elapsed_secs": 540,
-      "cpu_percent": 1.7,
-      "rss_bytes": 41418752,
-      "data_bytes": 43212800
+      "cpu_percent": 0.1,
+      "rss_bytes": 17432576,
+      "data_bytes": 39727104
     },
     {
       "elapsed_secs": 570,
-      "cpu_percent": 2.1,
-      "rss_bytes": 34308096,
-      "data_bytes": 45309952
+      "cpu_percent": 0.7,
+      "rss_bytes": 22642688,
+      "data_bytes": 41988096
     },
     {
       "elapsed_secs": 600,
-      "cpu_percent": 0.1,
-      "rss_bytes": 22609920,
-      "data_bytes": 47407104
+      "cpu_percent": 0.4,
+      "rss_bytes": 16547840,
+      "data_bytes": 43876352
     },
     {
-      "elapsed_secs": 630,
-      "cpu_percent": 0,
-      "rss_bytes": 30818304,
-      "data_bytes": 49848320
+      "elapsed_secs": 631,
+      "cpu_percent": 3.7,
+      "rss_bytes": 19841024,
+      "data_bytes": 46206976
     },
     {
       "elapsed_secs": 660,
-      "cpu_percent": 0.2,
-      "rss_bytes": 33751040,
-      "data_bytes": 51945472
+      "cpu_percent": 2.7,
+      "rss_bytes": 17039360,
+      "data_bytes": 48107520
     },
     {
       "elapsed_secs": 690,
-      "cpu_percent": 0.1,
-      "rss_bytes": 38649856,
-      "data_bytes": 54407168
+      "cpu_percent": 3.8,
+      "rss_bytes": 16646144,
+      "data_bytes": 50036736
     },
     {
       "elapsed_secs": 720,
-      "cpu_percent": 1.1,
-      "rss_bytes": 38699008,
-      "data_bytes": 56504320
+      "cpu_percent": 3.1,
+      "rss_bytes": 16957440,
+      "data_bytes": 52334592
     },
     {
       "elapsed_secs": 750,
-      "cpu_percent": 0.4,
-      "rss_bytes": 37617664,
-      "data_bytes": 58957824
+      "cpu_percent": 0.8,
+      "rss_bytes": 17858560,
+      "data_bytes": 54308864
     },
     {
       "elapsed_secs": 780,
-      "cpu_percent": 0.1,
-      "rss_bytes": 33177600,
-      "data_bytes": 61054976
+      "cpu_percent": 1.2,
+      "rss_bytes": 24952832,
+      "data_bytes": 56553472
     },
     {
       "elapsed_secs": 810,
-      "cpu_percent": 1,
-      "rss_bytes": 36995072,
-      "data_bytes": 63508480
+      "cpu_percent": 2.2,
+      "rss_bytes": 14860288,
+      "data_bytes": 58490880
     },
     {
       "elapsed_secs": 840,
-      "cpu_percent": 1.1,
-      "rss_bytes": 35553280,
-      "data_bytes": 65605632
+      "cpu_percent": 6.1,
+      "rss_bytes": 28590080,
+      "data_bytes": 60719104
     },
     {
       "elapsed_secs": 870,
-      "cpu_percent": 0.3,
-      "rss_bytes": 32587776,
-      "data_bytes": 67702784
+      "cpu_percent": 1.3,
+      "rss_bytes": 11681792,
+      "data_bytes": 62648320
     },
     {
       "elapsed_secs": 900,
-      "cpu_percent": 0,
-      "rss_bytes": 28164096,
-      "data_bytes": 70156288
+      "cpu_percent": 1.0,
+      "rss_bytes": 12304384,
+      "data_bytes": 64487424
     },
     {
-      "elapsed_secs": 902,
-      "cpu_percent": 0,
+      "elapsed_secs": 905,
+      "cpu_percent": 0.0,
       "rss_bytes": 0,
-      "data_bytes": 70344704
+      "data_bytes": 64946176
     }
   ],
   "summary": {
     "symbols": 314,
     "subscriptions": 943,
-    "ws_messages": 314923,
-    "market_events": 322858,
+    "ws_messages": 294054,
+    "market_events": 302296,
     "reconnects": 0,
     "data_gaps": 0,
     "unrepaired_gaps": 0,
