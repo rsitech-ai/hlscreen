@@ -21,9 +21,18 @@ This project follows a practical changelog format and intends to use semantic ve
 - Deterministic screening DSL and built-in presets.
 - Health snapshots, reconnect simulation, TUI health rendering, and read-only local API helpers.
 - Pre-merge audit report and regression fixes for safety/correctness findings.
+- Schema-versioned event and feature/confidence Parquet exports with manifests,
+  local analog indexes, bounded local alert history, and supervisor smoke checks.
+- A complete help contract for every public CLI command and option.
 
 ### Changed
 
 - Hardened live ingestion with finite numeric validation, out-of-order state protection, bounded histories, market-data inactivity detection, rolling reconnect subscription limits, and confidence-aware gaps.
+- Disabled public REST redirects, capped successful REST bodies at 8 MiB, and
+  limited cleartext WebSocket URLs to loopback fixtures.
+- Replaced release-workflow pipe-to-shell installers with version-locked Cargo
+  registry builds and bound soak evidence to exact runtime-source and binary
+  SHA-256 digests.
+- Kept the read-only safety and quit controls visible in short help overlays.
 - Made recording identities and file registration append-only and path-safe, including symlink-aware replay containment.
 - Made `--color always` override an inherited `NO_COLOR` value while `--color auto` continues to honor terminal environment policy.

@@ -11,15 +11,19 @@ use crate::commands::record::parse_symbols;
 
 #[derive(Debug, Args)]
 pub struct ReplayArgs {
+    /// Recorded run to replay.
     #[arg(long)]
     pub run_id: String,
 
+    /// Optional comma-separated feed identifiers to replay.
     #[arg(long)]
     pub symbols: Option<String>,
 
+    /// Local recording directory.
     #[arg(long, default_value = ".hls")]
     pub data_dir: PathBuf,
 
+    /// Write or compare the run's deterministic confidence baseline.
     #[arg(long)]
     pub verify_parity: bool,
 

@@ -8,6 +8,7 @@ minimum_free_bytes=$((2 * 1024 * 1024 * 1024))
 max_rss_growth_bytes=$((256 * 1024 * 1024))
 data_dir="$repo_root/.hls-soak"
 binary="$repo_root/target/release/hls"
+binary_was_supplied=0
 run_id="soak-$(date -u +%Y%m%dT%H%M%SZ)"
 report_path=""
 
@@ -36,7 +37,7 @@ while (($#)); do
     --data-dir) data_dir="${2:?missing data directory}"; shift 2 ;;
     --run-id) run_id="${2:?missing run ID}"; shift 2 ;;
     --report) report_path="${2:?missing report path}"; shift 2 ;;
-    --binary) binary="${2:?missing binary path}"; shift 2 ;;
+    --binary) binary="${2:?missing binary path}"; binary_was_supplied=1; shift 2 ;;
     --minimum-free-bytes) minimum_free_bytes="${2:?missing byte count}"; shift 2 ;;
     --max-rss-growth-bytes) max_rss_growth_bytes="${2:?missing byte count}"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
@@ -60,6 +61,25 @@ if [[ ! "$run_id" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$ ]]; then
   exit 2
 fi
 
+initial_head="$(git -C "$repo_root" rev-parse HEAD)"
+if [[ -n "$(git -C "$repo_root" status --porcelain --untracked-files=all)" ]]; then
+  echo "soak evidence requires a clean source tree" >&2
+  exit 1
+fi
+runtime_source_sha256="$(python3 "$repo_root/scripts/runtime-source-sha256.py" "$repo_root")"
+
+assert_source_unchanged() {
+  local current_head current_runtime_hash
+  current_head="$(git -C "$repo_root" rev-parse HEAD)"
+  current_runtime_hash="$(python3 "$repo_root/scripts/runtime-source-sha256.py" "$repo_root")"
+  if [[ "$current_head" != "$initial_head" \
+    || "$current_runtime_hash" != "$runtime_source_sha256" \
+    || -n "$(git -C "$repo_root" status --porcelain --untracked-files=all)" ]]; then
+    echo "source tree or HEAD changed during soak evidence collection" >&2
+    exit 1
+  fi
+}
+
 mkdir -p "$data_dir"
 evidence_dir="$data_dir/soak-reports/$run_id"
 mkdir -p "$evidence_dir"
@@ -76,11 +96,19 @@ if ((available_kib * 1024 < minimum_free_bytes)); then
   exit 1
 fi
 
-if [[ ! -x "$binary" ]]; then
-  (cd "$repo_root" && cargo build --release -p hls-cli --bin hls) || exit 1
+if ((binary_was_supplied == 0)); then
+  (cd "$repo_root" && cargo build --release --locked -p hls-cli --bin hls) || exit 1
+elif [[ ! -x "$binary" ]]; then
+  echo "supplied binary is not executable: $binary" >&2
+  exit 1
 fi
 
-commit="$(git -C "$repo_root" rev-parse HEAD)"
+assert_source_unchanged
+commit="$initial_head"
+binary_sha256="$(shasum -a 256 "$binary" | awk '{print $1}')"
+rustc_version="$(rustc --version)"
+cargo_version="$(cargo --version)"
+host_triple="$(rustc -vV | awk '/^host:/ {print $2}')"
 live_out="$evidence_dir/live.stdout.log"
 live_err="$evidence_dir/live.stderr.log"
 samples_tsv="$evidence_dir/resources.tsv"
@@ -137,6 +165,7 @@ live_exit=$?
 ended_epoch="$(date -u +%s)"
 ended_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 actual_duration=$((ended_epoch - started_epoch))
+assert_source_unchanged
 
 last_elapsed="$(tail -n 1 "$samples_tsv" | cut -f1)"
 if [[ "$last_elapsed" != "$actual_duration" ]]; then
@@ -155,11 +184,13 @@ if ((live_exit == 0)); then
     replay_second_exit=$?
   fi
 fi
+assert_source_unchanged
 
 tmp_report="$report_path.tmp.$$"
 python3 - "$tmp_report" "$samples_tsv" "$live_out" "$started_at" "$ended_at" \
   "$actual_duration" "$live_exit" "$commit" "$run_id" "$max_rss_growth_bytes" \
   "$replay_first_out" "$replay_second_out" "$replay_first_exit" "$replay_second_exit" \
+  "$binary_sha256" "$runtime_source_sha256" "$rustc_version" "$cargo_version" "$host_triple" \
   "${command[@]}" <<'PY'
 import json
 import re
@@ -169,7 +200,9 @@ from pathlib import Path
 (
     output_path, samples_path, live_path, started_at, ended_at, duration,
     live_exit, commit, run_id, max_rss_growth, replay_first_path,
-    replay_second_path, replay_first_exit, replay_second_exit, *command
+    replay_second_path, replay_first_exit, replay_second_exit,
+    binary_sha256, runtime_source_sha256, rustc_version, cargo_version,
+    host_triple, *command
 ) = sys.argv[1:]
 
 def read(path):
@@ -201,9 +234,17 @@ first = read(replay_first_path)
 second = read(replay_second_path)
 data_gaps = value(live, "data_gaps")
 report = {
-    "schema_version": 1,
+    "schema_version": 2,
     "run_id": run_id,
     "commit": commit,
+    "git_dirty": False,
+    "binary_sha256": binary_sha256,
+    "runtime_source_sha256": runtime_source_sha256,
+    "build": {
+        "rustc": rustc_version,
+        "cargo": cargo_version,
+        "host": host_triple,
+    },
     "command": command,
     "started_at": started_at,
     "ended_at": ended_at,
@@ -239,10 +280,12 @@ if ((generator_exit != 0)); then
   exit "$generator_exit"
 fi
 mv "$tmp_report" "$report_path"
+assert_source_unchanged
 
 minimum_duration="$duration_secs"
 python3 "$repo_root/scripts/validate-soak-report.py" "$report_path" \
-  --minimum-duration-secs "$minimum_duration"
+  --minimum-duration-secs "$minimum_duration" \
+  --binary "$binary"
 validation_exit=$?
 echo "soak_report_path=$report_path"
 if ((signal_received != 0)); then

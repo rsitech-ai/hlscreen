@@ -14,6 +14,7 @@ from typing import Any
 
 
 COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
+SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 REQUIRED_CAPTURE_FLAGS = (
     "--all-symbols",
     "--record",
@@ -116,17 +117,28 @@ def validate_live_capture_command(
     command_option(command, "--data-dir", errors)
 
 
-def validate(report: Any, minimum_duration_secs: int) -> list[str]:
+def validate(
+    report: Any, minimum_duration_secs: int, binary_path: Path | None = None
+) -> list[str]:
     errors: list[str] = []
     if not isinstance(report, dict):
         return ["report root must be an object"]
 
-    if report.get("schema_version") != 1:
-        errors.append("schema_version must equal 1")
+    if report.get("schema_version") != 2:
+        errors.append("schema_version must equal 2")
     if not isinstance(report.get("run_id"), str) or not report.get("run_id", "").strip():
         errors.append("run_id must be a non-empty string")
     if not isinstance(report.get("commit"), str) or not COMMIT_RE.fullmatch(report["commit"]):
         errors.append("commit must be a lowercase 40-character Git object ID")
+    if report.get("git_dirty") is not False:
+        errors.append("git_dirty must equal false")
+    for field in ("binary_sha256", "runtime_source_sha256"):
+        if not isinstance(report.get(field), str) or not SHA256_RE.fullmatch(report[field]):
+            errors.append(f"{field} must be a lowercase SHA-256 digest")
+    build = object_field(report, "build", errors)
+    for field in ("rustc", "cargo", "host"):
+        if not isinstance(build.get(field), str) or not build[field].strip():
+            errors.append(f"build.{field} must be a non-empty string")
     command = report.get("command")
     valid_command_shape = (
         isinstance(command, list)
@@ -229,6 +241,17 @@ def validate(report: Any, minimum_duration_secs: int) -> list[str]:
                 f"RSS growth {rss_growth} exceeds limit {max_rss_growth} bytes"
             )
 
+    if binary_path is not None:
+        try:
+            import hashlib
+
+            actual_binary_sha256 = hashlib.sha256(binary_path.read_bytes()).hexdigest()
+        except OSError as error:
+            errors.append(f"could not hash --binary: {error}")
+        else:
+            if report.get("binary_sha256") != actual_binary_sha256:
+                errors.append("binary_sha256 does not match --binary")
+
     return errors
 
 
@@ -236,6 +259,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("report", type=Path)
     parser.add_argument("--minimum-duration-secs", type=int, default=900)
+    parser.add_argument("--binary", type=Path)
     args = parser.parse_args()
     if args.minimum_duration_secs < 1:
         parser.error("--minimum-duration-secs must be positive")
@@ -246,7 +270,7 @@ def main() -> int:
         print(f"soak_report=invalid: {error}", file=sys.stderr)
         return 1
 
-    errors = validate(report, args.minimum_duration_secs)
+    errors = validate(report, args.minimum_duration_secs, args.binary)
     if errors:
         print("soak_report=invalid", file=sys.stderr)
         for error in errors:

@@ -4456,6 +4456,33 @@ fn narrow_help_overlay_renders_compact_operator_map() {
 }
 
 #[test]
+fn short_help_overlay_keeps_quit_and_read_only_boundary_visible() {
+    let snapshots = fixture_snapshots();
+    let mut state = WorkstationUiState::default();
+    state.apply(WorkstationAction::ToggleHelp, snapshots.len());
+    let model = RatatuiFrameModel::new(
+        snapshots,
+        "READ-ONLY Hyperliquid spot live screen",
+        ScreenRequest::default(),
+        state,
+    );
+
+    let rendered = render_ratatui_snapshot_for_test(
+        &model,
+        RatatuiViewport {
+            width: 150,
+            height: 19,
+        },
+        RatatuiColorMode::NoColor,
+    )
+    .expect("short help overlay renders");
+
+    assert!(rendered.contains("HELP COMPACT"));
+    assert!(rendered.contains("q quit"));
+    assert!(rendered.contains("READ-ONLY public market data only"));
+}
+
+#[test]
 fn cockpit_chart_uses_real_candle_ohlc_and_volume_when_available() {
     let model = RatatuiFrameModel::new(
         fixture_snapshots(),

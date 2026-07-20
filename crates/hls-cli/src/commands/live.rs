@@ -50,6 +50,7 @@ use hls_hyperliquid::{
         subscriptions::{
             OFFICIAL_WS_SUBSCRIPTION_LIMIT, StreamKind, SubscriptionPlan, ping_message,
         },
+        validate_public_ws_url,
     },
 };
 use hls_screen::ScreenRequest;
@@ -337,21 +338,27 @@ fn after_live_tui_teardown<Recording, Preferences>(
 
 #[derive(Debug, Args)]
 pub struct LiveArgs {
+    /// Comma-separated display names or feed identifiers to stream.
     #[arg(long)]
     pub symbols: Option<String>,
 
+    /// Maximum number of volume-ranked symbols when explicit symbols are absent.
     #[arg(long, default_value_t = DEFAULT_LIVE_TOP)]
     pub top: usize,
 
+    /// Stream every currently available spot symbol within subscription limits.
     #[arg(long)]
     pub all_symbols: bool,
 
+    /// Stop after this many seconds; zero is allowed only for an interactive TUI.
     #[arg(long, default_value_t = DEFAULT_LIVE_DURATION_SECS)]
     pub duration_secs: u64,
 
+    /// Seconds between text/health refreshes.
     #[arg(long, default_value_t = DEFAULT_REFRESH_SECS)]
     pub refresh_secs: u64,
 
+    /// Render the interactive Ratatui workstation instead of periodic text rows.
     #[arg(long)]
     pub tui: bool,
 
@@ -359,18 +366,23 @@ pub struct LiveArgs {
     #[arg(long, value_enum, default_value_t = LiveTuiColor::Always)]
     pub color: LiveTuiColor,
 
+    /// Maximum public WebSocket subscriptions allowed in the selected plan.
     #[arg(long, default_value_t = DEFAULT_MAX_SUBSCRIPTIONS)]
     pub max_subscriptions: usize,
 
+    /// Secure public WebSocket URL, or a cleartext loopback URL for tests.
     #[arg(long, default_value = DEFAULT_WS_URL)]
     pub ws_url: String,
 
+    /// Built-in screen preset applied to visible rows.
     #[arg(long)]
     pub preset: Option<String>,
 
+    /// Screen DSL filter applied to visible rows.
     #[arg(long)]
     pub r#where: Option<String>,
 
+    /// Screen DSL sort expression applied to visible rows.
     #[arg(long)]
     pub sort: Option<String>,
 
@@ -378,15 +390,19 @@ pub struct LiveArgs {
     #[arg(long)]
     pub alert_playbook_file: Option<PathBuf>,
 
+    /// Persist this live session in the local recording directory.
     #[arg(long)]
     pub record: bool,
 
+    /// Store compressed raw public WebSocket messages; implies recording output selection.
     #[arg(long)]
     pub raw: bool,
 
+    /// Export normalized events to Parquet after a clean recorded run.
     #[arg(long)]
     pub parquet: bool,
 
+    /// Store normalized replayable market events; implies recording output selection.
     #[arg(long)]
     pub normalized: bool,
 
@@ -394,15 +410,19 @@ pub struct LiveArgs {
     #[arg(long)]
     pub backfill_gaps: bool,
 
+    /// Public candle interval used by opt-in coarse gap coverage.
     #[arg(long, default_value = "1m")]
     pub backfill_interval: String,
 
+    /// HTTPS public REST base URL, or an HTTP loopback URL for tests.
     #[arg(long, default_value = DEFAULT_REST_URL)]
     pub rest_url: String,
 
+    /// Stable local recording identifier; generated when omitted.
     #[arg(long)]
     pub run_id: Option<String>,
 
+    /// Local directory for recordings, registry data, exports, and TUI preferences.
     #[arg(long, default_value = ".hls")]
     pub data_dir: PathBuf,
 
@@ -418,18 +438,23 @@ pub struct LiveArgs {
 
 #[derive(Debug, Args)]
 pub struct TuiArgs {
+    /// Comma-separated display names or feed identifiers to stream.
     #[arg(long)]
     pub symbols: Option<String>,
 
+    /// Maximum number of volume-ranked symbols when explicit symbols are absent.
     #[arg(long, default_value_t = DEFAULT_TUI_TOP)]
     pub top: usize,
 
+    /// Stream every currently available spot symbol within subscription limits.
     #[arg(long)]
     pub all_symbols: bool,
 
+    /// Stop after this many seconds; zero keeps the interactive session open.
     #[arg(long, default_value_t = DEFAULT_TUI_DURATION_SECS)]
     pub duration_secs: u64,
 
+    /// Seconds between health/status refreshes.
     #[arg(long, default_value_t = DEFAULT_TUI_REFRESH_SECS)]
     pub refresh_secs: u64,
 
@@ -437,18 +462,23 @@ pub struct TuiArgs {
     #[arg(long, value_enum, default_value_t = LiveTuiColor::Always)]
     pub color: LiveTuiColor,
 
+    /// Maximum public WebSocket subscriptions allowed in the selected plan.
     #[arg(long, default_value_t = DEFAULT_MAX_SUBSCRIPTIONS)]
     pub max_subscriptions: usize,
 
+    /// Secure public WebSocket URL, or a cleartext loopback URL for tests.
     #[arg(long, default_value = DEFAULT_WS_URL)]
     pub ws_url: String,
 
+    /// Built-in screen preset applied to visible rows.
     #[arg(long)]
     pub preset: Option<String>,
 
+    /// Screen DSL filter applied to visible rows.
     #[arg(long)]
     pub r#where: Option<String>,
 
+    /// Screen DSL sort expression applied to visible rows.
     #[arg(long)]
     pub sort: Option<String>,
 
@@ -456,15 +486,19 @@ pub struct TuiArgs {
     #[arg(long)]
     pub alert_playbook_file: Option<PathBuf>,
 
+    /// Persist this TUI session in the local recording directory.
     #[arg(long)]
     pub record: bool,
 
+    /// Store compressed raw public WebSocket messages; implies recording output selection.
     #[arg(long)]
     pub raw: bool,
 
+    /// Export normalized events to Parquet after a clean recorded run.
     #[arg(long)]
     pub parquet: bool,
 
+    /// Store normalized replayable market events; implies recording output selection.
     #[arg(long)]
     pub normalized: bool,
 
@@ -472,15 +506,19 @@ pub struct TuiArgs {
     #[arg(long)]
     pub backfill_gaps: bool,
 
+    /// Public candle interval used by opt-in coarse gap coverage.
     #[arg(long, default_value = "1m")]
     pub backfill_interval: String,
 
+    /// HTTPS public REST base URL, or an HTTP loopback URL for tests.
     #[arg(long, default_value = DEFAULT_REST_URL)]
     pub rest_url: String,
 
+    /// Stable local recording identifier; generated when omitted.
     #[arg(long)]
     pub run_id: Option<String>,
 
+    /// Local directory for recordings, registry data, exports, and TUI preferences.
     #[arg(long, default_value = ".hls")]
     pub data_dir: PathBuf,
 
@@ -698,10 +736,8 @@ fn validate_live_args(args: &LiveArgs, terminals: LiveTerminalCapabilities) -> a
             "--alert-playbook-file requires the explicit TUI surface (`hls tui` or `hls live --tui`)"
         );
     }
-    if args.fixture_file.is_none()
-        && !(args.ws_url.starts_with("ws://") || args.ws_url.starts_with("wss://"))
-    {
-        bail!("--ws-url must use the ws:// or wss:// scheme");
+    if args.fixture_file.is_none() {
+        validate_public_ws_url(&args.ws_url)?;
     }
 
     validate_live_duration(args.duration_secs, args.tui, args.once, terminals)?;

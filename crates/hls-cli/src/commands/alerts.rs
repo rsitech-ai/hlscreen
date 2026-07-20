@@ -19,21 +19,26 @@ use hls_store::replay::{ReplayOptions, replay_run};
 
 #[derive(Debug, Args)]
 pub struct AlertsArgs {
+    /// Feed identifier to evaluate or use as a history filter.
     #[arg(long)]
     pub symbol: Option<String>,
 
+    /// Recorded run to replay for alert evaluation.
     #[arg(long)]
     pub run_id: Option<String>,
 
+    /// Local recording directory.
     #[arg(long, default_value = ".hls")]
     pub data_dir: PathBuf,
 
     #[arg(long, hide = true)]
     pub fixture_file: Option<PathBuf>,
 
+    /// Emit alert evaluation or history as JSON.
     #[arg(long)]
     pub json: bool,
 
+    /// Validated local JSON/TOML alert playbook; actions must remain local-only.
     #[arg(long)]
     pub playbook_file: Option<PathBuf>,
 
@@ -45,18 +50,23 @@ pub struct AlertsArgs {
     #[arg(long)]
     pub history_file: Option<PathBuf>,
 
+    /// Maximum number of history records to list.
     #[arg(long, default_value_t = 20)]
     pub limit: usize,
 
+    /// Built-in rule threshold for spread widening, in basis points.
     #[arg(long, default_value_t = 250.0)]
     pub min_spread_shock_bps: f64,
 
+    /// Built-in rule threshold for the highest allowed confidence score.
     #[arg(long, default_value_t = 70)]
     pub max_confidence_score: u8,
 
+    /// Minimum delay between repeated emissions of the same alert.
     #[arg(long, default_value_t = 60_000)]
     pub cooldown_ms: i64,
 
+    /// Assumed source cadence used by the built-in local rule.
     #[arg(long, default_value_t = 30_000)]
     pub source_interval_ms: i64,
 }

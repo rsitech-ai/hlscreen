@@ -10,11 +10,22 @@
 
 ## Data It Writes
 
-When recording is enabled, `hlscreen` writes local files under the configured data directory:
+Depending on the command and flags, `hlscreen` can write these local operator
+artifacts:
 
+- `config.toml` created by `hls init`; current runtime commands still use
+  explicit CLI flags, while `hls doctor` validates this file's safety settings.
+- A bounded doctor filesystem probe, created and removed under the selected data
+  directory.
+- `tui-preferences.toml` with display-only layout preferences.
 - Compressed raw public WebSocket messages.
 - Normalized replay JSONL events.
-- A local SQLite metadata registry.
+- A local `hls.sqlite` metadata registry, including recording metadata,
+  confidence-parity baselines, and schema-versioned candle-cache tables.
+- Local alert history such as `alerts.jsonl` when `--alert-history-file` is used.
+- Schema-versioned local analog index JSON when `--write-index` is used.
+- Analytical Parquet event/feature datasets and their `schema.json` schema
+  manifest when export is requested (the schema manifest is local metadata).
 
 These files are local operator artifacts and should not be committed to git.
 
@@ -32,7 +43,12 @@ These files are local operator artifacts and should not be committed to git.
 
 ## Network Behavior
 
-The implemented public REST metadata commands call Hyperliquid public read-only endpoints. Bounded live mode connects to the public Hyperliquid WebSocket endpoint and subscribes only to public market-data feeds. Fixture-backed commands do not require network access.
+The implemented public REST metadata commands call Hyperliquid public read-only
+endpoints over HTTPS. Bounded live mode connects to public market-data feeds
+over WSS; cleartext WS/HTTP is accepted only for literal loopback or localhost
+fixtures. Redirects from public REST calls are not followed, and successful
+REST bodies are capped at 8 MiB. Fixture-backed commands do not require network
+access.
 
 Live mode does not request user-specific streams, account data, wallet permissions, or exchange-action endpoints.
 

@@ -14,24 +14,31 @@ use crate::commands::record::parse_symbols;
 
 #[derive(Debug, Args)]
 pub struct ScreenArgs {
+    /// Recorded run to replay and screen.
     #[arg(long)]
     pub run_id: Option<String>,
 
+    /// Optional comma-separated feed identifiers to screen.
     #[arg(long)]
     pub symbols: Option<String>,
 
+    /// Maximum fixture-derived symbol count before filtering.
     #[arg(long, default_value_t = 50)]
     pub top: usize,
 
+    /// Built-in screen preset.
     #[arg(long)]
     pub preset: Option<String>,
 
+    /// Screen DSL filter expression.
     #[arg(long)]
     pub r#where: Option<String>,
 
+    /// Screen DSL sort expression.
     #[arg(long)]
     pub sort: Option<String>,
 
+    /// Local recording directory.
     #[arg(long, default_value = ".hls")]
     pub data_dir: PathBuf,
 

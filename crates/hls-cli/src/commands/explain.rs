@@ -11,15 +11,19 @@ use serde_json::json;
 
 #[derive(Debug, Args)]
 pub struct ExplainArgs {
+    /// Feed identifier whose score components should be explained.
     #[arg(long)]
     pub symbol: String,
 
+    /// Recorded run to replay.
     #[arg(long)]
     pub run_id: Option<String>,
 
+    /// Local recording directory.
     #[arg(long, default_value = ".hls")]
     pub data_dir: PathBuf,
 
+    /// Emit the explanation as JSON.
     #[arg(long)]
     pub json: bool,
 

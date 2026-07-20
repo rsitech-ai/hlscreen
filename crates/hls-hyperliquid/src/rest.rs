@@ -13,6 +13,7 @@ use time::{OffsetDateTime, format_description::well_known::Rfc2822};
 
 const DEFAULT_INFO_BASE_URL: &str = "https://api.hyperliquid.xyz";
 const DEFAULT_REST_TIMEOUT: Duration = Duration::from_secs(10);
+const MAX_PUBLIC_REST_RESPONSE_BYTES: usize = 8 * 1024 * 1024;
 
 #[derive(Debug)]
 pub enum PublicRestError {
@@ -243,10 +244,39 @@ impl HyperliquidRestClient {
             });
         }
 
-        response
-            .text()
+        if response
+            .content_length()
+            .is_some_and(|length| length > MAX_PUBLIC_REST_RESPONSE_BYTES as u64)
+        {
+            return Err(PublicRestError::Response(HlsError::Parse(format!(
+                "public REST response exceeds the {MAX_PUBLIC_REST_RESPONSE_BYTES}-byte limit"
+            ))));
+        }
+
+        let mut response = response;
+        let mut body = Vec::new();
+        while let Some(chunk) = response
+            .chunk()
             .await
-            .map_err(|err| PublicRestError::Transport(format!("response read failed: {err}")))
+            .map_err(|err| PublicRestError::Transport(format!("response read failed: {err}")))?
+        {
+            let next_length = body.len().checked_add(chunk.len()).ok_or_else(|| {
+                PublicRestError::Response(HlsError::Parse(
+                    "public REST response length overflowed".to_owned(),
+                ))
+            })?;
+            if next_length > MAX_PUBLIC_REST_RESPONSE_BYTES {
+                return Err(PublicRestError::Response(HlsError::Parse(format!(
+                    "public REST response exceeds the {MAX_PUBLIC_REST_RESPONSE_BYTES}-byte limit"
+                ))));
+            }
+            body.extend_from_slice(&chunk);
+        }
+        String::from_utf8(body).map_err(|err| {
+            PublicRestError::Response(HlsError::Parse(format!(
+                "public REST response is not valid UTF-8: {err}"
+            )))
+        })
     }
 }
 
@@ -268,6 +298,7 @@ fn parse_retry_after_at(value: &str, now: OffsetDateTime) -> Option<Duration> {
 fn default_http_client() -> reqwest::Client {
     reqwest::Client::builder()
         .timeout(DEFAULT_REST_TIMEOUT)
+        .redirect(reqwest::redirect::Policy::none())
         .build()
         .expect("static reqwest client timeout configuration should build")
 }
@@ -871,7 +902,8 @@ mod tests {
     use tokio::net::TcpListener;
 
     use super::{
-        parse_candle_snapshot, validate_candle_snapshot_response, validate_public_rest_base_url,
+        HyperliquidRestClient, MAX_PUBLIC_REST_RESPONSE_BYTES, parse_candle_snapshot,
+        validate_candle_snapshot_response, validate_public_rest_base_url,
     };
 
     #[test]
@@ -953,5 +985,94 @@ mod tests {
         let delay = error.retry_after().expect("HTTP-date is typed");
         assert!(delay > Duration::from_secs(60), "delay was {delay:?}");
         assert!(delay <= Duration::from_secs(120), "delay was {delay:?}");
+    }
+
+    #[tokio::test]
+    async fn public_rest_client_does_not_follow_redirects() {
+        let target = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let target_address = target.local_addr().unwrap();
+        let redirect = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let redirect_address = redirect.local_addr().unwrap();
+        let server = tokio::spawn(async move {
+            let (mut stream, _) = redirect.accept().await.unwrap();
+            let mut request = vec![0_u8; 8_192];
+            let _ = stream.read(&mut request).await.unwrap();
+            let response = format!(
+                "HTTP/1.1 307 Temporary Redirect\r\nLocation: http://{target_address}/info\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+            );
+            stream.write_all(response.as_bytes()).await.unwrap();
+        });
+
+        let error = HyperliquidRestClient::new(format!("http://{redirect_address}"))
+            .post_info_attempt(serde_json::json!({"type": "test"}))
+            .await
+            .expect_err("redirects must fail closed");
+        server.await.unwrap();
+
+        assert_eq!(
+            error.status(),
+            Some(reqwest::StatusCode::TEMPORARY_REDIRECT)
+        );
+        assert!(
+            tokio::time::timeout(Duration::from_millis(100), target.accept())
+                .await
+                .is_err(),
+            "redirect target must not receive a request"
+        );
+    }
+
+    #[tokio::test]
+    async fn public_rest_client_rejects_declared_oversized_response() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        let server = tokio::spawn(async move {
+            let (mut stream, _) = listener.accept().await.unwrap();
+            let mut request = vec![0_u8; 8_192];
+            let _ = stream.read(&mut request).await.unwrap();
+            let response = format!(
+                "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                MAX_PUBLIC_REST_RESPONSE_BYTES + 1
+            );
+            stream.write_all(response.as_bytes()).await.unwrap();
+        });
+
+        let error = HyperliquidRestClient::new(format!("http://{address}"))
+            .post_info_attempt(serde_json::json!({"type": "test"}))
+            .await
+            .expect_err("oversized response must fail closed");
+        server.await.unwrap();
+
+        assert!(error.to_string().contains("exceeds"));
+    }
+
+    #[tokio::test]
+    async fn public_rest_client_rejects_chunked_oversized_response() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        let server = tokio::spawn(async move {
+            let (mut stream, _) = listener.accept().await.unwrap();
+            let mut request = vec![0_u8; 8_192];
+            let _ = stream.read(&mut request).await.unwrap();
+            stream
+                .write_all(
+                    b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n",
+                )
+                .await
+                .unwrap();
+            let body = vec![b'x'; MAX_PUBLIC_REST_RESPONSE_BYTES + 1];
+            let _ = stream
+                .write_all(format!("{:x}\r\n", body.len()).as_bytes())
+                .await;
+            let _ = stream.write_all(&body).await;
+            let _ = stream.write_all(b"\r\n0\r\n\r\n").await;
+        });
+
+        let error = HyperliquidRestClient::new(format!("http://{address}"))
+            .post_info_attempt(serde_json::json!({"type": "test"}))
+            .await
+            .expect_err("chunked oversized response must fail closed");
+        server.await.unwrap();
+
+        assert!(error.to_string().contains("exceeds"));
     }
 }

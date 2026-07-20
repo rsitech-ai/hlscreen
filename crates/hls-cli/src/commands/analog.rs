@@ -9,21 +9,27 @@ use hls_store::analog::{
 
 #[derive(Debug, Args)]
 pub struct AnalogArgs {
+    /// Target feed identifier to search when building an index from a replay.
     #[arg(long)]
     pub symbol: Option<String>,
 
+    /// Recorded run to index and search.
     #[arg(long)]
     pub run_id: Option<String>,
 
+    /// Local recording directory.
     #[arg(long, default_value = ".hls")]
     pub data_dir: PathBuf,
 
+    /// Maximum number of nearest matches to return.
     #[arg(long, default_value_t = 5)]
     pub limit: usize,
 
+    /// Minimum candidate count required before returning matches.
     #[arg(long, default_value_t = 1)]
     pub min_candidates: usize,
 
+    /// Emit the report as JSON.
     #[arg(long)]
     pub json: bool,
 

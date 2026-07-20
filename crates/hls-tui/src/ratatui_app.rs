@@ -3835,7 +3835,7 @@ fn render_help_overlay(
     let popup = centered_rect(76, 60, area);
     frame.render_widget(Clear, popup);
     let state = &model.ui_state;
-    let lines = if popup.width < 64 {
+    let lines = if popup.width < 64 || popup.height < 20 {
         compact_help_overlay_lines(state, model, color_mode)
     } else {
         vec![

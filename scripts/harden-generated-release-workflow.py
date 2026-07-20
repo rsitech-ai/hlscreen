@@ -57,6 +57,21 @@ def harden(contents: str) -> str:
     )
     contents = replace_once(
         contents,
+        '''      - name: Install dist
+        # we specify bash to get pipefail; it guards against the `curl` command
+        # failing. otherwise `sh` won't catch that `curl` returned non-0
+        shell: bash
+        run: "curl --proto '=https' --tlsv1.2 -LsSf https://github.com/axodotdev/cargo-dist/releases/download/v0.32.0/cargo-dist-installer.sh | sh"
+''',
+        '''      - name: Install dist
+        shell: bash
+        # cargo-dist 0.32.0 requires reviewed post-generation security fixes.
+        run: cargo install cargo-dist --version 0.32.0 --locked
+''',
+        "plan dist installer",
+    )
+    contents = replace_once(
+        contents,
         "      publishing: ${{ !github.event.pull_request }}\n"
         "    env:\n"
         "      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}\n"
@@ -113,11 +128,11 @@ def harden(contents: str) -> str:
         '''      - name: Install dist (Unix)
         if: runner.os != 'Windows'
         shell: bash
-        run: "curl --proto '=https' --tlsv1.2 -LsSf https://github.com/axodotdev/cargo-dist/releases/download/v0.32.0/cargo-dist-installer.sh | sh"
+        run: cargo install cargo-dist --version 0.32.0 --locked
       - name: Install dist (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
-        run: "irm https://github.com/axodotdev/cargo-dist/releases/download/v0.32.0/cargo-dist-installer.ps1 | iex"
+        run: cargo install cargo-dist --version 0.32.0 --locked
 ''',
         "local dist installer",
     )
@@ -132,11 +147,11 @@ def harden(contents: str) -> str:
         '''      - name: Install cargo-auditable (Unix)
         if: runner.os != 'Windows'
         shell: bash
-        run: "curl --proto '=https' --tlsv1.2 -LsSf https://github.com/rust-secure-code/cargo-auditable/releases/download/v0.7.5/cargo-auditable-installer.sh | sh"
+        run: cargo install cargo-auditable --version 0.7.5 --locked
       - name: Install cargo-auditable (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
-        run: "irm https://github.com/rust-secure-code/cargo-auditable/releases/download/v0.7.5/cargo-auditable-installer.ps1 | iex"
+        run: cargo install cargo-auditable --version 0.7.5 --locked
 ''',
         "cargo-auditable installer",
     )
@@ -185,6 +200,20 @@ def harden(contents: str) -> str:
         "steps.cargo-cyclonedx.output.paths",
         "steps.cargo-cyclonedx.outputs.paths",
         "cargo-cyclonedx output",
+    )
+    contents = replace_once(
+        contents,
+        '''      - name: Install cargo-cyclonedx
+        # we specify bash to get pipefail; it guards against the `curl` command
+        # failing. otherwise `sh` won't catch that `curl` return non-0
+        run: "curl --proto '=https' --tlsv1.2 -LsSf https://github.com/CycloneDX/cyclonedx-rust-cargo/releases/download/cargo-cyclonedx-0.5.5/cargo-cyclonedx-installer.sh | sh"
+        shell: bash
+''',
+        '''      - name: Install cargo-cyclonedx
+        run: cargo install cargo-cyclonedx --version 0.5.5 --locked
+        shell: bash
+''',
+        "cargo-cyclonedx installer",
     )
     contents = replace_once(
         contents,
