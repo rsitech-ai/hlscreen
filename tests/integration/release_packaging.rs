@@ -689,8 +689,8 @@ fn public_docs_state_identity_contribution_and_build_contracts() {
     assert!(readme.contains("independent open-source project"));
     assert!(readme.contains("not affiliated with, endorsed by, or sponsored by Hyperliquid"));
     assert!(readme.contains("Developer ID Application"));
-    assert!(readme.contains("not notarized"));
-    assert!(readme.contains("does not claim notarization or Gatekeeper validation"));
+    assert!(readme.contains("the binary is also notarized"));
+    assert!(readme.contains("Notarized Developer ID"));
     for prerequisite in [
         "Git",
         "Python 3",
