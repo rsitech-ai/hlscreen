@@ -160,25 +160,12 @@ fn dependency_attribution_is_deterministic_and_matches_release_targets() {
 }
 
 #[test]
-fn vendored_spec_kit_has_source_version_scope_and_complete_license() {
+fn third_party_notices_cover_packaged_dependency_notices() {
     let notice = read("THIRD_PARTY_NOTICES.md");
-    let license = read("third_party/spec-kit/LICENSE");
-    let integration = read(".specify/integration.json");
-    let init_options = read(".specify/init-options.json");
-    let manifest = read(".specify/integrations/speckit.manifest.json");
     let notice_manifest = read("third_party/notices/manifest.json");
     let parquet_notice = read("third_party/notices/parquet-59.1.0-NOTICE.txt");
     let notice_checker = read("scripts/check-third-party-notices.py");
 
-    assert!(integration.contains("\"version\": \"0.11.1\""));
-    assert!(init_options.contains("\"speckit_version\": \"0.11.1\""));
-    assert!(manifest.contains("\"version\": \"0.11.1\""));
-    assert!(notice.contains("Spec Kit 0.11.1"));
-    assert!(notice.contains("https://github.com/github/spec-kit/tree/v0.11.1"));
-    assert!(notice.contains("`.specify/`"));
-    assert!(notice.contains("`.agents/skills/speckit-*/`"));
-    assert!(notice.contains("Copyright GitHub, Inc."));
-    assert!(notice.contains("third_party/spec-kit/LICENSE"));
     assert!(notice.contains("Apache Arrow"));
     assert!(notice.contains("Copyright 2016-2026 The Apache Software Foundation"));
     assert!(notice.contains("https://github.com/olliemath/chronoutil"));
@@ -197,10 +184,6 @@ fn vendored_spec_kit_has_source_version_scope_and_complete_license() {
     assert!(notice_checker.contains("\"--all-features\","));
     assert!(notice_checker.contains("untracked packaged NOTICE files"));
     assert!(notice_checker.contains("does not match its packaged source"));
-    assert!(license.contains("Copyright GitHub, Inc."));
-    assert!(license.contains("Permission is hereby granted, free of charge"));
-    assert!(license.contains("THE SOFTWARE IS PROVIDED \"AS IS\""));
-    assert!(license.contains("LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE"));
 }
 
 #[test]
@@ -231,21 +214,61 @@ fn local_release_archive_stages_project_and_third_party_notices() {
 }
 
 #[test]
-fn source_archive_excludes_maintainer_journals_and_agent_state() {
-    let attributes = read(".gitattributes");
-    for path in [
-        "/.agents export-ignore",
-        "/.specify export-ignore",
-        "/memory export-ignore",
-        "/plans export-ignore",
-        "/reflections export-ignore",
-        "/docs/agent-memory export-ignore",
-        "/docs/superpowers export-ignore",
-        "/PLAN.md export-ignore",
-        "/MEMORY.md export-ignore",
-        "/TODO.md export-ignore",
-    ] {
-        assert!(attributes.contains(path), "source archive includes {path}");
+fn maintainer_journals_and_agent_state_are_not_tracked() {
+    let output = Command::new("git")
+        .args(["ls-files", "-z"])
+        .current_dir(repo_root())
+        .output()
+        .expect("run git ls-files");
+    assert!(output.status.success(), "git ls-files failed");
+    let tracked = String::from_utf8_lossy(&output.stdout);
+
+    let blocked_prefixes = [
+        ".agents/",
+        ".claude/",
+        ".codex/",
+        ".cursor/",
+        ".specify/",
+        ".superpowers/",
+        "memory/",
+        "plans/",
+        "reflections/",
+        "specs/",
+        "docs/agent-memory/",
+        "docs/superpowers/",
+        "docs/reports/",
+        "third_party/spec-kit/",
+    ];
+    let blocked_files = [
+        "AGENTS.md",
+        "MEMORY.md",
+        "PLAN.md",
+        "TODO.md",
+        "SOUL.md",
+        "USER.md",
+        "docs/OPEN_SOURCE_AUDIT.md",
+        "docs/OPEN_SOURCE_CHECKLIST.md",
+        "docs/DEVELOPMENT_TOOLING.md",
+    ];
+    for path in tracked.split('\0').filter(|path| !path.is_empty()) {
+        assert!(
+            !blocked_prefixes
+                .iter()
+                .any(|prefix| path.starts_with(prefix)),
+            "development-assistant or journal path is tracked: {path}",
+        );
+        assert!(
+            !blocked_files.contains(&path),
+            "development-assistant or journal file is tracked: {path}",
+        );
+    }
+
+    let ignore = read(".gitignore");
+    for entry in [".cursor/", ".specify/", "/reflections/", "/PLAN.md"] {
+        assert!(
+            ignore.contains(entry),
+            ".gitignore lost the local-state guard for {entry}",
+        );
     }
 }
 
@@ -420,7 +443,6 @@ fn release_validation_scripts_cover_local_artifacts_checksums_and_public_readine
     assert!(public_scan.contains("docs/assets/screenshots/live-screen.svg"));
     assert!(public_scan.contains("docs/evidence/soak/sota-allpairs-20260720-15m.json"));
     assert!(public_scan.contains("scripts/harden-generated-release-workflow.py"));
-    assert!(public_scan.contains("Release tag created"));
     assert!(public_scan.contains("private_path_pattern"));
     assert!(public_scan.contains("credential_pattern"));
     assert!(public_scan.contains("git grep -n -E -e \"$private_path_pattern\""));
@@ -666,8 +688,9 @@ fn public_docs_state_identity_contribution_and_build_contracts() {
 
     assert!(readme.contains("independent open-source project"));
     assert!(readme.contains("not affiliated with, endorsed by, or sponsored by Hyperliquid"));
-    assert!(readme.contains("linker-generated ad hoc signature"));
-    assert!(readme.contains("does not claim Developer ID"));
+    assert!(readme.contains("Developer ID Application"));
+    assert!(readme.contains("not notarized"));
+    assert!(readme.contains("does not claim notarization or Gatekeeper validation"));
     for prerequisite in [
         "Git",
         "Python 3",
@@ -774,7 +797,6 @@ fn public_routes_are_actionable_and_separate_security_conduct_and_questions() {
 fn public_docs_define_fixture_tooling_release_and_unreleased_contracts() {
     let fixtures = read("tests/fixtures/README.md");
     let data_format = read("docs/data-format.md");
-    let tooling = read("docs/DEVELOPMENT_TOOLING.md");
     let docs_index = read("docs/README.md");
     let releasing = read("docs/RELEASING.md");
     let changelog = read("CHANGELOG.md");
@@ -806,21 +828,14 @@ fn public_docs_define_fixture_tooling_release_and_unreleased_contracts() {
         assert!(fixtures.contains(prohibited));
     }
     assert!(data_format.contains("tests/fixtures/README.md"));
-    assert!(tooling.contains("developer-only"));
-    assert!(tooling.contains("integrity inventories"));
-    assert!(tooling.contains("project-authored"));
-    assert!(tooling.contains("reviewed, pinned update"));
-    assert!(tooling.contains("Shell and PowerShell"));
-    assert!(docs_index.contains("DEVELOPMENT_TOOLING.md"));
     assert!(docs_index.contains("2026-07-20"));
-    assert!(docs_index.contains("specs/004-advanced-tui-workstation"));
-    assert!(docs_index.contains("specs/002-microstructure-workstation"));
     assert!(
         releasing.contains("GitHub Releases is the only supported binary distribution channel")
     );
     assert!(releasing.contains("Do not redistribute workflow artifacts as releases"));
     assert!(changelog.contains("## 0.1.0 - 2026-07-20"));
     assert!(changelog.contains("## 0.1.1 - 2026-07-20"));
+    assert!(changelog.contains("## 0.1.2 - 2026-07-21"));
     assert!(!changelog.contains("has not been published"));
 
     assert_relative_markdown_links_exist(&[
@@ -832,10 +847,10 @@ fn public_docs_define_fixture_tooling_release_and_unreleased_contracts() {
         "MAINTAINERS.md",
         "docs/README.md",
         "docs/data-format.md",
-        "docs/DEVELOPMENT_TOOLING.md",
         "docs/RELEASING.md",
         "docs/releases/v0.1.0.md",
         "docs/releases/v0.1.1.md",
+        "docs/releases/v0.1.2.md",
         "tests/fixtures/README.md",
     ]);
 }
@@ -849,17 +864,13 @@ fn public_readiness_gate_is_fail_closed_and_secret_safe() {
         "MAINTAINERS.md",
         "THIRD_PARTY_LICENSES.txt",
         "THIRD_PARTY_NOTICES.md",
-        "third_party/spec-kit/LICENSE",
         "third_party/notices/manifest.json",
-        "docs/DEVELOPMENT_TOOLING.md",
-        "docs/OPEN_SOURCE_AUDIT.md",
         "docs/releases/v0.1.0.md",
         "docs/releases/v0.1.1.md",
+        "docs/releases/v0.1.2.md",
         "tests/fixtures/README.md",
         "scripts/check.sh",
         "scripts/check-history-secrets.sh",
-        "scripts/check-public-surface.sh",
-        "scripts/test-public-surface-gate.py",
         "scripts/summarize-git-identities.py",
         "scripts/summarize-git-history-privacy.py",
         "scripts/test-history-privacy.py",
@@ -1019,209 +1030,5 @@ person@example.test\tperson@example.test\n",
     assert!(
         stderr.contains("exactly 8.30.1"),
         "unexpected error: {stderr}"
-    );
-}
-
-#[test]
-fn hosted_public_surface_gate_is_bounded_read_only_and_mode_aware() {
-    let surface = read("scripts/check-public-surface.sh");
-    let audit = read("docs/OPEN_SOURCE_AUDIT.md");
-    let ci = read(".github/workflows/ci.yml");
-
-    let embedded_python = surface
-        .rsplit("<<'PY'\n")
-        .next()
-        .and_then(|source| source.rsplit_once("\nPY").map(|(source, _)| source))
-        .expect("surface gate has embedded Python");
-    let syntax = Command::new("python3")
-        .args([
-            "-c",
-            "import sys; compile(sys.argv[1], '<public-surface>', 'exec')",
-            embedded_python,
-        ])
-        .output()
-        .expect("compile embedded surface-gate Python");
-    assert!(
-        syntax.status.success(),
-        "embedded surface-gate Python is invalid: {}",
-        String::from_utf8_lossy(&syntax.stderr),
-    );
-
-    for contract in [
-        "private-candidate|public",
-        "expected_sha",
-        "git diff --quiet",
-        "origin/main",
-        "git remote get-url origin",
-        "origin does not match HLS_GITHUB_REPOSITORY",
-        "merge-base --is-ancestor",
-        "local origin/main does not match the hosted main SHA",
-        "public main does not point to expected_sha",
-        "private candidate SHA is not hosted on a branch or open pull request",
-        "visibility",
-        "default_branch",
-        "actions/runs",
-        "head_sha",
-        "steps",
-        "collaborators",
-        "hooks",
-        "keys",
-        "actions/secrets",
-        "actions/variables",
-        "environments",
-        "pages",
-        "deployments",
-        "releases",
-        "artifacts",
-        "historical Actions runs/logs outside expected_sha remain",
-        "candidate Actions logs contain suspicious content",
-        "zipfile.ZipFile",
-        "packages",
-        "issues/comments",
-        "pulls/comments",
-        "pulls?state=open",
-        "OPEN_SOURCE_AUDIT.md",
-        "rulesets",
-        "branches/main/protection",
-        "security_and_analysis",
-        "dependency_graph",
-        "dependabot/alerts",
-        "vulnerability-alerts",
-        "private-vulnerability-reporting",
-        "required_conversation_resolution",
-        "allow_force_pushes",
-        "allow_deletions",
-        "required hosted CI jobs did not all execute successfully",
-        "hosted CI job inventory is not exact",
-        "no successful hosted Release run exists at expected_sha",
-        "required hosted Release jobs did not all execute successfully",
-        "candidate Release artifact inventory is not exact",
-        "candidate Release artifact contents are invalid",
-        "actions/artifacts/{artifact_id}/zip",
-        "actions/permissions/selected-actions",
-        "sha_pinning_required",
-        "issues?state=all",
-        "discussions?per_page=100",
-        "--paginate",
-        "--slurp",
-        "Packages inventory needs owner UI confirmation",
-        "RETIRE_BEFORE_PUBLIC",
-        "INTEGRATED_IN_CLOSEOUT_CLOSE_BEFORE_PUBLIC",
-        "gh api",
-    ] {
-        assert!(surface.contains(contract), "surface gate omits {contract}");
-    }
-    for mutation in [
-        "gh api --method",
-        "gh repo edit",
-        "gh pr close",
-        "gh release create",
-    ] {
-        assert!(
-            !surface.contains(mutation),
-            "surface gate can mutate: {mutation}"
-        );
-    }
-    assert!(
-        surface.contains(
-            "Owner confirmation: Discussions and its answerable Q&A category are enabled"
-        ),
-        "surface gate must verify the standalone Discussions/Q&A confirmation"
-    );
-    assert!(
-        surface.contains(
-            "Owner confirmation: private vulnerability reporting enabled before public launch"
-        ),
-        "surface gate must verify the standalone private vulnerability reporting confirmation"
-    );
-    for marker in [
-        "Owner confirmation: Discussions and its answerable Q&A category are enabled",
-        "Owner confirmation: private vulnerability reporting enabled before public launch",
-    ] {
-        assert!(
-            audit.contains(marker),
-            "real publication audit must preserve the exact marker: {marker}"
-        );
-    }
-    assert!(
-        !surface
-            .contains("Owner confirmation: Discussions Q&A and private vulnerability reporting"),
-        "surface gate must not couple independently enabled Discussions and PVR controls"
-    );
-    assert!(!surface.contains("secret.value"));
-    assert!(!surface.contains("variable.value"));
-
-    for required_context in [
-        "GitHub Actions security",
-        "RustSec advisory scan",
-        "Dependency license and source policy",
-        "PTY TUI (ubuntu-24.04)",
-        "PTY TUI (macos-15)",
-        "Rust workspace",
-    ] {
-        assert!(
-            surface.contains(required_context),
-            "surface policy omits required CI context {required_context}",
-        );
-        let workflow_context = if required_context.starts_with("PTY TUI") {
-            "name: PTY TUI (${{ matrix.os }})"
-        } else {
-            required_context
-        };
-        assert!(
-            ci.contains(workflow_context),
-            "CI workflow omits required surface context {required_context}",
-        );
-    }
-
-    let release = read(".github/workflows/release.yml");
-    let workflow_actions: std::collections::BTreeSet<_> = ci
-        .lines()
-        .chain(release.lines())
-        .filter_map(|line| line.trim().strip_prefix("uses:"))
-        .filter_map(|value| value.split_whitespace().next())
-        .collect();
-    let expected_action_allowlist: std::collections::BTreeSet<_> = [
-        "actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10",
-        "actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9",
-        "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
-        "actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c",
-        "actions/attest@a1948c3f048ba23858d222213b7c278aabede763",
-        "astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990",
-    ]
-    .into_iter()
-    .collect();
-    assert_eq!(workflow_actions, expected_action_allowlist);
-    for action in expected_action_allowlist {
-        assert!(
-            surface.contains(action),
-            "surface policy omits workflow action {action}",
-        );
-    }
-
-    let output = Command::new("bash")
-        .args(["scripts/check-public-surface.sh", "wrong", "deadbeef"])
-        .current_dir(repo_root())
-        .output()
-        .expect("run public surface gate with invalid mode");
-    assert!(!output.status.success(), "invalid mode unexpectedly passed");
-    assert!(String::from_utf8_lossy(&output.stderr).contains(
-        "Usage: scripts/check-public-surface.sh [private-candidate|public] <expected-sha>"
-    ),);
-
-    let mock_test = Command::new("python3")
-        .arg("scripts/test-public-surface-gate.py")
-        .current_dir(repo_root())
-        .output()
-        .expect("run deterministic surface-gate API tests");
-    assert!(
-        mock_test.status.success(),
-        "surface-gate API tests failed:\nstdout:\n{}\nstderr:\n{}",
-        String::from_utf8_lossy(&mock_test.stdout),
-        String::from_utf8_lossy(&mock_test.stderr),
-    );
-    assert!(
-        String::from_utf8_lossy(&mock_test.stdout)
-            .contains("public_surface_mock_tests=passed cases=35")
     );
 }

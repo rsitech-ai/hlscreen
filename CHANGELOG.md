@@ -6,6 +6,31 @@ This project follows a practical changelog format and intends to use semantic ve
 
 ## Unreleased
 
+## 0.1.2 - 2026-07-21
+
+### Changed
+
+- Removed the remaining development-assistant working material from the
+  repository: vendored Spec Kit workflow tooling (`.specify/`, `.agents/`,
+  `specs/`, `third_party/spec-kit/`), internal release dossiers and session
+  audit reports (`docs/reports/` and the internal open-source audit and
+  checklist documents), the internal development-tooling provenance note, and
+  the `.mailmap` remap that exposed a personal email address. Product source,
+  tests, fixtures, public documentation, and release evidence are unchanged.
+- Regenerated `THIRD_PARTY_LICENSES.txt` and `THIRD_PARTY_NOTICES.md` without
+  the removed vendored Spec Kit attribution; all Rust dependency licenses and
+  packaged notices are preserved.
+- Retired the internal hosted-surface publication gate scripts; the public
+  readiness, history secret-scan, packaging, and artifact smoke gates remain.
+
+### Fixed
+
+- CI installs `uv` from PyPI with a pinned version instead of a third-party
+  GitHub Action, so the workflow runs under a GitHub-owned-actions-only
+  policy.
+- The oversized boolean filter regression test stays under Linux's
+  per-argument size limit while still exceeding the parser complexity guard.
+
 ## 0.1.1 - 2026-07-20
 
 ### Changed

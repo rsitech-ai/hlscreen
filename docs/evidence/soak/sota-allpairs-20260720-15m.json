@@ -1,10 +1,10 @@
 {
   "schema_version": 2,
-  "run_id": "oss-release-20260720",
-  "commit": "4306d6b28b69d5dee2f24e7ca844f989c77f96df",
+  "run_id": "oss-release-v011-20260721",
+  "commit": "d95e226958f71f2595d8246c4289f6e89dea306f",
   "git_dirty": false,
-  "binary_sha256": "3eae3a09645007630198afca7777ad7ca07c51fa66755ab78eb6f470dfb6d4c2",
-  "runtime_source_sha256": "d1b4dac41ba552dce10418d2db5f36c7e2fe813a24662be648c95bc9005710ec",
+  "binary_sha256": "921edca456aface3554732636bafecfcb9a82760f239b6facd9921cf2e78fcce",
+  "runtime_source_sha256": "d9c66af13b23bc18863b24a7a9d68fed073754ec9b515c0312f973112ba13f24",
   "build": {
     "rustc": "rustc 1.88.0 (6b00bc388 2025-06-23)",
     "cargo": "cargo 1.88.0 (873a06493 2025-05-10)",
@@ -23,216 +23,216 @@
     "--normalized",
     "--backfill-gaps",
     "--run-id",
-    "oss-release-20260720",
+    "oss-release-v011-20260721",
     "--data-dir",
     "<data-dir>",
     "--color",
     "never"
   ],
-  "started_at": "2026-07-20T14:30:20Z",
-  "ended_at": "2026-07-20T14:45:22Z",
-  "duration_secs": 902,
+  "started_at": "2026-07-20T23:49:59Z",
+  "ended_at": "2026-07-21T00:05:02Z",
+  "duration_secs": 903,
   "exit_code": 0,
   "clean_shutdown": true,
   "samples": [
     {
       "elapsed_secs": 0,
-      "cpu_percent": 0,
+      "cpu_percent": 0.0,
       "rss_bytes": 32768,
       "data_bytes": 0
     },
     {
-      "elapsed_secs": 31,
-      "cpu_percent": 1.7,
-      "rss_bytes": 40976384,
-      "data_bytes": 4284416
+      "elapsed_secs": 30,
+      "cpu_percent": 0.2,
+      "rss_bytes": 27901952,
+      "data_bytes": 4005888
     },
     {
       "elapsed_secs": 60,
-      "cpu_percent": 0.3,
-      "rss_bytes": 35569664,
-      "data_bytes": 7155712
+      "cpu_percent": 0.2,
+      "rss_bytes": 22577152,
+      "data_bytes": 5943296
     },
     {
       "elapsed_secs": 90,
-      "cpu_percent": 0.2,
-      "rss_bytes": 37928960,
-      "data_bytes": 10301440
+      "cpu_percent": 0.1,
+      "rss_bytes": 20430848,
+      "data_bytes": 8605696
     },
     {
       "elapsed_secs": 120,
-      "cpu_percent": 0.3,
-      "rss_bytes": 39321600,
-      "data_bytes": 11350016
+      "cpu_percent": 0.1,
+      "rss_bytes": 22478848,
+      "data_bytes": 10600448
     },
     {
       "elapsed_secs": 150,
-      "cpu_percent": 0.6,
-      "rss_bytes": 36405248,
-      "data_bytes": 14848000
+      "cpu_percent": 1.7,
+      "rss_bytes": 20971520,
+      "data_bytes": 12816384
     },
     {
       "elapsed_secs": 180,
-      "cpu_percent": 0.2,
-      "rss_bytes": 39108608,
-      "data_bytes": 15896576
+      "cpu_percent": 0.4,
+      "rss_bytes": 19398656,
+      "data_bytes": 14778368
     },
     {
       "elapsed_secs": 210,
-      "cpu_percent": 0.3,
-      "rss_bytes": 42401792,
-      "data_bytes": 18345984
+      "cpu_percent": 0.4,
+      "rss_bytes": 22478848,
+      "data_bytes": 17006592
     },
     {
       "elapsed_secs": 240,
       "cpu_percent": 0.6,
-      "rss_bytes": 41910272,
-      "data_bytes": 20443136
+      "rss_bytes": 23232512,
+      "data_bytes": 18964480
     },
     {
       "elapsed_secs": 270,
-      "cpu_percent": 0.9,
-      "rss_bytes": 31342592,
-      "data_bytes": 22888448
+      "cpu_percent": 0.4,
+      "rss_bytes": 17416192,
+      "data_bytes": 20885504
     },
     {
       "elapsed_secs": 300,
-      "cpu_percent": 0.2,
-      "rss_bytes": 34291712,
-      "data_bytes": 24985600
+      "cpu_percent": 0.5,
+      "rss_bytes": 23429120,
+      "data_bytes": 23207936
     },
     {
       "elapsed_secs": 330,
-      "cpu_percent": 0.7,
-      "rss_bytes": 34897920,
-      "data_bytes": 27435008
+      "cpu_percent": 0.4,
+      "rss_bytes": 17301504,
+      "data_bytes": 25128960
     },
     {
       "elapsed_secs": 360,
-      "cpu_percent": 0.5,
-      "rss_bytes": 34537472,
-      "data_bytes": 29532160
+      "cpu_percent": 0.6,
+      "rss_bytes": 20103168,
+      "data_bytes": 27471872
     },
     {
       "elapsed_secs": 390,
-      "cpu_percent": 1.5,
-      "rss_bytes": 36814848,
-      "data_bytes": 31629312
+      "cpu_percent": 0.4,
+      "rss_bytes": 17661952,
+      "data_bytes": 29487104
     },
     {
       "elapsed_secs": 420,
-      "cpu_percent": 0.9,
-      "rss_bytes": 37978112,
-      "data_bytes": 34099200
+      "cpu_percent": 0.4,
+      "rss_bytes": 30343168,
+      "data_bytes": 31801344
     },
     {
       "elapsed_secs": 450,
-      "cpu_percent": 0.8,
-      "rss_bytes": 35962880,
-      "data_bytes": 36196352
+      "cpu_percent": 0.4,
+      "rss_bytes": 21807104,
+      "data_bytes": 33718272
     },
     {
       "elapsed_secs": 480,
-      "cpu_percent": 0.7,
-      "rss_bytes": 40878080,
-      "data_bytes": 38658048
+      "cpu_percent": 0.2,
+      "rss_bytes": 21577728,
+      "data_bytes": 35708928
     },
     {
       "elapsed_secs": 510,
-      "cpu_percent": 0.6,
-      "rss_bytes": 42369024,
-      "data_bytes": 40755200
+      "cpu_percent": 0.4,
+      "rss_bytes": 16285696,
+      "data_bytes": 37990400
     },
     {
       "elapsed_secs": 540,
-      "cpu_percent": 1.7,
-      "rss_bytes": 41418752,
-      "data_bytes": 43212800
+      "cpu_percent": 0.2,
+      "rss_bytes": 21676032,
+      "data_bytes": 39886848
     },
     {
       "elapsed_secs": 570,
-      "cpu_percent": 2.1,
-      "rss_bytes": 34308096,
-      "data_bytes": 45309952
+      "cpu_percent": 0.1,
+      "rss_bytes": 36093952,
+      "data_bytes": 42160128
     },
     {
       "elapsed_secs": 600,
-      "cpu_percent": 0.1,
-      "rss_bytes": 22609920,
-      "data_bytes": 47407104
+      "cpu_percent": 0.2,
+      "rss_bytes": 30048256,
+      "data_bytes": 44146688
     },
     {
       "elapsed_secs": 630,
-      "cpu_percent": 0,
-      "rss_bytes": 30818304,
-      "data_bytes": 49848320
+      "cpu_percent": 2.0,
+      "rss_bytes": 36732928,
+      "data_bytes": 46620672
     },
     {
       "elapsed_secs": 660,
       "cpu_percent": 0.2,
-      "rss_bytes": 33751040,
-      "data_bytes": 51945472
+      "rss_bytes": 33161216,
+      "data_bytes": 48709632
     },
     {
       "elapsed_secs": 690,
-      "cpu_percent": 0.1,
-      "rss_bytes": 38649856,
-      "data_bytes": 54407168
+      "cpu_percent": 0.4,
+      "rss_bytes": 30097408,
+      "data_bytes": 50728960
     },
     {
       "elapsed_secs": 720,
-      "cpu_percent": 1.1,
-      "rss_bytes": 38699008,
-      "data_bytes": 56504320
+      "cpu_percent": 0.5,
+      "rss_bytes": 37683200,
+      "data_bytes": 53125120
     },
     {
       "elapsed_secs": 750,
-      "cpu_percent": 0.4,
-      "rss_bytes": 37617664,
-      "data_bytes": 58957824
+      "cpu_percent": 1.2,
+      "rss_bytes": 31817728,
+      "data_bytes": 55128064
     },
     {
       "elapsed_secs": 780,
-      "cpu_percent": 0.1,
-      "rss_bytes": 33177600,
-      "data_bytes": 61054976
+      "cpu_percent": 0.0,
+      "rss_bytes": 30949376,
+      "data_bytes": 57556992
     },
     {
       "elapsed_secs": 810,
-      "cpu_percent": 1,
-      "rss_bytes": 36995072,
-      "data_bytes": 63508480
+      "cpu_percent": 0.4,
+      "rss_bytes": 27967488,
+      "data_bytes": 59559936
     },
     {
       "elapsed_secs": 840,
-      "cpu_percent": 1.1,
-      "rss_bytes": 35553280,
-      "data_bytes": 65605632
+      "cpu_percent": 1.2,
+      "rss_bytes": 36306944,
+      "data_bytes": 61972480
     },
     {
       "elapsed_secs": 870,
-      "cpu_percent": 0.3,
-      "rss_bytes": 32587776,
-      "data_bytes": 67702784
+      "cpu_percent": 0.1,
+      "rss_bytes": 31014912,
+      "data_bytes": 63983616
     },
     {
       "elapsed_secs": 900,
-      "cpu_percent": 0,
-      "rss_bytes": 28164096,
-      "data_bytes": 70156288
+      "cpu_percent": 0.2,
+      "rss_bytes": 35389440,
+      "data_bytes": 66387968
     },
     {
-      "elapsed_secs": 902,
-      "cpu_percent": 0,
+      "elapsed_secs": 903,
+      "cpu_percent": 0.0,
       "rss_bytes": 0,
-      "data_bytes": 70344704
+      "data_bytes": 66564096
     }
   ],
   "summary": {
     "symbols": 314,
     "subscriptions": 943,
-    "ws_messages": 314923,
-    "market_events": 322858,
+    "ws_messages": 300827,
+    "market_events": 308985,
     "reconnects": 0,
     "data_gaps": 0,
     "unrepaired_gaps": 0,
