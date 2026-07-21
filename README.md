@@ -175,11 +175,12 @@ no prebuilt archive is claimed for them.
 
 Starting with `v0.1.1`, the Apple Silicon Mach-O binary is signed with the
 maintainer's `Developer ID Application` identity (Team `2NY8A789TN`) with the
-hardened runtime enabled, but the archive is **not notarized**. Gatekeeper may
-therefore still warn on or block a quarantined download; verify the SHA-256
-checksum above and, if needed, inspect the signature with
-`codesign --verify --strict --display -vv bin/hls`. This native CLI package
-does not claim notarization or Gatekeeper validation.
+hardened runtime enabled. Starting with `v0.1.2`, the binary is also notarized
+by Apple, and Gatekeeper assesses it as `Notarized Developer ID`; each
+release's notes state its exact notarization status. The ticket is validated
+online because a bare Mach-O inside a tar.gz cannot carry a stapled ticket.
+Verify the SHA-256 checksum above and, if needed, inspect the signature with
+`codesign --verify --strict --display -vv bin/hls`.
 
 ## Quick Start
 
