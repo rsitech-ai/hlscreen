@@ -40,19 +40,6 @@ The `cfg_aliases!` macro uses a lot of the code from [`tectonic_cfg_support::tar
 ---
 ```
 
-## Spec Kit 0.11.1
-
-hlscreen vendors project workflow material from
-[GitHub Spec Kit 0.11.1](https://github.com/github/spec-kit/tree/v0.11.1) in:
-
-- `.specify/`
-- `.agents/skills/speckit-*/`
-
-Spec Kit is provided under the MIT License, Copyright GitHub, Inc. The complete
-upstream license is preserved at [`third_party/spec-kit/LICENSE`](third_party/spec-kit/LICENSE)
-and is also included in `THIRD_PARTY_LICENSES.txt` so binary archives carry the
-required notice.
-
 ## Apache Parquet 59.1.0
 
 The release graph includes Apache Parquet 59.1.0. Its packaged `NOTICE.txt` is

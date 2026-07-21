@@ -329,8 +329,7 @@ of fabricating analogs.
 Analog output is research context only. It is not a prediction, recommendation,
 execution simulation, or profitability claim.
 
-Still planned beyond the current `specs/006-alerts-and-analytics` local
-surface:
+Still planned beyond the current local alerts-and-analytics surface:
 
 - External delivery, daemon scheduling, retention policy, and escalation
   operations. The current local playbook grammar supports fixed spread-shock

@@ -65,23 +65,23 @@ does not block source development or ordinary PR CI.
 
 ## Latest Live Validation
 
-Run: `oss-release-20260720`
+Run: `oss-release-v011-20260721`
 
 Fresh supervised evidence at commit
-`4306d6b28b69d5dee2f24e7ca844f989c77f96df`:
+`d95e226958f71f2595d8246c4289f6e89dea306f`:
 
-- Measured duration: `902` seconds (`--duration-secs 900`)
+- Measured duration: `903` seconds (`--duration-secs 900`)
 - Symbols: `314`
 - Public subscriptions: `943`
-- Raw WebSocket messages: `314,923`
-- Normalized market events: `322,858`
+- Raw WebSocket messages: `300,827`
+- Normalized market events: `308,985`
 - Reconnects / data gaps / parser drops: `0 / 0 / 0`
 - Failed public backfill requests: `0`
 - SQLite clean shutdown: `true`
 - Replay status: `baseline_written`, then `passed`
 - Replay drift / missing / extra: `0 / 0 / 0`
-- Peak settled RSS: `42,401,792` bytes
-- Final evidence size: `70,344,704` bytes
+- Peak settled RSS: `37,683,200` bytes
+- Final evidence size: `66,564,096` bytes
 
 The exact command, timestamps, resource samples, limits, counters, and replay
 results are committed in the
@@ -111,7 +111,9 @@ Current post-merge evidence:
 - Replay drift/missing/extra: `0 / 0 / 0`
 
 The exact command, official-document checks, code-review findings, and gate
-results are in the [2026-07-10 post-merge production audit](reports/2026-07-10-post-merge-production-audit.md).
+results were recorded in the maintainer's internal post-merge production audit
+for that run; the machine-validated evidence lives in
+[`docs/evidence/soak/`](evidence/soak/sota-allpairs-20260720-15m.json).
 
 Opt-in closeout repair is now available with `--backfill-gaps` on a normalized
 recorded live run, plus the standalone `hls backfill` command. This is coarse
