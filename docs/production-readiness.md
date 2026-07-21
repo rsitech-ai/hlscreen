@@ -68,7 +68,7 @@ does not block source development or ordinary PR CI.
 Run: `oss-release-v012-20260721`
 
 Fresh supervised evidence at commit
-`e75dea3e7803ba459120a5543b1ff886af3214ef`:
+`96ade27499240a5d956e459497e97f57eacf0922`:
 
 - Measured duration: `902` seconds (`--duration-secs 900`)
 - Symbols: `314`
