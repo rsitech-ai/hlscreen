@@ -18,9 +18,9 @@ It is built for operators and researchers who want a local-first way to inspect 
 
 Current release: `0.1.2`, a read-only live-data preview with bounded local validation. Recording, replay, screening, deterministic terminal rendering, health checks, and a native Apple Silicon macOS release package are implemented, but unattended production readiness and hosted multi-platform artifacts are not yet proven. It is not a trading bot, hosted service, or capital-touching execution system.
 
-Latest live validation: a 2026-07-20 15-minute supervised all-symbol run at
-commit `d95e226` covered `314` spot markets through `943` public subscriptions
-and processed `300,827` WebSocket messages / `308,985` normalized events. It
+Latest live validation: a 2026-07-21 15-minute supervised all-symbol run at
+commit `e75dea3` covered `314` spot markets through `943` public subscriptions
+and processed `300,147` WebSocket messages / `308,104` normalized events. It
 stopped cleanly with `0` reconnects, gaps, parser drops, or failed backfills,
 then passed two replay confidence checks with zero drift, missing, or extra
 rows. See the
