@@ -290,8 +290,11 @@ fn live_once_allows_zero_duration_fixture_without_tty() {
 #[test]
 fn live_rejects_oversized_boolean_filter_chains_without_stack_overflow() {
     for operator in ["and", "or"] {
+        // 4096 clauses keep the argument under Linux's 128 KiB per-argument
+        // limit (MAX_ARG_STRLEN) while still far exceeding the parser's
+        // 256-boolean-operator complexity guard.
         let separator = format!(" {operator} ");
-        let filter = std::iter::repeat_n("price > 0", 10_000)
+        let filter = std::iter::repeat_n("price > 0", 4_096)
             .collect::<Vec<_>>()
             .join(&separator);
 

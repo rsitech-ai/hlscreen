@@ -12,7 +12,6 @@ required_files=(
   "MAINTAINERS.md"
   "THIRD_PARTY_LICENSES.txt"
   "THIRD_PARTY_NOTICES.md"
-  "third_party/spec-kit/LICENSE"
   "third_party/notices/manifest.json"
   "README.md"
   "CONTRIBUTING.md"
@@ -24,10 +23,8 @@ required_files=(
   "docs/RELEASING.md"
   "docs/releases/v0.1.0.md"
   "docs/releases/v0.1.1.md"
-  "docs/DEVELOPMENT_TOOLING.md"
-  "docs/OPEN_SOURCE_AUDIT.md"
+  "docs/releases/v0.1.2.md"
   "docs/ROADMAP.md"
-  "docs/OPEN_SOURCE_CHECKLIST.md"
   "docs/PRIVACY.md"
   "docs/THREAT_MODEL.md"
   "docs/architecture.md"
@@ -40,8 +37,6 @@ required_files=(
   "tests/fixtures/README.md"
   "scripts/check.sh"
   "scripts/check-history-secrets.sh"
-  "scripts/check-public-surface.sh"
-  "scripts/test-public-surface-gate.py"
   "scripts/summarize-git-identities.py"
   "scripts/summarize-git-history-privacy.py"
   "scripts/test-history-privacy.py"
@@ -69,8 +64,6 @@ require_text() {
   fi
 }
 
-require_text "Release tag created" docs/OPEN_SOURCE_CHECKLIST.md
-require_text "Release binaries/checksums published" docs/OPEN_SOURCE_CHECKLIST.md
 require_text "Draft/local proof only" docs/ROADMAP.md
 require_text "no reviewed \`v\*\` release artifact publication" docs/ROADMAP.md
 require_text "Release Artifact Status" docs/RELEASING.md
@@ -86,23 +79,11 @@ require_text "publicly maintained by \[RSI Tech\]" MAINTAINERS.md
 require_text "info@rsitech.ai" MAINTAINERS.md
 require_text "No Contributor License Agreement (CLA) is required" CONTRIBUTING.md
 require_text "Synthetic and minimized fixtures" tests/fixtures/README.md
-require_text "developer-only" docs/DEVELOPMENT_TOOLING.md
-require_text "GitHub billing/spending" docs/OPEN_SOURCE_AUDIT.md
-require_text "Private vulnerability reporting" docs/OPEN_SOURCE_CHECKLIST.md
-require_text "Branch decision:" docs/OPEN_SOURCE_AUDIT.md
-require_text "PR decision:" docs/OPEN_SOURCE_AUDIT.md
-require_text "RETIRE_BEFORE_PUBLIC" docs/OPEN_SOURCE_AUDIT.md
-require_text "CLOSE_BEFORE_PUBLIC" docs/OPEN_SOURCE_AUDIT.md
-require_text "INTEGRATED_IN_CLOSEOUT_CLOSE_BEFORE_PUBLIC" docs/OPEN_SOURCE_AUDIT.md
-require_text "Owner confirmation: Packages inventory checked in GitHub UI." docs/OPEN_SOURCE_AUDIT.md
-require_text "Git commit-author metadata exposure accepted" docs/OPEN_SOURCE_AUDIT.md
-require_text "Historical developer-path and non-public email" docs/OPEN_SOURCE_AUDIT.md
-require_text "DELETE_NON_CANDIDATE_RUNS_BEFORE_PUBLIC" docs/OPEN_SOURCE_AUDIT.md
 
 public_text_paths=(
   README.md MAINTAINERS.md CONTRIBUTING.md CODE_OF_CONDUCT.md SECURITY.md SUPPORT.md CHANGELOG.md
-  .github/ISSUE_TEMPLATE docs/README.md docs/DEVELOPMENT_TOOLING.md
-  docs/OPEN_SOURCE_CHECKLIST.md docs/PRIVACY.md docs/RELEASING.md docs/releases/v0.1.0.md docs/releases/v0.1.1.md docs/ROADMAP.md
+  .github/ISSUE_TEMPLATE docs/README.md
+  docs/PRIVACY.md docs/RELEASING.md docs/releases/v0.1.0.md docs/releases/v0.1.1.md docs/releases/v0.1.2.md docs/ROADMAP.md
   docs/THREAT_MODEL.md docs/architecture.md docs/data-format.md docs/deployment.md
   docs/feature-definitions.md docs/production-readiness.md tests/fixtures/README.md
 )
