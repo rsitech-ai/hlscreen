@@ -2,7 +2,7 @@
   "head": "82b715b6d7bcc7161baea753d04c996a925d1148",
   "command": "scripts/check.sh pr",
   "exit_code": 0,
-  "log": "/Users/rsikora/dev/andrzej/hlscreen/target/soak-validation-ci-parity-01.log",
+  "log": "target/soak-validation-ci-parity-01.log",
   "log_sha256": "9adda0f7cd3a3ad24efe6f6f0aa4726a36e5bb4c7a3772fe2e091f40a82cdd1c",
   "rust_test_result_reports": 82,
   "rust_passed_across_all_invocations": 566,
@@ -44,5 +44,14 @@
     "passed": 8,
     "log_sha256": "cc2e158072facd012150b144d6d9ab9277b379a0c5bb659243481115ad042ff5",
     "review": "Parent inspected final diff, source-hash refactor, strict candidate bindings and immutable historical reports; no runtime or report rewrite."
+  },
+  "public_receipt_normalization": {
+    "original_local_receipt_sha256": "2b17f7fc3c7239e50fc461efed77ee82c85d84151aa3fa7b687e13ee0dd4b720",
+    "transformation": "Log path made repository-relative; source/log/report hashes and results unchanged. The exact local receipt remains in target/soak-validation-repair-final.json."
+  },
+  "public_readiness_after_receipt": {
+    "command": "scripts/check-public-readiness.sh",
+    "exit_code": 0,
+    "log_sha256": "c66b17581f9ca8db2efae22a5446623ac8eaebfd4a11ed0d84812c2b63a2936c"
   }
 }
