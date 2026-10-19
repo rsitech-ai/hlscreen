@@ -441,7 +441,7 @@ fn release_validation_scripts_cover_local_artifacts_checksums_and_public_readine
     assert!(public_scan.contains("SECURITY.md"));
     assert!(public_scan.contains("docs/ROADMAP.md"));
     assert!(public_scan.contains("docs/assets/screenshots/live-screen.svg"));
-    assert!(public_scan.contains("docs/evidence/soak/sota-allpairs-20260720-15m.json"));
+    assert!(public_scan.contains("docs/evidence/soak/shared-feed-20261019-15m.json"));
     assert!(public_scan.contains("scripts/harden-generated-release-workflow.py"));
     assert!(public_scan.contains("private_path_pattern"));
     assert!(public_scan.contains("credential_pattern"));
@@ -465,7 +465,7 @@ fn release_validation_scripts_cover_local_artifacts_checksums_and_public_readine
     assert!(hardener.contains("finally:"));
     assert!(packaging_check.contains("validate-soak-report.py"));
     assert!(packaging_check.contains("soak-report-valid.json"));
-    assert!(packaging_check.contains("sota-allpairs-20260720-15m.json"));
+    assert!(packaging_check.contains("shared-feed-20261019-15m.json"));
     assert!(!packaging_check.contains("merge-base --is-ancestor"));
     assert!(packaging_check.contains("soak-report-invalid.json"));
     assert!(packaging_check.contains("soak-report-invalid-command.json"));
@@ -496,8 +496,8 @@ fn release_docs_and_roadmap_separate_local_proof_from_publication() {
 }
 
 #[test]
-fn rustsec_gate_keeps_one_documented_transitive_warning_exception() {
-    let expected = "cargo audit --deny warnings --ignore RUSTSEC-2024-0436";
+fn rustsec_gate_denies_all_warnings_after_removing_paste() {
+    let expected = "cargo audit --deny warnings";
     let workflow = read(".github/workflows/ci.yml");
     let releasing = read("docs/RELEASING.md");
     let readiness = read("docs/production-readiness.md");
@@ -505,9 +505,10 @@ fn rustsec_gate_keeps_one_documented_transitive_warning_exception() {
     assert!(workflow.contains(expected));
     assert!(releasing.contains(expected));
     assert!(readiness.contains(expected));
-    assert!(workflow.contains("Apache Parquet 59.1.0"));
-    assert!(releasing.contains("all other warnings remain denied"));
-    assert!(readiness.contains("all other dependency warnings remain denied"));
+    assert!(!workflow.contains("--ignore RUSTSEC-2024-0436"));
+    assert!(!read("Cargo.lock").contains("name = \"paste\""));
+    assert!(releasing.contains("all warnings remain denied"));
+    assert!(readiness.contains("all dependency warnings remain denied"));
 }
 
 #[test]
@@ -537,7 +538,7 @@ fn canonical_validation_entrypoint_has_bounded_modes_and_ci_doc_parity() {
     assert!(check.contains("git diff --check"));
     assert!(check.contains("cargo-audit 0.22.2"));
     assert!(check.contains("cargo-audit --version"));
-    assert!(check.contains("cargo audit --deny warnings --ignore RUSTSEC-2024-0436"));
+    assert!(check.contains("cargo audit --deny warnings"));
     assert!(check.contains("cargo-deny 0.20.2"));
     assert!(check.contains("cargo deny check licenses sources"));
     assert!(check.contains("scripts/check-third-party-licenses.sh"));
@@ -588,7 +589,7 @@ fn canonical_validation_entrypoint_has_bounded_modes_and_ci_doc_parity() {
     }
     for command in [
         "uvx \"zizmor@1.26.1\"",
-        "cargo audit --deny warnings --ignore RUSTSEC-2024-0436",
+        "cargo audit --deny warnings",
         "cargo deny check licenses sources",
         "scripts/check-third-party-licenses.sh",
     ] {

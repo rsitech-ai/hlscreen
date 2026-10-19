@@ -24,6 +24,7 @@ esac
 cd "$repo_root"
 
 run_fast_checks() {
+  python3 scripts/check-shared-feed-pin.py
   cargo fmt --all -- --check
   cargo check --workspace --all-features --locked
   cargo test --workspace --all-features --locked
@@ -31,6 +32,7 @@ run_fast_checks() {
 }
 
 run_pr_checks() {
+  python3 scripts/check-shared-feed-pin.py
   cargo fmt --all -- --check
   cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
   cargo test --workspace --all-features --locked
@@ -61,7 +63,7 @@ run_release_checks() {
   run_pr_checks
 
   require_exact_version "cargo-audit" "cargo-audit 0.22.2" cargo-audit --version
-  cargo audit --deny warnings --ignore RUSTSEC-2024-0436
+  cargo audit --deny warnings
 
   require_exact_version "cargo-deny" "cargo-deny 0.20.2" cargo deny --version
   cargo deny check licenses sources

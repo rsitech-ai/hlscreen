@@ -35,12 +35,9 @@ This project is pre-1.0. Use this checklist before tagging a public release.
    `scripts/check-release-packaging.sh` runs the static release contract tests,
    the public-readiness scan, and the local artifact smoke described below.
    The release gate enforces
-   `cargo audit --deny warnings --ignore RUSTSEC-2024-0436` after verifying the
-   installed cargo-audit version.
-   `RUSTSEC-2024-0436` is a narrow exception for the unmaintained `paste`
-   proc-macro currently pulled by Apache Parquet 59.1.0. It is not a known
-   vulnerability; every vulnerability and all other warnings remain denied.
-   Remove the exception when Parquet drops that transitive dependency.
+   `cargo audit --deny warnings` after verifying the installed cargo-audit
+   version. Parquet60 removes the unmaintained paste dependency; every
+   vulnerability and all warnings remain denied without an advisory exception.
 3. Run fixture smokes.
    ```bash
    tmpdir="$(mktemp -d /tmp/hlscreen-release.XXXXXX)"
