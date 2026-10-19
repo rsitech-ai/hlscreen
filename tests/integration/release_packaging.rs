@@ -163,16 +163,16 @@ fn dependency_attribution_is_deterministic_and_matches_release_targets() {
 fn third_party_notices_cover_packaged_dependency_notices() {
     let notice = read("THIRD_PARTY_NOTICES.md");
     let notice_manifest = read("third_party/notices/manifest.json");
-    let parquet_notice = read("third_party/notices/parquet-59.1.0-NOTICE.txt");
+    let parquet_notice = read("third_party/notices/parquet-60.0.0-NOTICE.txt");
     let notice_checker = read("scripts/check-third-party-notices.py");
 
     assert!(notice.contains("Apache Arrow"));
     assert!(notice.contains("Copyright 2016-2026 The Apache Software Foundation"));
     assert!(notice.contains("https://github.com/olliemath/chronoutil"));
     assert!(notice.contains("https://github.com/jhorstmann/compact-thrift"));
-    assert!(notice.contains("third_party/notices/parquet-59.1.0-NOTICE.txt"));
+    assert!(notice.contains("third_party/notices/parquet-60.0.0-NOTICE.txt"));
     assert!(notice_manifest.contains("\"package\": \"parquet\""));
-    assert!(notice_manifest.contains("\"version\": \"59.1.0\""));
+    assert!(notice_manifest.contains("\"version\": \"60.0.0\""));
     assert!(notice_manifest.contains("\"source\": \"NOTICE.txt\""));
     assert!(notice_manifest.contains("\"package\": \"cfg_aliases\""));
     assert!(notice_manifest.contains("\"version\": \"0.1.1\""));
