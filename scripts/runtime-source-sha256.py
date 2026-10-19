@@ -19,8 +19,8 @@ RUNTIME_PATHS = (
 )
 
 
-def main() -> int:
-    repo_root = Path(sys.argv[1] if len(sys.argv) > 1 else ".").resolve()
+def runtime_source_sha256(repo_root: Path) -> str:
+    repo_root = repo_root.resolve()
     command = ["git", "-C", str(repo_root), "ls-files", "-z", "--", *RUNTIME_PATHS]
     result = subprocess.run(command, check=True, capture_output=True)
     paths = sorted(path for path in result.stdout.split(b"\0") if path)
@@ -37,7 +37,12 @@ def main() -> int:
         digest.update(executable)
         digest.update(len(data).to_bytes(8, "big"))
         digest.update(data)
-    print(digest.hexdigest())
+    return digest.hexdigest()
+
+
+def main() -> int:
+    repo_root = Path(sys.argv[1] if len(sys.argv) > 1 else ".")
+    print(runtime_source_sha256(repo_root))
     return 0
 
 

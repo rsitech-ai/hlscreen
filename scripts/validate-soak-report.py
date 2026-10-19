@@ -4,9 +4,11 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import math
 import re
+import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -118,7 +120,10 @@ def validate_live_capture_command(
 
 
 def validate(
-    report: Any, minimum_duration_secs: int, binary_path: Path | None = None
+    report: Any,
+    minimum_duration_secs: int,
+    binary_path: Path | None = None,
+    runtime_source_root: Path | None = None,
 ) -> list[str]:
     errors: list[str] = []
     if not isinstance(report, dict):
@@ -252,6 +257,22 @@ def validate(
             if report.get("binary_sha256") != actual_binary_sha256:
                 errors.append("binary_sha256 does not match --binary")
 
+    if runtime_source_root is not None:
+        if binary_path is None:
+            errors.append("--runtime-source-root requires --binary")
+        try:
+            spec = importlib.util.spec_from_file_location(
+                "runtime_source_sha256", Path(__file__).with_name("runtime-source-sha256.py")
+            )
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            actual_source_sha256 = module.runtime_source_sha256(runtime_source_root)
+        except (OSError, ValueError, SystemExit, subprocess.CalledProcessError) as error:
+            errors.append(f"could not hash --runtime-source-root: {error}")
+        else:
+            if report.get("runtime_source_sha256") != actual_source_sha256:
+                errors.append("runtime_source_sha256 does not match --runtime-source-root")
+
     return errors
 
 
@@ -259,10 +280,16 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("report", type=Path)
     parser.add_argument("--minimum-duration-secs", type=int, default=900)
-    parser.add_argument("--binary", type=Path)
+    parser.add_argument("--binary", type=Path, help="require the exact recorded binary digest")
+    parser.add_argument(
+        "--runtime-source-root", type=Path,
+        help="also require the recorded runtime source digest (requires --binary)",
+    )
     args = parser.parse_args()
     if args.minimum_duration_secs < 1:
         parser.error("--minimum-duration-secs must be positive")
+    if args.runtime_source_root is not None and args.binary is None:
+        parser.error("--runtime-source-root requires --binary")
 
     try:
         report = json.loads(args.report.read_text(encoding="utf-8"))
@@ -270,14 +297,21 @@ def main() -> int:
         print(f"soak_report=invalid: {error}", file=sys.stderr)
         return 1
 
-    errors = validate(report, args.minimum_duration_secs, args.binary)
+    errors = validate(report, args.minimum_duration_secs, args.binary, args.runtime_source_root)
     if errors:
         print("soak_report=invalid", file=sys.stderr)
         for error in errors:
             print(f"- {error}", file=sys.stderr)
         return 1
 
-    print(f"soak_report=passed run_id={report['run_id']} duration_secs={report['duration_secs']}")
+    scope = (
+        "binary_and_source_bound" if args.runtime_source_root is not None
+        else "binary_bound" if args.binary is not None else "report_only"
+    )
+    print(
+        f"soak_report=passed run_id={report['run_id']} "
+        f"duration_secs={report['duration_secs']} scope={scope}"
+    )
     return 0
 
 

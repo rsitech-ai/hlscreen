@@ -1,0 +1,48 @@
+{
+  "head": "82b715b6d7bcc7161baea753d04c996a925d1148",
+  "command": "scripts/check.sh pr",
+  "exit_code": 0,
+  "log": "/Users/rsikora/dev/andrzej/hlscreen/target/soak-validation-ci-parity-01.log",
+  "log_sha256": "9adda0f7cd3a3ad24efe6f6f0aa4726a36e5bb4c7a3772fe2e091f40a82cdd1c",
+  "rust_test_result_reports": 82,
+  "rust_passed_across_all_invocations": 566,
+  "python_binding_regressions_passed": 8,
+  "original_ci_failure": {
+    "run": 39342436582,
+    "job": 118366958412,
+    "error": "binary_sha256 does not match --binary"
+  },
+  "historical_reports": {
+    "docs/evidence/soak/shared-feed-20261019-15m.json": {
+      "commit": "022398e69c15ef4e2d274f66d6d54dd8734bf047",
+      "binary_sha256": "c911748076eea20266e6a2f5e2d333ffaccceaac61d69d427e1ec325d2c8d026",
+      "runtime_source_sha256": "a30589bf4c8abb1fafb5e6863b957aff864392b4a96e40688a29664e0ca5bb9b",
+      "report_sha256": "ee3e5a00fcd4145832025453e1d7776e36724520705ae74eabb10c8aa1d4f8e7",
+      "unchanged_from_head": true
+    },
+    "docs/evidence/soak/sota-allpairs-20260720-15m.json": {
+      "commit": "1c2851a80cf4b04f4465742ac100f8718d1e28da",
+      "binary_sha256": "2fffed2e934346b38d67fd7069b43f2a082d0fa4d799bf46116336fbb425f849",
+      "runtime_source_sha256": "9ecc7c6e5f039e971c6c1833f8f314ec58faf907c07d387bf5559c58ca894b22",
+      "report_sha256": "685b705edd76997a67f9d7c2e6e22a47d04f691fcad7baaf321b1169e2650656",
+      "unchanged_from_head": true
+    }
+  },
+  "changed_files": {
+    "docs/deployment.md": "5b0cbf0c2b54bca852a92bd7cc32f2d6b513e7568e3e6e1b48ac697537d0d549",
+    "scripts/check-release-packaging.sh": "b362d9de76eac449db8aa4b233519149e3d507f7c37209094f5a8d075978031e",
+    "scripts/run-supervised-soak.sh": "e0fd7acb07b61d1f4e14f2435bbe987b2d7ddf867276e51c37455a44bf404bd5",
+    "scripts/runtime-source-sha256.py": "618df106eb319ea07e0dfb68fec4620d25ee454c0908e479508928244e81d609",
+    "scripts/validate-soak-report.py": "397a34b30b1c921024c9e14e8094aa076633709bc282dfb8ccfa8a0a696ff83c",
+    "tests/integration/release_packaging.rs": "6afeccce016c2693bbc5dad2a4949ea887efc9231acf661d4a370b5d18af58a7",
+    "scripts/test-soak-validation.py": "821345586cc306b1d880083941b5dca6b411f918d2e7dafb1b03e3a3e057854d"
+  },
+  "scope": "historical report validation separated from explicit candidate binary+source binding; no new soak or runtime code change",
+  "parent_review": {
+    "command": "python3 scripts/test-soak-validation.py",
+    "exit_code": 0,
+    "passed": 8,
+    "log_sha256": "cc2e158072facd012150b144d6d9ab9277b379a0c5bb659243481115ad042ff5",
+    "review": "Parent inspected final diff, source-hash refactor, strict candidate bindings and immutable historical reports; no runtime or report rewrite."
+  }
+}

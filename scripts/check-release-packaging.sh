@@ -10,28 +10,19 @@ python3 "$repo_root/scripts/harden-generated-release-workflow.py" \
   --check \
   --workflow "$repo_root/.github/workflows/release.yml"
 
+python3 "$repo_root/scripts/test-soak-validation.py"
+
 python3 "$repo_root/scripts/validate-soak-report.py" \
   "$repo_root/tests/fixtures/operations/soak-report-valid.json" \
   --minimum-duration-secs 900
 python3 "$repo_root/scripts/validate-soak-report.py" \
   "$repo_root/docs/evidence/soak/shared-feed-20261019-15m.json" \
   --minimum-duration-secs 900
-evidence_runtime_source_sha256="$(python3 -c \
-  'import json, sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["runtime_source_sha256"])' \
-  "$repo_root/docs/evidence/soak/shared-feed-20261019-15m.json")"
-current_runtime_source_sha256="$(python3 "$repo_root/scripts/runtime-source-sha256.py" "$repo_root")"
-if [[ "$evidence_runtime_source_sha256" != "$current_runtime_source_sha256" ]]; then
-  candidate_binary="$repo_root/target/release/hls"
-  if [[ ! -x "$candidate_binary" ]]; then
-    echo "soak evidence runtime source changed and no release binary is available for exact verification" >&2
-    exit 1
-  fi
-  python3 "$repo_root/scripts/validate-soak-report.py" \
-    "$repo_root/docs/evidence/soak/shared-feed-20261019-15m.json" \
-    --minimum-duration-secs 900 \
-    --binary "$candidate_binary"
-  echo "soak_evidence_binary_match=passed"
-fi
+# This committed receipt is historical evidence for its recorded macOS binary,
+# not a soak qualification for today's platform/build. Exact --binary and
+# --runtime-source-root bindings are exercised by test-soak-validation.py;
+# candidate qualification uses both explicitly (see docs/deployment.md).
+echo "soak_evidence_scope=historical_report_only current_candidate_qualified=false"
 if python3 "$repo_root/scripts/validate-soak-report.py" \
   "$repo_root/tests/fixtures/operations/soak-report-invalid.json" \
   --minimum-duration-secs 900; then

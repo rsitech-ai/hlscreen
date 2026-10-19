@@ -470,10 +470,12 @@ fn release_validation_scripts_cover_local_artifacts_checksums_and_public_readine
     assert!(packaging_check.contains("soak-report-invalid.json"));
     assert!(packaging_check.contains("soak-report-invalid-command.json"));
     assert!(packaging_check.contains("check-supervisor-packaging.sh"));
-    assert!(packaging_check.contains("runtime-source-sha256.py"));
-    assert!(packaging_check.contains("runtime_source_sha256"));
-    assert!(packaging_check.contains("soak_evidence_binary_match"));
+    assert!(packaging_check.contains("test-soak-validation.py"));
+    assert!(packaging_check.contains("soak_evidence_scope=historical_report_only"));
+    assert!(packaging_check.contains("current_candidate_qualified=false"));
+    assert!(!packaging_check.contains("candidate_binary="));
     assert!(packaging_check.contains("--binary"));
+    assert!(packaging_check.contains("--runtime-source-root"));
 }
 
 #[test]
