@@ -359,6 +359,23 @@ impl LiveMarketState {
         }
     }
 
+    /// Add catalog-owned native identifiers during shared-feed discovery.
+    pub fn include_symbols(&mut self, symbols: impl IntoIterator<Item = String>) -> HlsResult<()> {
+        let additions: HashSet<_> = symbols.into_iter().collect();
+        if additions.iter().any(|s| s.is_empty()) || self.symbols.union(&additions).count() > 1000 {
+            return Err(HlsError::Symbol(
+                "invalid or excessive shared symbol universe".into(),
+            ));
+        }
+        for symbol in additions {
+            self.symbols.insert(symbol.clone());
+            self.states
+                .entry(symbol.clone())
+                .or_insert_with(|| SymbolMarketState::new(symbol));
+        }
+        Ok(())
+    }
+
     pub fn apply(&mut self, event: MarketEvent) -> HlsResult<()> {
         if event
             .hl_coin()

@@ -12,6 +12,9 @@ name = "reconnect_heartbeat"
 path = "../../tests/integration/reconnect_heartbeat.rs"
 
 [dependencies]
+marketfeed-adapter-hyperliquid.workspace = true
+marketfeed-recording.workspace = true
+
 hls-core.workspace = true
 reqwest.workspace = true
 serde.workspace = true
@@ -19,6 +22,7 @@ serde_json.workspace = true
 time.workspace = true
 
 [dev-dependencies]
+tempfile.workspace = true
 tokio.workspace = true
 
 [lints]

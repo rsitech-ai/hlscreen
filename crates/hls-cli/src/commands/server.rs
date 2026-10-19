@@ -16,7 +16,7 @@ use hls_hyperliquid::{
     rest::{HyperliquidRestClient, SpotMarketContext, select_universe},
     ws::{
         connection::ReconnectPolicy,
-        parser::{parse_ws_message, parse_ws_ndjson},
+        parser::parse_ws_ndjson,
         subscriptions::{
             OFFICIAL_WS_SUBSCRIPTION_LIMIT, StreamKind, SubscriptionPlan, ping_message,
         },
@@ -65,6 +65,9 @@ impl ServerStopReason {
 
 #[derive(Debug, Args)]
 pub struct ServerArgs {
+    /// Read the collector's committed spot/perp archive without exchange I/O.
+    #[arg(long, env="HLS_SHARED_FEED", requires="live", conflicts_with_all=["fixture_file","print_health","simulate_health"])]
+    pub shared_feed: Option<PathBuf>,
     /// Address for the read-only localhost API server.
     #[arg(long, default_value = "127.0.0.1:0")]
     pub bind: String,
@@ -89,7 +92,7 @@ pub struct ServerArgs {
     #[arg(long)]
     pub all_symbols: bool,
 
-    /// Stop a live preview after this many seconds; zero runs until a signal.
+    /// Stop a live preview after this many seconds.
     #[arg(long, default_value_t = DEFAULT_LIVE_DURATION_SECS)]
     pub duration_secs: u64,
 
@@ -269,7 +272,9 @@ async fn run_live_server(args: ServerArgs, bind: SocketAddr) -> anyhow::Result<(
     );
 
     let publisher = async {
-        if let Some(fixture_file) = &args.fixture_file {
+        if args.shared_feed.is_some() {
+            publish_shared_live_api(&args, &shared, fee_profile.as_ref()).await
+        } else if let Some(fixture_file) = &args.fixture_file {
             publish_fixture_live_api(&args, fixture_file, &shared, fee_profile.as_ref())
         } else {
             publish_network_live_api(&args, &shared, fee_profile.as_ref()).await
@@ -373,7 +378,7 @@ fn validate_live_server_args(args: &ServerArgs) -> anyhow::Result<()> {
     {
         bail!("--symbols must contain at least one non-empty selector");
     }
-    if args.fixture_file.is_none() {
+    if args.fixture_file.is_none() && args.shared_feed.is_none() {
         validate_public_ws_url(&args.ws_url)?;
     }
     if tokio::time::Instant::now()
@@ -478,6 +483,7 @@ async fn publish_network_live_api(
             Err(error) => {
                 summary.reconnects = summary.reconnects.saturating_add(1);
                 summary.data_gaps = summary.data_gaps.saturating_add(1);
+                summary.gap_symbols.extend(symbols.iter().cloned());
                 let recovered_market_data = summary.market_events > market_events_before_connection;
                 let backoff_ms = next_server_reconnect_backoff(
                     reconnect_policy,
@@ -512,6 +518,112 @@ async fn publish_network_live_api(
         }
     }
 
+    summary.require_market_data()
+}
+
+/// Same committed inputs and feature projection as the TUI. This path never
+/// constructs an exchange REST client, WebSocket, or subscription plan.
+async fn publish_shared_live_api(
+    args: &ServerArgs,
+    shared: &SharedApiState,
+    fee_profile: Option<&hls_core::fees::FeeProfile>,
+) -> anyhow::Result<ServerLiveSummary> {
+    use hls_hyperliquid::shared::{SharedConsumer, SharedUpdate};
+    let path = args
+        .shared_feed
+        .as_ref()
+        .context("missing shared capture path")?;
+    let mut consumer = SharedConsumer::open(path)?;
+    let selected = parse_symbols(args.symbols.as_deref());
+    let mut state = LiveMarketState::new(Vec::<String>::new());
+    let metadata = load_metadata_enrichments(args.metadata_file.as_ref())?;
+    let mut summary = ServerLiveSummary::default();
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(args.duration_secs);
+    let mut publish = live_api_publish_interval();
+    loop {
+        for update in consumer.poll(256)? {
+            match update {
+                SharedUpdate::Symbols(symbols) => {
+                    state.include_symbols(
+                        symbols
+                            .into_iter()
+                            .filter(|s| selected.is_empty() || selected.contains(s)),
+                    )?;
+                    summary.symbols = state.states().count();
+                }
+                SharedUpdate::Events(events) => {
+                    summary.ws_messages += 1;
+                    for event in events {
+                        if event
+                            .hl_coin()
+                            .is_none_or(|s| selected.is_empty() || selected.iter().any(|v| v == s))
+                        {
+                            state.apply(event)?;
+                            summary.market_events += 1;
+                        }
+                    }
+                }
+                SharedUpdate::Gap { symbols, .. } => {
+                    summary.reconnects += 1;
+                    summary.data_gaps += 1;
+                    summary.gap_symbols.extend(symbols);
+                }
+                SharedUpdate::Stopped | SharedUpdate::Sealed => {}
+            }
+        }
+        summary.archive_as_of_ms = if consumer.sealed() {
+            consumer.as_of_ms()
+        } else {
+            None
+        };
+        summary.source_context = Some(
+            serde_json::json!({"kind":"shared-feed","cursor":consumer.cursor(),"sealed":consumer.sealed(),"as_of_ms":consumer.as_of_ms(),"continuity":"unverified"}),
+        );
+        let age = consumer
+            .as_of_ms()
+            .map(|last| now_ms_i64().map(|now| now.saturating_sub(last).max(0) as u64))
+            .transpose()?;
+        publish_api_snapshot(
+            shared,
+            &state,
+            &metadata,
+            fee_profile,
+            ServerHealthStats {
+                connection_state: if age.is_some_and(|age| age > 10_000) {
+                    ConnectionState::Stale
+                } else if summary.market_events > 0 {
+                    ConnectionState::Connected
+                } else {
+                    ConnectionState::Connecting
+                },
+                subscriptions: 0,
+                last_message_age_ms: age,
+                reconnects: summary.reconnects,
+                data_gaps: summary.data_gaps,
+                last_reconnect_backoff_ms: None,
+                rows_written: summary.market_events,
+            },
+            &mut summary,
+        )?;
+        if tokio::time::Instant::now() >= deadline {
+            break;
+        }
+        // During catchup, cooperate without waiting a full render interval.
+        if !consumer.caught_up() {
+            tokio::task::yield_now().await;
+            continue;
+        }
+        tokio::select! { _=publish.tick()=>{},_=tokio::time::sleep_until(deadline)=>break }
+    }
+    for symbol in selected {
+        if !consumer.symbols().contains(&symbol) {
+            bail!("symbol {symbol} absent from committed shared catalog; use native identifiers");
+        }
+    }
+    eprintln!(
+        "shared_api_cursor={}",
+        serde_json::to_string(consumer.cursor())?
+    );
     summary.require_market_data()
 }
 
@@ -838,7 +950,7 @@ fn ingest_server_live_text(
     summary: &mut ServerLiveSummary,
 ) -> anyhow::Result<bool> {
     summary.ws_messages = summary.ws_messages.saturating_add(1);
-    let events = parse_ws_message(line)?;
+    let events = hls_hyperliquid::shared::parse_shared_ws_message(line)?;
     let changed = !events.is_empty();
     summary.market_events = summary.market_events.saturating_add(events.len() as u64);
     for event in events {
@@ -855,16 +967,31 @@ fn publish_api_snapshot(
     health: ServerHealthStats,
     summary: &mut ServerLiveSummary,
 ) -> anyhow::Result<()> {
-    let mut snapshots = feature_engine(fee_profile).snapshots(state, now_ms_i64()?);
+    let confidence = summary.gap_symbols.iter().fold(
+        hls_features::engine::ConfidenceInputs::default(),
+        |inputs, symbol| inputs.with_gap_symbol(symbol.clone()),
+    );
+    let mut snapshots = feature_engine(fee_profile).snapshots_with_confidence_inputs(
+        state,
+        summary.archive_as_of_ms.unwrap_or(now_ms_i64()?),
+        &confidence,
+    );
     attach_metadata(&mut snapshots, metadata.to_vec());
     summary.rows = snapshots.len();
     summary.api_publishes = summary.api_publishes.saturating_add(1);
-    shared.replace(ApiState::new(health.snapshot(), snapshots))?;
+    let mut next = ApiState::new(health.snapshot(), snapshots);
+    if let Some(source) = &summary.source_context {
+        next = next.with_source_context(source.clone());
+    }
+    shared.replace(next)?;
     Ok(())
 }
 
 #[derive(Clone, Debug, Default)]
 struct ServerLiveSummary {
+    archive_as_of_ms: Option<i64>,
+    source_context: Option<serde_json::Value>,
+    gap_symbols: std::collections::HashSet<String>,
     symbols: usize,
     subscriptions: usize,
     ws_messages: u64,
@@ -934,6 +1061,85 @@ impl ServerHealthStats {
 struct ServerSymbolSelection {
     symbols: Vec<String>,
     metadata: Vec<hls_core::metadata::MetadataEnrichment>,
+}
+
+#[cfg(test)]
+mod shared_server_tests {
+    use super::*;
+    use marketfeed_recording::{
+        MetadataRecord,
+        shared_feed::{FeedRecord, FeedWriter},
+    };
+    #[tokio::test]
+    async fn shared_api_uses_saved_spot_perp_inputs_and_archive_clock_without_exchange_io() {
+        let temp = tempfile::tempdir().unwrap();
+        let path = temp.path().join("feed");
+        let mut writer = FeedWriter::create(&path, 1_000_000).unwrap();
+        let metadata: MetadataRecord = serde_json::from_str(include_str!(
+            "../../../hls-hyperliquid/tests/fixtures/shared_perps_session.json"
+        ))
+        .unwrap();
+        let session = metadata.session_id();
+        writer.append(FeedRecord::Metadata(metadata)).unwrap();
+        let frame=br#"{"channel":"trades","data":[{"coin":"BTC","side":"B","px":"100.25","sz":"2","hash":"unit-fixture","time":1700000000000,"tid":1}]}"#;
+        writer
+            .append(FeedRecord::frame(
+                session,
+                1,
+                1_700_000_000_000_000_000,
+                1,
+                0,
+                1,
+                frame,
+            ))
+            .unwrap();
+        writer
+            .append(FeedRecord::FrameAccepted {
+                session,
+                frame_seq: 1,
+            })
+            .unwrap();
+        writer
+            .append(FeedRecord::Seal {
+                schema_version: 1,
+                now_ns: 1_700_000_001_000_000_000,
+                reason: "unit-fixture".into(),
+            })
+            .unwrap();
+        let args = ServerArgs {
+            shared_feed: Some(path),
+            bind: "127.0.0.1:0".into(),
+            print_health: false,
+            live: true,
+            symbols: None,
+            top: 50,
+            all_symbols: false,
+            duration_secs: 1,
+            refresh_secs: 1,
+            max_subscriptions: 10,
+            ws_url: "this-invalid-url-must-never-be-used".into(),
+            fixture_file: None,
+            metadata_file: None,
+            fee_profile_file: None,
+            simulate_health: None,
+        };
+        validate_live_server_args(&args).unwrap();
+        let api = SharedApiState::new(ApiState::new(connecting_health().snapshot(), vec![]));
+        let summary = publish_shared_live_api(&args, &api, None).await.unwrap();
+        assert_eq!(summary.market_events, 1);
+        assert_eq!(summary.subscriptions, 0);
+        assert_eq!(summary.archive_as_of_ms, Some(1_700_000_001_000));
+        let snapshot = api.snapshot().unwrap();
+        let health: serde_json::Value =
+            serde_json::from_str(&handle_get("/health", "", &snapshot).unwrap().body).unwrap();
+        assert_eq!(health["source"]["kind"], "shared-feed");
+        assert_eq!(health["source"]["sealed"], true);
+        assert_eq!(health["source"]["as_of_ms"], 1_700_000_001_000i64);
+        let row: serde_json::Value =
+            serde_json::from_str(&handle_get("/symbol/BTC", "", &snapshot).unwrap().body).unwrap();
+        assert_eq!(row["price"], 100.25);
+        assert_eq!(row["signed_notional_flow_30s"], 200.5);
+    }
 }
 
 async fn load_server_live_symbols(args: &ServerArgs) -> anyhow::Result<ServerSymbolSelection> {
@@ -1160,6 +1366,7 @@ mod tests {
         let address = reservation.local_addr().expect("reserved address");
         drop(reservation);
         let args = ServerArgs {
+            shared_feed: None,
             bind: address.to_string(),
             print_health: false,
             live: true,
@@ -1236,6 +1443,7 @@ mod tests {
             tokio::time::sleep(Duration::from_millis(1_250)).await;
         });
         let args = ServerArgs {
+            shared_feed: None,
             bind: "127.0.0.1:0".to_owned(),
             print_health: false,
             live: true,

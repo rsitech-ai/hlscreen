@@ -544,3 +544,28 @@ Security issues should follow [SECURITY.md](SECURITY.md). General support guidan
 Licensed under the Apache License, Version 2.0. Copyright 2026 Rafal Sikora;
 publicly maintained by RSI Tech. See [LICENSE](LICENSE), [NOTICE](NOTICE), and
 [MAINTAINERS.md](MAINTAINERS.md).
+
+## Shared cryptofeed collector (spot and perpetuals)
+
+`hls live --shared-feed CAPTURE_DIRECTORY`, `hls tui --shared-feed CAPTURE_DIRECTORY`
+and `hls server --live --shared-feed CAPTURE_DIRECTORY` consume the authoritative committed feed produced by cryptofeed-rs. This mode
+opens no exchange connection. It supports native spot IDs such as `@107`, native
+perps such as `BTC`, and builder perps such as `xyz:TSLA` from the saved catalog.
+Use `--symbols @107,BTC` to select native IDs, or omit it to view the captured
+universe. `hls live --shared-feed CAPTURE_DIRECTORY --once` replays the committed
+prefix and exits; a restart rebuilds feature windows from the same saved input.
+All three commands also accept `HLS_SHARED_FEED=CAPTURE_DIRECTORY`. The API health
+response includes the shared cursor, seal and recorded time. Sealed captures use
+the saved clock for feature windows; health still reports wall-time staleness.
+
+The collector retains original bytes, exact values, metadata and capture events.
+Hlscreen uses the shared protocol decoder and makes the float conversion only
+for feature calculations and display. It waits for accepted-frame markers and
+reports gaps explicitly. A clean collector shutdown seals the capture; live and
+restart replay summaries include the capture-bound cursor and per-event counts.
+Legacy hls recording and replay formats remain available. Shared mode reads the
+collector archive directly; legacy recording/backfill flags apply to standalone
+mode. Source continuity and dataset qualification are separate from successful
+consumption of a saved capture.
+
+For collection settings, see the [Hyperliquid adapter documentation](https://github.com/rsitech-ai/cryptofeed-rs/tree/codex/hyperliquid-shared-feed/crates/adapters/hyperliquid).

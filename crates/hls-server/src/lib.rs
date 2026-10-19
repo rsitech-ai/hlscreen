@@ -26,11 +26,20 @@ const REQUEST_HEADER_TIMEOUT: Duration = Duration::from_secs(5);
 pub struct ApiState {
     health: HealthSnapshot,
     rows: Vec<FeatureSnapshot>,
+    source_context: Option<serde_json::Value>,
 }
 
 impl ApiState {
     pub fn new(health: HealthSnapshot, rows: Vec<FeatureSnapshot>) -> Self {
-        Self { health, rows }
+        Self {
+            health,
+            rows,
+            source_context: None,
+        }
+    }
+    pub fn with_source_context(mut self, context: serde_json::Value) -> Self {
+        self.source_context = Some(context);
+        self
     }
 }
 
@@ -71,7 +80,14 @@ pub struct ApiResponse {
 
 pub fn handle_get(path: &str, query: &str, state: &ApiState) -> HlsResult<ApiResponse> {
     match path {
-        "/health" => json_response(200, &state.health),
+        "/health" => {
+            let mut health = serde_json::to_value(&state.health)
+                .map_err(|e| HlsError::External(e.to_string()))?;
+            if let Some(source) = &state.source_context {
+                health["source"] = source.clone();
+            }
+            json_response(200, &health)
+        }
         "/symbols" => json_response(
             200,
             &json!({

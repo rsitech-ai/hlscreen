@@ -46,7 +46,7 @@ use hls_features::{
 use hls_hyperliquid::{
     rest::{HyperliquidRestClient, SpotMarketContext, select_universe},
     ws::{
-        parser::{parse_ws_message, parse_ws_ndjson},
+        parser::parse_ws_ndjson,
         subscriptions::{
             OFFICIAL_WS_SUBSCRIPTION_LIMIT, StreamKind, SubscriptionPlan, ping_message,
         },
@@ -429,6 +429,10 @@ pub struct LiveArgs {
     #[arg(long, hide = true)]
     pub fixture_file: Option<PathBuf>,
 
+    /// Read a cryptofeed-rs committed capture; opens no exchange connection.
+    #[arg(long, conflicts_with = "fixture_file", env = "HLS_SHARED_FEED")]
+    pub shared_feed: Option<PathBuf>,
+
     #[arg(long, hide = true)]
     pub metadata_file: Option<PathBuf>,
 
@@ -525,6 +529,10 @@ pub struct TuiArgs {
     #[arg(long, hide = true)]
     pub fixture_file: Option<PathBuf>,
 
+    /// Read a cryptofeed-rs committed capture; opens no exchange connection.
+    #[arg(long, conflicts_with = "fixture_file", env = "HLS_SHARED_FEED")]
+    pub shared_feed: Option<PathBuf>,
+
     #[arg(long, hide = true)]
     pub metadata_file: Option<PathBuf>,
 
@@ -558,6 +566,7 @@ impl TuiArgs {
             run_id: self.run_id,
             data_dir: self.data_dir,
             fixture_file: self.fixture_file,
+            shared_feed: self.shared_feed,
             metadata_file: self.metadata_file,
             once: self.once,
         }
@@ -578,10 +587,16 @@ struct PersistedTuiPreferences {
     chart_window: String,
 }
 
+#[cfg(test)]
+use hls_hyperliquid::ws::parser::parse_ws_message;
+
 pub async fn run(args: LiveArgs) -> anyhow::Result<()> {
     validate_live_args(&args, LiveTerminalCapabilities::detect())?;
     let alert_runtime = load_live_alert_runtime(args.alert_playbook_file.as_ref())?;
 
+    if let Some(directory) = args.shared_feed.clone() {
+        return run_shared_live(args, &directory, alert_runtime).await;
+    }
     if let Some(fixture_file) = args.fixture_file.clone() {
         return run_fixture_live(args, &fixture_file, alert_runtime).await;
     }
@@ -725,8 +740,8 @@ fn validate_live_args(args: &LiveArgs, terminals: LiveTerminalCapabilities) -> a
     if args.data_dir.as_os_str().is_empty() {
         bail!("--data-dir must not be empty");
     }
-    if args.once && args.fixture_file.is_none() {
-        bail!("--once is only supported with --fixture-file");
+    if args.once && args.fixture_file.is_none() && args.shared_feed.is_none() {
+        bail!("--once is only supported with --fixture-file or --shared-feed");
     }
     if args.fixture_file.is_some() && !args.once && !args.tui {
         bail!("fixture-backed interactive mode requires --tui when --once is absent");
@@ -736,7 +751,7 @@ fn validate_live_args(args: &LiveArgs, terminals: LiveTerminalCapabilities) -> a
             "--alert-playbook-file requires the explicit TUI surface (`hls tui` or `hls live --tui`)"
         );
     }
-    if args.fixture_file.is_none() {
+    if args.fixture_file.is_none() && args.shared_feed.is_none() {
         validate_public_ws_url(&args.ws_url)?;
     }
 
@@ -1004,6 +1019,139 @@ async fn run_interactive_fixture_tui(
     session_result.map(|_| ())
 }
 
+async fn run_shared_live(
+    args: LiveArgs,
+    directory: &Path,
+    alert_runtime: Option<LiveAlertRuntime>,
+) -> anyhow::Result<()> {
+    use hls_hyperliquid::shared::{SharedConsumer, SharedUpdate};
+    if args.record || args.raw || args.normalized || args.parquet || args.backfill_gaps {
+        bail!(
+            "shared mode already reads the authoritative archive; legacy recording/backfill options require standalone mode"
+        );
+    }
+    let mut consumer = SharedConsumer::open(directory)?;
+    let selected = parse_symbols(args.symbols.as_deref());
+    let mut state = LiveMarketState::new(Vec::<String>::new());
+    let mut summary = LiveDriveSummary::default();
+    let mut event_counts = std::collections::BTreeMap::<&str, u64>::new();
+    let mut screen_request = ScreenRequest {
+        preset: args.preset.clone(),
+        where_expr: args.r#where.clone(),
+        sort: args.sort.clone(),
+    };
+    let metadata = load_metadata_enrichments(args.metadata_file.as_ref())?;
+    let stderr_tty = io::stderr().is_terminal();
+    let interactive = args.tui && io::stdin().is_terminal() && stderr_tty;
+    let color_mode = live_ratatui_color_mode(args.color, stderr_tty);
+    let mut ui_state = WorkstationUiState::default();
+    let lifetime =
+        LiveRunLifetime::from_duration_secs(args.duration_secs, tokio::time::Instant::now())?;
+    let mut shutdown_signal = install_shutdown_signal()?;
+    let terminal_mode = LiveTuiGuard::enable(interactive)?;
+    let mut renderer = if args.tui {
+        Some(
+            LiveTuiRenderer::new(if interactive {
+                LiveTuiSessionEnforcement::Interactive
+            } else {
+                LiveTuiSessionEnforcement::Unmanaged
+            })?
+            .with_alert_runtime(alert_runtime),
+        )
+    } else {
+        None
+    };
+    let started = Instant::now();
+    let mut next_render = Instant::now();
+    let result = async {
+        loop {
+            for update in consumer.poll(256)? {
+                match update {
+                    SharedUpdate::Symbols(symbols) => {
+                        let symbols: Vec<_> = symbols.into_iter().filter(|s| selected.is_empty() || selected.contains(s)).collect();
+                        state.include_symbols(symbols)?;
+                    }
+                    SharedUpdate::Events(events) => {
+                        summary.ws_messages += 1;
+                        for event in events {
+                            if event.hl_coin().is_none_or(|s| selected.is_empty() || selected.iter().any(|v|v==s)) {
+                                let kind = match &event {
+                                    MarketEvent::Trade(_) => "trade", MarketEvent::TopOfBook(_) => "bbo",
+                                    MarketEvent::OrderBook(_) => "book", MarketEvent::AssetContext(_) => "context",
+                                    MarketEvent::AllMids(_) => "mids", MarketEvent::Candle(_) => "candle",
+                                };
+                                *event_counts.entry(kind).or_default() += 1;
+                                summary.market_events += 1;
+                                state.apply(event)?;
+                            }
+                        }
+                    }
+                    SharedUpdate::Stopped => eprintln!("shared collector stopped cleanly"),
+                    SharedUpdate::Sealed => eprintln!("shared capture sealed"),
+                    SharedUpdate::Gap { symbols, reason } => {
+                        summary.mark_gap(&symbols);
+                        eprintln!("shared feed gap: {reason}");
+                    }
+                }
+            }
+            summary.archive_as_of_ms = if args.once || consumer.sealed() { consumer.as_of_ms() } else { None };
+            if Instant::now() >= next_render {
+                render_live_progress(LiveProgressContext { state: &state, screen_request: &screen_request, metadata: &metadata,
+                    color_mode, tui_state: Some(&ui_state), started, summary: &summary, mode: LiveProgressMode::Shared }, renderer.as_mut())?;
+                next_render = Instant::now() + Duration::from_secs(args.refresh_secs);
+            }
+            if interactive && let Some(reason) = poll_live_tui_actions(Some(&mut ui_state), &state, &mut screen_request,
+                &metadata, color_mode, LiveProgressMode::Shared, started, &summary, renderer.as_mut())? {
+                summary.mark_stopped(reason); break;
+            }
+            if (args.once || (!args.tui && consumer.sealed())) && consumer.caught_up() { break; }
+            tokio::select! {
+                _ = lifetime.wait_for_expiry() => { summary.mark_stopped(LiveStopReason::DurationElapsed); break; }
+                signal = shutdown_signal.as_mut() => { summary.mark_stopped(signal?); break; }
+                _ = tokio::time::sleep(Duration::from_millis(5)) => {}
+            }
+        }
+        Ok::<(),anyhow::Error>(())
+    }.await;
+    drop(renderer);
+    drop(terminal_mode);
+    result?;
+    if !selected.is_empty() {
+        for s in &selected {
+            if !consumer.symbols().contains(s) {
+                bail!("symbol {s} absent from committed shared catalog; use native identifiers");
+            }
+        }
+    }
+    println!(
+        "shared_feed_cursor={}",
+        serde_json::to_string(consumer.cursor())?
+    );
+    println!("market_events={}", summary.market_events);
+    println!(
+        "shared_feed_summary={}",
+        serde_json::json!({"cursor":consumer.cursor(),"events":event_counts,
+        "data_gaps":summary.data_gaps,"sealed":consumer.sealed(),"as_of_ms":summary.archive_as_of_ms,"float_projection":"features_and_display_only"})
+    );
+    let mut snapshots = live_feature_snapshots(&state, &summary, summary.feature_now_ms()?);
+    attach_metadata(&mut snapshots, metadata);
+    let output = live_tui_model(
+        &snapshots,
+        LiveProgressMode::Shared.title(),
+        &screen_request,
+        Some(&ui_state),
+        live_tui_candles(&state),
+        live_tui_trades(&state),
+        LiveTuiStatus::new(
+            "SHARED",
+            "committed archive",
+            "replayed from durable prefix",
+        ),
+    );
+    print!("{}", render_live_tui_snapshot(&output, None, color_mode)?);
+    Ok(())
+}
+
 async fn run_network_live(
     args: LiveArgs,
     alert_runtime: Option<LiveAlertRuntime>,
@@ -1170,7 +1318,7 @@ async fn run_network_live(
         )
         .await?;
     }
-    let mut snapshots = live_feature_snapshots(&state, &summary, now_ms_i64()?);
+    let mut snapshots = live_feature_snapshots(&state, &summary, summary.feature_now_ms()?);
     attach_metadata(&mut snapshots, metadata);
     summary.row_count = snapshots.len();
 
@@ -1373,6 +1521,7 @@ fn resolve_explicit_live_symbols(
 
 #[derive(Clone, Debug, Default)]
 struct LiveDriveSummary {
+    archive_as_of_ms: Option<i64>,
     ws_messages: u64,
     market_events: u64,
     reconnects: u64,
@@ -1385,6 +1534,12 @@ struct LiveDriveSummary {
 }
 
 impl LiveDriveSummary {
+    fn feature_now_ms(&self) -> HlsResult<i64> {
+        match self.archive_as_of_ms {
+            Some(ms) => Ok(ms),
+            None => now_ms_i64(),
+        }
+    }
     fn mark_gap(&mut self, symbols: &[String]) {
         self.reconnects = self.reconnects.saturating_add(1);
         self.data_gaps = self.data_gaps.saturating_add(1);
@@ -1490,6 +1645,7 @@ type ShutdownSignal = Pin<Box<dyn Future<Output = anyhow::Result<LiveStopReason>
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum LiveProgressMode {
+    Shared,
     Live,
     Fixture,
 }
@@ -1497,6 +1653,7 @@ enum LiveProgressMode {
 impl LiveProgressMode {
     fn title(self) -> &'static str {
         match self {
+            Self::Shared => "Hyperliquid spot + perps / committed shared feed",
             Self::Live => "READ-ONLY Hyperliquid spot live screen",
             Self::Fixture => "READ-ONLY Hyperliquid spot fixture replay",
         }
@@ -1504,6 +1661,7 @@ impl LiveProgressMode {
 
     fn status(self) -> &'static str {
         match self {
+            Self::Shared => "SHARED",
             Self::Live => "LIVE",
             Self::Fixture => "fixture",
         }
@@ -2070,7 +2228,7 @@ async fn drive_live_connection(
                     if let Some(recorder) = recorder {
                         recorder.record_raw_line(recv_ts_ns, conn_id, line.clone())?;
                     }
-                    let events: Vec<_> = parse_ws_message(&line)?
+                    let events: Vec<_> = hls_hyperliquid::shared::parse_shared_ws_message(&line)?
                         .into_iter()
                         .map(|event| event.with_recv_ts_ns(recv_ts_ns))
                         .collect();
@@ -2681,7 +2839,8 @@ where
     S: LiveTuiFrameSink + ?Sized,
 {
     if let Some(tui_frame_sink) = tui_frame_sink {
-        let mut snapshots = live_feature_snapshots(ctx.state, ctx.summary, now_ms_i64()?);
+        let mut snapshots =
+            live_feature_snapshots(ctx.state, ctx.summary, ctx.summary.feature_now_ms()?);
         attach_metadata(&mut snapshots, ctx.metadata.to_vec());
         let model = live_tui_model(
             &snapshots,
@@ -4453,7 +4612,7 @@ fn submit_live_command(
     };
     let input = command.input().trim();
     let mut candidate = screen_request.clone();
-    let snapshots = live_feature_snapshots(state, summary, now_ms_i64()?);
+    let snapshots = live_feature_snapshots(state, summary, summary.feature_now_ms()?);
 
     match command.target() {
         WorkstationCommandTarget::Filter => {
@@ -4540,7 +4699,7 @@ fn current_screened_row_count(
     screen_request: &ScreenRequest,
     summary: &LiveDriveSummary,
 ) -> anyhow::Result<usize> {
-    let snapshots = live_feature_snapshots(state, summary, now_ms_i64()?);
+    let snapshots = live_feature_snapshots(state, summary, summary.feature_now_ms()?);
     Ok(hls_screen::ScreenEngine
         .apply(&snapshots, screen_request)?
         .len())
@@ -5440,6 +5599,25 @@ mod tests {
                 .to_string()
                 .contains("wait for OS shutdown signal")
         );
+    }
+
+    #[test]
+    fn frozen_shared_replay_evaluates_features_at_the_archive_clock() {
+        let mut state = LiveMarketState::new(["BTC".to_owned()]);
+        let frame = r#"{"channel":"trades","data":[{"coin":"BTC","side":"B","px":"100.25","sz":"2","hash":"h","time":1700000000000,"tid":17}]}"#;
+        for event in hls_hyperliquid::shared::parse_shared_ws_message(frame).unwrap() {
+            state.apply(event).unwrap();
+        }
+        let summary = LiveDriveSummary {
+            archive_as_of_ms: Some(1_700_000_001_000),
+            ..Default::default()
+        };
+        let first = live_feature_snapshots(&state, &summary, summary.feature_now_ms().unwrap());
+        let replay = live_feature_snapshots(&state, &summary, summary.feature_now_ms().unwrap());
+        assert_eq!(first, replay);
+        assert!(first[0].signed_notional_flow_30s.is_some());
+        let aged = live_feature_snapshots(&state, &summary, 1_700_000_200_000);
+        assert!(aged[0].signed_notional_flow_30s.is_none());
     }
 
     #[test]

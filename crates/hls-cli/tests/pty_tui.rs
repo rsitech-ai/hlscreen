@@ -224,7 +224,7 @@ impl PtySession {
         let mut command = CommandBuilder::new("/bin/sh");
         command.arg("-c");
         command.arg(
-            "trap 'exit 0' HUP TERM; /bin/sh -c \"trap '' HUP TERM; while :; do /bin/sleep 60; done\" & printf '__HLS_STUBBORN_READY__\\n'; wait",
+            "trap 'exit 0' HUP TERM; /bin/sh -c \"trap '' HUP TERM; printf '__HLS_STUBBORN_READY__\\n'; while :; do /bin/sleep 60; done\" & wait",
         );
         command.env("PATH", "/usr/bin:/bin");
         Self::spawn_command(
@@ -414,41 +414,73 @@ impl PtySession {
     }
 }
 
-impl Drop for PtySession {
-    fn drop(&mut self) {
+impl PtySession {
+    fn cleanup(&mut self) -> Result<()> {
         if self.finished {
-            return;
+            return Ok(());
         }
-
+        let deadline = Instant::now() + CLEANUP_FORCE_TIMEOUT + CLEANUP_GRACE_TIMEOUT * 3;
         if let Some(writer) = self.writer.as_mut() {
             let _ = writer.write_all(b"q");
             let _ = writer.flush();
         }
         let mut child_exited = self.receive_cleanup_status(CLEANUP_GRACE_TIMEOUT);
-        let mut group_exited = !process_group_exists(self.process_group_id).unwrap_or(true);
+        let mut signal_errors = Vec::new();
+        let mut group_exited = match process_group_exists(self.process_group_id) {
+            Ok(exists) => !exists,
+            Err(error) => {
+                signal_errors.push(error.to_string());
+                false
+            }
+        };
         if !child_exited || !group_exited {
-            let _ = send_signal("-HUP", format!("-{}", self.process_group_id));
+            if let Err(error) = send_signal("-HUP", format!("-{}", self.process_group_id)) {
+                signal_errors.push(error.to_string());
+            }
             if !child_exited {
                 child_exited = self.receive_cleanup_status(CLEANUP_GRACE_TIMEOUT);
             }
             group_exited =
                 wait_for_process_group_exit(self.process_group_id, CLEANUP_GRACE_TIMEOUT);
         }
-        if !child_exited || !group_exited {
-            let _ = send_signal("-KILL", format!("-{}", self.process_group_id));
-            if !child_exited {
-                let _ = self.receive_cleanup_status(CLEANUP_FORCE_TIMEOUT);
-            }
-            let _ = wait_for_process_group_exit(self.process_group_id, CLEANUP_FORCE_TIMEOUT);
-        }
+        // Release the terminal before the final escalation/wait. A surviving
+        // descendant must not retain our PTY handles while we wait for it.
         self.writer.take();
         self.master.take();
-        self.drain_reader_for_cleanup(CLEANUP_GRACE_TIMEOUT);
-
-        // Rust has no timed JoinHandle::join. Detach after bounded process/PTY
-        // evidence rather than letting a test failure hang the whole suite.
+        if !child_exited || !group_exited {
+            if let Err(error) = send_signal("-KILL", format!("-{}", self.process_group_id)) {
+                signal_errors.push(error.to_string());
+            }
+            if !child_exited {
+                child_exited =
+                    self.receive_cleanup_status(deadline.saturating_duration_since(Instant::now()));
+            }
+            group_exited = wait_for_process_group_exit(
+                self.process_group_id,
+                deadline.saturating_duration_since(Instant::now()),
+            );
+        }
+        self.drain_reader_for_cleanup(
+            deadline
+                .saturating_duration_since(Instant::now())
+                .min(CLEANUP_GRACE_TIMEOUT),
+        );
         self.waiter_thread.take();
         self.reader_thread.take();
+        self.finished = true;
+        ensure!(
+            child_exited && group_exited,
+            "PTY cleanup incomplete: child_exited={child_exited}, group_exited={group_exited}, signals={signal_errors:?}, processes={}",
+            process_group_diagnostics(self.process_group_id)
+        );
+        Ok(())
+    }
+}
+impl Drop for PtySession {
+    fn drop(&mut self) {
+        if let Err(error) = self.cleanup() {
+            eprintln!("{error:#}");
+        }
     }
 }
 
@@ -684,6 +716,7 @@ fn pty_cleanup_escalates_past_ignored_hup_without_hanging() -> Result<()> {
     });
 
     let started = Instant::now();
+    let cleanup_result = session.cleanup();
     drop(session);
     let elapsed = started.elapsed();
     let _ = completed_tx.send(());
@@ -691,6 +724,7 @@ fn pty_cleanup_escalates_past_ignored_hup_without_hanging() -> Result<()> {
         .join()
         .map_err(|_| anyhow::anyhow!("cleanup watchdog panicked"))??;
 
+    cleanup_result?;
     ensure!(
         completed_without_watchdog,
         "PTY cleanup required the external {}s watchdog",
@@ -858,6 +892,30 @@ fn send_signal(signal: &str, target: String) -> Result<()> {
         String::from_utf8_lossy(&output.stderr).trim()
     );
     Ok(())
+}
+
+fn process_group_diagnostics(process_group_id: i32) -> String {
+    match Command::new("/bin/ps")
+        .args(["-eo", "pid=,ppid=,pgid=,stat=,command="])
+        .output()
+    {
+        Ok(output) if !output.status.success() => format!(
+            "ps failed: {}: {}",
+            output.status,
+            String::from_utf8_lossy(&output.stderr)
+        ),
+        Ok(output) => String::from_utf8_lossy(&output.stdout)
+            .lines()
+            .filter(|line| {
+                line.split_whitespace()
+                    .nth(2)
+                    .and_then(|s| s.parse::<i32>().ok())
+                    == Some(process_group_id)
+            })
+            .collect::<Vec<_>>()
+            .join("; "),
+        Err(error) => format!("ps failed: {error}"),
+    }
 }
 
 fn process_group_exists(process_group_id: i32) -> Result<bool> {
