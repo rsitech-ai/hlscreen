@@ -1,0 +1,32 @@
+{
+  "database": {
+    "advisory-count": 1338,
+    "last-commit": "999ec89d5d3f10f20be14750ec8c2d8b44e0ac9b",
+    "last-updated": "2026-10-17T17:23:59+02:00"
+  },
+  "lockfile": {
+    "dependency-count": 431
+  },
+  "settings": {
+    "target_arch": [],
+    "target_os": [],
+    "severity": null,
+    "ignore": [],
+    "informational_warnings": [
+      "unmaintained",
+      "unsound",
+      "notice"
+    ]
+  },
+  "vulnerabilities": {
+    "found": false,
+    "count": 0,
+    "list": []
+  },
+  "warnings": {},
+  "audit_tool_version": "cargo-audit 0.22.2",
+  "audit_tool_sha256": "d4af0174a47b1d6fa0ec73d40a9f6057ab698e842131768e7e9d512d60045872",
+  "audited_lock_sha256": "4a68ec577e5a359039b002c385a773b8b31d57793ae9a0493b59ec971b56bcb0",
+  "command": "cargo audit --deny warnings --json",
+  "exit_code": 0
+}

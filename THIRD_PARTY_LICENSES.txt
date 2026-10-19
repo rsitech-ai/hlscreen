@@ -6558,7 +6558,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 MIT License
 
 Used by:
-- lru 0.18.1 (https://github.com/jeromefroe/lru-rs.git)
+- lru 0.18.2 (https://github.com/jeromefroe/lru-rs.git)
 
 MIT License
 

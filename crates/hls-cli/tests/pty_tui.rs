@@ -18,6 +18,7 @@ const EXIT_TIMEOUT: Duration = Duration::from_secs(10);
 const CLEANUP_GRACE_TIMEOUT: Duration = Duration::from_secs(1);
 const CLEANUP_FORCE_TIMEOUT: Duration = Duration::from_secs(3);
 const CLEANUP_WATCHDOG_TIMEOUT: Duration = Duration::from_secs(8);
+const CLEANUP_POLL_INTERVAL: Duration = Duration::from_millis(10);
 const HORIZONTAL_SHRINK_CLEAR_COUNT: usize = 2;
 
 const ALT_SCREEN_ENTER: &[u8] = b"\x1b[?1049h";
@@ -447,18 +448,36 @@ impl PtySession {
         // descendant must not retain our PTY handles while we wait for it.
         self.writer.take();
         self.master.take();
-        if !child_exited || !group_exited {
-            if let Err(error) = send_signal("-KILL", format!("-{}", self.process_group_id)) {
-                signal_errors.push(error.to_string());
+        while (!child_exited || !group_exited) && Instant::now() < deadline {
+            // A shell can fork another descendant when its current child is
+            // killed, before its own SIGKILL is delivered. Re-signal surviving
+            // group members within the same absolute cleanup deadline.
+            // Once the group is gone, never signal that numeric id again.
+            if !group_exited {
+                if let Err(error) = send_signal("-KILL", format!("-{}", self.process_group_id)) {
+                    signal_errors.push(error.to_string());
+                }
             }
             if !child_exited {
-                child_exited =
-                    self.receive_cleanup_status(deadline.saturating_duration_since(Instant::now()));
+                child_exited = self.receive_cleanup_status(
+                    deadline
+                        .saturating_duration_since(Instant::now())
+                        .min(CLEANUP_POLL_INTERVAL),
+                );
             }
-            group_exited = wait_for_process_group_exit(
-                self.process_group_id,
-                deadline.saturating_duration_since(Instant::now()),
-            );
+            if !group_exited {
+                match process_group_exists(self.process_group_id) {
+                    Ok(exists) => group_exited = !exists,
+                    Err(error) => signal_errors.push(error.to_string()),
+                }
+            }
+            if !child_exited || !group_exited {
+                thread::sleep(
+                    deadline
+                        .saturating_duration_since(Instant::now())
+                        .min(CLEANUP_POLL_INTERVAL),
+                );
+            }
         }
         self.drain_reader_for_cleanup(
             deadline
@@ -698,6 +717,20 @@ fn fixture_tui_restores_terminal_when_signaled_during_initial_frame() -> Result<
 
 #[test]
 fn pty_cleanup_escalates_past_ignored_hup_without_hanging() -> Result<()> {
+    assert_stubborn_cleanup()
+}
+
+#[test]
+fn pty_cleanup_reaps_stubborn_descendants_in_each_bounded_session() -> Result<()> {
+    // A fixed number of independent challenges: every session must pass. This
+    // is not a retry after failure, and each keeps the existing watchdog.
+    for case in 0..3 {
+        assert_stubborn_cleanup().with_context(|| format!("stubborn PTY cleanup case {case}"))?;
+    }
+    Ok(())
+}
+
+fn assert_stubborn_cleanup() -> Result<()> {
     let mut session = PtySession::stubborn_child()?;
     session.wait_for("stubborn child readiness", INITIAL_TIMEOUT, |bytes| {
         contains(bytes, b"__HLS_STUBBORN_READY__")
@@ -947,7 +980,7 @@ fn wait_for_process_group_exit(process_group_id: i32, timeout: Duration) -> bool
         if remaining.is_zero() {
             return false;
         }
-        thread::sleep(remaining.min(Duration::from_millis(10)));
+        thread::sleep(remaining.min(CLEANUP_POLL_INTERVAL));
     }
 }
 

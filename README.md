@@ -577,3 +577,8 @@ resolution. Historical capture/soak receipts retain their original source pins;
 a dependency update does not requalify those runs or strict research datasets.
 The producer's Windows durable-publication defect remains open; local consumer
 checks do not establish Windows writer durability.
+
+The later [security lock repair](docs/evidence/security-lock-20261019/README.md)
+updates three transitive package versions without changing that producer pin,
+and fixes bounded PTY test cleanup. Its full-lock RustSec audit has zero findings;
+543 final-source tests pass. Earlier pin-migration receipts retain their own scope.
