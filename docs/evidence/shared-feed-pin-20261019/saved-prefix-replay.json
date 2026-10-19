@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "producer_dependency_pin": "410c3cae95f17c3b2b8ee88a9809c5fc1d7ad28b",
+  "command": "target/debug/hls live --shared-feed ../cryptofeed-rs/.local/evidence/hyperliquid-integration-review/live-pilot-07-feed --once --color never --ws-url not-an-exchange-url",
+  "exit": 0,
+  "same_summary_as_prior_pin": true,
+  "market_events": 1055,
+  "summary": {
+    "as_of_ms": 1792440727739,
+    "cursor": {
+      "feed_id": "fadae1df2c473d021fa8b06b0947ed664507e04d",
+      "offset": 1983487,
+      "sequence": 2683
+    },
+    "data_gaps": 0,
+    "events": {
+      "bbo": 512,
+      "book": 37,
+      "candle": 58,
+      "context": 178,
+      "trade": 270
+    },
+    "float_projection": "features_and_display_only",
+    "sealed": true
+  },
+  "feed_identity": {
+    "cursor": {
+      "feed_id": "fadae1df2c473d021fa8b06b0947ed664507e04d",
+      "sequence": 2683,
+      "offset": 1983487
+    },
+    "committed_prefix_sha256": "9207b56e6cb1544f0d9d313b17824afb508a6d44d14c35ca740a7b9184a1a45a"
+  },
+  "binary_sha256": "cfab8e34736cce6cb7a087a0aba5bb447dec7f1e088380497efae631b029b81b",
+  "log_sha256": "41e9a8a430547be5e39cd5db318ad4b14224cb5b852ebd4056699bcb5e249629",
+  "scope": "one saved sealed Hyperliquid prefix; no new live-forward/soak, exact canonical archive untouched; source continuity and research qualification unchanged"
+}

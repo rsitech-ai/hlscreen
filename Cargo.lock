@@ -1632,18 +1632,19 @@ dependencies = [
 [[package]]
 name = "marketfeed-adapter-api"
 version = "0.1.0-alpha.1"
-source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=62a8fef3ed17b23ad968eb4f0d897acd969055a1#62a8fef3ed17b23ad968eb4f0d897acd969055a1"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=410c3cae95f17c3b2b8ee88a9809c5fc1d7ad28b#410c3cae95f17c3b2b8ee88a9809c5fc1d7ad28b"
 dependencies = [
  "bytes",
  "marketfeed-model",
  "serde",
+ "serde_json",
  "thiserror 2.0.18",
 ]
 
 [[package]]
 name = "marketfeed-adapter-hyperliquid"
 version = "0.1.0-alpha.1"
-source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=62a8fef3ed17b23ad968eb4f0d897acd969055a1#62a8fef3ed17b23ad968eb4f0d897acd969055a1"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=410c3cae95f17c3b2b8ee88a9809c5fc1d7ad28b#410c3cae95f17c3b2b8ee88a9809c5fc1d7ad28b"
 dependencies = [
  "bytes",
  "marketfeed-adapter-api",
@@ -1655,7 +1656,7 @@ dependencies = [
 [[package]]
 name = "marketfeed-model"
 version = "0.1.0-alpha.1"
-source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=62a8fef3ed17b23ad968eb4f0d897acd969055a1#62a8fef3ed17b23ad968eb4f0d897acd969055a1"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=410c3cae95f17c3b2b8ee88a9809c5fc1d7ad28b#410c3cae95f17c3b2b8ee88a9809c5fc1d7ad28b"
 dependencies = [
  "serde",
  "thiserror 2.0.18",
@@ -1664,7 +1665,7 @@ dependencies = [
 [[package]]
 name = "marketfeed-recording"
 version = "0.1.0-alpha.1"
-source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=62a8fef3ed17b23ad968eb4f0d897acd969055a1#62a8fef3ed17b23ad968eb4f0d897acd969055a1"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=410c3cae95f17c3b2b8ee88a9809c5fc1d7ad28b#410c3cae95f17c3b2b8ee88a9809c5fc1d7ad28b"
 dependencies = [
  "base64",
  "bytes",

@@ -568,4 +568,12 @@ collector archive directly; legacy recording/backfill flags apply to standalone
 mode. Source continuity and dataset qualification are separate from successful
 consumption of a saved capture.
 
-For collection settings, see the [Hyperliquid adapter documentation](https://github.com/rsitech-ai/cryptofeed-rs/tree/codex/hyperliquid-shared-feed/crates/adapters/hyperliquid).
+For collection settings, see the [Hyperliquid adapter documentation](https://github.com/rsitech-ai/cryptofeed-rs/tree/410c3cae95f17c3b2b8ee88a9809c5fc1d7ad28b/crates/adapters/hyperliquid).
+
+The shared decoder, recording reader and their transitive marketfeed crates are
+pinned together at `410c3cae95f17c3b2b8ee88a9809c5fc1d7ad28b`.
+Run `python3 scripts/check-shared-feed-pin.py` to verify the complete source
+resolution. Historical capture/soak receipts retain their original source pins;
+a dependency update does not requalify those runs or strict research datasets.
+The producer's Windows durable-publication defect remains open; local consumer
+checks do not establish Windows writer durability.
