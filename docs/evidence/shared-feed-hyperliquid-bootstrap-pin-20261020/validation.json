@@ -1,0 +1,490 @@
+{
+  "schema_version": 1,
+  "status": "All10 local frozen-source checks passed; own-source hosted main/native/archive qualification pending",
+  "base_consumer_head": "18bc9e4ec18ef6cfa3366575de5ba3c4a80940eb",
+  "producer_pin": "56b733dfdce0b865ad121d49c4d71d720b305733",
+  "prior_producer_pin": "7a68984668ee59a532985d71dfb3a10f7681a363",
+  "commands": [
+    {
+      "check": "metadata",
+      "command": [
+        "cargo",
+        "metadata",
+        "--locked",
+        "--format-version",
+        "1"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.334,
+      "log_sha256": "9991ba42caf7f2008a5f9c256d57dec5c4cecce81a47da22c2a586e7f194ff46"
+    },
+    {
+      "check": "pr-check",
+      "command": [
+        "bash",
+        "scripts/check.sh",
+        "pr"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 205.744,
+      "log_sha256": "3fde8de357856cb92b2691b7519bbb2183cc2fec3503ce485b8cf7c084a4765e"
+    },
+    {
+      "check": "debug-build",
+      "command": [
+        "cargo",
+        "build",
+        "--locked",
+        "-p",
+        "hls-cli"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.59,
+      "log_sha256": "80a72ab0b6d57f57833fbff08eb4f1c216d4bb98fd0953be701bdd8ef1a25c8e"
+    },
+    {
+      "check": "saved-replay",
+      "command": [
+        "target/debug/hls",
+        "live",
+        "--shared-feed",
+        "../cryptofeed-rs/.local/evidence/hyperliquid-integration-review/live-pilot-07-feed",
+        "--once",
+        "--color",
+        "never",
+        "--ws-url",
+        "not-an-exchange-url"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 2.101,
+      "log_sha256": "41e9a8a430547be5e39cd5db318ad4b14224cb5b852ebd4056699bcb5e249629",
+      "binary_sha256": "e49520cbacd743b30f74be6d88b774cd1ce5afa0fee771a62da16047f9eae29e"
+    },
+    {
+      "check": "audit-version",
+      "command": [
+        "cargo-audit",
+        "--version"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.02,
+      "log_sha256": "8748580845bee726903e69bc4543958fb01e2594317e6c68bf80114bff13d541"
+    },
+    {
+      "check": "audit",
+      "command": [
+        "cargo",
+        "audit",
+        "--deny",
+        "warnings",
+        "--json"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 4.245,
+      "log_sha256": "894568f70dd249747aa424d7f966cb3ac35d2a9210e4378b5df3a625cf4534e7"
+    },
+    {
+      "check": "deny-version",
+      "command": [
+        "cargo",
+        "deny",
+        "--version"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.041,
+      "log_sha256": "1758f5ea93d8ad3585079f05c19358b7bb969cce1bf6c7bdab6659a8cd1ef6b8"
+    },
+    {
+      "check": "policy",
+      "command": [
+        "cargo",
+        "deny",
+        "check",
+        "licenses",
+        "sources"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 1.107,
+      "log_sha256": "a09bbb250feeb5c0d6ac91177e3a1730bf09901eefcec1269ea8d00949a8f1a4"
+    },
+    {
+      "check": "about-version",
+      "command": [
+        "cargo-about",
+        "--version"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.023,
+      "log_sha256": "529e34ea4b18f64d4862652888f69e8137b9e808b0fcc2e70aa4529a4cf431d7"
+    },
+    {
+      "check": "attribution",
+      "command": [
+        "bash",
+        "scripts/check-third-party-licenses.sh"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 13.513,
+      "log_sha256": "edb814bb046435a2b1f8224b46bd879223326fa8dbd56b62e096f325ac461e3c"
+    }
+  ],
+  "dependency_source": {
+    "schema_version": 1,
+    "producer_pin": "56b733dfdce0b865ad121d49c4d71d720b305733",
+    "prior_pin": "7a68984668ee59a532985d71dfb3a10f7681a363",
+    "shared_packages": [
+      {
+        "name": "marketfeed-adapter-api",
+        "version": "0.1.0-alpha.1",
+        "source": "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=56b733dfdce0b865ad121d49c4d71d720b305733#56b733dfdce0b865ad121d49c4d71d720b305733"
+      },
+      {
+        "name": "marketfeed-adapter-hyperliquid",
+        "version": "0.1.0-alpha.1",
+        "source": "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=56b733dfdce0b865ad121d49c4d71d720b305733#56b733dfdce0b865ad121d49c4d71d720b305733"
+      },
+      {
+        "name": "marketfeed-filesystem",
+        "version": "0.1.0-alpha.1",
+        "source": "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=56b733dfdce0b865ad121d49c4d71d720b305733#56b733dfdce0b865ad121d49c4d71d720b305733"
+      },
+      {
+        "name": "marketfeed-model",
+        "version": "0.1.0-alpha.1",
+        "source": "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=56b733dfdce0b865ad121d49c4d71d720b305733#56b733dfdce0b865ad121d49c4d71d720b305733"
+      },
+      {
+        "name": "marketfeed-recording",
+        "version": "0.1.0-alpha.1",
+        "source": "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=56b733dfdce0b865ad121d49c4d71d720b305733#56b733dfdce0b865ad121d49c4d71d720b305733"
+      }
+    ],
+    "cargo_shared_files": 52,
+    "changed_shared_files_from_prior_pin": 3,
+    "all_shared_source_files_match_git_blobs": true,
+    "registry_records": 419,
+    "registry_complete_records_unchanged": 393,
+    "registry_changes": [
+      {
+        "name": "cranelift-assembler-x64",
+        "prior_version": "0.123.18",
+        "version": "0.123.19",
+        "prior_checksum": "9e92993516bcc43fd4e511b31d2e0c0c24f6b7ac18bb39e32cac2bfc05ea378e",
+        "checksum": "b3741b9ad77e89c710586b2fcdd619baf28482d92b70d88cecb2a081dd912ae6"
+      },
+      {
+        "name": "cranelift-assembler-x64-meta",
+        "prior_version": "0.123.18",
+        "version": "0.123.19",
+        "prior_checksum": "97eeeb61b08ec484f274119faf3a8a1b80dd300b0208c0247d16d05982fc89fe",
+        "checksum": "8243e149085051b23faebd352ef7031aeebc5f45e63aaefd63ee7f810c22c7df"
+      },
+      {
+        "name": "cranelift-bforest",
+        "prior_version": "0.123.18",
+        "version": "0.123.19",
+        "prior_checksum": "782eb44158681a105d157cb0ce63e3dc83f78ef5674266c12234f49da3f5c6e8",
+        "checksum": "c538af3aee13eb6aa8a85d2ef85b4d0aa41623dae8b19f59bbacfd5d6c114920"
+      },
+      {
+        "name": "cranelift-bitset",
+        "prior_version": "0.123.18",
+        "version": "0.123.19",
+        "prior_checksum": "edd59af193204c4f025fb2c2d9ee0aeb1f60929edf000b0dfa3d45543a62f264",
+        "checksum": "2292ea3964d7d751031da1a1261d64feb09e89bd4fbebf3c78f43f9c34c20a11"
+      },
+      {
+        "name": "cranelift-codegen",
+        "prior_version": "0.123.18",
+        "version": "0.123.19",
+        "prior_checksum": "b1c29bd985057d790db25f6bc60b369b311aa2d75c2f496a7e9993585bfc7d60",
+        "checksum": "8967a699a4982d02c32246a00f2aa4cee5bccfaaa042608d5e151cb99cba210e"
+      },
+      {
+        "name": "cranelift-codegen-meta",
+        "prior_version": "0.123.18",
+        "version": "0.123.19",
+        "prior_checksum": "d9ef8a8495f19212f92db8425f768ffc67000c5cb417a0664475a8d09596700f",
+        "checksum": "e258eeeb6903b4e91e314a3667ab2a1e2924738ef2df08bdb50355e38decc749"
+      },
+      {
+        "name": "cranelift-codegen-shared",
+        "prior_version": "0.123.18",
+        "version": "0.123.19",
+        "prior_checksum": "a3aa5099097666baf45bd68ef036327c8f29d8785fffaaa7db3b3b6b7e94bcc6",
+        "checksum": "e1d36ff0de30460c01dad152ca2097bcabef2f16c659b9ffbca2f67e9bbdb321"
+      },
+      {
+        "name": "cranelift-control",
+        "prior_version": "0.123.18",
+        "version": "0.123.19",
+        "prior_checksum": "26f67f4f4e92c2934f40c2ff4574400bd27326932aad937a438b7fb459f60a63",
+        "checksum": "acc880d91877efb6199031bda872726ca3287dc1e18ccf3f61c07bfdab62930b"
+      },
+      {
+        "name": "cranelift-entity",
+        "prior_version": "0.123.18",
+        "version": "0.123.19",
+        "prior_checksum": "8393d09f0abaa504896069e79f4eb6f15eb1853e5645732b082dac1ed292aaa8",
+        "checksum": "5f7af321c4b6e5be4729e4a5b1ed0fc78fc31695c1ecd3c9b45b91908bf3d0a3"
+      },
+      {
+        "name": "cranelift-frontend",
+        "prior_version": "0.123.18",
+        "version": "0.123.19",
+        "prior_checksum": "580cfaecbd11476dd82f6a393123dcbd9dfe583467df8d0c8441c641444d4985",
+        "checksum": "3463f1b26faac3491008cede8e9cdf7ceb83139143bd92ba86c14b0882aaf1bb"
+      },
+      {
+        "name": "cranelift-isle",
+        "prior_version": "0.123.18",
+        "version": "0.123.19",
+        "prior_checksum": "8c044843adb7d94b1facebaad846c0a762f79a77953417e3f0182093bcbbdc38",
+        "checksum": "90b76554b329634c4241c5670a96058affca99ac3b33daa14fb221bd68c0038e"
+      },
+      {
+        "name": "cranelift-native",
+        "prior_version": "0.123.18",
+        "version": "0.123.19",
+        "prior_checksum": "b9d4c1707214e53f2040e4d13430069ea22623287b2750ed6d62e40eba88d91a",
+        "checksum": "36e7c67bcfd30a8160187a6d52b2ec0cbe45698a9d61f12d1292bd24701f7ed2"
+      },
+      {
+        "name": "cranelift-srcgen",
+        "prior_version": "0.123.18",
+        "version": "0.123.19",
+        "prior_checksum": "d355a35edc49f628db7b793f3527eed31b560e77c3e8ed0e5258aad8df8a5249",
+        "checksum": "1ccca83c45ddfe0412b1b2e4fe509d28d1bdbc014e306574a848519741bebc36"
+      },
+      {
+        "name": "pulley-interpreter",
+        "prior_version": "36.0.18",
+        "version": "36.0.19",
+        "prior_checksum": "334ae8982dcf354e5f28e79fc6f935601e028b729cc174d3937eeeaa859057b8",
+        "checksum": "c956c7140270b72e3bf03381a51f2eb79c70fd6881fc17cd027fa7cd3f56ae5a"
+      },
+      {
+        "name": "pulley-macros",
+        "prior_version": "36.0.18",
+        "version": "36.0.19",
+        "prior_checksum": "9cd207bca4bc5e46cb4fcea87196dcbd78befc628c64c67d11dc99fce5cd5369",
+        "checksum": "74db420d7ce2bb03eed5b81c1f778bda5771b3fd818e2b496dfc3a2783ceb60e"
+      },
+      {
+        "name": "wasmtime",
+        "prior_version": "36.0.18",
+        "version": "36.0.19",
+        "prior_checksum": "70095b9fe63cc2a87ed206729e11544610decc184c62898c5d201ff1d666d82e",
+        "checksum": "60e5f244a2c9d40afa9e9a607ee7f048c0648bb1c22cc28b130c5fc71e23d71d"
+      },
+      {
+        "name": "wasmtime-environ",
+        "prior_version": "36.0.18",
+        "version": "36.0.19",
+        "prior_checksum": "a67ea8904b6e369e2218780bd1f9186f1980cb616445eb2c1f3c4e45c8397865",
+        "checksum": "3e246cd5107aa406cfa4acf6942e864bd189ae8136bab853365147da131c9ca3"
+      },
+      {
+        "name": "wasmtime-internal-asm-macros",
+        "prior_version": "36.0.18",
+        "version": "36.0.19",
+        "prior_checksum": "d0488a52ae93e654baecb08ce04d15d478756eb2168c2bdab7915710109161ce",
+        "checksum": "5380a8106fea8bfedb7208bb11ced9e7488ee44394ca889ede73acd3bdfd9d0b"
+      },
+      {
+        "name": "wasmtime-internal-cranelift",
+        "prior_version": "36.0.18",
+        "version": "36.0.19",
+        "prior_checksum": "f63ea7ee133de9109a4a1fc63dae3afc9ea32e92b8dada824fa4595dbf175f80",
+        "checksum": "7339fdd64a3fde574505adea23244e065d5b1de0e72c8dd87e150f5d4ab63a63"
+      },
+      {
+        "name": "wasmtime-internal-fiber",
+        "prior_version": "36.0.18",
+        "version": "36.0.19",
+        "prior_checksum": "69662a0a4dbe9784d1e8add9e3c5d2db0ca348085c624c27a70992dbe2eff4a3",
+        "checksum": "6f3afc72d3c72f71d4ebc72e83f479ba8ca24409c41d43e5e0228f0bf82b873e"
+      },
+      {
+        "name": "wasmtime-internal-jit-debug",
+        "prior_version": "36.0.18",
+        "version": "36.0.19",
+        "prior_checksum": "00cb07d23903c0be359d6b920d94774ea322759c3f4d6721b61afa03602e4804",
+        "checksum": "21d33adf2d1eae36df9b6b033a1d549c7553ea607f4f9a81f75d51627725c354"
+      },
+      {
+        "name": "wasmtime-internal-jit-icache-coherence",
+        "prior_version": "36.0.18",
+        "version": "36.0.19",
+        "prior_checksum": "aa2b47c37a6d026e2755fe2cf7ec5c1f4b0fba62e448ea910cdf6a07a4982c6a",
+        "checksum": "5bde2fcf14cc76084242c6fe792e49778b5a9008c7df28ca4fe21c35c69d5f55"
+      },
+      {
+        "name": "wasmtime-internal-math",
+        "prior_version": "36.0.18",
+        "version": "36.0.19",
+        "prior_checksum": "b269f0ba44102c57fd5f94f1bf4395ccd4fc2b84698fc78f627a6f2a47131a62",
+        "checksum": "4bd982249e933e730859f84c17254c7e95f38c3b0cdf81695bfc6a270e237852"
+      },
+      {
+        "name": "wasmtime-internal-slab",
+        "prior_version": "36.0.18",
+        "version": "36.0.19",
+        "prior_checksum": "0e35ac9d503d503703cd24d532e53e2e93c86109b451df40a9801500045aee25",
+        "checksum": "8280b359384cc412bddf0023193eeaffadcb0d7fbbf860f2b7e0580e8806a344"
+      },
+      {
+        "name": "wasmtime-internal-unwinder",
+        "prior_version": "36.0.18",
+        "version": "36.0.19",
+        "prior_checksum": "83ce1d0930da44ed375701e6b4f187b46249f7efe2b1d8c1c77229a4adc82de9",
+        "checksum": "bb43477c41769fec0d031d32cb3236195acfb1e6aa4efdf463e5fd001c23f6cc"
+      },
+      {
+        "name": "wasmtime-internal-versioned-export-macros",
+        "prior_version": "36.0.18",
+        "version": "36.0.19",
+        "prior_checksum": "3b6633be262400bd7abab4ff767a16e8b6a41ff117be54bf76dabecea9f96225",
+        "checksum": "b33afac17819f2f767ea280b4b87a6c95458ef1ae43da410cfc5b26813ecb78f"
+      }
+    ],
+    "other_lock_record_fields_unchanged": true,
+    "resolved_nodes": 432,
+    "resolved_edges_kinds_and_features_equal_after_git_and_26_patch_identity_substitution": true,
+    "prior_pin_only_graph_sha256": "79f3b11bdcd1390b711c986da83106c1954d4dcfd4a29a43bd1013a6d9de4d43",
+    "scope": "Resolved source and dependency graph checks, not executable equivalence or compiler-vulnerability regression evidence",
+    "final_cargo_lock_sha256": "f39558783a53fd488c575142c54151eedff9a037ce05a5ca8b921aebe724f065",
+    "final_metadata_sha256": "9991ba42caf7f2008a5f9c256d57dec5c4cecce81a47da22c2a586e7f194ff46",
+    "all52_actual_cargo_checkout_paths_rechecked_after_run": true
+  },
+  "source_files_sha256": {
+    "Cargo.toml": "c239c661bcf46e13b322d57a7c145fc51aa6d110f989122924ef4921793979fe",
+    "Cargo.lock": "f39558783a53fd488c575142c54151eedff9a037ce05a5ca8b921aebe724f065",
+    "README.md": "6cf7bb1f14a4dba83d9f48704cff0c5bdcf32e91f86b4e930d2cfa1ac53555d4",
+    "THIRD_PARTY_LICENSES.txt": "71ae24bcd64db7ff2c945439c549c81a2a976932dc9216419ec49e25b5047469",
+    "docs/evidence/shared-feed-hyperliquid-bootstrap-pin-20261020/README.md": "57d9f751a02033518b463970eb48fdee7c7633e4cf3aedc7366da4f0853efdd4"
+  },
+  "runner": {
+    "actual_terminal_exit_code": 0,
+    "completion_marker_observed": true,
+    "terminal_receipt_sha256": "ff3534096755953c3c8033bd6d222e71053dd8ddd451b4174a8799a003bd8ec4"
+  },
+  "validation": {
+    "rust_unique_tests": 544,
+    "rust_executions": 567,
+    "rust_suites": 82,
+    "python_suite_sizes": [
+      8,
+      4
+    ],
+    "failed": 0,
+    "ignored": 0,
+    "fmt_clippy_tests_release_docs_screenshots_packaging": "pass",
+    "cargo_audit_0_22_2": "pass;zero vulnerabilities/warnings",
+    "cargo_deny_0_20_2_licenses_sources": "pass",
+    "cargo_about_0_9_1_attribution": "pass"
+  },
+  "security_patch": {
+    "prior_wasmtime": "36.0.18",
+    "wasmtime": "36.0.19",
+    "advisories": [
+      "RUSTSEC-2026-0380",
+      "RUSTSEC-2026-0379"
+    ],
+    "same_database": {
+      "advisory-count": 1345,
+      "last-commit": "b19b2c83c2493961ccb12f9fc4699a00fb2c6c44",
+      "last-updated": "2026-10-20T13:02:37+02:00"
+    },
+    "before_vulnerabilities": 2,
+    "after_vulnerabilities": 0,
+    "before_raw_audit_sha256": "fd3c88c2aca483a60168bcc46dc339d5e11f08f7524b1b2347641e881323f6ef",
+    "after_raw_audit_sha256": "894568f70dd249747aa424d7f966cb3ac35d2a9210e4378b5df3a625cf4534e7",
+    "runtime_tests_scope": "Existing actual Wasm execution/contract checks, not compiler-exploit regression or proof arbitrary Wasm is safe"
+  },
+  "saved_replay": {
+    "binary_sha256": "e49520cbacd743b30f74be6d88b774cd1ce5afa0fee771a62da16047f9eae29e",
+    "retained_bytes": 89314536,
+    "retained_mode": "0555",
+    "prior_pre_security_binary_sha256": "1a871aa7f1a89bf49a8406792d1503df7e85387afdffdebc8783b8cf60255a09",
+    "full_output_sha256": "41e9a8a430547be5e39cd5db318ad4b14224cb5b852ebd4056699bcb5e249629",
+    "events": 1055,
+    "summary": {
+      "as_of_ms": 1792440727739,
+      "cursor": {
+        "feed_id": "fadae1df2c473d021fa8b06b0947ed664507e04d",
+        "offset": 1983487,
+        "sequence": 2683
+      },
+      "data_gaps": 0,
+      "events": {
+        "bbo": 512,
+        "book": 37,
+        "candle": 58,
+        "context": 178,
+        "trade": 270
+      },
+      "float_projection": "features_and_display_only",
+      "sealed": true
+    },
+    "matches_prior_full_output": true,
+    "pilot_files": 2,
+    "all_bytes_metadata_unchanged": true
+  },
+  "historical_evidence": {
+    "files": 31,
+    "all_bytes_metadata_unchanged": true,
+    "file_sha256": {
+      "docs/evidence/artifact-output-decoding-20261020/README.md": "14371d2121d1a6736398e9cbed32e76e90749d0ea35e1acf40a4cf620321f759",
+      "docs/evidence/artifact-output-decoding-20261020/validation.json": "c31a6bc6a94203bab09186cb4e5b70acdc4570716b491d86c2941c8ef6af6c00",
+      "docs/evidence/security-lock-20261019/README.md": "4ae22043317d0008d58559c5b0ac8ef2193b4eed3c7781022e4730a3bcfe97ce",
+      "docs/evidence/security-lock-20261019/rustsec-audit.json": "89e584f6d87e0840692cb34a98d64ff0af6dcfd1ac817b3a735264339c3cef1a",
+      "docs/evidence/security-lock-20261019/saved-prefix-replay.json": "c5268424c14ea7161e07379efcacd2a23d79da0d205ae5a97cb42cb6ccdd25fb",
+      "docs/evidence/security-lock-20261019/validation.json": "071d6ebda60ef6c1277e960a7fef5d64e91c2ce7965d81cc00562e64e6e801c8",
+      "docs/evidence/shared-feed-batch-pin-20261020/README.md": "cc1e9f86a103eee7ab43a00017925ec82bca16c4f1bf7cbd874c8d12ad667048",
+      "docs/evidence/shared-feed-batch-pin-20261020/validation.json": "ef25923ddac6327e87df7634e5ff1a229da0fc445fdfb202d86ac3772c525e87",
+      "docs/evidence/shared-feed-causal-profile-pin-20261020/README.md": "803aac5a5eb749fafcfa3c6bb564abf078e6946e7e9559954121556cb5ed03b9",
+      "docs/evidence/shared-feed-causal-profile-pin-20261020/validation.json": "5e87076cc6ea2a2f594f3c418eb75acbf8a491660a1371b5b410ab8826a3489d",
+      "docs/evidence/shared-feed-diagnostics-pin-20261020/README.md": "54690229dbc324ef3862630141199fdde59e87f0a7727cd84f57f67998631fd6",
+      "docs/evidence/shared-feed-diagnostics-pin-20261020/validation.json": "dd43aeb9ba95cbf6b93e96986c0e89e7acafc25573018d37091d47cd13485eea",
+      "docs/evidence/shared-feed-native-pin-20261020/README.md": "bdbbb2c1ee45c6be51756cf48c7cd553c434c2b7fbb8f853d5c59add296716d8",
+      "docs/evidence/shared-feed-native-pin-20261020/validation.json": "b9f8d926a0c1279c0e5016c57300eb48b1bbbd42a77063a88abf4b8ec5c82adf",
+      "docs/evidence/shared-feed-operation-owner-pin-20261020/README.md": "7e42f05744661d6baebb7638e471635b5fee202651743964da6d1466a1f76a5f",
+      "docs/evidence/shared-feed-operation-owner-pin-20261020/validation.json": "2db5fba52582a624868d869b97544dc3df0eb0e232c80890552bd95b84bd6ffc",
+      "docs/evidence/shared-feed-operation-pin-20261020/README.md": "a5105c65319df0b13551e77c51171f843db2514ad9f89c16eaa5b4a2a547a0bb",
+      "docs/evidence/shared-feed-operation-pin-20261020/validation.json": "89d6366d842c8762a034b9b7807fbead1e63a98e2d63c7e4bbcf382c6d951a3a",
+      "docs/evidence/shared-feed-owner-history-pin-20261020/README.md": "4625f217493ae185ac92176e94d7c24f21d50fc70de63e737f7e4b1f98e71099",
+      "docs/evidence/shared-feed-owner-history-pin-20261020/validation.json": "01fc015bb818a4b2fb02512066fd58a9b00052bd07799b5a2496d63c30224c73",
+      "docs/evidence/shared-feed-owner-runtime-pin-20261020/README.md": "6bca1d57d648d4e48f89276f9c08cb13b2326e9f8730ac77458fd35129045c4b",
+      "docs/evidence/shared-feed-owner-runtime-pin-20261020/validation.json": "71bacf9052d9eba3928bcdcb3d5b96807107221c366e3ff6d1399314c8f6d498",
+      "docs/evidence/shared-feed-pin-20261019/README.md": "2b167c7d10d28c1cae8d574b699efc61317457ab8e78a23795f183f773f74d37",
+      "docs/evidence/shared-feed-pin-20261019/saved-prefix-replay.json": "207ecf9febc3da99eca8788a984b58d015373b426cfa4fbb70b839d563cc6920",
+      "docs/evidence/shared-feed-pin-20261019/validation.json": "3a260a28094385162f54c4a5337de74b0edf693a3e916d1b2e1fd4e6b813de03",
+      "docs/evidence/shared-feed-streaming-pin-20261020/README.md": "1d174f27ca0e9b782c1d2ed5c766559639f33a8143a5dffd65ec1a9c809f102c",
+      "docs/evidence/shared-feed-streaming-pin-20261020/validation.json": "eafddffb18cd229b07c91a7d8298b2a1f480005072a1fa5d094f8a7a803874c7",
+      "docs/evidence/soak-validation-20261020/README.md": "522a69e67d053b53d98b60b191662b3070c87bda8e26db2cb89ba123b9a1dfb8",
+      "docs/evidence/soak-validation-20261020/validation.json": "bb1cbdccb6042ec31de68c4c2e293bfd4e1622739afda99a5a915ac352e320a0",
+      "docs/evidence/soak/shared-feed-20261019-15m.json": "ee3e5a00fcd4145832025453e1d7776e36724520705ae74eabb10c8aa1d4f8e7",
+      "docs/evidence/soak/sota-allpairs-20260720-15m.json": "685b705edd76997a67f9d7c2e6e22a47d04f691fcad7baaf321b1169e2650656"
+    }
+  },
+  "frozen_dataset": {
+    "files": 22,
+    "all_bytes_metadata_unchanged": true,
+    "strict_admission": "denied;not rerun"
+  },
+  "earlier_failures": {
+    "missing_documentation_link_pr_check_exit": 101,
+    "fresh_audit_exit": 1,
+    "failed_runner_terminal_sha256": "943aed3c8abb1873856c594421f0bd111021f78de77375d1ef87013e75aa342d",
+    "attribution_initial_attempt": "missing cargo-about on PATH; retained; exact0.9.1 subsequent regeneration/check pass",
+    "preserved_and_unqualified": true
+  },
+  "ownership": {
+    "cryptofeed": "acquisition/native identity/timing/quality/storage/replay",
+    "rsibot": "direct shared-feed consumption/context/features/models/ETF research/strategy decisions through existing owners",
+    "hlscreen": "shared-feed consumption/presentation"
+  },
+  "remaining": "Producer private MFCJ3 Hyperliquid bootstrap exists; committed projection, production actual-engine replay, daemon/CLI/live migration, native continuity, strict datasets, rsibot continuous context and calendar/hardware/operational gates remain open. Registered ingress workload stays failed and was not rerun.",
+  "scope": "Pin/security compatibility and actual saved-prefix replay only; no economics, activation, deployment, release or full-goal completion"
+}

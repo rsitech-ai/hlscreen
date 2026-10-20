@@ -638,20 +638,20 @@ Used by:
 Apache License 2.0
 
 Used by:
-- cranelift-bforest 0.123.18 (https://github.com/bytecodealliance/wasmtime)
-- cranelift-codegen-meta 0.123.18 (https://github.com/bytecodealliance/wasmtime)
-- cranelift-codegen-shared 0.123.18 (https://github.com/bytecodealliance/wasmtime)
-- cranelift-codegen 0.123.18 (https://github.com/bytecodealliance/wasmtime)
-- cranelift-control 0.123.18 (https://github.com/bytecodealliance/wasmtime)
-- cranelift-entity 0.123.18 (https://github.com/bytecodealliance/wasmtime)
-- cranelift-frontend 0.123.18 (https://github.com/bytecodealliance/wasmtime)
-- cranelift-native 0.123.18 (https://github.com/bytecodealliance/wasmtime)
+- cranelift-bforest 0.123.19 (https://github.com/bytecodealliance/wasmtime)
+- cranelift-codegen-meta 0.123.19 (https://github.com/bytecodealliance/wasmtime)
+- cranelift-codegen-shared 0.123.19 (https://github.com/bytecodealliance/wasmtime)
+- cranelift-codegen 0.123.19 (https://github.com/bytecodealliance/wasmtime)
+- cranelift-control 0.123.19 (https://github.com/bytecodealliance/wasmtime)
+- cranelift-entity 0.123.19 (https://github.com/bytecodealliance/wasmtime)
+- cranelift-frontend 0.123.19 (https://github.com/bytecodealliance/wasmtime)
+- cranelift-native 0.123.19 (https://github.com/bytecodealliance/wasmtime)
 - regalloc2 0.12.2 (https://github.com/bytecodealliance/regalloc2)
 - target-lexicon 0.13.5 (https://github.com/bytecodealliance/target-lexicon)
-- wasmtime-environ 36.0.18 (https://github.com/bytecodealliance/wasmtime)
-- wasmtime-internal-cranelift 36.0.18 (https://github.com/bytecodealliance/wasmtime)
-- wasmtime-internal-unwinder 36.0.18 (https://github.com/bytecodealliance/wasmtime)
-- wasmtime 36.0.18 (https://github.com/bytecodealliance/wasmtime)
+- wasmtime-environ 36.0.19 (https://github.com/bytecodealliance/wasmtime)
+- wasmtime-internal-cranelift 36.0.19 (https://github.com/bytecodealliance/wasmtime)
+- wasmtime-internal-unwinder 36.0.19 (https://github.com/bytecodealliance/wasmtime)
+- wasmtime 36.0.19 (https://github.com/bytecodealliance/wasmtime)
 
 
                                  Apache License
@@ -5554,11 +5554,11 @@ Used by:
 - marketfeed-recording 0.1.0-alpha.1 (https://github.com/rsitech-ai/cryptofeed-rs)
 - allocator-api2 0.2.21 (https://github.com/zakarumych/allocator-api2)
 - anyhow 1.0.103 (https://github.com/dtolnay/anyhow)
-- cranelift-assembler-x64-meta 0.123.18
-- cranelift-assembler-x64 0.123.18
-- cranelift-bitset 0.123.18 (https://github.com/bytecodealliance/wasmtime)
-- cranelift-isle 0.123.18 (https://github.com/bytecodealliance/wasmtime/tree/main/cranelift/isle)
-- cranelift-srcgen 0.123.18 (https://github.com/bytecodealliance/wasmtime)
+- cranelift-assembler-x64-meta 0.123.19
+- cranelift-assembler-x64 0.123.19
+- cranelift-bitset 0.123.19 (https://github.com/bytecodealliance/wasmtime)
+- cranelift-isle 0.123.19 (https://github.com/bytecodealliance/wasmtime/tree/main/cranelift/isle)
+- cranelift-srcgen 0.123.19 (https://github.com/bytecodealliance/wasmtime)
 - document-features 0.2.12 (https://github.com/slint-ui/document-features)
 - half 2.7.1 (https://github.com/VoidStarKat/half-rs)
 - ident_case 1.0.1 (https://github.com/TedDriggs/ident_case)
@@ -5570,8 +5570,8 @@ Used by:
 - num-conv 0.2.2 (https://github.com/jhpratt/num-conv)
 - pin-project-lite 0.2.17 (https://github.com/taiki-e/pin-project-lite)
 - proc-macro2 1.0.106 (https://github.com/dtolnay/proc-macro2)
-- pulley-interpreter 36.0.18 (https://github.com/bytecodealliance/wasmtime/tree/main/pulley)
-- pulley-macros 36.0.18 (https://github.com/bytecodealliance/wasmtime/tree/main/pulley/macros)
+- pulley-interpreter 36.0.19 (https://github.com/bytecodealliance/wasmtime/tree/main/pulley)
+- pulley-macros 36.0.19 (https://github.com/bytecodealliance/wasmtime/tree/main/pulley/macros)
 - quote 1.0.46 (https://github.com/dtolnay/quote)
 - rand 0.9.4 (https://github.com/rust-random/rand)
 - rand_chacha 0.9.0 (https://github.com/rust-random/rand)
@@ -5598,11 +5598,11 @@ Used by:
 - wasm-encoder 0.236.1 (https://github.com/bytecodealliance/wasm-tools/tree/main/crates/wasm-encoder)
 - wasmparser 0.236.1 (https://github.com/bytecodealliance/wasm-tools/tree/main/crates/wasmparser)
 - wasmprinter 0.236.1 (https://github.com/bytecodealliance/wasm-tools/tree/main/crates/wasmprinter)
-- wasmtime-internal-asm-macros 36.0.18 (https://github.com/bytecodealliance/wasmtime)
-- wasmtime-internal-jit-icache-coherence 36.0.18 (https://github.com/bytecodealliance/wasmtime)
-- wasmtime-internal-math 36.0.18 (https://github.com/bytecodealliance/wasmtime)
-- wasmtime-internal-slab 36.0.18 (https://github.com/bytecodealliance/wasmtime)
-- wasmtime-internal-versioned-export-macros 36.0.18 (https://github.com/bytecodealliance/wasmtime)
+- wasmtime-internal-asm-macros 36.0.19 (https://github.com/bytecodealliance/wasmtime)
+- wasmtime-internal-jit-icache-coherence 36.0.19 (https://github.com/bytecodealliance/wasmtime)
+- wasmtime-internal-math 36.0.19 (https://github.com/bytecodealliance/wasmtime)
+- wasmtime-internal-slab 36.0.19 (https://github.com/bytecodealliance/wasmtime)
+- wasmtime-internal-versioned-export-macros 36.0.19 (https://github.com/bytecodealliance/wasmtime)
 - zstd-safe 7.2.4 (https://github.com/gyscos/zstd-rs)
 - zstd-sys 2.0.16+zstd.1.5.7 (https://github.com/gyscos/zstd-rs)
 
