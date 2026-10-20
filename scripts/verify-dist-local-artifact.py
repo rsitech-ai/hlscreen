@@ -132,6 +132,28 @@ def run_checked(command: list[str], *, timeout: int) -> subprocess.CompletedProc
     )
 
 
+def failure_message(error: BaseException) -> str:
+    """Keep bounded child evidence visible without accepting a failed child.
+
+    Successful output still requires strict UTF-8 in run_checked. Failure-only
+    tails escape invalid bytes and JSON controls so the diagnostic itself can
+    be printed on every platform; they do not qualify child output as valid.
+    """
+    evidence = {}
+    for name in ("stdout", "stderr"):
+        value = getattr(error, name, None)
+        if isinstance(value, bytes):
+            evidence[name] = value[-8192:].decode("utf-8", errors="backslashreplace")
+            evidence[name + "_truncated"] = len(value) > 8192
+        elif isinstance(value, str):
+            evidence[name] = value[-8192:]
+            evidence[name + "_truncated"] = len(value) > 8192
+    message = f"dist artifact validation failed: {str(error)[:4096]}"
+    if evidence:
+        message += " captured_child=" + json.dumps(evidence, ensure_ascii=True)
+    return message
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--artifact-dir", type=Path, required=True)
@@ -216,4 +238,4 @@ if __name__ == "__main__":
     try:
         raise SystemExit(main())
     except (OSError, ValueError, json.JSONDecodeError, subprocess.SubprocessError) as error:
-        raise SystemExit(f"dist artifact validation failed: {error}") from None
+        raise SystemExit(failure_message(error)) from None

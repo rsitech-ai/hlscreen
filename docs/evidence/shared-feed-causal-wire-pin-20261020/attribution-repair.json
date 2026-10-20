@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "scope": "Generated attribution only; no source, lockfile, dependency policy, workflow, cap, timeout or test changes.",
+  "failed_source_commit": "af6ff557d53ec672e5201631a7ab7b3bcd3bb343",
+  "failed_job": "https://github.com/rsitech-ai/hlscreen/actions/runs/39507682503/job/118920609871",
+  "failure": "Generated THIRD_PARTY_LICENSES.txt stale after roots/verifier dependency updates; license/source policy enforcement passed.",
+  "old_sha256": "8689c74cf539131f719500f680f1f6eb2fbabdea98c98a03ee83e87820f0136e",
+  "new_sha256": "16a3528924b61603922c52aee6aa8463214059e5c4948c4aea3093c78afa6b84",
+  "generator": {
+    "version": "cargo-about 0.9.1",
+    "tool_sha256": "33389f8625717f907edb9b787f6dfacbe83b7f072d15576c01df5c0348142164",
+    "flags": [
+      "--workspace",
+      "--all-features",
+      "--locked",
+      "--offline",
+      "--fail",
+      "--config",
+      "about.toml"
+    ],
+    "template": "about.hbs",
+    "exit_code": 0
+  },
+  "changes": [
+    "webpki-roots 0.26.11 and 1.0.8 usages replaced by 1.0.10",
+    "rustls-webpki 0.103.15 usage replaced by 0.103.16"
+  ],
+  "license_body_bytes_unchanged": true,
+  "local_check": {
+    "command": "bash scripts/check-third-party-licenses.sh",
+    "exit_code": 0,
+    "markers": [
+      "third_party_notices=verified count=3",
+      "third_party_licenses=verified"
+    ]
+  },
+  "original_bytes_preserved": true,
+  "prior_protected_historical_71_unchanged": true,
+  "independent_receipt_sha256": "27ea01f4a1eb53d1a83e9216774eeb25f600d06142d74c473254b30c4a5a8413",
+  "limits": [
+    "The failed hosted job remains failed.",
+    "This attribution check is not a rerun of the 565-test code suite.",
+    "Successor hosted and packaged-artifact results remain separately required."
+  ]
+}

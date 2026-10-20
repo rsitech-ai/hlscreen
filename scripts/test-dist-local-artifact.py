@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import subprocess
 import sys
 import unittest
@@ -49,6 +50,22 @@ class ChildOutputTests(unittest.TestCase):
             self.child("import os; os.write(2, b'audit rejected'); raise SystemExit(7)")
         self.assertEqual(error.exception.returncode, 7)
         self.assertEqual(error.exception.stderr, b"audit rejected")
+        self.assertIn("audit rejected", VALIDATOR.failure_message(error.exception))
+
+    def test_failure_diagnostic_bounds_and_escapes_invalid_child_bytes(self):
+        error = subprocess.CalledProcessError(
+            7, ["synthetic-child"], output=b"x" * 10000,
+            stderr=b"discarded-prefix" + b"y" * 8190 + b"\xff\n",
+        )
+        message = VALIDATOR.failure_message(error)
+        evidence = json.loads(message.split(" captured_child=", 1)[1])
+        self.assertEqual(evidence["stdout"], "x" * 8192)
+        self.assertEqual(evidence["stderr"], "y" * 8190 + "\\xff\n")
+        self.assertTrue(evidence["stdout_truncated"])
+        self.assertTrue(evidence["stderr_truncated"])
+        self.assertNotIn("discarded-prefix", message)
+        self.assertNotIn("\n", message)
+        self.assertEqual(error.returncode, 7)
 
     def test_timeout_remains_failed(self):
         with self.assertRaises(subprocess.TimeoutExpired):
