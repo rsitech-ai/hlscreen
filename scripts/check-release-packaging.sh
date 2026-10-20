@@ -11,6 +11,7 @@ python3 "$repo_root/scripts/harden-generated-release-workflow.py" \
   --workflow "$repo_root/.github/workflows/release.yml"
 
 python3 "$repo_root/scripts/test-soak-validation.py"
+python3 "$repo_root/scripts/test-dist-local-artifact.py"
 
 python3 "$repo_root/scripts/validate-soak-report.py" \
   "$repo_root/tests/fixtures/operations/soak-report-valid.json" \

@@ -1,0 +1,170 @@
+{
+  "schema": "hlscreen.artifact_output_decoding_validation.v1",
+  "base_source": "05ef784602caaa980b0397c554d91cc2b5099e5b",
+  "checks_before_commit": true,
+  "source_sha256": {
+    "scripts/verify-dist-local-artifact.py": "de29498e2de8adc4a128e1677d3c312b213eb5dfe88cb3202c230c0a5d000a12",
+    "scripts/test-dist-local-artifact.py": "4393e435dec7f0f5fc2fa0953b1ff678b3a934801cc5acdc325b2e31880abe38",
+    "scripts/check-release-packaging.sh": "e48e34aebfbc3f0776a9d97744f2eeadfcbab5906cd40ca921c18af17a49d9be"
+  },
+  "historical_failure": {
+    "run": "39373591907",
+    "url": "https://github.com/rsitech-ai/hlscreen/actions/runs/39373591907",
+    "raw_log_sha256": "d9fae7a869a1e0c684ff8a9939cdca03f6eb14028c72f8e36197602ff2ce542c",
+    "windows_job_status": "success",
+    "actual_result": "cp1252 reader-thread UnicodeDecodeError followed by success marker; packaged Windows validation not clean or qualified",
+    "error_line": 2738,
+    "false_pass_line": 2739,
+    "original_evidence_preserved": true
+  },
+  "change": "Capture child stdout/stderr as bytes; strict UTF8 decoding occurs synchronously before a successful result can return. Nonzero exit/timeout/decode failures prevent validator success.",
+  "regressions": {
+    "unique_cases": 4,
+    "scenarios": [
+      "UTF8 stdout/stderr under forcedcp1252 selection",
+      "invalidUTF8 on either stream raises in calling thread",
+      "nonzero child raises CalledProcessError retaining stderr bytes",
+      "timeout raises TimeoutExpired"
+    ],
+    "matrix": [
+      {
+        "helper": "new",
+        "PYTHONUTF8": "0",
+        "result": "4real-child tests pass",
+        "sha256": "2128d6422632e3355900c7f162ec26426231663a15c2bfd46560a62af266fd20"
+      },
+      {
+        "helper": "old",
+        "PYTHONUTF8": "0",
+        "result": "old helper expected locale failure reproduced",
+        "sha256": "9391e29140be84039f450cac5a31657f265fbb80ada01ff4bdfae29d40555385"
+      },
+      {
+        "helper": "new",
+        "PYTHONUTF8": "1",
+        "result": "4real-child tests pass",
+        "sha256": "d68d7f0ca461c4289d0c0af04b6dffa6c621741d61470fec79e02a2d1a4bb798"
+      },
+      {
+        "helper": "old",
+        "PYTHONUTF8": "1",
+        "result": "old helper expected locale failure reproduced",
+        "sha256": "17c3482fd1febd58a3c990ce7c841e03ede2a62488c7ee91008bfdb63d97b238"
+      }
+    ],
+    "independent_receipt_sha256": "18598ae648c2317be050a6370cc092c927821df83327c3409147b65431fc09da",
+    "test_portability_finding": "mock subprocess._text_encoding to cp1252 in addition to locale mocks; final old helper fails and new helper passes in modes0and1"
+  },
+  "actual_hosted_artifact_local_check": {
+    "exit_code": 0,
+    "target": "aarch64-apple-darwin",
+    "source": "05ef784602caaa980b0397c554d91cc2b5099e5b",
+    "artifact": "hls-cli-aarch64-apple-darwin.tar.xz",
+    "archive_sha256": "2ba45e003cc0a95b78cfeaa22f215ef1578766e928a506e44a9e1dbc7a9b9e1d",
+    "validator_source_sha256": "de29498e2de8adc4a128e1677d3c312b213eb5dfe88cb3202c230c0a5d000a12",
+    "elapsed_seconds": 13.97,
+    "log_sha256": "80dab7a939a6fcc2ec1322ce4ec143f7f009d9e99343146d7270cb4c5aad5f49",
+    "checks": "archive checksum/member inspection, extracted executable help/doctor/offline live fixture and cargo audit bin with embedded cargo-auditable metadata",
+    "scope": "Downloaded actual hosted macOS ARM artifact executed locally with corrected validator; does not qualify corrected Windows runtime"
+  },
+  "initial_local_harness_failure": {
+    "exit_code": 1,
+    "log_sha256": "c7d467bfc1d14d03cb17e96a863af5e277ba3d258128f3fac9ea018b4cab1f7f",
+    "reason": "Harness supplied dist-manifest.json instead of actual downloaded plan-dist-manifest.json; corrected argument for second run"
+  },
+  "preservation": {
+    "historical_23_files_and_2_original_archives_hash_stat_unchanged": true,
+    "Cargo_lock_sha256": "c1744e8c8fefc0176bf6992929d9bd4d466b5da458ab16e0ed54e5db7f83b127",
+    "retained_debug_binary_sha256": "2bfefa5fddb6bbebda95a62fab8cdc285e20f73653991ba497e6b383eb9516d0",
+    "producer_pin": "6565c9428e0c97636f1c5988f4a2c22b4d17f52e",
+    "rust_source_and_dependencies_unchanged": true
+  },
+  "public_check": {
+    "result": "pass; public-readiness and gitleaks8.30.1 staged diff, finalized receipt rechecked before commit",
+    "readiness": {
+      "command": [
+        "bash",
+        "scripts/check-public-readiness.sh"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.279,
+      "log_sha256": "c66b17581f9ca8db2efae22a5446623ac8eaebfd4a11ed0d84812c2b63a2936c"
+    },
+    "gitleaks": {
+      "check": "staged-diff-gitleaks",
+      "tool_version": "8.30.1",
+      "exit_code": 0,
+      "elapsed_seconds": 0.378,
+      "log_sha256": "2a5739a305a626925d1dcf9f6ee85e14d47bd54ccaf5b4374ca4da46f39bb1d5"
+    }
+  },
+  "hosted_status": "Corrected source not yet published/run; new native Windows artifact qualification required",
+  "open_gates": "Full causal/live producer integration and ingress repair, native/continuity/strict datasets, rsibot context/features, calendar/hardware/economics/promotion remain open",
+  "initial_commands": [
+    {
+      "check": "python",
+      "command": [
+        "python3",
+        "scripts/test-dist-local-artifact.py"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 1.188,
+      "log_sha256": "eedf0edb1656eb0a0f2ac31848a7b29b2f34a632e689bab263b2d49d203c097a"
+    },
+    {
+      "check": "soak-python",
+      "command": [
+        "python3",
+        "scripts/test-soak-validation.py"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 1.17,
+      "log_sha256": "66fbd06759254ea2a7309cc4b671fbc4aaf1d4f53fc76bd6b700360d54743c21"
+    },
+    {
+      "check": "workflow",
+      "command": [
+        "python3",
+        "scripts/harden-generated-release-workflow.py",
+        "--check",
+        "--workflow",
+        ".github/workflows/release.yml"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.024,
+      "log_sha256": "89e92be0c155941e1e4b11a73cab2e054dbae644ef645b0c3964afbaa5f90840"
+    },
+    {
+      "check": "shell",
+      "command": [
+        "bash",
+        "-n",
+        "scripts/check-release-packaging.sh"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.005,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "check": "diff",
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.014,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "initial_command_scope": "Before final test portability fix; final source is covered by final packaging run and independent default/UTF8 red-green matrix.",
+  "final_packaging_check": {
+    "command": [
+      "bash",
+      "scripts/check-release-packaging.sh"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 10.621,
+    "log_sha256": "d0fe3694a7e55e74e8ae28117c5c117583d4660133d220617268b74ba8088b6b"
+  }
+}

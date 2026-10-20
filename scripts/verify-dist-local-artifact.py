@@ -114,12 +114,20 @@ def extract_verified(archive: Path, target: str, destination: Path) -> None:
 
 
 def run_checked(command: list[str], *, timeout: int) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
+    # Read bytes in subprocess worker threads, then decode synchronously. On
+    # Windows a locale decoding error in a reader thread can otherwise print a
+    # traceback yet leave a successful child looking like successful validation.
+    completed = subprocess.run(
         command,
         check=True,
         capture_output=True,
-        text=True,
         timeout=timeout,
+    )
+    return subprocess.CompletedProcess(
+        completed.args,
+        completed.returncode,
+        completed.stdout.decode("utf-8"),
+        completed.stderr.decode("utf-8"),
     )
 
 
