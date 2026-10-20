@@ -568,10 +568,10 @@ collector archive directly; legacy recording/backfill flags apply to standalone
 mode. Source continuity and dataset qualification are separate from successful
 consumption of a saved capture.
 
-For collection settings, see the [Hyperliquid adapter documentation](https://github.com/rsitech-ai/cryptofeed-rs/tree/6565c9428e0c97636f1c5988f4a2c22b4d17f52e/crates/adapters/hyperliquid).
+For collection settings, see the [Hyperliquid adapter documentation](https://github.com/rsitech-ai/cryptofeed-rs/tree/8ba199a46f9a1e2e840d104c3da5610235ef753e/crates/adapters/hyperliquid).
 
 The shared decoder, recording reader and their transitive marketfeed crates are
-pinned together at `6565c9428e0c97636f1c5988f4a2c22b4d17f52e`.
+pinned together at `8ba199a46f9a1e2e840d104c3da5610235ef753e`.
 Run `python3 scripts/check-shared-feed-pin.py` to verify the complete source
 resolution. Historical capture/soak receipts retain their original source pins;
 a dependency update does not requalify those runs or strict research datasets.
@@ -585,9 +585,12 @@ and drains, and an opt-in causal journal with a distinct `MFCJ1` header.
 Hlscreen continues consuming the legacy `MFSF1` profile and rejects causal
 journals at the header, before reading records. An explicit projection from
 committed release outcomes is required before causal operations can supply
-display observations. No live caller has migrated to the private capture seam;
-its engine codec, durable receipt/release owner and actual-engine replay are
-unfinished. The registered durable-ingress workload remains failed.
+display observations. The producer now includes the private operation codec and
+a persistent owner that settles accepted writes and fences revoked outputs.
+Owner visibility/handoff history is not yet durable; committed projection,
+actual-engine replay and live caller migration remain unfinished. Hlscreen does
+not consume the causal profile. The registered durable-ingress workload remains
+failed.
 
 The earlier [security lock repair](docs/evidence/security-lock-20261019/README.md)
 updated three transitive package versions at producer revision
