@@ -26,8 +26,8 @@ keywords = ["hyperliquid", "market-data", "screener", "rust", "cli"]
 categories = ["command-line-utilities", "finance"]
 
 [workspace.dependencies]
-marketfeed-adapter-hyperliquid = { git = "https://github.com/rsitech-ai/cryptofeed-rs", rev = "ba512ad1a1bbd0447c49eddedd2277d23ea9191b" }
-marketfeed-recording = { git = "https://github.com/rsitech-ai/cryptofeed-rs", rev = "ba512ad1a1bbd0447c49eddedd2277d23ea9191b" }
+marketfeed-adapter-hyperliquid = { git = "https://github.com/rsitech-ai/cryptofeed-rs", rev = "6565c9428e0c97636f1c5988f4a2c22b4d17f52e" }
+marketfeed-recording = { git = "https://github.com/rsitech-ai/cryptofeed-rs", rev = "6565c9428e0c97636f1c5988f4a2c22b4d17f52e" }
 anyhow = "1.0"
 assert_cmd = "2.0"
 clap = { version = "4.5", features = ["derive", "env"] }

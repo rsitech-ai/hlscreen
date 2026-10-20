@@ -1632,7 +1632,7 @@ dependencies = [
 [[package]]
 name = "marketfeed-adapter-api"
 version = "0.1.0-alpha.1"
-source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=ba512ad1a1bbd0447c49eddedd2277d23ea9191b#ba512ad1a1bbd0447c49eddedd2277d23ea9191b"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=6565c9428e0c97636f1c5988f4a2c22b4d17f52e#6565c9428e0c97636f1c5988f4a2c22b4d17f52e"
 dependencies = [
  "bytes",
  "marketfeed-model",
@@ -1644,7 +1644,7 @@ dependencies = [
 [[package]]
 name = "marketfeed-adapter-hyperliquid"
 version = "0.1.0-alpha.1"
-source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=ba512ad1a1bbd0447c49eddedd2277d23ea9191b#ba512ad1a1bbd0447c49eddedd2277d23ea9191b"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=6565c9428e0c97636f1c5988f4a2c22b4d17f52e#6565c9428e0c97636f1c5988f4a2c22b4d17f52e"
 dependencies = [
  "bytes",
  "marketfeed-adapter-api",
@@ -1656,7 +1656,7 @@ dependencies = [
 [[package]]
 name = "marketfeed-filesystem"
 version = "0.1.0-alpha.1"
-source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=ba512ad1a1bbd0447c49eddedd2277d23ea9191b#ba512ad1a1bbd0447c49eddedd2277d23ea9191b"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=6565c9428e0c97636f1c5988f4a2c22b4d17f52e#6565c9428e0c97636f1c5988f4a2c22b4d17f52e"
 dependencies = [
  "windows-sys 0.61.2",
 ]
@@ -1664,7 +1664,7 @@ dependencies = [
 [[package]]
 name = "marketfeed-model"
 version = "0.1.0-alpha.1"
-source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=ba512ad1a1bbd0447c49eddedd2277d23ea9191b#ba512ad1a1bbd0447c49eddedd2277d23ea9191b"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=6565c9428e0c97636f1c5988f4a2c22b4d17f52e#6565c9428e0c97636f1c5988f4a2c22b4d17f52e"
 dependencies = [
  "serde",
  "thiserror 2.0.18",
@@ -1673,7 +1673,7 @@ dependencies = [
 [[package]]
 name = "marketfeed-recording"
 version = "0.1.0-alpha.1"
-source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=ba512ad1a1bbd0447c49eddedd2277d23ea9191b#ba512ad1a1bbd0447c49eddedd2277d23ea9191b"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=6565c9428e0c97636f1c5988f4a2c22b4d17f52e#6565c9428e0c97636f1c5988f4a2c22b4d17f52e"
 dependencies = [
  "base64",
  "bytes",

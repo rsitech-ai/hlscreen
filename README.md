@@ -568,10 +568,10 @@ collector archive directly; legacy recording/backfill flags apply to standalone
 mode. Source continuity and dataset qualification are separate from successful
 consumption of a saved capture.
 
-For collection settings, see the [Hyperliquid adapter documentation](https://github.com/rsitech-ai/cryptofeed-rs/tree/ba512ad1a1bbd0447c49eddedd2277d23ea9191b/crates/adapters/hyperliquid).
+For collection settings, see the [Hyperliquid adapter documentation](https://github.com/rsitech-ai/cryptofeed-rs/tree/6565c9428e0c97636f1c5988f4a2c22b4d17f52e/crates/adapters/hyperliquid).
 
 The shared decoder, recording reader and their transitive marketfeed crates are
-pinned together at `ba512ad1a1bbd0447c49eddedd2277d23ea9191b`.
+pinned together at `6565c9428e0c97636f1c5988f4a2c22b4d17f52e`.
 Run `python3 scripts/check-shared-feed-pin.py` to verify the complete source
 resolution. Historical capture/soak receipts retain their original source pins;
 a dependency update does not requalify those runs or strict research datasets.
@@ -580,11 +580,14 @@ the marketfeed-filesystem helper. Native Windows runtime results are tracked
 with the producer; local consumer checks do not establish Windows writer durability.
 
 The producer also contains bounded writer-actor infrastructure with distinct
-admission and durable receipts, and an offline private actual-engine capture
-seam. The capture seam has no durable receipt/release API and no live caller
-has migrated to it. The registered durable-ingress workload remains failed
-and complete causal replay remains unfinished. This pin keeps the consumer source coordinated and
-preserves the existing shared-feed wire format.
+admission and durable receipts, private offline capture of actual engine turns
+and drains, and an opt-in causal journal with a distinct `MFCJ1` header.
+Hlscreen continues consuming the legacy `MFSF1` profile and rejects causal
+journals at the header, before reading records. An explicit projection from
+committed release outcomes is required before causal operations can supply
+display observations. No live caller has migrated to the private capture seam;
+its engine codec, durable receipt/release owner and actual-engine replay are
+unfinished. The registered durable-ingress workload remains failed.
 
 The earlier [security lock repair](docs/evidence/security-lock-20261019/README.md)
 updated three transitive package versions at producer revision

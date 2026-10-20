@@ -5,9 +5,22 @@ use hls_hyperliquid::{
 };
 use marketfeed_recording::{
     MetadataRecord,
-    shared_feed::{FeedRecord, FeedWriter},
+    shared_feed::{FeedProfile, FeedRecord, FeedWriter},
 };
 const FRAME: &str = r#" { "channel":"trades", "data":[{"coin":"BTC","side":"B","px":"100.25","sz":"0.002","hash":"0xabcdef","time":1700000000000,"tid":17}] } "#;
+#[test]
+fn shared_consumer_rejects_unprojected_causal_header_before_polling() {
+    let temp = tempfile::tempdir().unwrap();
+    let dir = temp.path().join("causal");
+    let _writer = FeedWriter::create_profile(&dir, 1_000_000, FeedProfile::EngineCausalV1).unwrap();
+    // Rejection must occur at negotiation, before consulting a watermark,
+    // reading metadata or creating feature windows from unsupported operations.
+    std::fs::remove_file(dir.join("committed.json")).unwrap();
+    let Err(error) = SharedConsumer::open(&dir) else {
+        panic!("causal profile requires an explicit committed-release projection");
+    };
+    assert!(error.to_string().contains("unsupported shared feed header"));
+}
 #[test]
 fn shared_projection_preserves_legacy_feature_values_and_trade_identity() {
     assert_eq!(
