@@ -568,10 +568,10 @@ collector archive directly; legacy recording/backfill flags apply to standalone
 mode. Source continuity and dataset qualification are separate from successful
 consumption of a saved capture.
 
-For collection settings, see the [Hyperliquid adapter documentation](https://github.com/rsitech-ai/cryptofeed-rs/tree/c8c13781d257d0d6e252144a8a70a07f700e1764/crates/adapters/hyperliquid).
+For collection settings, see the [Hyperliquid adapter documentation](https://github.com/rsitech-ai/cryptofeed-rs/tree/ba512ad1a1bbd0447c49eddedd2277d23ea9191b/crates/adapters/hyperliquid).
 
 The shared decoder, recording reader and their transitive marketfeed crates are
-pinned together at `c8c13781d257d0d6e252144a8a70a07f700e1764`.
+pinned together at `ba512ad1a1bbd0447c49eddedd2277d23ea9191b`.
 Run `python3 scripts/check-shared-feed-pin.py` to verify the complete source
 resolution. Historical capture/soak receipts retain their original source pins;
 a dependency update does not requalify those runs or strict research datasets.
@@ -580,9 +580,10 @@ the marketfeed-filesystem helper. Native Windows runtime results are tracked
 with the producer; local consumer checks do not establish Windows writer durability.
 
 The producer also contains bounded writer-actor infrastructure with distinct
-admission and durable receipts. It is not yet integrated into the live engine;
-the registered durable-ingress workload remains failed and complete causal
-replay remains unfinished. This pin keeps the consumer source coordinated and
+admission and durable receipts, and an offline private actual-engine capture
+seam. The capture seam has no durable receipt/release API and no live caller
+has migrated to it. The registered durable-ingress workload remains failed
+and complete causal replay remains unfinished. This pin keeps the consumer source coordinated and
 preserves the existing shared-feed wire format.
 
 The earlier [security lock repair](docs/evidence/security-lock-20261019/README.md)

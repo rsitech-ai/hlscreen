@@ -1,0 +1,329 @@
+{
+  "schema": "hlscreen.shared_operation_capture_pin.v1",
+  "base_head": "99940f1244c9967abd2f92f6271c947f9ac8634a",
+  "checks_before_commit": true,
+  "producer_pin": "ba512ad1a1bbd0447c49eddedd2277d23ea9191b",
+  "shared_packages": [
+    "marketfeed-adapter-api",
+    "marketfeed-adapter-hyperliquid",
+    "marketfeed-filesystem",
+    "marketfeed-model",
+    "marketfeed-recording"
+  ],
+  "graph": {
+    "registry_records": 419,
+    "all_complete_registry_records_unchanged": true,
+    "all_other_lock_fields_and_bytes_unchanged": true,
+    "only_five_git_source_identities_changed": true
+  },
+  "validation": {
+    "full_pr_check": "pass",
+    "rust_unique_tests": 543,
+    "rust_summed_executions": 566,
+    "packaging_repeated_tests": 23,
+    "python_tests": 8,
+    "failed": 0,
+    "ignored": 0,
+    "fmt_clippy_release_docs_screenshots_packaging_smoke": "pass",
+    "audit_0_22_2_deny_warnings": "pass;zero vulnerabilities/warnings",
+    "deny_0_20_2_licenses_sources": "pass",
+    "about_0_9_1_attribution": "pass",
+    "final_staged_public_check": "pass; final receipt metadata rechecked before commit"
+  },
+  "commands": [
+    {
+      "check": "metadata",
+      "command": [
+        "cargo",
+        "metadata",
+        "--locked",
+        "--format-version",
+        "1"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 4.573,
+      "log_sha256": "d1329b6a4039f9db2057bfe01bebe542d2431d22ec224b5a1c79bacf2012e7a2"
+    },
+    {
+      "check": "pr-check",
+      "command": [
+        "bash",
+        "scripts/check.sh",
+        "pr"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 114.692,
+      "log_sha256": "531f707a6e7880f2dd548c6e2813ca3d35ae54be3f4d74d88d452ea612e2cdaa"
+    },
+    {
+      "check": "debug-build",
+      "command": [
+        "cargo",
+        "build",
+        "--locked",
+        "-p",
+        "hls-cli"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.696,
+      "log_sha256": "7b89f9d8b45896e66051e0a6a0854f36f5acdc9e450391ac977c70c47d4c66e3"
+    },
+    {
+      "check": "saved-replay",
+      "command": [
+        "target/debug/hls",
+        "live",
+        "--shared-feed",
+        "../cryptofeed-rs/.local/evidence/hyperliquid-integration-review/live-pilot-07-feed",
+        "--once",
+        "--color",
+        "never",
+        "--ws-url",
+        "not-an-exchange-url"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 1.056,
+      "log_sha256": "41e9a8a430547be5e39cd5db318ad4b14224cb5b852ebd4056699bcb5e249629",
+      "binary_sha256": "c94a46524857638ecf33152a824a5cf87583e24ba22abcb94020d7e187f2772d"
+    },
+    {
+      "check": "audit-version",
+      "command": [
+        "cargo-audit",
+        "--version"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.007,
+      "log_sha256": "8748580845bee726903e69bc4543958fb01e2594317e6c68bf80114bff13d541"
+    },
+    {
+      "check": "audit",
+      "command": [
+        "cargo",
+        "audit",
+        "--deny",
+        "warnings",
+        "--json"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 4.184,
+      "log_sha256": "4dececabc24229615f68a8c017a301d3aa43e42eaa26b1e69db18322a1d54fd1"
+    },
+    {
+      "check": "deny-version",
+      "command": [
+        "cargo-deny",
+        "--version"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.03,
+      "log_sha256": "1758f5ea93d8ad3585079f05c19358b7bb969cce1bf6c7bdab6659a8cd1ef6b8"
+    },
+    {
+      "check": "policy",
+      "command": [
+        "cargo",
+        "deny",
+        "check",
+        "licenses",
+        "sources"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.756,
+      "log_sha256": "a09bbb250feeb5c0d6ac91177e3a1730bf09901eefcec1269ea8d00949a8f1a4"
+    },
+    {
+      "check": "about-version",
+      "command": [
+        "cargo-about",
+        "--version"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.023,
+      "log_sha256": "529e34ea4b18f64d4862652888f69e8137b9e808b0fcc2e70aa4529a4cf431d7"
+    },
+    {
+      "check": "attribution",
+      "command": [
+        "bash",
+        "scripts/check-third-party-licenses.sh"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 12.235,
+      "log_sha256": "edb814bb046435a2b1f8224b46bd879223326fa8dbd56b62e096f325ac461e3c"
+    }
+  ],
+  "saved_replay": {
+    "command": [
+      "target/debug/hls",
+      "live",
+      "--shared-feed",
+      "../cryptofeed-rs/.local/evidence/hyperliquid-integration-review/live-pilot-07-feed",
+      "--once",
+      "--color",
+      "never",
+      "--ws-url",
+      "not-an-exchange-url"
+    ],
+    "exit_code": 0,
+    "binary_sha256": "c94a46524857638ecf33152a824a5cf87583e24ba22abcb94020d7e187f2772d",
+    "log_sha256": "41e9a8a430547be5e39cd5db318ad4b14224cb5b852ebd4056699bcb5e249629",
+    "market_events": 1055,
+    "summary": {
+      "as_of_ms": 1792440727739,
+      "cursor": {
+        "feed_id": "fadae1df2c473d021fa8b06b0947ed664507e04d",
+        "offset": 1983487,
+        "sequence": 2683
+      },
+      "data_gaps": 0,
+      "events": {
+        "bbo": 512,
+        "book": 37,
+        "candle": 58,
+        "context": 178,
+        "trade": 270
+      },
+      "float_projection": "features_and_display_only",
+      "sealed": true
+    },
+    "saved_prefix_unchanged": true,
+    "saved_prefix_sha256": {
+      "events.mfsf": "9207b56e6cb1544f0d9d313b17824afb508a6d44d14c35ca740a7b9184a1a45a",
+      "committed.json": "d6ff3959631b582a2a8f7729f232264e2a986af28a9bac2b775857ed8f94c06d"
+    }
+  },
+  "historical_file_sha256": {
+    "docs/evidence/security-lock-20261019/README.md": "4ae22043317d0008d58559c5b0ac8ef2193b4eed3c7781022e4730a3bcfe97ce",
+    "docs/evidence/security-lock-20261019/rustsec-audit.json": "89e584f6d87e0840692cb34a98d64ff0af6dcfd1ac817b3a735264339c3cef1a",
+    "docs/evidence/security-lock-20261019/saved-prefix-replay.json": "c5268424c14ea7161e07379efcacd2a23d79da0d205ae5a97cb42cb6ccdd25fb",
+    "docs/evidence/security-lock-20261019/validation.json": "071d6ebda60ef6c1277e960a7fef5d64e91c2ce7965d81cc00562e64e6e801c8",
+    "docs/evidence/shared-feed-batch-pin-20261020/README.md": "cc1e9f86a103eee7ab43a00017925ec82bca16c4f1bf7cbd874c8d12ad667048",
+    "docs/evidence/shared-feed-batch-pin-20261020/validation.json": "ef25923ddac6327e87df7634e5ff1a229da0fc445fdfb202d86ac3772c525e87",
+    "docs/evidence/shared-feed-diagnostics-pin-20261020/README.md": "54690229dbc324ef3862630141199fdde59e87f0a7727cd84f57f67998631fd6",
+    "docs/evidence/shared-feed-diagnostics-pin-20261020/validation.json": "dd43aeb9ba95cbf6b93e96986c0e89e7acafc25573018d37091d47cd13485eea",
+    "docs/evidence/shared-feed-native-pin-20261020/README.md": "bdbbb2c1ee45c6be51756cf48c7cd553c434c2b7fbb8f853d5c59add296716d8",
+    "docs/evidence/shared-feed-native-pin-20261020/validation.json": "b9f8d926a0c1279c0e5016c57300eb48b1bbbd42a77063a88abf4b8ec5c82adf",
+    "docs/evidence/shared-feed-pin-20261019/README.md": "2b167c7d10d28c1cae8d574b699efc61317457ab8e78a23795f183f773f74d37",
+    "docs/evidence/shared-feed-pin-20261019/saved-prefix-replay.json": "207ecf9febc3da99eca8788a984b58d015373b426cfa4fbb70b839d563cc6920",
+    "docs/evidence/shared-feed-pin-20261019/validation.json": "3a260a28094385162f54c4a5337de74b0edf693a3e916d1b2e1fd4e6b813de03",
+    "docs/evidence/shared-feed-streaming-pin-20261020/README.md": "1d174f27ca0e9b782c1d2ed5c766559639f33a8143a5dffd65ec1a9c809f102c",
+    "docs/evidence/shared-feed-streaming-pin-20261020/validation.json": "eafddffb18cd229b07c91a7d8298b2a1f480005072a1fa5d094f8a7a803874c7",
+    "docs/evidence/soak-validation-20261020/README.md": "522a69e67d053b53d98b60b191662b3070c87bda8e26db2cb89ba123b9a1dfb8",
+    "docs/evidence/soak-validation-20261020/validation.json": "bb1cbdccb6042ec31de68c4c2e293bfd4e1622739afda99a5a915ac352e320a0",
+    "docs/evidence/soak/shared-feed-20261019-15m.json": "ee3e5a00fcd4145832025453e1d7776e36724520705ae74eabb10c8aa1d4f8e7",
+    "docs/evidence/soak/sota-allpairs-20260720-15m.json": "685b705edd76997a67f9d7c2e6e22a47d04f691fcad7baaf321b1169e2650656"
+  },
+  "all_19_historical_files_and_2_archives_preserve_sha_size_mode_mtime_ctime_inode": true,
+  "source_files_sha256": {
+    "Cargo.toml": "eddf830becb6d334ae46c1bd1d274bdd5f20b47514fcc0b45703275cd8e83b2c",
+    "Cargo.lock": "9d36c2403f62e170d4a09996af568217d8610303b031bae334c74c5bb5e23b6c",
+    "README.md": "e530d0bd86b5a9d405b2dde540da6c201ec7c77e4b19aad21ff3d11321c73af8"
+  },
+  "baseline_receipt_sha256": "7a45c340a726de8376ea03c9351c7fb6280ca48a9992013e73fe76ce97edc169",
+  "parent_ci_runs": [
+    {
+      "head": "99940f1244c9967abd2f92f6271c947f9ac8634a",
+      "url": "https://github.com/rsitech-ai/hlscreen/actions/runs/39364083428",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "PTY TUI (ubuntu-24.04)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "PTY TUI (macos-15)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Dependency license and source policy",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "RustSec advisory scan",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Rust workspace",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "GitHub Actions security",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Scheduled public API contract smoke",
+          "status": "completed",
+          "conclusion": "skipped"
+        }
+      ],
+      "snapshot_sha256": "4be6bcd11641fef85db012e9bccedfd490fcc85d002015996065de6df8a15447"
+    },
+    {
+      "head": "99940f1244c9967abd2f92f6271c947f9ac8634a",
+      "url": "https://github.com/rsitech-ai/hlscreen/actions/runs/39364083402",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "Plan release",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "build-local-artifacts (x86_64-apple-darwin)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "build-local-artifacts (x86_64-unknown-linux-gnu)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "build-local-artifacts (x86_64-pc-windows-msvc)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "build-local-artifacts (aarch64-apple-darwin)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Build global artifacts",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Publish tag artifacts",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Confirm release announcement",
+          "status": "completed",
+          "conclusion": "skipped"
+        }
+      ],
+      "snapshot_sha256": "f49d69d802d1fc9361a56e1ceaaf8147c8d3da0be82e645065f4d99eccc3d6bc"
+    }
+  ],
+  "independent_review": {
+    "result": "pass; no material finding",
+    "mode": "separate reviewer inspected source, actual binary, metadata, replay/security/public execution logs and all preserved bytes/metadata; no builds/replay/network by reviewer",
+    "closure_sha256": "6b6e1312c9ad2e9bd34e399381a3f6f239e7c5a587cb8e3945b6c356713b5786",
+    "inspected_receipt_sha256": "ad1d4d701952ae4ab52f9ceea747997cf3a0dcbc03df9472a8dda06b478abcba",
+    "bookkeeping": "pending public/review fields in inspected receipt intentionally finalized here; source and historical evidence unchanged"
+  },
+  "ci_status": "new consumer source not yet published/run; earlier99940f workflows completed success with stated scheduled/publishing skips",
+  "producer_limits": "Offline private actual-runner capture passes18focused+18independent/1353workspace/488Rust1.85core checks; no durable receipt/release or live caller migration. Complete causal integration/replay B and unchanged failed-ingress comparison remain open, as do native semantics/continuity, strict datasets, rsibot context/features and calendar/runtime gates.",
+  "public_log_sha256": "c66b17581f9ca8db2efae22a5446623ac8eaebfd4a11ed0d84812c2b63a2936c"
+}
