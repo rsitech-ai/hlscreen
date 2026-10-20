@@ -1,0 +1,308 @@
+{
+  "schema_version": 1,
+  "status": "All10 local checks pass; own-source hosted main/native/archive qualification pending",
+  "base_consumer_head": "b1ecfba1700fd354c4f736fb3b1d2392c7813f51",
+  "producer_pin": "95f00f51e076c83577228d95dc6605f3fb72df9c",
+  "prior_producer_pin": "56b733dfdce0b865ad121d49c4d71d720b305733",
+  "commands": [
+    {
+      "check": "metadata",
+      "command": [
+        "cargo",
+        "metadata",
+        "--locked",
+        "--format-version",
+        "1"
+      ],
+      "environment_overrides": {
+        "CARGO_INCREMENTAL": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 3.125,
+      "log_sha256": "46db85962947aa9edcdbe76efcd3b682b9e36659e58553ddc0b0ca3e89144281"
+    },
+    {
+      "check": "pr-check",
+      "command": [
+        "bash",
+        "scripts/check.sh",
+        "pr"
+      ],
+      "environment_overrides": {
+        "CARGO_INCREMENTAL": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 122.246,
+      "log_sha256": "14c3f88bd694b6fb4c435b6d6e3cc31eb36cd65ec2141ea59d319e66efcf070b",
+      "rust_test_totals": {
+        "passed": 567,
+        "failed": 0,
+        "ignored": 0,
+        "suites": 82
+      }
+    },
+    {
+      "check": "debug-build",
+      "command": [
+        "cargo",
+        "build",
+        "--locked",
+        "-p",
+        "hls-cli"
+      ],
+      "environment_overrides": {
+        "CARGO_INCREMENTAL": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 0.543,
+      "log_sha256": "a16685927daa0790a2b357e2b56df170e7bad259186d3c802d6d441422dfd0cf"
+    },
+    {
+      "check": "saved-replay",
+      "command": [
+        "target/debug/hls",
+        "live",
+        "--shared-feed",
+        "../cryptofeed-rs/.local/evidence/hyperliquid-integration-review/live-pilot-07-feed",
+        "--once",
+        "--color",
+        "never",
+        "--ws-url",
+        "not-an-exchange-url"
+      ],
+      "environment_overrides": {
+        "CARGO_INCREMENTAL": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 1.055,
+      "log_sha256": "41e9a8a430547be5e39cd5db318ad4b14224cb5b852ebd4056699bcb5e249629",
+      "binary_sha256": "dd8f9c69575ba159cac4bf4758fe5a8e18635c40328ae14cf356a4f35b13523d"
+    },
+    {
+      "check": "audit-version",
+      "command": [
+        "cargo-audit",
+        "--version"
+      ],
+      "environment_overrides": {
+        "CARGO_INCREMENTAL": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 0.035,
+      "log_sha256": "8748580845bee726903e69bc4543958fb01e2594317e6c68bf80114bff13d541"
+    },
+    {
+      "check": "audit",
+      "command": [
+        "cargo",
+        "audit",
+        "--deny",
+        "warnings",
+        "--json"
+      ],
+      "environment_overrides": {
+        "CARGO_INCREMENTAL": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 4.661,
+      "log_sha256": "894568f70dd249747aa424d7f966cb3ac35d2a9210e4378b5df3a625cf4534e7"
+    },
+    {
+      "check": "deny-version",
+      "command": [
+        "cargo",
+        "deny",
+        "--version"
+      ],
+      "environment_overrides": {
+        "CARGO_INCREMENTAL": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 0.061,
+      "log_sha256": "1758f5ea93d8ad3585079f05c19358b7bb969cce1bf6c7bdab6659a8cd1ef6b8"
+    },
+    {
+      "check": "policy",
+      "command": [
+        "cargo",
+        "deny",
+        "check",
+        "licenses",
+        "sources"
+      ],
+      "environment_overrides": {
+        "CARGO_INCREMENTAL": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 0.798,
+      "log_sha256": "a09bbb250feeb5c0d6ac91177e3a1730bf09901eefcec1269ea8d00949a8f1a4"
+    },
+    {
+      "check": "about-version",
+      "command": [
+        "cargo-about",
+        "--version"
+      ],
+      "environment_overrides": {
+        "CARGO_INCREMENTAL": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 0.048,
+      "log_sha256": "529e34ea4b18f64d4862652888f69e8137b9e808b0fcc2e70aa4529a4cf431d7"
+    },
+    {
+      "check": "attribution",
+      "command": [
+        "bash",
+        "scripts/check-third-party-licenses.sh"
+      ],
+      "environment_overrides": {
+        "CARGO_INCREMENTAL": "0"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 12.498,
+      "log_sha256": "edb814bb046435a2b1f8224b46bd879223326fa8dbd56b62e096f325ac461e3c"
+    }
+  ],
+  "runner": {
+    "session": 87656,
+    "actual_terminal_exit_code": 0,
+    "completion_marker_observed": true,
+    "terminal_receipt_sha256": "9df1f6deabc7da35e20fdd32b643667600b1890708fb23a34088c9037bf7db3d"
+  },
+  "validation": {
+    "rust_unique_tests": 544,
+    "rust_executions": 567,
+    "rust_suites": 82,
+    "python_suite_sizes": [
+      8,
+      4
+    ],
+    "failed": 0,
+    "ignored": 0,
+    "fmt_clippy_tests_release_docs_screenshots_packaging": "pass",
+    "cargo_audit_0_22_2": "pass;zero vulnerabilities/warnings",
+    "cargo_deny_0_20_2_licenses_sources": "pass",
+    "cargo_about_0_9_1_attribution": "pass"
+  },
+  "dependency_source": {
+    "static_independent_receipt_sha256": "f6d2666661717c299d5c5b6a36f3e66f06a46b448e740acd6967db3219a19525",
+    "manifest_sha256": "648892c7ad0cbbde23dc248f215a463dd8c5aa91f7518e45a99044b57f85e2f6",
+    "lock_sha256": "5c1e5c62d559f4d4d5156463b9bc9b3077fcab014469fe1eb66f853873947f4c",
+    "all419_registry_records_unchanged": true,
+    "only5_git_package_source_identities_changed": true,
+    "all432_resolved_nodes_dependency_graph_preserved_after_git_identity_substitution": true,
+    "both_complete_metadata_objects_equal": true,
+    "metadata01_sha256": "25adbdd15db90b76bfec5aa5805606010c1ef6e4ec251be0292fd4502951cf0f",
+    "metadata02_sha256": "46db85962947aa9edcdbe76efcd3b682b9e36659e58553ddc0b0ca3e89144281",
+    "all52_actual_cached_shared_files_match_published95_git_blobs": true,
+    "shared_change_scope": "Exactly six added lines: FeedReader::observed_commit returns &self.seen_commit; documentation distinguishes last validated watermark from engine checkpoint. No prior statements or wire/reader behavior changed.",
+    "shared_changed_files": [
+      "crates/recording/src/shared_feed.rs"
+    ]
+  },
+  "source_freeze_during_checks": {
+    "files": 312,
+    "all_unchanged_through_actual_runner_completion": true,
+    "post_validation_documentation_only": {
+      "path": "docs/evidence/shared-feed-native-replay-pin-20261020/README.md",
+      "before_sha256": "dd6f87ab1c9db81a628a27ae9d0a8bde7757d544c7f0909d61e6775f8256454e",
+      "after_sha256": "1d9addd2f00a973275f087c466bdfb88a71d972fcbec55b193d6b8481cf451fc",
+      "reason": "Replace pending local status with observed results; no build input or behavior change"
+    },
+    "retained_full_manifest_sha256": "9a3adbfd7c8a71a217d702749d73d6b5c99387df9c29fc9da49024d145e3aa0d",
+    "intended_tracked_source_changes_sha256": {
+      "Cargo.toml": "648892c7ad0cbbde23dc248f215a463dd8c5aa91f7518e45a99044b57f85e2f6",
+      "Cargo.lock": "5c1e5c62d559f4d4d5156463b9bc9b3077fcab014469fe1eb66f853873947f4c",
+      "README.md": "304716c5374e84d1c7e29776319606e96484481da6faba3b3fd7379e4615c9f1"
+    }
+  },
+  "security": {
+    "inherited_wasmtime": "36.0.19",
+    "registry_versions_and_checksums_unchanged": true,
+    "current_full_lock_vulnerabilities": 0,
+    "warnings": 0,
+    "database": {
+      "advisory-count": 1345,
+      "last-commit": "b19b2c83c2493961ccb12f9fc4699a00fb2c6c44",
+      "last-updated": "2026-10-20T13:02:37+02:00"
+    },
+    "scope": "Current Cargo.lock advisory scan; not compiler-exploit regression, arbitrary-Wasm safety or native artifact equivalence"
+  },
+  "saved_replay": {
+    "binary_sha256": "dd8f9c69575ba159cac4bf4758fe5a8e18635c40328ae14cf356a4f35b13523d",
+    "retained_bytes": 88834952,
+    "retained_mode": "0555",
+    "full_output_sha256": "41e9a8a430547be5e39cd5db318ad4b14224cb5b852ebd4056699bcb5e249629",
+    "events": 1055,
+    "summary": {
+      "as_of_ms": 1792440727739,
+      "cursor": {
+        "feed_id": "fadae1df2c473d021fa8b06b0947ed664507e04d",
+        "offset": 1983487,
+        "sequence": 2683
+      },
+      "data_gaps": 0,
+      "events": {
+        "bbo": 512,
+        "book": 37,
+        "candle": 58,
+        "context": 178,
+        "trade": 270
+      },
+      "float_projection": "features_and_display_only",
+      "sealed": true
+    },
+    "matches_prior_full_output": true,
+    "scope": "Actual rebuilt CLI saved-prefix compatibility, not live exchange continuity or causal consumption"
+  },
+  "preservation": {
+    "historical_hls_files": 33,
+    "pilot_files": 2,
+    "frozen_dataset_files": 22,
+    "frozen_dataset_bytes": 37276008,
+    "all_recorded_bytes_metadata_unchanged": true
+  },
+  "retained_failure": {
+    "runner01_session": 65110,
+    "runner01_actual_terminal_exit": 101,
+    "stage": "pr-check compilation/linking ENOSPC",
+    "terminal_receipt_sha256": "b859a0c16ec7f2a0b5a5a74c60db11bdde1af03dad49485cf1dd7e1e1c952701",
+    "retry_environment": {
+      "CARGO_INCREMENTAL": "0"
+    },
+    "cleanup_receipt_sha256": "324ab23b86d1c7aeb6e57ec80c1bdbb68e31a40a62cb63c0ae5822b60fc5be6a",
+    "no_product_or_dependency_version_change": true
+  },
+  "remaining": [
+    "Own-source hosted main/native/archive qualification",
+    "Producer committed projection preserving all native HLS feature fields and drop/release semantics, bound I/O and daemon/CLI/live/control/supervisor migration",
+    "Bounded multi-owner replay, native checkpoints/safe restart and failure/admission retention",
+    "Registered ingress remains failed and not rerun; strict datasets/native continuity/rsibot continuous context/calendar/hardware/operational gates"
+  ],
+  "ownership": {
+    "cryptofeed": "acquisition/native identity/timing/quality/storage/replay",
+    "rsibot": "direct feed/dataset readers, context/features/models/ETF research and admitted strategy decisions through existing owners",
+    "hlscreen": "shared-feed reader/presentation"
+  },
+  "scope": "MFSF1 pin compatibility and saved replay; MFCJ1/2/3 remain explicitly rejected. No economics, activation, deployment, merge, release or full-goal completion; historical hosted successes retain original source scopes.",
+  "publication_scan_adjustment": {
+    "staged_generic_api_key_matches": [
+      {
+        "field": "crates/hls-server/tests/read_only_api.rs",
+        "classification": "SHA256 digest of unchanged tracked source file; not an access credential",
+        "digest_matches_original_baseline_and_actual_file": true,
+        "rule": "generic-api-key",
+        "diff_line": 517
+      },
+      {
+        "field": "scripts/check-history-secrets.sh",
+        "classification": "SHA256 digest of unchanged tracked source file; not an access credential",
+        "digest_matches_original_baseline_and_actual_file": true,
+        "rule": "generic-api-key",
+        "diff_line": 625
+      }
+    ],
+    "resolution": "Compact redundant full public file-hash map to retained manifest digest and three intentional tracked source hashes. Full312-file manifest remains preserved privately. No credential, scanner rule exception, product change or test rerun."
+  }
+}

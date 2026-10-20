@@ -568,10 +568,10 @@ collector archive directly; legacy recording/backfill flags apply to standalone
 mode. Source continuity and dataset qualification are separate from successful
 consumption of a saved capture.
 
-For collection settings, see the [Hyperliquid adapter documentation](https://github.com/rsitech-ai/cryptofeed-rs/tree/56b733dfdce0b865ad121d49c4d71d720b305733/crates/adapters/hyperliquid).
+For collection settings, see the [Hyperliquid adapter documentation](https://github.com/rsitech-ai/cryptofeed-rs/tree/95f00f51e076c83577228d95dc6605f3fb72df9c/crates/adapters/hyperliquid).
 
 The shared decoder, recording reader and their transitive marketfeed crates are
-pinned together at `56b733dfdce0b865ad121d49c4d71d720b305733`.
+pinned together at `95f00f51e076c83577228d95dc6605f3fb72df9c`.
 Run `python3 scripts/check-shared-feed-pin.py` to verify the complete source
 resolution. Historical capture/soak receipts retain their original source pins;
 a dependency update does not requalify those runs or strict research datasets.
@@ -596,16 +596,25 @@ output withheld. Finalization expiry is observable; a stalled writer or native
 callback can still delay shutdown indefinitely. These internal observations do
 not acknowledge external delivery.
 
-Hyperliquid causal bootstrap now binds native discovery/catalog definitions and
+Hyperliquid causal bootstrap binds native discovery/catalog definitions and
 ordered subscriptions, including builder-DEX collateral. Direct factory creation
-retains the planner's 200-native-subscription session limit. Daemon/CLI/live
-migration, complete failure/admission retention, committed projection, bound
-external I/O and actual-engine replay
-remain unfinished. The registered durable-ingress workload remains failed and
-was not rerun. The [current pin receipt](docs/evidence/shared-feed-hyperliquid-bootstrap-pin-20261020/README.md)
+retains the planner's 200-native-subscription session limit. The producer's new
+opt-in single-owner disk reader reexecutes committed native operations on one
+persistent engine and compares exact values/errors/drains. It releases only
+verified observed handoffs, preserves unknown execution after seal and rebuilds
+the native prefix for exact-cursor resume. This is a library replay foundation;
+Hlscreen still consumes MFSF1 and rejects causal journals.
+
+Daemon/CLI/live migration, complete failure/admission retention, committed
+projection, bound external I/O, bounded multi-owner replay and native checkpoints
+remain unfinished. The projection must preserve existing native feature fields
+and their canonical batch drop/release ownership. The registered durable-ingress
+workload remains failed and was not rerun. The [current pin receipt](docs/evidence/shared-feed-native-replay-pin-20261020/README.md)
 records exact source, saved-replay and remaining qualification scope.
-The same candidate updates Wasmtime to 36.0.19 for RUSTSEC-2026-0380 and
-RUSTSEC-2026-0379; the receipt separates this security patch from the producer pin.
+The [prior bootstrap/security receipt](docs/evidence/shared-feed-hyperliquid-bootstrap-pin-20261020/README.md)
+retains its original b1ecfba/pin56b scope and Wasmtime 36.0.19 repair for
+RUSTSEC-2026-0380 and RUSTSEC-2026-0379. This pin update preserves those registry
+versions and checksums.
 
 The earlier [security lock repair](docs/evidence/security-lock-20261019/README.md)
 updated three transitive package versions at producer revision
