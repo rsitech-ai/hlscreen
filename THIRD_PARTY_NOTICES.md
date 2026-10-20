@@ -67,8 +67,9 @@ This product includes software from the compact-thrift project (Apache 2.0)
 
 ## Shared cryptofeed-rs source
 
-The shared feed and decoder use cryptofeed-rs at the immutable revision in
-Cargo.toml. Its repository NOTICE is preserved below:
+The shared feed, decoder and directory durability helper use cryptofeed-rs at
+the immutable revision in Cargo.toml, including the marketfeed-filesystem crate.
+Its repository NOTICE is preserved below:
 
 ```text
 cryptofeed-rs

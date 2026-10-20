@@ -568,17 +568,18 @@ collector archive directly; legacy recording/backfill flags apply to standalone
 mode. Source continuity and dataset qualification are separate from successful
 consumption of a saved capture.
 
-For collection settings, see the [Hyperliquid adapter documentation](https://github.com/rsitech-ai/cryptofeed-rs/tree/410c3cae95f17c3b2b8ee88a9809c5fc1d7ad28b/crates/adapters/hyperliquid).
+For collection settings, see the [Hyperliquid adapter documentation](https://github.com/rsitech-ai/cryptofeed-rs/tree/4c2bd1520d16573fd3cdc2fd7a818d126f28a12d/crates/adapters/hyperliquid).
 
 The shared decoder, recording reader and their transitive marketfeed crates are
-pinned together at `410c3cae95f17c3b2b8ee88a9809c5fc1d7ad28b`.
+pinned together at `4c2bd1520d16573fd3cdc2fd7a818d126f28a12d`.
 Run `python3 scripts/check-shared-feed-pin.py` to verify the complete source
 resolution. Historical capture/soak receipts retain their original source pins;
 a dependency update does not requalify those runs or strict research datasets.
-The producer's Windows durable-publication defect remains open; local consumer
-checks do not establish Windows writer durability.
+This producer revision includes the checked local NTFS directory backend and
+the marketfeed-filesystem helper. Native Windows runtime results are tracked
+with the producer; local consumer checks do not establish Windows writer durability.
 
-The later [security lock repair](docs/evidence/security-lock-20261019/README.md)
-updates three transitive package versions without changing that producer pin,
-and fixes bounded PTY test cleanup. Its full-lock RustSec audit has zero findings;
-543 final-source tests pass. Earlier pin-migration receipts retain their own scope.
+The earlier [security lock repair](docs/evidence/security-lock-20261019/README.md)
+updated three transitive package versions at producer revision
+`410c3cae95f17c3b2b8ee88a9809c5fc1d7ad28b` and fixed bounded PTY test cleanup.
+Its recorded full-lock RustSec audit and 543 tests retain that historical scope.

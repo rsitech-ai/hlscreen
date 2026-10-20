@@ -1632,7 +1632,7 @@ dependencies = [
 [[package]]
 name = "marketfeed-adapter-api"
 version = "0.1.0-alpha.1"
-source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=410c3cae95f17c3b2b8ee88a9809c5fc1d7ad28b#410c3cae95f17c3b2b8ee88a9809c5fc1d7ad28b"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=4c2bd1520d16573fd3cdc2fd7a818d126f28a12d#4c2bd1520d16573fd3cdc2fd7a818d126f28a12d"
 dependencies = [
  "bytes",
  "marketfeed-model",
@@ -1644,7 +1644,7 @@ dependencies = [
 [[package]]
 name = "marketfeed-adapter-hyperliquid"
 version = "0.1.0-alpha.1"
-source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=410c3cae95f17c3b2b8ee88a9809c5fc1d7ad28b#410c3cae95f17c3b2b8ee88a9809c5fc1d7ad28b"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=4c2bd1520d16573fd3cdc2fd7a818d126f28a12d#4c2bd1520d16573fd3cdc2fd7a818d126f28a12d"
 dependencies = [
  "bytes",
  "marketfeed-adapter-api",
@@ -1654,9 +1654,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "marketfeed-filesystem"
+version = "0.1.0-alpha.1"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=4c2bd1520d16573fd3cdc2fd7a818d126f28a12d#4c2bd1520d16573fd3cdc2fd7a818d126f28a12d"
+dependencies = [
+ "windows-sys 0.61.2",
+]
+
+[[package]]
 name = "marketfeed-model"
 version = "0.1.0-alpha.1"
-source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=410c3cae95f17c3b2b8ee88a9809c5fc1d7ad28b#410c3cae95f17c3b2b8ee88a9809c5fc1d7ad28b"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=4c2bd1520d16573fd3cdc2fd7a818d126f28a12d#4c2bd1520d16573fd3cdc2fd7a818d126f28a12d"
 dependencies = [
  "serde",
  "thiserror 2.0.18",
@@ -1665,12 +1673,13 @@ dependencies = [
 [[package]]
 name = "marketfeed-recording"
 version = "0.1.0-alpha.1"
-source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=410c3cae95f17c3b2b8ee88a9809c5fc1d7ad28b#410c3cae95f17c3b2b8ee88a9809c5fc1d7ad28b"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=4c2bd1520d16573fd3cdc2fd7a818d126f28a12d#4c2bd1520d16573fd3cdc2fd7a818d126f28a12d"
 dependencies = [
  "base64",
  "bytes",
  "getrandom 0.3.4",
  "marketfeed-adapter-api",
+ "marketfeed-filesystem",
  "marketfeed-model",
  "serde",
  "serde_json",

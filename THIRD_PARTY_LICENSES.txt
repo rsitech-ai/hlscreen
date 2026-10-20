@@ -5549,6 +5549,7 @@ Apache License 2.0
 Used by:
 - marketfeed-adapter-api 0.1.0-alpha.1 (https://github.com/rsitech-ai/cryptofeed-rs)
 - marketfeed-adapter-hyperliquid 0.1.0-alpha.1
+- marketfeed-filesystem 0.1.0-alpha.1 (https://github.com/rsitech-ai/cryptofeed-rs)
 - marketfeed-model 0.1.0-alpha.1 (https://github.com/rsitech-ai/cryptofeed-rs)
 - marketfeed-recording 0.1.0-alpha.1 (https://github.com/rsitech-ai/cryptofeed-rs)
 - allocator-api2 0.2.21 (https://github.com/zakarumych/allocator-api2)
