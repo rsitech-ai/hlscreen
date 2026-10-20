@@ -32,6 +32,24 @@ fn shared_consumer_rejects_unprojected_causal_header_before_polling() {
     }
 }
 #[test]
+fn shared_consumer_rejects_unprojected_mfcj5_before_watermark_access() {
+    let temp = tempfile::tempdir().unwrap();
+    let dir = temp.path().join("causal-5");
+    let writer = FeedWriter::create_profile(&dir, 1_000_000, FeedProfile::EngineCausalV4).unwrap();
+    drop(writer);
+    // Preserve a complete header while using negotiated bytes rather than a
+    // future producer enum. The old pin must already refuse this raw journal.
+    let mut header = std::fs::read(dir.join("events.mfsf")).unwrap();
+    header[..8].copy_from_slice(b"MFCJ5\0\0\0");
+    std::fs::write(dir.join("events.mfsf"), header).unwrap();
+    std::fs::remove_file(dir.join("committed.json")).unwrap();
+    assert!(!dir.join("committed.json").exists());
+    let Err(error) = SharedConsumer::open(&dir) else {
+        panic!("MFCJ5 requires an explicit verified MFOP1 projection");
+    };
+    assert!(error.to_string().contains("unsupported shared feed header"));
+}
+#[test]
 fn shared_projection_preserves_legacy_feature_values_and_trade_identity() {
     assert_eq!(
         parse_shared_ws_message(FRAME).unwrap(),

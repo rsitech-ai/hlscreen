@@ -17,5 +17,6 @@ pub mod screen;
 pub mod server;
 pub mod symbols;
 pub(crate) mod ws_rate_limit;
+mod ws_tls;
 
 // Microstructure story commands are registered only when their behavior exists.

@@ -80,7 +80,9 @@ use ratatui::{Terminal, backend::CrosstermBackend};
 use ratatui::{TerminalOptions, Viewport, layout::Rect};
 use serde::{Deserialize, Serialize};
 use tokio::time::{Interval, MissedTickBehavior, interval, sleep, sleep_until};
-use tokio_tungstenite::{connect_async, tungstenite::Message};
+use tokio_tungstenite::tungstenite::Message;
+
+use super::ws_tls::connect_public;
 
 use crate::commands::alerts::load_playbook_file;
 use crate::commands::backfill::{self, BackfillArgs, DEFAULT_REST_URL};
@@ -2038,7 +2040,7 @@ async fn drive_live_connection(
     let connect_started_ns = now_ns_u64()?;
     let mut ui_events = live_interval(Duration::from_millis(TUI_KEY_POLL_MS));
     ui_events.tick().await;
-    let connect = connect_async(ws_url);
+    let connect = connect_public(ws_url);
     tokio::pin!(connect);
     let connect_result = loop {
         tokio::select! {

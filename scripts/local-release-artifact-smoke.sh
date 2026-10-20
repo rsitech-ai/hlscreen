@@ -71,6 +71,10 @@ smoke_bin="$unpack_dir/$package_name/bin/hls"
   --data-dir "$smoke_data_dir/live" \
   >/dev/null
 
+python3 "$repo_root/scripts/verify-mfop5-smoke.py" \
+  --binary "$smoke_bin" \
+  --data-dir "$smoke_data_dir/mfop5"
+
 echo "release_artifact=$archive"
 echo "release_checksum=$checksum_file"
 echo "release_smoke=passed"

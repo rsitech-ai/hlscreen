@@ -1,0 +1,213 @@
+{
+  "schema_version": 1,
+  "synthetic": true,
+  "source_profile": 5,
+  "owner_history_schema": 4,
+  "portable_native_authentication": false,
+  "producer_commit": "5479d733f02f1a2777579460154e144babe67b87",
+  "generator": "mfcj5_spot_perps_native_values_and_control_only_groups_are_consumed_atomically",
+  "generator_source": "crates/hls-hyperliquid/tests/projected_wire.rs",
+  "generator_source_sha256": "2e23e15db7ce93e38750e5c05174826c0c17650eb04580e7d1d8042b3fe3e0ae",
+  "generator_executable_sha256": "f93e1f3e3b7733bc6a9036a2b2fc4964e1533f44119602feb98cdbf0f33b672d",
+  "generator_executable_bytes": 22890896,
+  "generator_compiled_recipe": {
+    "debug": "false",
+    "encoded_rustflags": "",
+    "git_commit": "5479d733f02f1a2777579460154e144babe67b87",
+    "lock_sha256": "676db8bf5e29e7b3b606c370ba2bd5d5608164cb21190128a10e7145daa1e0b2",
+    "opt_level": "0",
+    "package_features": [
+      {
+        "features": [
+          "default"
+        ],
+        "package": "marketfeed-adapter-bybit"
+      },
+      {
+        "features": [],
+        "package": "marketfeed-adapter-hyperliquid"
+      },
+      {
+        "features": [
+          "causal-journal"
+        ],
+        "package": "marketfeed-daemon"
+      },
+      {
+        "features": [
+          "default"
+        ],
+        "package": "marketfeed-engine"
+      },
+      {
+        "features": [
+          "default"
+        ],
+        "package": "marketfeed-sinks"
+      }
+    ],
+    "package_version": "0.1.0-alpha.1",
+    "profile": "debug",
+    "rustc_verbose": "rustc 1.88.0 (6b00bc388 2025-06-23)\nbinary: rustc\ncommit-hash: 6b00bc3880198600130e1cf62b8f8a93494488cc\ncommit-date: 2025-06-23\nhost: aarch64-apple-darwin\nrelease: 1.88.0\nLLVM version: 20.1.5\n",
+    "schema_version": 1,
+    "source_files": 566,
+    "source_scheme": "sha256-path-length-and-bytes-v1",
+    "source_sha256": "16a538c033fb37fa10112f66a6371ab7408512a7f991e95add1640af5a8afa95",
+    "target": "aarch64-apple-darwin"
+  },
+  "generation_log_sha256": "90e1c33c11a1b6ab6ea55221b787d52ed5153ffe9c1bece362a2969564e21009",
+  "original_export_inventory": [
+    {
+      "path": "export.json",
+      "bytes": 5048,
+      "sha256": "6f9c6f7a039d63c4b05e2bd12bc72984b614d991daf8cfa427b1848981299b67"
+    },
+    {
+      "path": "feed/committed.json",
+      "bytes": 114,
+      "sha256": "ff91816745d00ec47eba9c27a907a212b87722d12f8442b9320a40ff232565db"
+    },
+    {
+      "path": "feed/events.mfsf",
+      "bytes": 171188,
+      "sha256": "bd6b103850ce49a1405c581a894350425043f7d14fca86a7683cc61dbdbdd308"
+    },
+    {
+      "path": "source/committed.json",
+      "bytes": 114,
+      "sha256": "c46760308eb2a818e4757159354cd45975149080e9ec06ce0fef259c494c8f8f"
+    },
+    {
+      "path": "source/events.mfsf",
+      "bytes": 115383,
+      "sha256": "0d936685911e2b62e848010bd870d2bc3d135b96a9bba73b4d6415d906be003d"
+    }
+  ],
+  "counts": {
+    "group_classes": {
+      "bootstrap": 2,
+      "owner_control": 52,
+      "seal": 1,
+      "wire": 12
+    },
+    "items": 12,
+    "wire_groups": 12
+  },
+  "expected_summary": {
+    "as_of_ms": 1792533583392,
+    "availability_time_ns": null,
+    "clock_policy": "max_checked_owner_approximation_physical_order_v1",
+    "cursor": {
+      "feed_id": "c68007e7c93ae3fe9dcbb6c09242d9ab1f4cf9bb",
+      "offset": 171188,
+      "sequence": 67
+    },
+    "data_gaps": 6,
+    "events": {
+      "trade": 2
+    },
+    "float_projection": "features_and_display_only",
+    "instruments": [
+      {
+        "display_key": "spot:@12",
+        "instrument": 1,
+        "metadata": {
+          "base": "PURR",
+          "catalog_version": 7,
+          "contract_size": null,
+          "expiry_ns": null,
+          "id": 1,
+          "inverse": false,
+          "key": {
+            "expiry_ns": null,
+            "kind": "spot",
+            "native_symbol": "@12",
+            "settlement": null,
+            "venue": "hyperliquid-spot"
+          },
+          "max_quantity": null,
+          "min_notional": null,
+          "min_quantity": null,
+          "price_increment": {
+            "coefficient": "0",
+            "scale": 8
+          },
+          "price_scale": 8,
+          "quantity_increment": {
+            "coefficient": "1",
+            "scale": 0
+          },
+          "quantity_scale": 0,
+          "quote": "USDC",
+          "settlement": null,
+          "status": "Active"
+        },
+        "native_symbol": "@12",
+        "session": 31,
+        "venue": 21
+      },
+      {
+        "display_key": "perps:BTC",
+        "instrument": 1,
+        "metadata": {
+          "base": "BTC",
+          "catalog_version": 7,
+          "contract_size": null,
+          "expiry_ns": null,
+          "id": 1,
+          "inverse": false,
+          "key": {
+            "expiry_ns": null,
+            "kind": "perpetual_linear",
+            "native_symbol": "BTC",
+            "settlement": "USDC",
+            "venue": "hyperliquid-perps"
+          },
+          "max_quantity": null,
+          "min_notional": null,
+          "min_quantity": null,
+          "price_increment": {
+            "coefficient": "0",
+            "scale": 1
+          },
+          "price_scale": 1,
+          "quantity_increment": {
+            "coefficient": "1",
+            "scale": 5
+          },
+          "quantity_scale": 5,
+          "quote": "USDC",
+          "settlement": "USDC",
+          "status": "Active"
+        },
+        "native_symbol": "BTC",
+        "session": 32,
+        "venue": 22
+      }
+    ],
+    "sealed": true,
+    "source_cursor": {
+      "feed_id": "346159efd6918398a7122cc315cfb217a1ebceec",
+      "offset": 115383,
+      "sequence": 67
+    }
+  },
+  "expected_market_events": 2,
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 1317,
+      "sha256": "fc0000e40e009ba804e8eb046f15a614e6401d49265344f14cc0fefa92cc50d9"
+    },
+    {
+      "path": "feed/committed.json",
+      "bytes": 114,
+      "sha256": "ff91816745d00ec47eba9c27a907a212b87722d12f8442b9320a40ff232565db"
+    },
+    {
+      "path": "feed/events.mfsf",
+      "bytes": 171188,
+      "sha256": "bd6b103850ce49a1405c581a894350425043f7d14fca86a7683cc61dbdbdd308"
+    }
+  ]
+}

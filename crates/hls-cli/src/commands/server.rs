@@ -32,7 +32,9 @@ use tokio::{
     sync::oneshot,
     time::{MissedTickBehavior, interval},
 };
-use tokio_tungstenite::{connect_async, tungstenite::Message};
+use tokio_tungstenite::tungstenite::Message;
+
+use super::ws_tls::connect_public;
 
 use crate::commands::{
     fees::{feature_engine, load_fee_profile},
@@ -700,7 +702,7 @@ async fn drive_server_live_connection(
     }
     connection_rate_limiter.record(tokio::time::Instant::now());
     let connected = tokio::select! {
-        connected = connect_async(&args.ws_url) => Some(connected),
+        connected = connect_public(&args.ws_url) => Some(connected),
         _ = tokio::time::sleep_until(deadline) => None,
     };
     let Some(connected) = connected else {
@@ -1639,7 +1641,7 @@ mod tests {
                 .expect("second");
             tokio::time::Instant::now().saturating_duration_since(first)
         });
-        let (websocket, _) = connect_async(format!("ws://{address}"))
+        let (websocket, _) = connect_public(&format!("ws://{address}"))
             .await
             .expect("connect");
         let (mut write, _) = websocket.split();

@@ -584,40 +584,51 @@ are logical limits, not measured process-memory guarantees or a persisted
 feature checkpoint. Floating-point conversion happens at the feature/display
 boundary; producer storage retains exact native values.
 
-The shared adapter/engine/model/recording crates and their transitive marketfeed
-packages are pinned to `e812e44b9893f200a4e357e6e8ae77ae41db1c3b`.
-Run `python3 scripts/check-shared-feed-pin.py` to verify the complete resolution.
-For collection settings, see the [Hyperliquid adapter documentation](https://github.com/rsitech-ai/cryptofeed-rs/tree/e812e44b9893f200a4e357e6e8ae77ae41db1c3b/crates/adapters/hyperliquid).
+The seven direct shared crates and all 23 resolved marketfeed packages use
+immutable producer revision `5479d733f02f1a2777579460154e144babe67b87`.
+Run `python3 scripts/check-shared-feed-pin.py` to check the complete resolution.
+For collection settings, see the [owned public capture guide](https://github.com/rsitech-ai/cryptofeed-rs/blob/5479d733f02f1a2777579460154e144babe67b87/docs/ops/hyperliquid-causal-capture.md).
 
-Direct causal journals `MFCJ1` through `MFCJ4` remain unsupported consumer inputs.
-The producer's opt-in verified multi-owner replay and projection library can
-build `MFOP1` from acknowledged native handoffs in `MFCJ4`. Hlscreen does not
-execute a raw accepted frame as a substitute for a missing handoff. Structural
-validation of an arbitrary projection does not authenticate its financial
-values; comparison with the verified source is a separate check. The actual
-factory/owner/projection integration tests exercise that comparison offline.
+The producer's opt-in `marketfeed-capture` command owns public transports,
+persistent native owners, durable application-write authorization and the
+projection writer. Its new output root contains `source/` (MFCJ5 history) and
+`feed/` (MFOP1 projection). Point HLS at **`feed/`**, using the actual captured
+product keys. Direct `MFCJ1` through `MFCJ5` journals are unsupported HLS inputs.
+Native replay/source comparison is a separate producer check; structural
+consumption alone does not authenticate financial values or establish freshness.
 
-Real daemon/CLI/live/control migration to the persistent causal owners, bound
-external I/O, strict dataset admission, native checkpoints and operational
-qualification remain open. The registered durable-ingress workload remains
-failed and has not been rerun. Successful fixture consumption does not close
-those gates. See the [current candidate evidence](docs/evidence/shared-feed-atomic-observations-20261020/README.md)
-for local checks and remaining source-specific hosted qualification. Producer
-Windows qualification has an unresolved projection watchdog failure.
+MFCJ5 uses OwnerHistory4. Successful application-write intent/invocation/result
+groups advance structural cursors without creating market features. A committed
+Failed/Unknown wire settlement invalidates feature state through a Gap before a
+later revocation group. The bounded whole-group callback/ACK behavior stays the
+same. New offline integration tests execute real owners, opaque one-use wire
+calls, source replay, projection and HLS conversion for spot and perpetuals.
+The [synthetic MFOP5 fixture](tests/fixtures/hyperliquid/mfop5-synthetic-v1/README.md) is
+exported only after those assertions pass. Native artifact jobs consume its exact
+cursor/count/clock summary; that proves portable structural compatibility, not
+same-platform native producer authentication or exchange coverage.
+
+The closed public pilot04 contains 1,415 groups and 271 projected items, with a
+clean seal and separate native source comparison. HLS reads of it are structural
+consumer checks. The prior pilot03 freshness audit FAILED with 10–11 seconds of
+native/acquisition lag; that result stays failed. Source-specific current local
+and hosted status is recorded in the [causal wire evidence](docs/evidence/shared-feed-causal-wire-pin-20261020/README.md).
+Live loss/freshness, historical usable time, strict dataset admission, strategy
+feature checkpoints, registered load and 24h/7d operation remain separate gates.
 
 Legacy hls recording/backfill formats remain available in standalone mode.
-Original captures, historical soak receipts and frozen datasets retain their
-original source pins and qualification status. The [prior native replay pin](docs/evidence/shared-feed-native-replay-pin-20261020/README.md)
-and [bootstrap/security receipt](docs/evidence/shared-feed-hyperliquid-bootstrap-pin-20261020/README.md)
-remain historical evidence. This update keeps existing registry versions and
-checksums, including Wasmtime 36.0.19, while adding dependencies required by the
-engine and actual-producer test fixtures.
+Original captures and historical evidence retain their source pins and status;
+none is relabeled by this update. Wasmtime 36.0.19 and unrelated registry records
+remain unchanged. Legacy HLS WebSockets use explicit normal-verifier Rustls ring
+TLS with patched Mozilla roots and verifier floors. Dev/test SHA2 package
+optimization preserves every executable recheck and existing deadline.
 
-cryptofeed owns acquisition, exact storage and replay. rsibot owns the planned
-direct continuous reader, time-qualified features, models and strategy research;
-its initial manifest boundary does not yet implement that reader. hlscreen
-presents the shared feed. No trading, economics, deployment or operational promotion follows
-from a passing reader test.
+cryptofeed owns acquisition, exact storage and replay. The Quants/rsibot Python
+diagnostic reader consumes the same MFOP1 feed directly with its own pinned Rust
+bridge and independent ACK pair; HLS does not forward that feed. Diagnostic
+progress does not persist strategy feature state or qualify availability.
+HLS presents the shared observations. No trading, economic run, deployment or
+operational promotion follows from a passing consumer test.
 
 The earlier [security lock repair](docs/evidence/security-lock-20261019/README.md)
 updated three transitive package versions at producer revision

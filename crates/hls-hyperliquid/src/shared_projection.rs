@@ -5,7 +5,7 @@ use marketfeed_adapter_api::{
 };
 use marketfeed_engine::causal::{
     BootstrapDto, FactoryDto, HyperliquidMarketDto, InstrumentDto, InstrumentKindDto, ItemDto,
-    NativeObservationPolicyDto, projection::*,
+    NativeObservationPolicyDto, WireEventDto, WireOutcomeDto, projection::*,
 };
 use marketfeed_model::Fixed;
 use serde::Serialize;
@@ -296,6 +296,10 @@ impl Projected {
                             | ProjectionOwnerEvent::NotExecuted { .. }
                             | ProjectionOwnerEvent::Revoked { .. }
                             | ProjectionOwnerEvent::Withheld { .. }
+                            | ProjectionOwnerEvent::Wire(WireEventDto::Settled {
+                                outcome: WireOutcomeDto::Failed | WireOutcomeDto::Unknown,
+                                ..
+                            })
                     );
                     if unsafe_event {
                         converted.push(SharedUpdate::Gap {

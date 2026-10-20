@@ -8,7 +8,7 @@ import subprocess
 root = Path(__file__).resolve().parent.parent
 metadata = json.loads(subprocess.check_output(["cargo", "metadata", "--format-version", "1", "--locked"], cwd=root, text=True))
 repository = "https://github.com/rsitech-ai/cryptofeed-rs"
-packages = ["marketfeed-daemon", "marketfeed-adapter-api", "marketfeed-adapter-hyperliquid", "marketfeed-engine", "marketfeed-model", "marketfeed-recording"]
+packages = ["marketfeed-daemon", "marketfeed-adapter-api", "marketfeed-adapter-hyperliquid", "marketfeed-engine", "marketfeed-model", "marketfeed-recording", "marketfeed-transport"]
 revisions = set()
 for package in metadata["packages"]:
     if package["id"] not in metadata["workspace_members"]:

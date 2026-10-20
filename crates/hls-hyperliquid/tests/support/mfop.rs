@@ -19,7 +19,7 @@ use std::{
 };
 pub(super) const SPOT: &[u8] = br#"{"tokens":[{"name":"USDC","szDecimals":8,"weiDecimals":8,"index":0,"tokenId":"0x0"},{"name":"PURR","szDecimals":0,"weiDecimals":5,"index":7,"tokenId":"0x7"}],"universe":[{"name":"@12","tokens":[7,0],"index":12}]}"#;
 const PERPS: &[u8] = br#"[{"collateralToken":0,"universe":[{"name":"BTC","szDecimals":5}]}]"#;
-fn fixture(spot: bool) -> BootstrapDto {
+pub(super) fn fixture(spot: bool) -> BootstrapDto {
     fixture_with_meta(spot, SPOT, PERPS, &[1])
 }
 pub(super) fn fixture_with_meta(
@@ -165,6 +165,18 @@ pub fn source(path: &Path) -> MultiHistoryReplay {
     source_with_record_limit(path, 256 << 10)
 }
 pub(super) fn source_with_record_limit(path: &Path, max_record_bytes: usize) -> MultiHistoryReplay {
+    source_profile_with_record_limit(path, max_record_bytes, FeedProfile::EngineCausalV4)
+}
+// Some targets include this helper module only for its MFCJ4 fixtures.
+#[allow(dead_code)]
+pub(super) fn source_profile(path: &Path, profile: FeedProfile) -> MultiHistoryReplay {
+    source_profile_with_record_limit(path, 256 << 10, profile)
+}
+fn source_profile_with_record_limit(
+    path: &Path,
+    max_record_bytes: usize,
+    profile: FeedProfile,
+) -> MultiHistoryReplay {
     MultiHistoryReplay::open_profile(
         path,
         MultiReplayLimits {
@@ -188,7 +200,7 @@ pub(super) fn source_with_record_limit(path: &Path, max_record_bytes: usize) -> 
                 cached_book_levels: 32768,
             },
         },
-        FeedProfile::EngineCausalV4,
+        profile,
     )
     .unwrap()
 }

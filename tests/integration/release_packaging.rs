@@ -433,6 +433,11 @@ fn release_validation_scripts_cover_local_artifacts_checksums_and_public_readine
     assert!(local_smoke.contains("sha256"));
     assert!(local_smoke.contains("doctor --data-dir"));
     assert!(local_smoke.contains("--fixture-file"));
+    assert!(local_smoke.contains("scripts/verify-mfop5-smoke.py"));
+    assert!(
+        read("scripts/verify-dist-local-artifact.py").contains("scripts/verify-mfop5-smoke.py")
+    );
+    assert!(read("scripts/check-release-packaging.sh").contains("test-mfop5-smoke.py"));
     assert!(!local_smoke.contains("git push"));
     assert!(!local_smoke.contains("gh release upload"));
 
@@ -1049,6 +1054,21 @@ fn local_release_smoke_builds_and_packages_override_candidate_and_refuses_failed
     fs::copy(
         repo_root().join("scripts/local-release-artifact-smoke.sh"),
         root.join("scripts/smoke.sh"),
+    )
+    .unwrap();
+    // This sandbox verifies source-fresh artifact selection, not MFOP decoding.
+    // The real verifier/fixture path is exercised separately by native smokes.
+    fs::write(
+        root.join("scripts/verify-mfop5-smoke.py"),
+        r#"import argparse
+from pathlib import Path
+p=argparse.ArgumentParser()
+p.add_argument('--binary',required=True)
+p.add_argument('--data-dir',required=True)
+a=p.parse_args()
+assert b'freshly built override candidate' in Path(a.binary).read_bytes()
+print('mfop5_sandbox=fresh_override_candidate')
+"#,
     )
     .unwrap();
     for name in [

@@ -10,6 +10,7 @@ import os
 import re
 import stat
 import subprocess
+import sys
 import tarfile
 import tempfile
 import zipfile
@@ -188,6 +189,20 @@ def main() -> int:
             ],
             timeout=30,
         )
+        mfop5 = run_checked(
+            [
+                sys.executable,
+                str(repo_root / "scripts/verify-mfop5-smoke.py"),
+                "--binary",
+                str(binary),
+                "--data-dir",
+                str(root / "mfop5"),
+            ],
+            timeout=35,
+        )
+        # Preserve exact native binary/fixture hashes and cursor/count witness
+        # in the hosted raw job log, not only the aggregate success banner.
+        print(mfop5.stdout, end="")
         audit = run_checked(["cargo", "audit", "bin", str(binary)], timeout=300)
         audit_output = audit.stdout + audit.stderr
         if "Found 'cargo auditable' data" not in audit_output:

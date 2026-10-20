@@ -12,6 +12,7 @@ python3 "$repo_root/scripts/harden-generated-release-workflow.py" \
 
 python3 "$repo_root/scripts/test-soak-validation.py"
 python3 "$repo_root/scripts/test-dist-local-artifact.py"
+python3 "$repo_root/scripts/test-mfop5-smoke.py"
 
 python3 "$repo_root/scripts/validate-soak-report.py" \
   "$repo_root/tests/fixtures/operations/soak-report-valid.json" \

@@ -1117,14 +1117,18 @@ dependencies = [
  "portable-pty",
  "predicates",
  "ratatui",
+ "rustls",
+ "rustls-webpki",
  "serde",
  "serde_json",
  "sha2",
  "tempfile",
  "tokio",
+ "tokio-rustls",
  "tokio-tungstenite",
  "toml",
  "wat",
+ "webpki-roots",
 ]
 
 [[package]]
@@ -1163,6 +1167,7 @@ dependencies = [
  "marketfeed-engine",
  "marketfeed-model",
  "marketfeed-recording",
+ "marketfeed-transport",
  "reqwest",
  "serde",
  "serde_json",
@@ -1299,7 +1304,7 @@ dependencies = [
  "tokio",
  "tokio-rustls",
  "tower-service",
- "webpki-roots 1.0.8",
+ "webpki-roots",
 ]
 
 [[package]]
@@ -1671,7 +1676,7 @@ dependencies = [
 [[package]]
 name = "marketfeed-adapter-api"
 version = "0.1.0-alpha.1"
-source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=e812e44b9893f200a4e357e6e8ae77ae41db1c3b#e812e44b9893f200a4e357e6e8ae77ae41db1c3b"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=5479d733f02f1a2777579460154e144babe67b87#5479d733f02f1a2777579460154e144babe67b87"
 dependencies = [
  "bytes",
  "marketfeed-model",
@@ -1683,7 +1688,7 @@ dependencies = [
 [[package]]
 name = "marketfeed-adapter-binance"
 version = "0.1.0-alpha.1"
-source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=e812e44b9893f200a4e357e6e8ae77ae41db1c3b#e812e44b9893f200a4e357e6e8ae77ae41db1c3b"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=5479d733f02f1a2777579460154e144babe67b87#5479d733f02f1a2777579460154e144babe67b87"
 dependencies = [
  "bytes",
  "marketfeed-adapter-api",
@@ -1696,7 +1701,7 @@ dependencies = [
 [[package]]
 name = "marketfeed-adapter-bitfinex"
 version = "0.1.0-alpha.1"
-source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=e812e44b9893f200a4e357e6e8ae77ae41db1c3b#e812e44b9893f200a4e357e6e8ae77ae41db1c3b"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=5479d733f02f1a2777579460154e144babe67b87#5479d733f02f1a2777579460154e144babe67b87"
 dependencies = [
  "bytes",
  "marketfeed-adapter-api",
@@ -1709,7 +1714,7 @@ dependencies = [
 [[package]]
 name = "marketfeed-adapter-bitstamp"
 version = "0.1.0-alpha.1"
-source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=e812e44b9893f200a4e357e6e8ae77ae41db1c3b#e812e44b9893f200a4e357e6e8ae77ae41db1c3b"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=5479d733f02f1a2777579460154e144babe67b87#5479d733f02f1a2777579460154e144babe67b87"
 dependencies = [
  "bytes",
  "marketfeed-adapter-api",
@@ -1722,7 +1727,7 @@ dependencies = [
 [[package]]
 name = "marketfeed-adapter-bybit"
 version = "0.1.0-alpha.1"
-source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=e812e44b9893f200a4e357e6e8ae77ae41db1c3b#e812e44b9893f200a4e357e6e8ae77ae41db1c3b"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=5479d733f02f1a2777579460154e144babe67b87#5479d733f02f1a2777579460154e144babe67b87"
 dependencies = [
  "bytes",
  "marketfeed-adapter-api",
@@ -1735,7 +1740,7 @@ dependencies = [
 [[package]]
 name = "marketfeed-adapter-coinbase"
 version = "0.1.0-alpha.1"
-source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=e812e44b9893f200a4e357e6e8ae77ae41db1c3b#e812e44b9893f200a4e357e6e8ae77ae41db1c3b"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=5479d733f02f1a2777579460154e144babe67b87#5479d733f02f1a2777579460154e144babe67b87"
 dependencies = [
  "base64",
  "bytes",
@@ -1751,7 +1756,7 @@ dependencies = [
 [[package]]
 name = "marketfeed-adapter-deribit"
 version = "0.1.0-alpha.1"
-source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=e812e44b9893f200a4e357e6e8ae77ae41db1c3b#e812e44b9893f200a4e357e6e8ae77ae41db1c3b"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=5479d733f02f1a2777579460154e144babe67b87#5479d733f02f1a2777579460154e144babe67b87"
 dependencies = [
  "bytes",
  "marketfeed-adapter-api",
@@ -1764,7 +1769,7 @@ dependencies = [
 [[package]]
 name = "marketfeed-adapter-gemini"
 version = "0.1.0-alpha.1"
-source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=e812e44b9893f200a4e357e6e8ae77ae41db1c3b#e812e44b9893f200a4e357e6e8ae77ae41db1c3b"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=5479d733f02f1a2777579460154e144babe67b87#5479d733f02f1a2777579460154e144babe67b87"
 dependencies = [
  "bytes",
  "marketfeed-adapter-api",
@@ -1777,7 +1782,7 @@ dependencies = [
 [[package]]
 name = "marketfeed-adapter-hyperliquid"
 version = "0.1.0-alpha.1"
-source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=e812e44b9893f200a4e357e6e8ae77ae41db1c3b#e812e44b9893f200a4e357e6e8ae77ae41db1c3b"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=5479d733f02f1a2777579460154e144babe67b87#5479d733f02f1a2777579460154e144babe67b87"
 dependencies = [
  "bytes",
  "marketfeed-adapter-api",
@@ -1789,7 +1794,7 @@ dependencies = [
 [[package]]
 name = "marketfeed-adapter-kraken"
 version = "0.1.0-alpha.1"
-source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=e812e44b9893f200a4e357e6e8ae77ae41db1c3b#e812e44b9893f200a4e357e6e8ae77ae41db1c3b"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=5479d733f02f1a2777579460154e144babe67b87#5479d733f02f1a2777579460154e144babe67b87"
 dependencies = [
  "bytes",
  "marketfeed-adapter-api",
@@ -1802,7 +1807,7 @@ dependencies = [
 [[package]]
 name = "marketfeed-adapter-okx"
 version = "0.1.0-alpha.1"
-source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=e812e44b9893f200a4e357e6e8ae77ae41db1c3b#e812e44b9893f200a4e357e6e8ae77ae41db1c3b"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=5479d733f02f1a2777579460154e144babe67b87#5479d733f02f1a2777579460154e144babe67b87"
 dependencies = [
  "bytes",
  "marketfeed-adapter-api",
@@ -1815,7 +1820,7 @@ dependencies = [
 [[package]]
 name = "marketfeed-adapter-synthetic"
 version = "0.1.0-alpha.1"
-source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=e812e44b9893f200a4e357e6e8ae77ae41db1c3b#e812e44b9893f200a4e357e6e8ae77ae41db1c3b"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=5479d733f02f1a2777579460154e144babe67b87#5479d733f02f1a2777579460154e144babe67b87"
 dependencies = [
  "bytes",
  "marketfeed-adapter-api",
@@ -1826,7 +1831,7 @@ dependencies = [
 [[package]]
 name = "marketfeed-book"
 version = "0.1.0-alpha.1"
-source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=e812e44b9893f200a4e357e6e8ae77ae41db1c3b#e812e44b9893f200a4e357e6e8ae77ae41db1c3b"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=5479d733f02f1a2777579460154e144babe67b87#5479d733f02f1a2777579460154e144babe67b87"
 dependencies = [
  "marketfeed-model",
  "thiserror 2.0.18",
@@ -1835,11 +1840,12 @@ dependencies = [
 [[package]]
 name = "marketfeed-daemon"
 version = "0.1.0-alpha.1"
-source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=e812e44b9893f200a4e357e6e8ae77ae41db1c3b#e812e44b9893f200a4e357e6e8ae77ae41db1c3b"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=5479d733f02f1a2777579460154e144babe67b87#5479d733f02f1a2777579460154e144babe67b87"
 dependencies = [
  "base64",
  "bytes",
  "futures-util",
+ "libc",
  "marketfeed-adapter-api",
  "marketfeed-adapter-binance",
  "marketfeed-adapter-bitfinex",
@@ -1872,7 +1878,7 @@ dependencies = [
 [[package]]
 name = "marketfeed-dispatch"
 version = "0.1.0-alpha.1"
-source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=e812e44b9893f200a4e357e6e8ae77ae41db1c3b#e812e44b9893f200a4e357e6e8ae77ae41db1c3b"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=5479d733f02f1a2777579460154e144babe67b87#5479d733f02f1a2777579460154e144babe67b87"
 dependencies = [
  "marketfeed-adapter-api",
  "marketfeed-model",
@@ -1882,7 +1888,7 @@ dependencies = [
 [[package]]
 name = "marketfeed-engine"
 version = "0.1.0-alpha.1"
-source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=e812e44b9893f200a4e357e6e8ae77ae41db1c3b#e812e44b9893f200a4e357e6e8ae77ae41db1c3b"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=5479d733f02f1a2777579460154e144babe67b87#5479d733f02f1a2777579460154e144babe67b87"
 dependencies = [
  "base64",
  "bytes",
@@ -1905,7 +1911,7 @@ dependencies = [
 [[package]]
 name = "marketfeed-filesystem"
 version = "0.1.0-alpha.1"
-source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=e812e44b9893f200a4e357e6e8ae77ae41db1c3b#e812e44b9893f200a4e357e6e8ae77ae41db1c3b"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=5479d733f02f1a2777579460154e144babe67b87#5479d733f02f1a2777579460154e144babe67b87"
 dependencies = [
  "windows-sys 0.61.2",
 ]
@@ -1913,7 +1919,7 @@ dependencies = [
 [[package]]
 name = "marketfeed-model"
 version = "0.1.0-alpha.1"
-source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=e812e44b9893f200a4e357e6e8ae77ae41db1c3b#e812e44b9893f200a4e357e6e8ae77ae41db1c3b"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=5479d733f02f1a2777579460154e144babe67b87#5479d733f02f1a2777579460154e144babe67b87"
 dependencies = [
  "serde",
  "thiserror 2.0.18",
@@ -1922,7 +1928,7 @@ dependencies = [
 [[package]]
 name = "marketfeed-private"
 version = "0.1.0-alpha.1"
-source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=e812e44b9893f200a4e357e6e8ae77ae41db1c3b#e812e44b9893f200a4e357e6e8ae77ae41db1c3b"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=5479d733f02f1a2777579460154e144babe67b87#5479d733f02f1a2777579460154e144babe67b87"
 dependencies = [
  "base64",
  "bytes",
@@ -1940,7 +1946,7 @@ dependencies = [
 [[package]]
 name = "marketfeed-recording"
 version = "0.1.0-alpha.1"
-source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=e812e44b9893f200a4e357e6e8ae77ae41db1c3b#e812e44b9893f200a4e357e6e8ae77ae41db1c3b"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=5479d733f02f1a2777579460154e144babe67b87#5479d733f02f1a2777579460154e144babe67b87"
 dependencies = [
  "base64",
  "bytes",
@@ -1956,7 +1962,7 @@ dependencies = [
 [[package]]
 name = "marketfeed-replay"
 version = "0.1.0-alpha.1"
-source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=e812e44b9893f200a4e357e6e8ae77ae41db1c3b#e812e44b9893f200a4e357e6e8ae77ae41db1c3b"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=5479d733f02f1a2777579460154e144babe67b87#5479d733f02f1a2777579460154e144babe67b87"
 dependencies = [
  "marketfeed-adapter-api",
  "marketfeed-dispatch",
@@ -1970,7 +1976,7 @@ dependencies = [
 [[package]]
 name = "marketfeed-sinks"
 version = "0.1.0-alpha.1"
-source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=e812e44b9893f200a4e357e6e8ae77ae41db1c3b#e812e44b9893f200a4e357e6e8ae77ae41db1c3b"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=5479d733f02f1a2777579460154e144babe67b87#5479d733f02f1a2777579460154e144babe67b87"
 dependencies = [
  "marketfeed-adapter-api",
  "marketfeed-dispatch",
@@ -1986,14 +1992,17 @@ dependencies = [
 [[package]]
 name = "marketfeed-transport"
 version = "0.1.0-alpha.1"
-source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=e812e44b9893f200a4e357e6e8ae77ae41db1c3b#e812e44b9893f200a4e357e6e8ae77ae41db1c3b"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=5479d733f02f1a2777579460154e144babe67b87#5479d733f02f1a2777579460154e144babe67b87"
 dependencies = [
  "bytes",
  "futures-util",
  "reqwest",
+ "rustls",
+ "rustls-webpki",
  "thiserror 2.0.18",
  "tokio",
  "tokio-tungstenite",
+ "webpki-roots",
 ]
 
 [[package]]
@@ -2818,7 +2827,7 @@ dependencies = [
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
- "webpki-roots 1.0.8",
+ "webpki-roots",
 ]
 
 [[package]]
@@ -2903,9 +2912,9 @@ dependencies = [
 
 [[package]]
 name = "rustls-webpki"
-version = "0.103.15"
+version = "0.103.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f3c3cf1d8b1e7d4927e2d154c3fcb02979afb9939629c62cd9048d4f07b60ac2"
+checksum = "4443b1b6d39d7c663139942cc4558262562d2c84123bb6282ef177009ca8b281"
 dependencies = [
  "ring",
  "rustls-pki-types",
@@ -3494,7 +3503,6 @@ dependencies = [
  "tokio",
  "tokio-rustls",
  "tungstenite",
- "webpki-roots 0.26.11",
 ]
 
 [[package]]
@@ -4182,18 +4190,9 @@ dependencies = [
 
 [[package]]
 name = "webpki-roots"
-version = "0.26.11"
+version = "1.0.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "521bc38abb08001b01866da9f51eb7c5d647a19260e00054a8c7fd5f9e57f7a9"
-dependencies = [
- "webpki-roots 1.0.8",
-]
-
-[[package]]
-name = "webpki-roots"
-version = "1.0.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bf85cb06032201fa7c6f829d7db5a7e5aa45bcc0655327713065f6f0576731bf"
+checksum = "1c1c8e20c8a38fc7d65abfe74eb7280e4aa667e8eec8bc84996d2874810748d9"
 dependencies = [
  "rustls-pki-types",
 ]
