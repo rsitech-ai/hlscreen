@@ -11,9 +11,13 @@ const FRAME: &str = r#" { "channel":"trades", "data":[{"coin":"BTC","side":"B","
 #[test]
 fn shared_consumer_rejects_unprojected_causal_header_before_polling() {
     let temp = tempfile::tempdir().unwrap();
-    for (index, profile) in [FeedProfile::EngineCausalV1, FeedProfile::EngineCausalV2]
-        .into_iter()
-        .enumerate()
+    for (index, profile) in [
+        FeedProfile::EngineCausalV1,
+        FeedProfile::EngineCausalV2,
+        FeedProfile::EngineCausalV3,
+    ]
+    .into_iter()
+    .enumerate()
     {
         let dir = temp.path().join(format!("causal-{index}"));
         let _writer = FeedWriter::create_profile(&dir, 1_000_000, profile).unwrap();

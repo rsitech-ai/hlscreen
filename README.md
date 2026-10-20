@@ -568,10 +568,10 @@ collector archive directly; legacy recording/backfill flags apply to standalone
 mode. Source continuity and dataset qualification are separate from successful
 consumption of a saved capture.
 
-For collection settings, see the [Hyperliquid adapter documentation](https://github.com/rsitech-ai/cryptofeed-rs/tree/7f383b2dba580740e5c60c3dcb572e236e89f588/crates/adapters/hyperliquid).
+For collection settings, see the [Hyperliquid adapter documentation](https://github.com/rsitech-ai/cryptofeed-rs/tree/7a68984668ee59a532985d71dfb3a10f7681a363/crates/adapters/hyperliquid).
 
 The shared decoder, recording reader and their transitive marketfeed crates are
-pinned together at `7f383b2dba580740e5c60c3dcb572e236e89f588`.
+pinned together at `7a68984668ee59a532985d71dfb3a10f7681a363`.
 Run `python3 scripts/check-shared-feed-pin.py` to verify the complete source
 resolution. Historical capture/soak receipts retain their original source pins;
 a dependency update does not requalify those runs or strict research datasets.
@@ -581,19 +581,26 @@ with the producer; local consumer checks do not establish Windows writer durabil
 
 The producer also contains bounded writer-actor infrastructure with distinct
 admission and durable receipts, private offline capture of actual engine turns
-and drains, and opt-in causal journals with distinct `MFCJ1` and `MFCJ2` headers.
-Hlscreen continues consuming the legacy `MFSF1` profile and rejects causal
-journals at the header, before reading records. An explicit projection from
-committed release outcomes is required before causal operations can supply
-display observations. The producer now includes the private operation codec and
-a persistent owner that settles accepted writes and fences revoked outputs.
-The `MFCJ2` owner-history codec and physical-order validator distinguish accepted
-inputs, native execution, release intent and observed internal handoff, including
-uncertain crash prefixes. The daemon explicitly rejects this profile until
-runtime recording is integrated. Durable runtime owner history, committed
-projection, actual-engine replay and live caller migration remain unfinished.
-Hlscreen tests header rejection for both causal versions, including when the
-watermark is absent. The registered durable-ingress workload remains failed.
+and drains, and opt-in causal journals with distinct `MFCJ1`, `MFCJ2` and `MFCJ3`
+headers. Hlscreen consumes `MFSF1` and tests rejection of all three causal
+headers before watermark access, including an absent watermark. An explicit
+projection from committed release outcomes is required before causal operations
+can supply display observations.
+
+The `MFCJ2` structural validator remains inspectable and its daemon factory
+entry remains unavailable. The new `MFCJ3` private Bybit disk/null owner records
+actual ingress, durable execution permits, matching complete native operations
+and internal handoff observations. It retains complete late evidence after
+revocation or healthy-Full expiry while keeping terminal state and revoked
+output withheld. Finalization expiry is observable; a stalled writer or native
+callback can still delay shutdown indefinitely. These internal observations do
+not acknowledge external delivery.
+
+Hyperliquid causal-factory/CLI/live migration, complete failure/admission
+retention, committed projection, bound external I/O and actual-engine replay
+remain unfinished. The registered durable-ingress workload remains failed and
+was not rerun. The [current pin receipt](docs/evidence/shared-feed-owner-runtime-pin-20261020/README.md)
+records exact source, saved-replay and remaining qualification scope.
 
 The earlier [security lock repair](docs/evidence/security-lock-20261019/README.md)
 updated three transitive package versions at producer revision
