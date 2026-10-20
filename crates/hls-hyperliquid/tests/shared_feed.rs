@@ -15,6 +15,7 @@ fn shared_consumer_rejects_unprojected_causal_header_before_polling() {
         FeedProfile::EngineCausalV1,
         FeedProfile::EngineCausalV2,
         FeedProfile::EngineCausalV3,
+        FeedProfile::EngineCausalV4,
     ]
     .into_iter()
     .enumerate()

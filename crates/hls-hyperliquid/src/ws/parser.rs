@@ -213,6 +213,7 @@ fn parse_active_asset_ctx(data: serde_json::Value) -> HlsResult<MarketEvent> {
             ctx.ctx.circulating_supply,
             "assetCtx.circulatingSupply",
         )?,
+        native_context: None,
     }))
 }
 

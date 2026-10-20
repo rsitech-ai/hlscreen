@@ -26,8 +26,12 @@ keywords = ["hyperliquid", "market-data", "screener", "rust", "cli"]
 categories = ["command-line-utilities", "finance"]
 
 [workspace.dependencies]
-marketfeed-adapter-hyperliquid = { git = "https://github.com/rsitech-ai/cryptofeed-rs", rev = "95f00f51e076c83577228d95dc6605f3fb72df9c" }
-marketfeed-recording = { git = "https://github.com/rsitech-ai/cryptofeed-rs", rev = "95f00f51e076c83577228d95dc6605f3fb72df9c" }
+marketfeed-daemon = { git = "https://github.com/rsitech-ai/cryptofeed-rs", rev = "e812e44b9893f200a4e357e6e8ae77ae41db1c3b", default-features = false, features = ["causal-journal"] }
+marketfeed-adapter-api = { git = "https://github.com/rsitech-ai/cryptofeed-rs", rev = "e812e44b9893f200a4e357e6e8ae77ae41db1c3b" }
+marketfeed-engine = { git = "https://github.com/rsitech-ai/cryptofeed-rs", rev = "e812e44b9893f200a4e357e6e8ae77ae41db1c3b" }
+marketfeed-model = { git = "https://github.com/rsitech-ai/cryptofeed-rs", rev = "e812e44b9893f200a4e357e6e8ae77ae41db1c3b" }
+marketfeed-adapter-hyperliquid = { git = "https://github.com/rsitech-ai/cryptofeed-rs", rev = "e812e44b9893f200a4e357e6e8ae77ae41db1c3b" }
+marketfeed-recording = { git = "https://github.com/rsitech-ai/cryptofeed-rs", rev = "e812e44b9893f200a4e357e6e8ae77ae41db1c3b" }
 anyhow = "1.0"
 assert_cmd = "2.0"
 clap = { version = "4.5", features = ["derive", "env"] }

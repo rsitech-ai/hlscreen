@@ -111,6 +111,7 @@ pub fn project(message: Message, recv_ts_ns: u64) -> HlsResult<Vec<MarketEvent>>
             mark_px: Some(float(c.ctx.mark_px)?),
             mid_px: option(c.ctx.mid_px)?,
             circulating_supply: option(c.ctx.circulating_supply)?,
+            native_context: None,
         })),
         Message::AllMids(m) => out.push(MarketEvent::AllMids(AllMidsEvent {
             recv_ts_ns,
@@ -128,7 +129,7 @@ pub fn project(message: Message, recv_ts_ns: u64) -> HlsResult<Vec<MarketEvent>>
 pub fn parse_shared_ws_message(raw: &str) -> HlsResult<Vec<MarketEvent>> {
     project(protocol::decode(raw.as_bytes()).map_err(error)?, 0)
 }
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize)]
 pub enum SharedUpdate {
     Symbols(Vec<String>),
     Stopped,
@@ -144,7 +145,7 @@ struct Pending {
     recv: u64,
     payload: Vec<u8>,
 }
-pub struct SharedConsumer {
+struct LegacySharedConsumer {
     reader: FeedReader,
     sessions: BTreeMap<u64, Vec<String>>,
     pending: BTreeMap<u64, Pending>,
@@ -153,7 +154,7 @@ pub struct SharedConsumer {
     sealed: bool,
     as_of_ns: Option<i64>,
 }
-impl SharedConsumer {
+impl LegacySharedConsumer {
     /// Rebuilds from the committed prefix on restart; feature state is replayed
     /// alongside metadata rather than resuming a cursor with empty windows.
     pub fn open(directory: impl AsRef<Path>) -> HlsResult<Self> {
@@ -374,3 +375,7 @@ impl SharedConsumer {
         Ok(updates)
     }
 }
+
+#[path = "shared_projection.rs"]
+mod projection;
+pub use projection::{SharedConsumer, SharedInstrument};

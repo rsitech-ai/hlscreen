@@ -45,6 +45,11 @@ toml.workspace = true
 tempfile.workspace = true
 
 [dev-dependencies]
+marketfeed-adapter-api.workspace = true
+marketfeed-adapter-hyperliquid.workspace = true
+marketfeed-daemon.workspace = true
+marketfeed-engine.workspace = true
+marketfeed-model.workspace = true
 marketfeed-recording.workspace = true
 assert_cmd.workspace = true
 portable-pty.workspace = true

@@ -548,73 +548,76 @@ publicly maintained by RSI Tech. See [LICENSE](LICENSE), [NOTICE](NOTICE), and
 ## Shared cryptofeed collector (spot and perpetuals)
 
 `hls live --shared-feed CAPTURE_DIRECTORY`, `hls tui --shared-feed CAPTURE_DIRECTORY`
-and `hls server --live --shared-feed CAPTURE_DIRECTORY` consume the authoritative committed feed produced by cryptofeed-rs. This mode
-opens no exchange connection. It supports native spot IDs such as `@107`, native
-perps such as `BTC`, and builder perps such as `xyz:TSLA` from the saved catalog.
-Use `--symbols @107,BTC` to select native IDs, or omit it to view the captured
-universe. `hls live --shared-feed CAPTURE_DIRECTORY --once` replays the committed
-prefix and exits; a restart rebuilds feature windows from the same saved input.
-All three commands also accept `HLS_SHARED_FEED=CAPTURE_DIRECTORY`. The API health
-response includes the shared cursor, seal and recorded time. Sealed captures use
-the saved clock for feature windows; health still reports wall-time staleness.
+and `hls server --live --shared-feed CAPTURE_DIRECTORY` read a committed feed
+without opening an exchange connection. `--once` replays its committed prefix
+and exits; restarting rebuilds feature windows from the header. All three also
+accept `HLS_SHARED_FEED=CAPTURE_DIRECTORY`.
 
-The collector retains original bytes, exact values, metadata and capture events.
-Hlscreen uses the shared protocol decoder and makes the float conversion only
-for feature calculations and display. It waits for accepted-frame markers and
-reports gaps explicitly. A clean collector shutdown seals the capture; live and
-restart replay summaries include the capture-bound cursor and per-event counts.
-Legacy hls recording and replay formats remain available. Shared mode reads the
-collector archive directly; legacy recording/backfill flags apply to standalone
-mode. Source continuity and dataset qualification are separate from successful
-consumption of a saved capture.
+The reader selects the profile from the file header:
 
-For collection settings, see the [Hyperliquid adapter documentation](https://github.com/rsitech-ai/cryptofeed-rs/tree/95f00f51e076c83577228d95dc6605f3fb72df9c/crates/adapters/hyperliquid).
+- Legacy `MFSF1` captures keep their original native keys, such as `@107`, `BTC`
+  or `xyz:TSLA`. Select them with `--symbols @107,BTC`. This compatibility reader
+  retains the original accepted-frame decoding and saved replay behavior.
+- `MFOP1` reads typed native observations from complete committed projection
+  groups. Its keys include the product: `spot:@107`, `perps:BTC` or
+  `perps:xyz:TSLA`. Select them with `--symbols spot:@107,perps:BTC`. The API
+  retains the original per-session instrument definitions, units and native IDs.
+  Trade, BBO, book, candle and context fields come from the producer's native
+  observations; canonical companion batches do not duplicate them. Original
+  context mid and circulating supply are retained separately from executable
+  book mid. This producer profile does not admit all-mids observations.
 
-The shared decoder, recording reader and their transitive marketfeed crates are
-pinned together at `95f00f51e076c83577228d95dc6605f3fb72df9c`.
-Run `python3 scripts/check-shared-feed-pin.py` to verify the complete source
-resolution. Historical capture/soak receipts retain their original source pins;
-a dependency update does not requalify those runs or strict research datasets.
-This producer revision includes the checked local NTFS directory backend and
-the marketfeed-filesystem helper. Native Windows runtime results are tracked
-with the producer; local consumer checks do not establish Windows writer durability.
+Omitting `--symbols` includes the captured universe. The API health response
+includes the target cursor, seal and recorded time. For `MFOP1` it also reports
+source cursor, instrument metadata, clock policy and an unavailable
+`availability_time_ns`. Groups follow source physical order. Feature time uses
+the maximum checked owner wall-clock approximation; the storage seal does not
+advance it. This approximation does not establish when information became
+usable for a strategy. Health still reports wall-time staleness.
 
-The producer also contains bounded writer-actor infrastructure with distinct
-admission and durable receipts, private offline capture of actual engine turns
-and drains, and opt-in causal journals with distinct `MFCJ1`, `MFCJ2` and `MFCJ3`
-headers. Hlscreen consumes `MFSF1` and tests rejection of all three causal
-headers before watermark access, including an absent watermark. An explicit
-projection from committed release outcomes is required before causal operations
-can supply display observations.
+`MFOP1` publishes its cursor pair and clock only after the CLI/server applies the
+whole bounded batch. Decode/application failures or a caught application panic
+poison that reader; callers discard partial feature state and rebuild from the
+header. Input bytes, converted update bytes, native events and book levels have
+separate limits. A deferred whole group does not expose future metadata. These
+are logical limits, not measured process-memory guarantees or a persisted
+feature checkpoint. Floating-point conversion happens at the feature/display
+boundary; producer storage retains exact native values.
 
-The `MFCJ2` structural validator remains inspectable and its daemon factory
-entry remains unavailable. The new `MFCJ3` private Bybit and Hyperliquid spot/perps disk/null owner records
-actual ingress, durable execution permits, matching complete native operations
-and internal handoff observations. It retains complete late evidence after
-revocation or healthy-Full expiry while keeping terminal state and revoked
-output withheld. Finalization expiry is observable; a stalled writer or native
-callback can still delay shutdown indefinitely. These internal observations do
-not acknowledge external delivery.
+The shared adapter/engine/model/recording crates and their transitive marketfeed
+packages are pinned to `e812e44b9893f200a4e357e6e8ae77ae41db1c3b`.
+Run `python3 scripts/check-shared-feed-pin.py` to verify the complete resolution.
+For collection settings, see the [Hyperliquid adapter documentation](https://github.com/rsitech-ai/cryptofeed-rs/tree/e812e44b9893f200a4e357e6e8ae77ae41db1c3b/crates/adapters/hyperliquid).
 
-Hyperliquid causal bootstrap binds native discovery/catalog definitions and
-ordered subscriptions, including builder-DEX collateral. Direct factory creation
-retains the planner's 200-native-subscription session limit. The producer's new
-opt-in single-owner disk reader reexecutes committed native operations on one
-persistent engine and compares exact values/errors/drains. It releases only
-verified observed handoffs, preserves unknown execution after seal and rebuilds
-the native prefix for exact-cursor resume. This is a library replay foundation;
-Hlscreen still consumes MFSF1 and rejects causal journals.
+Direct causal journals `MFCJ1` through `MFCJ4` remain unsupported consumer inputs.
+The producer's opt-in verified multi-owner replay and projection library can
+build `MFOP1` from acknowledged native handoffs in `MFCJ4`. Hlscreen does not
+execute a raw accepted frame as a substitute for a missing handoff. Structural
+validation of an arbitrary projection does not authenticate its financial
+values; comparison with the verified source is a separate check. The actual
+factory/owner/projection integration tests exercise that comparison offline.
 
-Daemon/CLI/live migration, complete failure/admission retention, committed
-projection, bound external I/O, bounded multi-owner replay and native checkpoints
-remain unfinished. The projection must preserve existing native feature fields
-and their canonical batch drop/release ownership. The registered durable-ingress
-workload remains failed and was not rerun. The [current pin receipt](docs/evidence/shared-feed-native-replay-pin-20261020/README.md)
-records exact source, saved-replay and remaining qualification scope.
-The [prior bootstrap/security receipt](docs/evidence/shared-feed-hyperliquid-bootstrap-pin-20261020/README.md)
-retains its original b1ecfba/pin56b scope and Wasmtime 36.0.19 repair for
-RUSTSEC-2026-0380 and RUSTSEC-2026-0379. This pin update preserves those registry
-versions and checksums.
+Real daemon/CLI/live/control migration to the persistent causal owners, bound
+external I/O, strict dataset admission, native checkpoints and operational
+qualification remain open. The registered durable-ingress workload remains
+failed and has not been rerun. Successful fixture consumption does not close
+those gates. See the [current candidate evidence](docs/evidence/shared-feed-atomic-observations-20261020/README.md)
+for local checks and remaining source-specific hosted qualification. Producer
+Windows qualification has an unresolved projection watchdog failure.
+
+Legacy hls recording/backfill formats remain available in standalone mode.
+Original captures, historical soak receipts and frozen datasets retain their
+original source pins and qualification status. The [prior native replay pin](docs/evidence/shared-feed-native-replay-pin-20261020/README.md)
+and [bootstrap/security receipt](docs/evidence/shared-feed-hyperliquid-bootstrap-pin-20261020/README.md)
+remain historical evidence. This update keeps existing registry versions and
+checksums, including Wasmtime 36.0.19, while adding dependencies required by the
+engine and actual-producer test fixtures.
+
+cryptofeed owns acquisition, exact storage and replay. rsibot owns the planned
+direct continuous reader, time-qualified features, models and strategy research;
+its initial manifest boundary does not yet implement that reader. hlscreen
+presents the shared feed. No trading, economics, deployment or operational promotion follows
+from a passing reader test.
 
 The earlier [security lock repair](docs/evidence/security-lock-20261019/README.md)
 updated three transitive package versions at producer revision

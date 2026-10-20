@@ -71,6 +71,24 @@ pub struct AssetContextEvent {
     pub mark_px: Option<f64>,
     pub mid_px: Option<f64>,
     pub circulating_supply: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub native_context: Option<NativeContextFields>,
+}
+
+/// Optional source fields at the explicit lossy feature/display boundary.
+/// Absence remains distinct from a measured numeric zero.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct NativeContextFields {
+    #[serde(default)]
+    pub mid_price: Option<f64>,
+    #[serde(default)]
+    pub circulating_supply: Option<f64>,
+    pub funding: Option<f64>,
+    pub open_interest: Option<f64>,
+    pub oracle_price: Option<f64>,
+    pub day_base_volume: Option<f64>,
+    pub premium: Option<f64>,
+    pub impact_prices: Option<[f64; 2]>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -519,6 +537,8 @@ pub struct SymbolMarketState {
     pub mark_px: Option<f64>,
     pub day_ntl_vlm: Option<f64>,
     pub prev_day_px: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub native_context: Option<NativeContextFields>,
     pub candles: Vec<CandleEvent>,
     pub trades: Vec<TradeEvent>,
     pub bbo_events: Vec<TopOfBookEvent>,
@@ -541,6 +561,7 @@ impl SymbolMarketState {
             mark_px: None,
             day_ntl_vlm: None,
             prev_day_px: None,
+            native_context: None,
             candles: Vec::new(),
             trades: Vec::new(),
             bbo_events: Vec::new(),
@@ -644,9 +665,10 @@ impl SymbolMarketState {
             self.bid_sz = event.bid_size;
             self.ask_px = event.ask_price;
             self.ask_sz = event.ask_size;
-            if let (Some(bid), Some(ask)) = (event.bid_price, event.ask_price) {
-                self.mid_px = Some((bid + ask) / 2.0);
-            }
+            self.mid_px = event
+                .bid_price
+                .zip(event.ask_price)
+                .map(|(bid, ask)| (bid + ask) / 2.0);
         }
         let insert_at = self
             .bbo_events
@@ -686,11 +708,13 @@ impl SymbolMarketState {
             self.mark_px,
             self.mid_px,
             self.last_update_ms,
+            self.native_context.clone(),
         );
         let recv_ms = i64::try_from(event.recv_ts_ns / 1_000_000).unwrap_or(i64::MAX);
         self.day_ntl_vlm = event.day_ntl_vlm;
         self.prev_day_px = event.prev_day_px;
         self.mark_px = event.mark_px;
+        self.native_context = event.native_context;
         self.mid_px = self.mid_px.or(event.mid_px);
         if recv_ms > 0 {
             self.last_update_ms = Some(self.last_update_ms.unwrap_or(0).max(recv_ms));
@@ -702,6 +726,7 @@ impl SymbolMarketState {
                 self.mark_px,
                 self.mid_px,
                 self.last_update_ms,
+                self.native_context.clone(),
             )
     }
 

@@ -1,3 +1,6 @@
+#[cfg(test)]
+#[path = "../../../hls-hyperliquid/tests/support/mfop.rs"]
+mod mfop_fixture;
 use std::{fs, future::Future, io, net::SocketAddr, path::PathBuf, pin::Pin, time::Duration};
 
 use anyhow::{Context, bail};
@@ -541,44 +544,51 @@ async fn publish_shared_live_api(
     let deadline = tokio::time::Instant::now() + Duration::from_secs(args.duration_secs);
     let mut publish = live_api_publish_interval();
     loop {
-        for update in consumer.poll(256)? {
-            match update {
-                SharedUpdate::Symbols(symbols) => {
-                    state.include_symbols(
-                        symbols
-                            .into_iter()
-                            .filter(|s| selected.is_empty() || selected.contains(s)),
-                    )?;
-                    summary.symbols = state.states().count();
-                }
-                SharedUpdate::Events(events) => {
-                    summary.ws_messages += 1;
-                    for event in events {
-                        if event
-                            .hl_coin()
-                            .is_none_or(|s| selected.is_empty() || selected.iter().any(|v| v == s))
-                        {
-                            state.apply(event)?;
-                            summary.market_events += 1;
+        consumer.consume(256, |updates| {
+            for update in updates {
+                match update {
+                    SharedUpdate::Symbols(symbols) => {
+                        state.include_symbols(
+                            symbols
+                                .into_iter()
+                                .filter(|s| selected.is_empty() || selected.contains(s)),
+                        )?;
+                        summary.symbols = state.states().count();
+                    }
+                    SharedUpdate::Events(events) => {
+                        summary.ws_messages += 1;
+                        for event in events {
+                            if event.hl_coin().is_none_or(|s| {
+                                selected.is_empty() || selected.iter().any(|v| v == s)
+                            }) {
+                                state.apply(event)?;
+                                summary.market_events += 1;
+                            }
                         }
                     }
+                    SharedUpdate::Gap { symbols, .. } => {
+                        summary.reconnects += 1;
+                        summary.data_gaps += 1;
+                        summary.gap_symbols.extend(symbols);
+                    }
+                    SharedUpdate::Stopped | SharedUpdate::Sealed => {}
                 }
-                SharedUpdate::Gap { symbols, .. } => {
-                    summary.reconnects += 1;
-                    summary.data_gaps += 1;
-                    summary.gap_symbols.extend(symbols);
-                }
-                SharedUpdate::Stopped | SharedUpdate::Sealed => {}
             }
-        }
+            Ok(())
+        })?;
         summary.archive_as_of_ms = if consumer.sealed() {
             consumer.as_of_ms()
         } else {
             None
         };
-        summary.source_context = Some(
-            serde_json::json!({"kind":"shared-feed","cursor":consumer.cursor(),"sealed":consumer.sealed(),"as_of_ms":consumer.as_of_ms(),"continuity":"unverified"}),
-        );
+        let mut context = serde_json::json!({"kind":"shared-feed","cursor":consumer.cursor(),"sealed":consumer.sealed(),"as_of_ms":consumer.as_of_ms(),"continuity":"unverified"});
+        if consumer.source_cursor().is_some() {
+            context["source_cursor"] = serde_json::to_value(consumer.source_cursor())?;
+            context["clock_policy"] = consumer.clock_policy().into();
+            context["instruments"] = serde_json::to_value(consumer.instruments())?;
+            context["availability_time_ns"] = serde_json::Value::Null;
+        }
+        summary.source_context = Some(context);
         let age = consumer
             .as_of_ms()
             .map(|last| now_ms_i64().map(|now| now.saturating_sub(last).max(0) as u64))
@@ -1070,6 +1080,62 @@ mod shared_server_tests {
         MetadataRecord,
         shared_feed::{FeedRecord, FeedWriter},
     };
+    #[tokio::test]
+    async fn shared_api_consumes_actual_native_spot_perps_with_product_metadata_and_source_cursor()
+    {
+        let temp = tempfile::tempdir().unwrap();
+        let source = temp.path().join("source");
+        let path = temp.path().join("target");
+        mfop_fixture::record(&source, false);
+        mfop_fixture::project(&source, &path);
+        let args = ServerArgs {
+            shared_feed: Some(path),
+            bind: "127.0.0.1:0".into(),
+            print_health: false,
+            live: true,
+            symbols: None,
+            top: 50,
+            all_symbols: false,
+            duration_secs: 1,
+            refresh_secs: 1,
+            max_subscriptions: 10,
+            ws_url: "invalid-url-must-never-be-used".into(),
+            fixture_file: None,
+            metadata_file: None,
+            fee_profile_file: None,
+            simulate_health: None,
+        };
+        let api = SharedApiState::new(ApiState::new(connecting_health().snapshot(), vec![]));
+        let summary = publish_shared_live_api(&args, &api, None).await.unwrap();
+        assert_eq!(summary.market_events, 14);
+        assert_eq!(summary.subscriptions, 0);
+        assert_ne!(summary.archive_as_of_ms, Some(i64::MAX / 1_000_000));
+        let snapshot = api.snapshot().unwrap();
+        let health: serde_json::Value =
+            serde_json::from_str(&handle_get("/health", "", &snapshot).unwrap().body).unwrap();
+        assert_eq!(health["source"]["sealed"], true);
+        assert_eq!(
+            health["source"]["clock_policy"],
+            "max_checked_owner_approximation_physical_order_v1"
+        );
+        assert!(
+            health["source"]["source_cursor"]["sequence"]
+                .as_u64()
+                .unwrap()
+                > 0
+        );
+        assert_eq!(health["source"]["instruments"].as_array().unwrap().len(), 2);
+        assert!(health["source"]["availability_time_ns"].is_null());
+        for key in ["spot:@12", "perps:BTC"] {
+            let row: serde_json::Value = serde_json::from_str(
+                &handle_get(&format!("/symbol/{key}"), "", &snapshot)
+                    .unwrap()
+                    .body,
+            )
+            .unwrap();
+            assert_eq!(row["price"], 10.5);
+        }
+    }
     #[tokio::test]
     async fn shared_api_uses_saved_spot_perp_inputs_and_archive_clock_without_exchange_io() {
         let temp = tempfile::tempdir().unwrap();

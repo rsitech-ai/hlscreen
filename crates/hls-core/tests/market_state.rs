@@ -83,6 +83,7 @@ fn asset_context_updates_refresh_live_staleness_when_receive_time_is_present() {
         mark_px: Some(35.0),
         mid_px: Some(35.1),
         circulating_supply: None,
+        native_context: None,
     });
 
     let mut state = LiveMarketState::new(["@107".to_owned()]);
@@ -111,6 +112,7 @@ fn out_of_order_quote_and_context_events_do_not_regress_current_market_state() {
             mark_px: Some(36.0),
             mid_px: Some(36.1),
             circulating_supply: None,
+            native_context: None,
         }))
         .expect("latest context applies");
     state
@@ -122,6 +124,7 @@ fn out_of_order_quote_and_context_events_do_not_regress_current_market_state() {
             mark_px: Some(10.0),
             mid_px: Some(10.1),
             circulating_supply: None,
+            native_context: None,
         }))
         .expect("late context is ignored");
 
@@ -228,6 +231,7 @@ fn per_symbol_events_outside_selected_universe_are_ignored() {
             mark_px: Some(99.1),
             mid_px: Some(99.1),
             circulating_supply: None,
+            native_context: None,
         }),
         MarketEvent::Candle(outside_candle),
     ] {
@@ -297,4 +301,51 @@ fn bbo(exchange_ts_ms: i64, bid: f64, ask: f64) -> TopOfBookEvent {
         ask_size: Some(3.0),
         ask_order_count: Some(1),
     }
+}
+
+#[test]
+fn one_sided_bbo_clears_executable_mid_and_native_context_changes_are_retained() {
+    use hls_core::market_state::NativeContextFields;
+    let mut state = LiveMarketState::new(["@107".into()]);
+    state
+        .apply(MarketEvent::TopOfBook(bbo(1000, 10.0, 12.0)))
+        .unwrap();
+    assert_eq!(state.symbol_state("@107").unwrap().mid_px, Some(11.0));
+    let native = NativeContextFields {
+        mid_price: Some(8.0),
+        circulating_supply: Some(0.0),
+        funding: Some(-0.1),
+        open_interest: Some(0.0),
+        oracle_price: None,
+        day_base_volume: Some(0.0),
+        premium: None,
+        impact_prices: Some([10.0, 12.0]),
+    };
+    state
+        .apply(MarketEvent::AssetContext(AssetContextEvent {
+            recv_ts_ns: 1_001_000_000,
+            hl_coin: "@107".into(),
+            day_ntl_vlm: None,
+            prev_day_px: None,
+            mark_px: None,
+            mid_px: Some(8.0),
+            circulating_supply: Some(0.0),
+            native_context: Some(native.clone()),
+        }))
+        .unwrap();
+    assert_eq!(
+        state.symbol_state("@107").unwrap().native_context,
+        Some(native.clone())
+    );
+    assert_eq!(state.symbol_state("@107").unwrap().mid_px, Some(11.0));
+    let mut one = bbo(1002, 10.0, 12.0);
+    one.bid_price = None;
+    one.bid_size = None;
+    one.bid_order_count = None;
+    state.apply(MarketEvent::TopOfBook(one)).unwrap();
+    assert!(state.symbol_state("@107").unwrap().mid_px.is_none());
+    assert_eq!(
+        state.symbol_state("@107").unwrap().native_context,
+        Some(native)
+    );
 }

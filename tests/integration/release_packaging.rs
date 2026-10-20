@@ -427,7 +427,8 @@ fn release_docs_explain_local_dry_run_and_no_secrets_boundary() {
 #[test]
 fn release_validation_scripts_cover_local_artifacts_checksums_and_public_readiness() {
     let local_smoke = read("scripts/local-release-artifact-smoke.sh");
-    assert!(local_smoke.contains("target/release/hls"));
+    assert!(local_smoke.contains("CARGO_TARGET_DIR"));
+    assert!(local_smoke.contains("$build_dir/$host_triple/release/hls"));
     assert!(local_smoke.contains("tar -czf"));
     assert!(local_smoke.contains("sha256"));
     assert!(local_smoke.contains("doctor --data-dir"));
@@ -1034,4 +1035,158 @@ person@example.test\tperson@example.test\n",
         stderr.contains("exactly 8.30.1"),
         "unexpected error: {stderr}"
     );
+}
+
+#[cfg(unix)]
+#[test]
+fn local_release_smoke_builds_and_packages_override_candidate_and_refuses_failed_rebuild() {
+    use std::os::unix::fs::PermissionsExt;
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path();
+    fs::create_dir_all(root.join("scripts")).unwrap();
+    fs::create_dir_all(root.join("fake-tools")).unwrap();
+    fs::create_dir_all(root.join("target/release")).unwrap();
+    fs::copy(
+        repo_root().join("scripts/local-release-artifact-smoke.sh"),
+        root.join("scripts/smoke.sh"),
+    )
+    .unwrap();
+    for name in [
+        "LICENSE",
+        "NOTICE",
+        "THIRD_PARTY_LICENSES.txt",
+        "THIRD_PARTY_NOTICES.md",
+        "README.md",
+        "CHANGELOG.md",
+    ] {
+        fs::write(root.join(name), "sandbox packaging input\n").unwrap();
+    }
+    #[cfg(target_os = "macos")]
+    assert!(
+        Command::new("xattr")
+            .args(["-w", "com.rsitech.hls.test", "packaging-metadata-fixture"])
+            .arg(root.join("LICENSE"))
+            .status()
+            .unwrap()
+            .success()
+    );
+    let stale = b"#!/bin/sh\n# stale default-target binary\nexit 0\n";
+    fs::write(root.join("target/release/hls"), stale).unwrap();
+    fs::set_permissions(
+        root.join("target/release/hls"),
+        fs::Permissions::from_mode(0o755),
+    )
+    .unwrap();
+    let cargo = root.join("fake-tools/cargo");
+    fs::write(
+        &cargo,
+        r#"#!/bin/sh
+set -eu
+if [ "${HLS_TEST_CARGO_FAIL:-0}" = 1 ]; then exit 17; fi
+target=""
+target_dir=""
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --target) shift; target="$1" ;;
+    --target-dir) shift; target_dir="$1" ;;
+  esac
+  shift
+done
+test -n "$target"
+test -n "$target_dir"
+test "$target" != "non-native-target-must-be-overridden"
+mkdir -p "$target_dir/$target/release"
+cat > "$target_dir/$target/release/hls" <<'HLS'
+#!/bin/sh
+# freshly built override candidate
+exit 0
+HLS
+chmod +x "$target_dir/$target/release/hls"
+"#,
+    )
+    .unwrap();
+    fs::set_permissions(&cargo, fs::Permissions::from_mode(0o755)).unwrap();
+    let mut paths = vec![root.join("fake-tools")];
+    paths.extend(env::split_paths(&env::var_os("PATH").unwrap()));
+    let path = env::join_paths(paths).unwrap();
+    fs::create_dir(root.join(".cargo")).unwrap();
+    fs::write(
+        root.join(".cargo/config.toml"),
+        "[build]\ntarget = \"non-native-target-must-be-overridden\"\ntarget-dir = \"unselected-config-dir\"\n",
+    )
+    .unwrap();
+    let run = |build_dir: &str, work_dir: &str, fail: bool| {
+        Command::new("bash")
+            .arg(root.join("scripts/smoke.sh"))
+            .current_dir(root)
+            .env("PATH", &path)
+            .env("CARGO_TARGET_DIR", build_dir)
+            .env("CARGO_BUILD_TARGET", "non-native-target-must-be-overridden")
+            .env("CARGO_BUILD_TARGET_DIR", "unselected-env-dir")
+            .env("HLS_RELEASE_SMOKE_DIR", root.join(work_dir))
+            .env("HLS_TEST_CARGO_FAIL", if fail { "1" } else { "0" })
+            .output()
+            .unwrap()
+    };
+    // Both relative and absolute overrides must identify the actual candidate,
+    // even with an executable stale default-target binary already present.
+    for (index, build_dir) in [
+        "isolated-build".to_owned(),
+        root.join("absolute-build").to_str().unwrap().to_owned(),
+    ]
+    .iter()
+    .enumerate()
+    {
+        let work = format!("work-{index}");
+        let candidate_root = root.join(build_dir);
+        fs::create_dir_all(candidate_root.join("release")).unwrap();
+        fs::write(candidate_root.join("release/hls"), stale).unwrap();
+        fs::set_permissions(
+            candidate_root.join("release/hls"),
+            fs::Permissions::from_mode(0o755),
+        )
+        .unwrap();
+        let result = run(build_dir, &work, false);
+        assert!(
+            result.status.success(),
+            "{}",
+            String::from_utf8_lossy(&result.stderr)
+        );
+        let unpack = root.join(&work).join("unpack");
+        let archive = fs::read_dir(root.join(&work))
+            .unwrap()
+            .map(|e| e.unwrap().path())
+            .find(|p| p.to_string_lossy().ends_with(".tar.gz"))
+            .unwrap();
+        let listing = Command::new("tar")
+            .arg("-tzf")
+            .arg(archive)
+            .output()
+            .unwrap();
+        assert!(listing.status.success());
+        assert!(
+            !String::from_utf8_lossy(&listing.stdout)
+                .lines()
+                .any(|name| name.split('/').any(|part| part.starts_with("._"))),
+            "archive must not contain AppleDouble metadata"
+        );
+        let package = fs::read_dir(unpack)
+            .unwrap()
+            .next()
+            .unwrap()
+            .unwrap()
+            .path();
+        let packaged = fs::read(package.join("bin/hls")).unwrap();
+        assert_eq!(
+            packaged,
+            b"#!/bin/sh\n# freshly built override candidate\nexit 0\n"
+        );
+        assert_eq!(fs::read(root.join("target/release/hls")).unwrap(), stale);
+        let failed = run(build_dir, "failed-rebuild", true);
+        assert_eq!(failed.status.code(), Some(17));
+        assert!(
+            !root.join("failed-rebuild").exists(),
+            "failed build must not package a previous executable"
+        );
+    }
 }

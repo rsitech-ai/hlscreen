@@ -2,14 +2,19 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$repo_root"
 work_dir="${HLS_RELEASE_SMOKE_DIR:-$repo_root/target/local-release-smoke}"
-bin="$repo_root/target/release/hls"
-
-if [[ ! -x "$bin" ]]; then
-  cargo build --release -p hls-cli --bin hls
-fi
-
+build_dir="${CARGO_TARGET_DIR:-$repo_root/target}"
+case "$build_dir" in
+  /*) ;;
+  *) build_dir="$repo_root/$build_dir" ;;
+esac
 host_triple="$(rustc -vV | awk '/^host:/ {print $2}')"
+bin="$build_dir/$host_triple/release/hls"
+
+# Check Cargo's current source fingerprints even when an older binary exists.
+cargo build --locked --release --target "$host_triple" --target-dir "$build_dir" -p hls-cli --bin hls
+
 package_name="hlscreen-${host_triple}"
 stage_dir="$work_dir/$package_name"
 archive="$work_dir/${package_name}.tar.gz"
@@ -30,7 +35,7 @@ cp "$repo_root/CHANGELOG.md" "$stage_dir/CHANGELOG.md"
 
 (
   cd "$work_dir"
-  tar -czf "$archive" "$package_name"
+  COPYFILE_DISABLE=1 tar -czf "$archive" "$package_name"
 )
 
 if command -v shasum >/dev/null 2>&1; then

@@ -1065,7 +1065,8 @@ async fn run_shared_live(
     let mut next_render = Instant::now();
     let result = async {
         loop {
-            for update in consumer.poll(256)? {
+            consumer.consume(256, |updates| {
+ for update in updates {
                 match update {
                     SharedUpdate::Symbols(symbols) => {
                         let symbols: Vec<_> = symbols.into_iter().filter(|s| selected.is_empty() || selected.contains(s)).collect();
@@ -1093,7 +1094,10 @@ async fn run_shared_live(
                         eprintln!("shared feed gap: {reason}");
                     }
                 }
-            }
+
+ }
+ Ok(())
+ })?;
             summary.archive_as_of_ms = if args.once || consumer.sealed() { consumer.as_of_ms() } else { None };
             if Instant::now() >= next_render {
                 render_live_progress(LiveProgressContext { state: &state, screen_request: &screen_request, metadata: &metadata,
@@ -1128,11 +1132,15 @@ async fn run_shared_live(
         serde_json::to_string(consumer.cursor())?
     );
     println!("market_events={}", summary.market_events);
-    println!(
-        "shared_feed_summary={}",
-        serde_json::json!({"cursor":consumer.cursor(),"events":event_counts,
-        "data_gaps":summary.data_gaps,"sealed":consumer.sealed(),"as_of_ms":summary.archive_as_of_ms,"float_projection":"features_and_display_only"})
-    );
+    let mut feed_summary = serde_json::json!({"cursor":consumer.cursor(),"events":event_counts,
+        "data_gaps":summary.data_gaps,"sealed":consumer.sealed(),"as_of_ms":summary.archive_as_of_ms,"float_projection":"features_and_display_only"});
+    if consumer.source_cursor().is_some() {
+        feed_summary["source_cursor"] = serde_json::to_value(consumer.source_cursor())?;
+        feed_summary["clock_policy"] = consumer.clock_policy().into();
+        feed_summary["instruments"] = serde_json::to_value(consumer.instruments())?;
+        feed_summary["availability_time_ns"] = serde_json::Value::Null;
+    }
+    println!("shared_feed_summary={feed_summary}");
     let mut snapshots = live_feature_snapshots(&state, &summary, summary.feature_now_ms()?);
     attach_metadata(&mut snapshots, metadata);
     let output = live_tui_model(
