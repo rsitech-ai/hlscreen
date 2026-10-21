@@ -1,0 +1,160 @@
+{
+  "schema_version": 1,
+  "status": "LOCAL_SOURCE_QUALIFICATION_PASS",
+  "execution_gate": {
+    "status": "PASS",
+    "hls_source_files": 352,
+    "hls_source_sha256": "8fc77b2155e3a3370e3f62941a70ff6c3f26d53d00b91261d1d9a406659dbff1",
+    "qualification_sha256": "ecc9f158134892507755662c181b472c1f868f4f7d02887aea961a48ff496a6f",
+    "producer_commit": "20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9",
+    "required_checks_verified": true,
+    "findings": []
+  },
+  "reviewer": "Independent read-only Git/Python inspection; author-executed Rust/native/package checks inspected, not rerun",
+  "qualification": {
+    "file": "qualified-local-01.json",
+    "bytes": 142355,
+    "sha256": "ecc9f158134892507755662c181b472c1f868f4f7d02887aea961a48ff496a6f"
+  },
+  "source_freeze": {
+    "file": "source-freeze-02.json",
+    "bytes": 57097,
+    "sha256": "471ff7bc2f9245df40a507983843809aa440f10c443df7794e63e6d1e9c0e6c1"
+  },
+  "source_membership": 352,
+  "source_digest": "8fc77b2155e3a3370e3f62941a70ff6c3f26d53d00b91261d1d9a406659dbff1",
+  "pins": {
+    "direct": 7,
+    "resolved": 23,
+    "producer_commit": "20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9",
+    "registry_complete_records_unchanged": 430,
+    "other_lock_bytes_exact_after_revision_substitution": true,
+    "normalized_resolve_nodes": 461,
+    "normalized_dependency_edges": 1315,
+    "all_edges_kinds_features_equal": true
+  },
+  "producer_cache": {
+    "exact_build_input_membership": 570,
+    "published_Git_bytes_equal": true,
+    "source_sha256": "e5cd4371d81a253bccc4cc3d645519726fcfe168e0333a40c944b3fe525ec75d"
+  },
+  "source_delta": [
+    "Cargo.toml",
+    "Cargo.lock",
+    "README.md",
+    "docs/evidence/shared-feed-completion-intent-pin-20261021/README.md"
+  ],
+  "protected_baseline": {
+    "files": 348,
+    "all_fullstats_and_hashes_unchanged_before_after": true,
+    "all_HLS_runtime_tests_fixtures_scripts_workflows_unchanged": true
+  },
+  "actual_runner": {
+    "session": 37706,
+    "exit_code": 0,
+    "chunk": "c47050",
+    "stdout_empty": true,
+    "marker_in_bound_redirected_log": true,
+    "receipt": {
+      "file": "actual-runner-terminal-03.json",
+      "bytes": 730,
+      "sha256": "53bd41b7883fd37bb1f5e62924f131b6fff95efe4166849bd9820d58990c250b"
+    }
+  },
+  "assembly": {
+    "file": "assembly-terminal-01.json",
+    "bytes": 436,
+    "sha256": "6ab1c3d97e7b00644bb0875948eeec9d30433c603eb7aea01ca297911a9d7c58"
+  },
+  "rust": {
+    "executions": 589,
+    "unique_names": 565,
+    "summaries": 86,
+    "failed": 0,
+    "ignored": 0,
+    "actual_owner5": [
+      "public_capture_profile_fits_unchanged_hls_reader_limits",
+      "mfcj5_spot_perps_native_values_and_control_only_groups_are_consumed_atomically",
+      "failed_application_write_invalidates_at_its_committed_wire_group",
+      "cancelled_application_write_invalidates_at_its_committed_unknown_group",
+      "callback_failure_on_empty_wire_group_preserves_ack_pair_and_poisons_reader"
+    ]
+  },
+  "python_tests": [
+    8,
+    5,
+    10
+  ],
+  "security": {
+    "audit_version": "0.22.2",
+    "vulnerabilities": 0,
+    "warnings": {},
+    "deny_version": "0.20.2",
+    "deny_categories": [
+      "licenses",
+      "sources"
+    ],
+    "about_version": "0.9.1",
+    "generated_attribution_and3_notices_verified": true,
+    "current_binaries_match_retained_before_after_fingerprints": true
+  },
+  "artifact": {
+    "file": "hls-release-retained-01",
+    "bytes": 26915760,
+    "sha256": "354c9ed210b0cc77ff727451fc6bb89f683250247a1290dae84e19ccd629be3e"
+  },
+  "artifact_mode": "0555",
+  "fresh_output_package_retained_bytes_equal": true,
+  "archive": {
+    "file": "hlscreen-aarch64-apple-darwin.tar.gz",
+    "bytes": 10420480,
+    "sha256": "e180cd1e221ab75b1482038b95e095dcb526767225fe0c63d8530c30c31b37d4"
+  },
+  "archive_regular_files": 7,
+  "all6_packaged_docs_exact_current_source": true,
+  "synthetic_fixture": {
+    "historical_producer": "5479d733f02f1a2777579460154e144babe67b87",
+    "groups": 67,
+    "market_events": 2,
+    "data_gaps": 6,
+    "sealed": true,
+    "source_target_pair_exact_manifest": true,
+    "native_source_authentication": false,
+    "availability_time_ns": null
+  },
+  "references_checked": 52,
+  "failed_evidence_preserved": [
+    {
+      "file": "runner-terminal-01.json",
+      "bytes": 474,
+      "sha256": "a0e52b97acc1ebee817e71de9fd7ea816cf34a58d08a2822e54028d21364e7c9"
+    },
+    {
+      "file": "runner-terminal-02.json",
+      "bytes": 642,
+      "sha256": "98c4c47ea477bb9a19de4c51c467fb59451b12ea72aa84782645d623938df865"
+    },
+    {
+      "file": "unrelated-lock-edge-diff-01.txt",
+      "bytes": 1849,
+      "sha256": "18e798b258898420048d715102b5d8c1bbbddb13b2d9e0ecd34970b77216aecd"
+    }
+  ],
+  "limits": [
+    "Local macOSaarch64 Rust1.88 only; future own HLS committed-source hosted/package jobs and integrated joint15 are separate required qualifications.",
+    "Deny command actually checks licenses/sources; cargo-audit separately checks vulnerabilities and denied warnings. No claim of unexecuted deny categories.",
+    "Historical5479 synthetic fixture remains unchanged; current20f5 actual owner5 tests pass separately. HLS structural consumption does not authenticate rewritten financial values.",
+    "No embedded producer recipe or loaded-image attestation claimed for HLS; fresh output/package/retained bytes and published570/cache/metadata graph bind exact source.",
+    "No collector/native replay/consumer execution by reviewer; no freshness, availability, SLA, economic or extended operational qualification."
+  ],
+  "helper": {
+    "file": "hls20f5-local-independent-02.py",
+    "bytes": 13533,
+    "sha256": "adcbf9c9838266a64588ea7e5285c4d47cc1d5fb74c12628a18c27435f3ae65c"
+  },
+  "private_receipt": {
+    "file": "hls20f5-local-independent-01.json",
+    "bytes": 5707,
+    "sha256": "79991aa7cb27410662bfebd153faa6e4024c43d0b4e7180a987421eaac2b720c"
+  }
+}

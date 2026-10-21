@@ -1,0 +1,19 @@
+{
+  "actual_session": 97642,
+  "actual_tool_chunk": "8872a0",
+  "actual_terminal_exit_code": 1,
+  "rows": 11,
+  "passed_roles": 10,
+  "failed_role": "graph",
+  "no_PR_Rust_test_release_or_security_gate_executed": true,
+  "cause": "cargo update unexpectedly reassigned10unrelated Windows dependency edges despite same package versions; strict graph refused",
+  "validation_sha256": "32617b1a61466742de35be22d49f9f8e75735edf05bcc2027255d5f99d3f71c0",
+  "failed_source_freeze_sha256": "57e76662ebb9f93c0c4a9ddfb57f1f05a10868397eb17bce8976f900e44640a7",
+  "runner_log_sha256": "222585bfacf002391802a3ccc8d24a0a35e90c6cb151dd2267108628f342edec",
+  "portable_copy": {
+    "original_file": "runner-terminal-02.json",
+    "original_sha256": "98c4c47ea477bb9a19de4c51c467fb59451b12ea72aa84782645d623938df865",
+    "original_bytes": 642,
+    "scope": "Only absolute private path roots are replaced. All original result values, counts, types, hashes and status remain unchanged. Raw-hash references still identify original receipts; this copy is a derivative, not a new execution."
+  }
+}

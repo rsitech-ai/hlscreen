@@ -585,14 +585,17 @@ feature checkpoint. Floating-point conversion happens at the feature/display
 boundary; producer storage retains exact native values.
 
 The seven direct shared crates and all 23 resolved marketfeed packages use
-immutable producer revision `84aa63534f79ae65161117effd624d66f0294f48`.
+immutable producer revision `20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9`.
 Run `python3 scripts/check-shared-feed-pin.py` to check the complete resolution.
-For collection settings, see the [owned public capture guide](https://github.com/rsitech-ai/cryptofeed-rs/blob/84aa63534f79ae65161117effd624d66f0294f48/docs/ops/hyperliquid-causal-capture.md).
+For collection settings, see the [owned public capture guide](https://github.com/rsitech-ai/cryptofeed-rs/blob/20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9/docs/ops/hyperliquid-causal-capture.md).
 The coordinated pin and package checks are recorded in
-[the current integration evidence](docs/evidence/shared-feed-source0f332-20261021/README.md).
-Producer joint11 passes its two-second feed-tail diagnostic; native acquisition
-freshness remains unqualified, with perps timestamp/receipt differences above
-eight seconds. A source-to-target tail is separate from feature availability.
+[the current integration evidence](docs/evidence/shared-feed-completion-intent-pin-20261021/README.md).
+Producer joint14 passes its unchanged two-second feed-tail diagnostic after
+bounded Completion/Intent co-admission. Native acquisition freshness remains
+unqualified: public timestamp/receipt differences are unsynchronized diagnostics,
+and the samples are not controlled latency comparisons or an SLA. A file tail
+is separate from feature availability. This HLS pin requires its own local,
+hosted and integrated-run evidence; predecessor passes do not qualify it.
 
 The producer's opt-in `marketfeed-capture` command owns public transports,
 persistent native owners, durable application-write authorization and the

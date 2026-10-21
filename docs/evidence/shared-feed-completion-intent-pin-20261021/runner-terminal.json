@@ -1,0 +1,23 @@
+{
+  "actual_exec_session_id": 37706,
+  "actual_terminal_exit_code": 0,
+  "actual_tool_chunk": "c47050",
+  "actual_tool_result": {
+    "chunk_id": "c47050",
+    "wall_time_seconds": 1.35e-05,
+    "exit_code": 0,
+    "original_token_count": 0,
+    "output": ""
+  },
+  "terminal_marker": "HLS_SOURCEE5CD_QUALIFICATION_RUNNER_TERMINAL_ZERO_SOURCE_UNCHANGED",
+  "terminal_marker_observed_in_bound_log": true,
+  "runner_log_sha256": "6264e183bd2c86bdd24bce64e061e2470f71c2005aad734e5477715867e73803",
+  "validation_sha256": "5b22a1cf728f979192543db7670d357a5ca132c82502072915af9452327be050",
+  "scope": "Actual returned tool exit0; marker observed in separately bound redirected runner log, not falsely claimed in empty tool stdout.",
+  "portable_copy": {
+    "original_file": "actual-runner-terminal-03.json",
+    "original_sha256": "53bd41b7883fd37bb1f5e62924f131b6fff95efe4166849bd9820d58990c250b",
+    "original_bytes": 730,
+    "scope": "Only absolute private path roots are replaced. All original result values, counts, types, hashes and status remain unchanged. Raw-hash references still identify original receipts; this copy is a derivative, not a new execution."
+  }
+}

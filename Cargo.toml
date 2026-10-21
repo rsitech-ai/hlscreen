@@ -26,13 +26,13 @@ keywords = ["hyperliquid", "market-data", "screener", "rust", "cli"]
 categories = ["command-line-utilities", "finance"]
 
 [workspace.dependencies]
-marketfeed-daemon = { git = "https://github.com/rsitech-ai/cryptofeed-rs", rev = "84aa63534f79ae65161117effd624d66f0294f48", default-features = false, features = ["causal-journal"] }
-marketfeed-adapter-api = { git = "https://github.com/rsitech-ai/cryptofeed-rs", rev = "84aa63534f79ae65161117effd624d66f0294f48" }
-marketfeed-engine = { git = "https://github.com/rsitech-ai/cryptofeed-rs", rev = "84aa63534f79ae65161117effd624d66f0294f48" }
-marketfeed-model = { git = "https://github.com/rsitech-ai/cryptofeed-rs", rev = "84aa63534f79ae65161117effd624d66f0294f48" }
-marketfeed-adapter-hyperliquid = { git = "https://github.com/rsitech-ai/cryptofeed-rs", rev = "84aa63534f79ae65161117effd624d66f0294f48" }
-marketfeed-recording = { git = "https://github.com/rsitech-ai/cryptofeed-rs", rev = "84aa63534f79ae65161117effd624d66f0294f48" }
-marketfeed-transport = { git = "https://github.com/rsitech-ai/cryptofeed-rs", rev = "84aa63534f79ae65161117effd624d66f0294f48" }
+marketfeed-daemon = { git = "https://github.com/rsitech-ai/cryptofeed-rs", rev = "20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9", default-features = false, features = ["causal-journal"] }
+marketfeed-adapter-api = { git = "https://github.com/rsitech-ai/cryptofeed-rs", rev = "20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9" }
+marketfeed-engine = { git = "https://github.com/rsitech-ai/cryptofeed-rs", rev = "20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9" }
+marketfeed-model = { git = "https://github.com/rsitech-ai/cryptofeed-rs", rev = "20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9" }
+marketfeed-adapter-hyperliquid = { git = "https://github.com/rsitech-ai/cryptofeed-rs", rev = "20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9" }
+marketfeed-recording = { git = "https://github.com/rsitech-ai/cryptofeed-rs", rev = "20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9" }
+marketfeed-transport = { git = "https://github.com/rsitech-ai/cryptofeed-rs", rev = "20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9" }
 anyhow = "1.0"
 assert_cmd = "2.0"
 clap = { version = "4.5", features = ["derive", "env"] }

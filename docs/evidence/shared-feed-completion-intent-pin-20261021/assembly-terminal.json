@@ -1,0 +1,14 @@
+{
+  "actual_tool_chunk": "578623",
+  "actual_terminal_exit_code": 0,
+  "actual_tool_output": "ACTUAL16_TERMINAL_SAVED_AND_ASSEMBLY_PREPARED",
+  "scope": "Local Python preparation and exact assembly succeeded; assembler stdout redirected to bound log",
+  "assembly_log_sha256": "0956d59dc7a0af2eff623b4c4a953bd20f2f426543d8bc21baa098564e429600",
+  "qualified_sha256": "ecc9f158134892507755662c181b472c1f868f4f7d02887aea961a48ff496a6f",
+  "portable_copy": {
+    "original_file": "assembly-terminal-01.json",
+    "original_sha256": "6ab1c3d97e7b00644bb0875948eeec9d30433c603eb7aea01ca297911a9d7c58",
+    "original_bytes": 436,
+    "scope": "Only absolute private path roots are replaced. All original result values, counts, types, hashes and status remain unchanged. Raw-hash references still identify original receipts; this copy is a derivative, not a new execution."
+  }
+}

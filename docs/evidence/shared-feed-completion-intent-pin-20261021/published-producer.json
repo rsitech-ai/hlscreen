@@ -1,0 +1,37 @@
+{
+  "repository": "rsitech-ai/cryptofeed-rs",
+  "producer_commit": "20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9",
+  "pull_number": 52,
+  "commands": [
+    {
+      "argv": [
+        "private-home/.local/bin/gh",
+        "api",
+        "repos/rsitech-ai/cryptofeed-rs/commits/20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9"
+      ],
+      "actual_exit": 0,
+      "stdout_path": "private-evidence/hls/.hls/sourcee5cd-pin-01/github-commit-01.json",
+      "stdout_sha256": "b9f5d245a30e09de85b6e09419f5d0ac72ae5ca115d44ccdea915bdb82dc4210",
+      "stderr_path": "private-evidence/hls/.hls/sourcee5cd-pin-01/github-commit-01.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "private-home/.local/bin/gh",
+        "api",
+        "repos/rsitech-ai/cryptofeed-rs/pulls/52"
+      ],
+      "actual_exit": 0,
+      "stdout_path": "private-evidence/hls/.hls/sourcee5cd-pin-01/github-pull-01.json",
+      "stdout_sha256": "4606fb1754b14fb4719f36324e1f941d81f8bb0659bb6ab37090f7afafd1d297",
+      "stderr_path": "private-evidence/hls/.hls/sourcee5cd-pin-01/github-pull-01.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "portable_copy": {
+    "original_file": "published-proof-01.json",
+    "original_sha256": "693aba1d9b3eda96d878f35cc05c7277381eb3faad93e8074e8e99ba9893baf1",
+    "original_bytes": 1309,
+    "scope": "Only absolute private path roots are replaced. All original result values, counts, types, hashes and status remain unchanged. Raw-hash references still identify original receipts; this copy is a derivative, not a new execution."
+  }
+}
