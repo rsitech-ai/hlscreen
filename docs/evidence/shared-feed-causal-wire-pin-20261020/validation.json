@@ -1,0 +1,691 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-10-20T22:15:34.637854+00:00",
+  "status": "LOCAL_PASS_WITH_RETAINED_UNEXPLAINED_EARLIER_PTY_FAILURE",
+  "scope": "Local macOS aarch64 Rust1.88 source04 HLS compatibility/security/artifact validation; no own-source hosted/growingfeed/live/freshness/strategy/economic qualification",
+  "source_freeze": {
+    "basename": "final-source-freeze-04.json",
+    "bytes": 60951,
+    "sha256": "99ba41da5dbebcaee0ac03c123f354b7c182d82f8172fc60d9df489bf7f56b41"
+  },
+  "source_map_sha256": "f6dc28349d010bb19a48bd799b13474bf88a174b386eafd39f2a9790742bc0cb",
+  "producer_commit": "5479d733f02f1a2777579460154e144babe67b87",
+  "direct_pins": 7,
+  "resolved_marketfeed_packages": 23,
+  "registry_packages": 430,
+  "commands": [
+    {
+      "name": "workspace",
+      "argv": [
+        "cargo",
+        "+1.88.0",
+        "test",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--locked"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 81.22993075000001,
+      "raw_log": {
+        "basename": "final-workspace-04.log",
+        "bytes": 59080,
+        "sha256": "df3eaca97a4c91492ec946da866bb51062f55ef182359b38151bd32213499b50"
+      }
+    },
+    {
+      "name": "clippy",
+      "argv": [
+        "cargo",
+        "+1.88.0",
+        "clippy",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--locked",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.837041708000001,
+      "raw_log": {
+        "basename": "final-clippy-04.log",
+        "bytes": 141,
+        "sha256": "52f0e5380390cc37fdf8636b5a4ceb2f1ebe8fb79ab5b9941f1f500beb95ee61"
+      }
+    },
+    {
+      "name": "docs",
+      "argv": [
+        "cargo",
+        "+1.88.0",
+        "doc",
+        "--workspace",
+        "--all-features",
+        "--no-deps",
+        "--locked"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.605052041999997,
+      "raw_log": {
+        "basename": "final-docs-04.log",
+        "bytes": 179,
+        "sha256": "710e1bcbc18c0e68119071810e55e7d24c51dd7920f06dde8eb7fb9581a902bb"
+      }
+    },
+    {
+      "name": "fmt",
+      "argv": [
+        "cargo",
+        "+1.88.0",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.31073479100000156,
+      "raw_log": {
+        "basename": "final-fmt-04.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "pin",
+      "argv": [
+        "python3",
+        "scripts/check-shared-feed-pin.py"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.37477975000000185,
+      "raw_log": {
+        "basename": "final-pin-04.log",
+        "bytes": 62,
+        "sha256": "20cad941d4119a94c92a4ad4c86248056d6e96b2891ec1b9b050007434b9a268"
+      }
+    },
+    {
+      "name": "python-mfop",
+      "argv": [
+        "python3",
+        "scripts/test-mfop5-smoke.py"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.7012430420000015,
+      "raw_log": {
+        "basename": "final-python-mfop-04.log",
+        "bytes": 109,
+        "sha256": "284013b3fd2d7f7454b4413cfbf63d01c59dd99c1bf82923851ca4bfc4a88220"
+      }
+    },
+    {
+      "name": "python-dist",
+      "argv": [
+        "python3",
+        "scripts/test-dist-local-artifact.py"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 1.1485032089999976,
+      "raw_log": {
+        "basename": "final-python-dist-04.log",
+        "bytes": 102,
+        "sha256": "3268b6fbb258a10282451f962a42f8733cb960591e8ee1552b9f7cc1868a1cef"
+      }
+    },
+    {
+      "name": "diff",
+      "argv": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.02538716600000157,
+      "raw_log": {
+        "basename": "final-diff-04.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "audit",
+      "argv": [
+        "<pinned cargo-audit0.22.2>",
+        "audit",
+        "--no-fetch",
+        "--json",
+        "--deny",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.41105570900001,
+      "raw_log": {
+        "basename": "final-audit-04.log",
+        "bytes": 314,
+        "sha256": "ee3ef76ec5f9ed6bf645f4e1295d5161ece8ce832b87b8e02ee93cb1bfba21a0"
+      }
+    },
+    {
+      "name": "deny",
+      "argv": [
+        "<pinned cargo-deny0.20.2>",
+        "check",
+        "licenses",
+        "sources"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.8133023329999958,
+      "raw_log": {
+        "basename": "final-deny-04.log",
+        "bytes": 24,
+        "sha256": "a09bbb250feeb5c0d6ac91177e3a1730bf09901eefcec1269ea8d00949a8f1a4"
+      }
+    },
+    {
+      "name": "artifact",
+      "argv": [
+        "bash",
+        "scripts/local-release-artifact-smoke.sh"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 1.7710929170000043,
+      "raw_log": {
+        "basename": "final-artifact-04.log",
+        "bytes": 2882,
+        "sha256": "06d5ef85ec95f1d930964882afab6220916d6720d336fcba853eb8de0c8c0b93"
+      }
+    }
+  ],
+  "actual_terminal": {
+    "session_id": 20366,
+    "actual_terminal_exit_code": 0,
+    "marker": "FINAL_ELEVEN_CHECKS_TERMINAL_ZERO_SOURCE_UNCHANGED",
+    "source_freeze_sha256": "99ba41da5dbebcaee0ac03c123f354b7c182d82f8172fc60d9df489bf7f56b41",
+    "source_map_sha256": "f6dc28349d010bb19a48bd799b13474bf88a174b386eafd39f2a9790742bc0cb",
+    "rows": 11,
+    "all_command_exit_codes_zero": true,
+    "workspace": {
+      "passed": 565,
+      "failed": 0,
+      "ignored": 0,
+      "suites": 78
+    },
+    "artifact": {
+      "path": "hls-release-retained-04",
+      "sha256": "2ce7081ca7ceaf1a5815fe4870bc5ff60d2d68e4f4f8ab0269f9867787c2b058",
+      "bytes": 26914928,
+      "mode": "0o555"
+    },
+    "same_bytes_as03_pilot04_cli": true,
+    "limits": "Preserved-file/source-qualified build proof only, not loaded-image/signed/transitive/reprobuild attestation; earlierunexplainedPTYflake retained, nofixclaimed"
+  },
+  "retained_executable": {
+    "basename": "hls-release-retained-04",
+    "bytes": 26914928,
+    "sha256": "2ce7081ca7ceaf1a5815fe4870bc5ff60d2d68e4f4f8ab0269f9867787c2b058",
+    "mode": "0555",
+    "path_scope": "private retained file; not loaded-image/signed/fulltransitive/reprobuild attestation"
+  },
+  "synthetic_fixture": {
+    "manifest": {
+      "basename": "manifest.json",
+      "bytes": 6127,
+      "sha256": "471e5b765aeab083aaf7167306b98e0385aa96a4baae08f390bc6dfea5b7e5ae"
+    },
+    "groups": 67,
+    "wire_groups": 12,
+    "items": 12,
+    "native_trades": 2,
+    "data_gaps": 6,
+    "sealed": true,
+    "portable_native_authentication": false,
+    "generation_producer_recipe": {
+      "debug": "false",
+      "encoded_rustflags": "",
+      "git_commit": "5479d733f02f1a2777579460154e144babe67b87",
+      "lock_sha256": "676db8bf5e29e7b3b606c370ba2bd5d5608164cb21190128a10e7145daa1e0b2",
+      "opt_level": "0",
+      "package_features": [
+        {
+          "features": [
+            "default"
+          ],
+          "package": "marketfeed-adapter-bybit"
+        },
+        {
+          "features": [],
+          "package": "marketfeed-adapter-hyperliquid"
+        },
+        {
+          "features": [
+            "causal-journal"
+          ],
+          "package": "marketfeed-daemon"
+        },
+        {
+          "features": [
+            "default"
+          ],
+          "package": "marketfeed-engine"
+        },
+        {
+          "features": [
+            "default"
+          ],
+          "package": "marketfeed-sinks"
+        }
+      ],
+      "package_version": "0.1.0-alpha.1",
+      "profile": "debug",
+      "rustc_verbose": "rustc 1.88.0 (6b00bc388 2025-06-23)\nbinary: rustc\ncommit-hash: 6b00bc3880198600130e1cf62b8f8a93494488cc\ncommit-date: 2025-06-23\nhost: aarch64-apple-darwin\nrelease: 1.88.0\nLLVM version: 20.1.5\n",
+      "schema_version": 1,
+      "source_files": 566,
+      "source_scheme": "sha256-path-length-and-bytes-v1",
+      "source_sha256": "16a538c033fb37fa10112f66a6371ab7408512a7f991e95add1640af5a8afa95",
+      "target": "aarch64-apple-darwin"
+    },
+    "generator_executable_sha256": "f93e1f3e3b7733bc6a9036a2b2fc4964e1533f44119602feb98cdbf0f33b672d",
+    "generation_log": {
+      "basename": "final-wire-export-01.log",
+      "bytes": 4264,
+      "sha256": "90e1c33c11a1b6ab6ea55221b787d52ed5153ffe9c1bece362a2969564e21009"
+    },
+    "generation_hls_scope": "Actualpre-lintsource01 testartifact; currentnamedtestbodySHAunchanged, laterhelper-onlydeadcodeattribute/classification/pathmetadata changes retain originalproducer5479inputs. Currentsource04 fiveactualownertests also pass; no artifactequivalence claimed."
+  },
+  "pilot04": {
+    "census": {
+      "groups": 1415,
+      "group_source_kinds": {
+        "bootstrap": 2,
+        "owner": 1412,
+        "seal": 1
+      },
+      "items": {
+        "market": 6,
+        "observed_market": 259,
+        "system": 6
+      },
+      "events": {
+        "context": 57,
+        "bbo": 154,
+        "book": 14,
+        "trade": 97
+      },
+      "market_events": 322,
+      "cursor": {
+        "feed_id": "a1c8d4f7c607bc50f38b569c14e3944708a031f4",
+        "sequence": 1415,
+        "offset": 5215703
+      },
+      "source_cursor": {
+        "feed_id": "d51caea5fb62efd875a575956575e7893ba8879b",
+        "sequence": 1415,
+        "offset": 5556740
+      },
+      "sealed": true,
+      "as_of_ms": 1792532745652,
+      "data_gaps": 7,
+      "identities": [
+        "perps:BTC",
+        "spot:@107"
+      ]
+    },
+    "actual_cli_runs": [
+      {
+        "argv_scope": "actualretainedidentical03/04 HLS once on CLOSED feed; not growingfeed",
+        "exit_code": 0,
+        "elapsed_seconds": 0.5631787500000001,
+        "stdout_sha256": "b3a947c631aca95ed99c6cde10ccef417ace9be643fef8ba20b35aed9b0f9c4c",
+        "stderr_sha256": "2aa3925ee94c23915fe29de55a4c572eac4870eff12f0fc728d6d8312595e347"
+      },
+      {
+        "argv_scope": "actualretainedidentical03/04 HLS boundedfollow on CLOSED feed; not growingfeed",
+        "exit_code": 0,
+        "elapsed_seconds": 0.18493562500000005,
+        "stdout_sha256": "b3a947c631aca95ed99c6cde10ccef417ace9be643fef8ba20b35aed9b0f9c4c",
+        "stderr_sha256": "2aa3925ee94c23915fe29de55a4c572eac4870eff12f0fc728d6d8312595e347"
+      }
+    ],
+    "receipt": {
+      "basename": "receipt.json",
+      "bytes": 11018,
+      "sha256": "ed53eb55b6b2b7e56bf11fecc9af775475702189ccd05d5a27659d7b493b3fc0"
+    },
+    "all8capture_files_bytes_and_metadata_unchanged": true,
+    "endpoint_censoring": "SevenGaps arefinalWithheld/unsafeStop/Revoked source transitions. Releasedtargetcounts are not all accepted/executed native callbacks; one completedperpscontext withheld atStop. No transportfailure inference.",
+    "native_authentication": "Parentretainedcapture-executable nativeverify separate; thisconsumercheck is physicalCRC/typednative-rowcounts only",
+    "captured_producer_git_parent": "30a0e6fcdd3ddebe4c95241529d57ae89c9b1152",
+    "captured_producer_source_sha256": "16a538c033fb37fa10112f66a6371ab7408512a7f991e95add1640af5a8afa95",
+    "freshness_qualified": false
+  },
+  "legacy": {
+    "receipt": {
+      "basename": "receipt.json",
+      "bytes": 2153,
+      "sha256": "af767efebd2c3411e501515637d0193ff0c5f334b7496a20bb491ad6ca651658"
+    },
+    "cursor": {
+      "feed_id": "15a1865e81bbf5c7be7d43906f78289d07283534",
+      "offset": 1229293,
+      "sequence": 1136
+    },
+    "events": {
+      "context": 61,
+      "book": 15,
+      "trade": 221,
+      "bbo": 192,
+      "candle": 30
+    },
+    "sealed": true,
+    "feed_unchanged": true,
+    "prior_oracle_failure": "01omittedactiveSpotAssetCtx26frames; CLI0, wrongcontextoracle35versus61 retained. Corrected02mappingmatches, no corpus/runtimechange."
+  },
+  "security": {
+    "audit_version": "0.22.2",
+    "deny_version": "0.20.2",
+    "advisory_database_entries": 1348,
+    "advisory_database_git_commit": "e6f94f3760d5e6c54c1b05f204002263bc025524",
+    "audit_no_fetch_json_commit_null": true,
+    "advisories": 0,
+    "warnings": {},
+    "deny_licenses_sources_exit0": true,
+    "roots": "1.0.10",
+    "verifier": "0.103.16",
+    "removed_wrapper": "webpki-roots0.26.11",
+    "registry_delta": {
+      "removed": {
+        "webpki-roots@0.26.11": {
+          "name": "webpki-roots",
+          "version": "0.26.11",
+          "source": "registry+https://github.com/rust-lang/crates.io-index",
+          "checksum": "521bc38abb08001b01866da9f51eb7c5d647a19260e00054a8c7fd5f9e57f7a9",
+          "dependencies": [
+            "webpki-roots 1.0.8"
+          ]
+        },
+        "rustls-webpki@0.103.15": {
+          "name": "rustls-webpki",
+          "version": "0.103.15",
+          "source": "registry+https://github.com/rust-lang/crates.io-index",
+          "checksum": "f3c3cf1d8b1e7d4927e2d154c3fcb02979afb9939629c62cd9048d4f07b60ac2",
+          "dependencies": [
+            "ring",
+            "rustls-pki-types",
+            "untrusted"
+          ]
+        },
+        "webpki-roots@1.0.8": {
+          "name": "webpki-roots",
+          "version": "1.0.8",
+          "source": "registry+https://github.com/rust-lang/crates.io-index",
+          "checksum": "bf85cb06032201fa7c6f829d7db5a7e5aa45bcc0655327713065f6f0576731bf",
+          "dependencies": [
+            "rustls-pki-types"
+          ]
+        }
+      },
+      "added": {
+        "rustls-webpki@0.103.16": {
+          "name": "rustls-webpki",
+          "version": "0.103.16",
+          "source": "registry+https://github.com/rust-lang/crates.io-index",
+          "checksum": "4443b1b6d39d7c663139942cc4558262562d2c84123bb6282ef177009ca8b281",
+          "dependencies": [
+            "ring",
+            "rustls-pki-types",
+            "untrusted"
+          ]
+        },
+        "webpki-roots@1.0.10": {
+          "name": "webpki-roots",
+          "version": "1.0.10",
+          "source": "registry+https://github.com/rust-lang/crates.io-index",
+          "checksum": "1c1c8e20c8a38fc7d65abfe74eb7280e4aa667e8eec8bc84996d2874810748d9",
+          "dependencies": [
+            "rustls-pki-types"
+          ]
+        }
+      },
+      "changed": {
+        "hyper-rustls@0.27.9": {
+          "before": {
+            "name": "hyper-rustls",
+            "version": "0.27.9",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "checksum": "33ca68d021ef39cf6463ab54c1d0f5daf03377b70561305bb89a8f83aab66e0f",
+            "dependencies": [
+              "http",
+              "hyper",
+              "hyper-util",
+              "rustls",
+              "tokio",
+              "tokio-rustls",
+              "tower-service",
+              "webpki-roots 1.0.8"
+            ]
+          },
+          "after": {
+            "name": "hyper-rustls",
+            "version": "0.27.9",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "checksum": "33ca68d021ef39cf6463ab54c1d0f5daf03377b70561305bb89a8f83aab66e0f",
+            "dependencies": [
+              "http",
+              "hyper",
+              "hyper-util",
+              "rustls",
+              "tokio",
+              "tokio-rustls",
+              "tower-service",
+              "webpki-roots"
+            ]
+          }
+        },
+        "tokio-tungstenite@0.26.2": {
+          "before": {
+            "name": "tokio-tungstenite",
+            "version": "0.26.2",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "checksum": "7a9daff607c6d2bf6c16fd681ccb7eecc83e4e2cdc1ca067ffaadfca5de7f084",
+            "dependencies": [
+              "futures-util",
+              "log",
+              "rustls",
+              "rustls-pki-types",
+              "tokio",
+              "tokio-rustls",
+              "tungstenite",
+              "webpki-roots 0.26.11"
+            ]
+          },
+          "after": {
+            "name": "tokio-tungstenite",
+            "version": "0.26.2",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "checksum": "7a9daff607c6d2bf6c16fd681ccb7eecc83e4e2cdc1ca067ffaadfca5de7f084",
+            "dependencies": [
+              "futures-util",
+              "log",
+              "rustls",
+              "rustls-pki-types",
+              "tokio",
+              "tokio-rustls",
+              "tungstenite"
+            ]
+          }
+        },
+        "reqwest@0.12.28": {
+          "before": {
+            "name": "reqwest",
+            "version": "0.12.28",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "checksum": "eddd3ca559203180a307f12d114c268abf583f59b03cb906fd0b3ff8646c1147",
+            "dependencies": [
+              "base64",
+              "bytes",
+              "futures-core",
+              "h2",
+              "http",
+              "http-body",
+              "http-body-util",
+              "hyper",
+              "hyper-rustls",
+              "hyper-util",
+              "js-sys",
+              "log",
+              "percent-encoding",
+              "pin-project-lite",
+              "quinn",
+              "rustls",
+              "rustls-pki-types",
+              "serde",
+              "serde_json",
+              "serde_urlencoded",
+              "sync_wrapper",
+              "tokio",
+              "tokio-rustls",
+              "tower",
+              "tower-http",
+              "tower-service",
+              "url",
+              "wasm-bindgen",
+              "wasm-bindgen-futures",
+              "web-sys",
+              "webpki-roots 1.0.8"
+            ]
+          },
+          "after": {
+            "name": "reqwest",
+            "version": "0.12.28",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "checksum": "eddd3ca559203180a307f12d114c268abf583f59b03cb906fd0b3ff8646c1147",
+            "dependencies": [
+              "base64",
+              "bytes",
+              "futures-core",
+              "h2",
+              "http",
+              "http-body",
+              "http-body-util",
+              "hyper",
+              "hyper-rustls",
+              "hyper-util",
+              "js-sys",
+              "log",
+              "percent-encoding",
+              "pin-project-lite",
+              "quinn",
+              "rustls",
+              "rustls-pki-types",
+              "serde",
+              "serde_json",
+              "serde_urlencoded",
+              "sync_wrapper",
+              "tokio",
+              "tokio-rustls",
+              "tower",
+              "tower-http",
+              "tower-service",
+              "url",
+              "wasm-bindgen",
+              "wasm-bindgen-futures",
+              "web-sys",
+              "webpki-roots"
+            ]
+          }
+        }
+      }
+    },
+    "normal_tls_tests": 3,
+    "no_trust_or_hostname_bypass": true
+  },
+  "preservation": {
+    "historical_files": 71,
+    "bytes_and_fullstats_unchanged": true,
+    "workflow_bytes_unchanged": true,
+    "original_fixture_classification_loop_byte_identical": true
+  },
+  "earlier_failures": {
+    "pty_source01": {
+      "log": {
+        "basename": "final-workspace-01.log",
+        "bytes": 27888,
+        "sha256": "e47dd6217b0d02b40b91d88b53248fba2e72990a044b3d9aa4688742727849c2"
+      },
+      "failed_test": "fixture_tui_uses_production_terminal_session_and_restores_the_pty",
+      "status": "UNEXPLAINED_INTERMITTENT; nofixclaimed; no time/cap/backend/thread change",
+      "diagnostics": [
+        {
+          "basename": "pty-same-artifact-single-02.json",
+          "bytes": 1178,
+          "sha256": "5aa54c8a1b4a871d43c96983b25f1ccdd4db12f48f1aebcae861a5049142659a"
+        },
+        {
+          "basename": "pty-same-artifact-parallel-01.json",
+          "bytes": 31584,
+          "sha256": "eb646ce10c08f442f412b010feddffa49b3603638f165a8de84932ae21cedf11"
+        },
+        {
+          "basename": "pty-resize-key-probe-01.json",
+          "bytes": 774,
+          "sha256": "adddf1fdeeb2b57571b8b8c7d8dc5332971eefe3575769727ac45d4fbd727d7d"
+        },
+        {
+          "basename": "pty-exact-bounded20-01.json",
+          "bytes": 4037,
+          "sha256": "957dae71176ccc58b0f17c0c0ddacc802d3497295f3508eb96bd76481d936aff"
+        }
+      ]
+    },
+    "clippy_source01": {
+      "basename": "final-clippy-01.log",
+      "bytes": 5187,
+      "sha256": "0923fcde22cbb51a6f92e13f844bad4263f817b905699be673a39e3d1fd5efec"
+    },
+    "fixture_classification_source02": {
+      "basename": "final-workspace-02.log",
+      "bytes": 21182,
+      "sha256": "67a527507223ade6983d35234e60e2c832851bc8bcd37edb2dee77a41bb6507e"
+    },
+    "external_diagnostic_harness": "Firststableartifactwrapper comparedatime andfailed afterrawtestpass; corrected02 retained. SeparatePythonPTY wrappercleanupkillpgEPERM retained; no prodconclusion."
+  },
+  "pending": [
+    "Own HLS immutablepublication CI/nativeartifactjobs",
+    "Registered growing-feed concurrentproducer/HLS/Quants capture is parent-owned and separate",
+    "Producer5479 own-hosted Windows failure remains separatelyopen",
+    "Unexplained earlier localPTYfailure retained",
+    "No 24h/7d/loss/usabletime/featurecheckpoint/load/economic/release/merge/tag qualification"
+  ],
+  "post_gate_evidence_only_amendments": [
+    {
+      "path": "docs/evidence/shared-feed-causal-wire-pin-20261020/README.md",
+      "before": {
+        "basename": "README.md",
+        "bytes": 1643,
+        "sha256": "7393d067bf88554b799405385a87feb2aaa535cba45f9bc5602f4abe86c18fe6"
+      },
+      "after": {
+        "basename": "README.md",
+        "bytes": 3609,
+        "sha256": "7eac54071810cdcdab11126fcf0eabef5e1dbd275a6820938f7226d572e9c2b5"
+      },
+      "reason": "Parent-requested local results, retained PTY flake and exact producer Mac/Linux/MSRV/Windows hosted scope; no production code/dependency/test/fixture byte change"
+    }
+  ],
+  "producer_hosted": {
+    "receipt": {
+      "basename": "producer-hosted.json",
+      "bytes": 12595,
+      "sha256": "8d0f2b905cfdb7d309b8a95e3144e7a9b26599bc55acd25bff1dec5ba8f9c270"
+    },
+    "status": "FAILED:16successfuljobs; Windowspaused32testfailed",
+    "macos_passed": 1642,
+    "linux_x64_passed": 1643,
+    "linux_arm_passed": 1643,
+    "msrv_passed": 781,
+    "own_hls_hosted_qualification": false
+  },
+  "joint05_scope": "Parent reports actual producer/HLS/Quants/nativeverify all0 and6203matchinggroups/1209items; independentcensus supplement pending, not included in local565test or closedpilot04 claims."
+}

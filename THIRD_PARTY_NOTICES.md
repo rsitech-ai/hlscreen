@@ -40,11 +40,11 @@ The `cfg_aliases!` macro uses a lot of the code from [`tectonic_cfg_support::tar
 ---
 ```
 
-## Apache Parquet 59.1.0
+## Apache Parquet 60.0.0
 
-The release graph includes Apache Parquet 59.1.0. Its packaged `NOTICE.txt` is
+The release graph includes Apache Parquet 60.0.0. Its packaged `NOTICE.txt` is
 preserved at
-[`third_party/notices/parquet-59.1.0-NOTICE.txt`](third_party/notices/parquet-59.1.0-NOTICE.txt)
+[`third_party/notices/parquet-60.0.0-NOTICE.txt`](third_party/notices/parquet-60.0.0-NOTICE.txt)
 and verbatim below as required by the Apache License 2.0. The locked-graph
 checker rejects any new or changed packaged `NOTICE` file until this document
 and `third_party/notices/manifest.json` are reviewed and updated.
@@ -63,4 +63,24 @@ This product includes software from the chronoutil crate (MIT)
 This product includes software from the compact-thrift project (Apache 2.0)
  * Copyright Jörn Horstmann
  * https://github.com/jhorstmann/compact-thrift
+```
+
+## Shared cryptofeed-rs source
+
+The shared feed, decoder and directory durability helper use cryptofeed-rs at
+the immutable revision in Cargo.toml, including the marketfeed-filesystem crate.
+Its repository NOTICE is preserved below:
+
+```text
+cryptofeed-rs
+Copyright 2026 Rafal Sikora
+
+Licensed under the Apache License, Version 2.0. See LICENSE for the full text.
+
+Maintained publicly by RSI Tech.
+Website: https://rsitech.ai
+Contact: info@rsitech.ai
+
+Third-party dependencies are licensed under their respective terms; see Cargo.lock
+and the output of `cargo deny list` / SBOM generation for attribution details.
 ```

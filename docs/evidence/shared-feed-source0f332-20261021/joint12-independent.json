@@ -1,0 +1,322 @@
+{
+  "schema_version": 1,
+  "status": "CURRENT_PIN_STRUCTURAL_INTEGRATION_PASS; FRESHNESS_UNQUALIFIED",
+  "scope": "Independent closed joint12 CRC, exact source eligible release, final consumer counts/cursors, growing witnesses, actual artifact/source bindings and original-file preservation. Read-only Python/Git inspection only.",
+  "execution": {
+    "parent_session": 23811,
+    "parent_exit_code": 0,
+    "child_exit_codes": {
+      "capture": 0,
+      "quants": 0,
+      "hls": 0,
+      "verify": 0
+    },
+    "independent_python_session": 75783,
+    "independent_python_exit_code": 0,
+    "parent_native_verifier_rerun": false,
+    "consumer_rerun": false
+  },
+  "bindings": {
+    "producer_published_commit": "84aa63534f79ae65161117effd624d66f0294f48",
+    "producer_recorded_source_recipe": "0f332bdf2535607281fe89330e3457498e5d81ef91867d6a4b05d2f3e91d0221",
+    "producer_build_inputs": 566,
+    "published_Git_and_actual_Cargo_cache_bytes_match": true,
+    "capture_sha256": "8a491f3d7197eaf87b06b4af34ab02433717ec776444dc4c912d4951e3a23518",
+    "bridge_sha256": "05c2b36ca9c107543192705e59dcbcf0c9b698b9c3c57824426901abd034c3f3",
+    "capture_raw_embedded_recipe_sha256": "ca4a0208fd3fa348fd51c9b49ed698f8457c9550768a56cb6e8a2361e702a961",
+    "capture_profile": "release",
+    "capture_encoded_rustflags": "-Dwarnings",
+    "bridge_binding": "fresh Cargo output and retained bytes; embedded_recipe=false; no loaded-image attestation",
+    "hls": {
+      "qualification_sha256": "19168d8585bca30a27af3cad974935b884a54d19c4b0f9a62598c8a3a0c2e009",
+      "source_map_sha256": "69e3fa03cdf849be672392a5682c1d574d614532b6e75329c1fbcb3577ef447f",
+      "frozen_input_files": 342,
+      "producer_pin": "84aa63534f79ae65161117effd624d66f0294f48",
+      "direct_pins": 7,
+      "resolved_packages": 23,
+      "resolved_graph_nodes": 461,
+      "resolved_graph_edges": 1315,
+      "artifact_sha256": "8a63828d5f4ae686cd6caade59faea78ca180e38c78a5aca1c28d001eae1bb89",
+      "inspected_local_qualification_commands": 16,
+      "hosted_or_platform_success_inferred": false
+    },
+    "quants": {
+      "commit": "67a9e1d055fe3dd137756225fd8d97c8ee1f7b2a",
+      "projection_module_sha256": "d43147b3083651446f83f9a38f0c7c3cbd51c41aaa172face54f6682696bf6c9",
+      "observer_sha256": "d9de953b1b6e5d29a901ef9f279d75527e3e0315cd18f8744ec2c90f41e8a0e8",
+      "docs_only_successor_of": "a1d45ac5dc26c9ea47f0df96689d1ed97c01738a"
+    }
+  },
+  "structural": {
+    "all_record_CRC32C_and_sequences_and_cursor_chains_valid": true,
+    "source_records": 7639,
+    "target_projection_groups": 7639,
+    "source_cursor": {
+      "feed_id": "03231a45688914670442c557f819a93308cd2f51",
+      "sequence": 7639,
+      "offset": 22883634
+    },
+    "target_cursor": {
+      "feed_id": "29bc5578730fed74b68ddd3d4f9ee3552af83981",
+      "sequence": 7639,
+      "offset": 22529172
+    },
+    "both_sealed": true,
+    "exact_eligible_handoff_bindings": 1514,
+    "binding_census_sha256": "8546140894f3d3a115ef2b015e0222de3fc6a9d84452a43c072a84dabf5ee90f",
+    "projected_items": {
+      "market": 6,
+      "observed_market": 1485,
+      "system": 6
+    },
+    "total_projected_items": 1497,
+    "native_executed": {
+      "HyperliquidContext": 203,
+      "HyperliquidBook": 41,
+      "HyperliquidBbo": 1092,
+      "HyperliquidTrade": 358
+    },
+    "native_released": {
+      "HyperliquidContext": 203,
+      "HyperliquidBook": 41,
+      "HyperliquidBbo": 1092,
+      "HyperliquidTrade": 358
+    },
+    "native_withheld": {},
+    "HLS_events": {
+      "bbo": 1092,
+      "book": 41,
+      "context": 203,
+      "trade": 358
+    },
+    "HLS_market_events": 1694,
+    "HLS_gap_groups": 6,
+    "Stop_only_withholds": [
+      {
+        "session": 32,
+        "input_id": 893,
+        "source_sequence": 7637,
+        "input_kind": "stop",
+        "native_rows": {},
+        "had_intent": false,
+        "had_handoff": false,
+        "completion_sequence": 7633
+      },
+      {
+        "session": 31,
+        "input_id": 623,
+        "source_sequence": 7638,
+        "input_kind": "stop",
+        "native_rows": {},
+        "had_intent": false,
+        "had_handoff": false,
+        "completion_sequence": 7634
+      }
+    ],
+    "quants_counts": {
+      "control_groups": 0,
+      "groups": 7639,
+      "items": 1497,
+      "source_kinds": {
+        "bootstrap": 2,
+        "owner": 7636,
+        "seal": 1
+      }
+    },
+    "clean_drivers": true,
+    "abandoned_or_unaccepted_inputs": 0,
+    "source_physical_publications": 6070,
+    "source_actor_admissions": 7639,
+    "target_physical_publications": 6051,
+    "target_actor_admissions": 7604,
+    "physical_interior_claim": false
+  },
+  "growing_application_witness": {
+    "quants_first_matching_ACK_unix_ns": 1792576207142366000,
+    "later_sample_unix_ns": 1792576212621836000,
+    "capture_alive_at_sample": true,
+    "source_prefix_before": {
+      "feed_id": "03231a45688914670442c557f819a93308cd2f51",
+      "sequence": 353,
+      "offset": 2461776
+    },
+    "source_prefix_after": {
+      "feed_id": "03231a45688914670442c557f819a93308cd2f51",
+      "sequence": 353,
+      "offset": 2461776
+    },
+    "target_prefix": {
+      "feed_id": "29bc5578730fed74b68ddd3d4f9ee3552af83981",
+      "sequence": 350,
+      "offset": 2236195
+    },
+    "HLS_positive_progress": "shared progress: elapsed_secs=5 ws_messages=45 market_events=104 reconnects=0 data_gaps=0",
+    "ordering_scope": "Reported same-host wall/monotonic observations; no synchronized native clock or per-event delivery latency"
+  },
+  "timing": {
+    "units": "ns",
+    "registered_final_filemtime_tail": 25737880,
+    "registered_tail_bound": 2000000000,
+    "registered_tail_pass": true,
+    "maximum_sampled_committed_prefix_deficit": 3,
+    "post_source_mtime_pre_target_sampled_interval": {
+      "status": "UNKNOWN",
+      "samples": 0
+    },
+    "post_final_source_commit_pre_target_sampled_interval": {
+      "status": "UNKNOWN",
+      "samples": 0
+    },
+    "unsampled_intervals": "UNKNOWN",
+    "quants_last_matching_ACK_minus_target_final_mtime": 24240675,
+    "same_owner_ingress_to_handoff_max": 178842083,
+    "native_timestamp_to_local_acquisition_diagnostics": [
+      {
+        "session": 31,
+        "market": "spot",
+        "channel": "l2Book",
+        "samples": 23,
+        "min": 309612000,
+        "median": 811686000,
+        "p95": 1617910000,
+        "max": 1854678000,
+        "first": 885773000,
+        "last": 314750000
+      },
+      {
+        "session": 32,
+        "market": "perps",
+        "channel": "l2Book",
+        "samples": 18,
+        "min": 904418000,
+        "median": 17118101000,
+        "p95": 30796877000,
+        "max": 30919205000,
+        "first": 904418000,
+        "last": 29397461000
+      },
+      {
+        "session": 32,
+        "market": "perps",
+        "channel": "bbo",
+        "samples": 679,
+        "min": 1123025000,
+        "median": 18601671000,
+        "p95": 30866582000,
+        "max": 31724900000,
+        "first": 1123025000,
+        "last": 30016590000
+      },
+      {
+        "session": 31,
+        "market": "spot",
+        "channel": "trades_initial",
+        "samples": 30,
+        "min": 1110492000,
+        "median": 31566492000,
+        "p95": 48614492000,
+        "max": 49542492000,
+        "first": 49542492000,
+        "last": 1110492000
+      },
+      {
+        "session": 31,
+        "market": "spot",
+        "channel": "bbo",
+        "samples": 413,
+        "min": 214121000,
+        "median": 794516000,
+        "p95": 2549652000,
+        "max": 2999029000,
+        "first": 1399986000,
+        "last": 717328000
+      },
+      {
+        "session": 32,
+        "market": "perps",
+        "channel": "trades_initial",
+        "samples": 30,
+        "min": 1418339000,
+        "median": 3764339000,
+        "p95": 11769339000,
+        "max": 15058339000,
+        "first": 15058339000,
+        "last": 1418339000
+      },
+      {
+        "session": 31,
+        "market": "spot",
+        "channel": "trades_subsequent",
+        "samples": 73,
+        "min": 357795000,
+        "median": 716394000,
+        "p95": 2100752000,
+        "max": 2981877000,
+        "first": 1550088000,
+        "last": 731402000
+      },
+      {
+        "session": 32,
+        "market": "perps",
+        "channel": "trades_subsequent",
+        "samples": 225,
+        "min": 2554662000,
+        "median": 21160610000,
+        "p95": 30768797000,
+        "max": 31354472000,
+        "first": 2554662000,
+        "last": 29912856000
+      }
+    ]
+  },
+  "preservation": {
+    "old_originals": 147,
+    "new_capture_originals": 8,
+    "total": 155,
+    "all_hashes_and_recorded_fullstats_unchanged": true,
+    "fields": [
+      "sha256",
+      "st_size",
+      "st_dev",
+      "st_ino",
+      "st_mode",
+      "st_mtime_ns",
+      "st_ctime_ns"
+    ],
+    "atime_claimed": false
+  },
+  "evidence_sha256": {
+    "joint12-independent-read-baseline-01.json": "e72aaa272af1247d9cfd741445fb876bdb278c44434c3b427cc62434a02d04ce",
+    "joint12-consumer-preservation-independent-01.json": "c7c9e5edcf39f8a5a0bb40dcded44eaf6ff1aa09c76d4b1b4b5862057218046f",
+    "joint12-source-artifact-execution-supplement-01.json": "f31b7a9220f977ea60911eadbc977757c04411a45edb72377da5595a2352bab4",
+    "joint12-independent-audit-terminal-01.json": "ff693415d3fa479303b538b6ad7cce4ce35e15241e49fbea0b7cb0840a23f9c1",
+    "joint12-audit-helper-failure-01.json": "ee012b42d0b193616bce8c94033003d004286169d92c508ce0f130d05ef8618f",
+    "joint12-consumer-preservation-audit-02.py": "2d0951178e5b5dfcb94713054550002a0c5adcc38cc46074f73323e7c8808849",
+    "joint12-source-binding-audit-01.py": "99eb311b263ae3651b2390f417ecea63ed31c944ad3d454545cfdb00e93614b4",
+    "joint12-portable-assembly-01.py": "0075155e5861124dd87f07b006004f593fa6b2e2ce818b134a2a0a190660da7b",
+    "runner-terminal-01.json": "0d3d9b9571368fff0370da2dea30c86cb3fee10c16cce0572a585ef37e75526b",
+    "terminal-01.json": "7992a83d489d77173c0e8397f711efa9bd309a0014c9593291be34ce7c268e3f",
+    "native-timing-audit-01.json": "87093594e33bc336fd32a4f9221ccbcae3bfe8e9ee67c8d67607f1d7a8b8cded",
+    "plan-01.json": "baa6b593cd5090287c7e492044cfb275be44b7a0e570056dae5f2e239b986d55",
+    "registration-01.json": "81ba42a186b739cab0051f14e022b74dfd0ff5d55dd0a500eab3f4313a3e7952",
+    "invocation-01.json": "7202a638bd6e5b08b87c171befc12c8c02f14f2c29e3b5a38b6ea6e49f5ef188"
+  },
+  "qualification_labels": {
+    "validation": "mfop1_structure",
+    "native_source_verified": false,
+    "availability_time_ns": null,
+    "economics_supported": false
+  },
+  "limitations": [
+    "Actual parent nativeverify exit0 inspected, never rerun; CRC/source-value equality is not an independent native execution or economic oracle.",
+    "All1694 native released rows reconcile to aggregate HLS event-family counts; this is not a per-row floating-point feature-state or per-callback latency trace.",
+    "Perps BBO median18.601671s/max31.7249s/last30.01659s; native/acquisition clock meaning and synchronization are unqualified. Native freshness remains blocked despite final-tail gate pass.",
+    "Initial30 trades per market are historical snapshot rows, separately summarized; context/ACK/pong have no comparable native timestamp.",
+    "Owner observed_ns ingress-to-handoff excludes upstream acquisition, later handoff durability ACK, projection and external consumer delivery.",
+    "Final content-file mtime is not durable ACK, available-at time, SLA or a full-run latency bound. Sparse prefix samples cannot make unsampled intervals zero.",
+    "Overlapping source/target I/O stage totals and comparisons across different runs do not establish sole fsync cause, exchange capacity, continuity or paired performance improvement.",
+    "Growing Quants observer uses matchingACK diagnostic counters, not strategy checkpoints or observed native-context admission. No new checkpoint execution or crash/fault test occurred.",
+    "Initial helper01 inherited joint11 archivepath and failed count assertion read-only; helper02 corrected exactjoint12 selection. Both helper/log/failure receipts retained.",
+    "No native collector/kernel/consumer invocation, network, Cargo, source/tracked changes, publication, operational activation, external exactly-once or full-goal completion claim."
+  ]
+}

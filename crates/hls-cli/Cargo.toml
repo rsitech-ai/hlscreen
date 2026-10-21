@@ -41,10 +41,21 @@ serde.workspace = true
 serde_json.workspace = true
 tokio.workspace = true
 tokio-tungstenite.workspace = true
+rustls.workspace = true
+webpki-roots.workspace = true
+# Keeps the normal rustls verifier at the patched dependency floor.
+rustls-webpki.workspace = true
 toml.workspace = true
 tempfile.workspace = true
 
 [dev-dependencies]
+tokio-rustls.workspace = true
+marketfeed-adapter-api.workspace = true
+marketfeed-adapter-hyperliquid.workspace = true
+marketfeed-daemon.workspace = true
+marketfeed-engine.workspace = true
+marketfeed-model.workspace = true
+marketfeed-recording.workspace = true
 assert_cmd.workspace = true
 portable-pty.workspace = true
 predicates.workspace = true

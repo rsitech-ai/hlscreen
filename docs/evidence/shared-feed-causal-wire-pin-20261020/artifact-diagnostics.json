@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "scope": "Bounded failure diagnostics in native artifact validator; Windows failure root cause is still unknown.",
+  "scripts": {
+    "scripts/verify-dist-local-artifact.py": "11e1e63c50a353e9429402ead0c6f74a9bacc9f2f7eefe0c07c8ec0726e8ebdf",
+    "scripts/test-dist-local-artifact.py": "3c4bde7afe76f25c97e39fca89f9f3f9222619a544acac2c691705229875b62d"
+  },
+  "retained_failure": {
+    "source_commit": "af6ff557d53ec672e5201631a7ab7b3bcd3bb343",
+    "job": "https://github.com/rsitech-ai/hlscreen/actions/runs/39507682505/job/118921780454",
+    "status": "failed",
+    "known": "Nested synthetic-fixture helper returned1; outer message omitted captured stderr.",
+    "not_claimed": "No Windows root-cause reproduction or fix."
+  },
+  "regression": {
+    "actual_synthetic_unix_child_exit": 7,
+    "outer_exit_before": 1,
+    "outer_exit_after": 1,
+    "diagnostic_hidden_before": true,
+    "diagnostic_visible_after": true,
+    "stdout_stderr_tail_limit_each": 8192,
+    "invalid_bytes": "Failure-only escaped diagnostic; successful output still requires strictUTF8.",
+    "nonzero_or_timeout": "Remains failed."
+  },
+  "local_checks": [
+    {
+      "name": "dist",
+      "exit_code": 0,
+      "log_sha256": "97158413e3dfe246de7cd2123e35fbc57f75eec1b0e3db51714b4f38c72266bb"
+    },
+    {
+      "name": "mfop",
+      "exit_code": 0,
+      "log_sha256": "bb000351ba35094f2f4135e07eb558d7b68ccce5fd8e61cedec66db106b91188"
+    },
+    {
+      "name": "compile",
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "diff",
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "package",
+      "exit_code": 0,
+      "log_sha256": "b821336d6475a95c607365f0af330fe471ac6ebb4888982412a8246aae0e73a6"
+    }
+  ],
+  "python_tests": {
+    "artifact_helper": 5,
+    "mfop_fixture_helper": 10
+  },
+  "new_packaged_binary_sha256": "ae1ed7be9296721f21a990ef028d5699094cffceb1c4959e4653d6c0fa2f31fe",
+  "packaged_fixture": {
+    "logical_groups": 67,
+    "native_trades": 2,
+    "safety_gaps": 6,
+    "sealed": true,
+    "availability_time_ns": null
+  },
+  "limits": [
+    "Only helper/test plus attribution/evidence changed after af6; Rust source and dependency pins are unchanged for this diagnostic check.",
+    "This package is distinct from retained qualified2ce7081c used in pilot05; neither artifact is silently replaced.",
+    "Five helper gates do not constitute a new565-test Rust run.",
+    "Source-specific successor hosted checks remain required."
+  ]
+}

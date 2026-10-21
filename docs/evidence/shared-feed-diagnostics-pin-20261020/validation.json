@@ -1,0 +1,106 @@
+{
+  "schema": "hlscreen.shared_diagnostics_pin.v1",
+  "base_head": "176ce442c2c27759091816f85f516a5fd775a383",
+  "checks_run_before_commit": true,
+  "producer_pin": "82a871bdb80f1c4c2df0574f05f0e45012989918",
+  "shared_packages": [
+    "marketfeed-adapter-api",
+    "marketfeed-adapter-hyperliquid",
+    "marketfeed-filesystem",
+    "marketfeed-model",
+    "marketfeed-recording"
+  ],
+  "registry_records_unchanged": true,
+  "registry_records": 419,
+  "lock_sha256": "7f98c58cf7ed03677936382a6195681126bdd8a01eff0d4b91bce347775b5841",
+  "scope": "shared reader dependency synchronization and saved sealed-prefix compatibility; no new live/capture/soak/strict qualification",
+  "validation": {
+    "full_pr_check": "pass",
+    "rust_unique_tests": 543,
+    "rust_summed_executions": 566,
+    "packaging_repeated_tests": 23,
+    "python_binding_tests": 8,
+    "failed": 0,
+    "ignored": 0,
+    "audit_0_22_2_deny_warnings": "pass",
+    "deny_0_20_2_licenses_sources": "pass",
+    "about_0_9_1_attribution": "pass",
+    "fmt_clippy_release_docs_screenshots_packaging_smoke": "pass",
+    "staged_public_check": "pass"
+  },
+  "saved_replay": {
+    "command": "target/debug/hls live --shared-feed ../cryptofeed-rs/.local/evidence/hyperliquid-integration-review/live-pilot-07-feed --once --color never --ws-url not-an-exchange-url",
+    "exit_code": 0,
+    "market_events": 1055,
+    "summary": {
+      "as_of_ms": 1792440727739,
+      "cursor": {
+        "feed_id": "fadae1df2c473d021fa8b06b0947ed664507e04d",
+        "offset": 1983487,
+        "sequence": 2683
+      },
+      "data_gaps": 0,
+      "events": {
+        "bbo": 512,
+        "book": 37,
+        "candle": 58,
+        "context": 178,
+        "trade": 270
+      },
+      "float_projection": "features_and_display_only",
+      "sealed": true
+    },
+    "binary_sha256": "e54cdd3a8aaec99be0bbfc462bc034836abaeff3267cbdae15e3106d8cf0c208",
+    "log_sha256": "41e9a8a430547be5e39cd5db318ad4b14224cb5b852ebd4056699bcb5e249629",
+    "complete_output_matches_historical_log_sha256": true,
+    "saved_prefix_unchanged": true,
+    "saved_prefix_sha256": {
+      "committed.json": "d6ff3959631b582a2a8f7729f232264e2a986af28a9bac2b775857ed8f94c06d",
+      "events.mfsf": "9207b56e6cb1544f0d9d313b17824afb508a6d44d14c35ca740a7b9184a1a45a"
+    }
+  },
+  "historical_file_sha256": {
+    "docs/evidence/security-lock-20261019/README.md": "4ae22043317d0008d58559c5b0ac8ef2193b4eed3c7781022e4730a3bcfe97ce",
+    "docs/evidence/security-lock-20261019/rustsec-audit.json": "89e584f6d87e0840692cb34a98d64ff0af6dcfd1ac817b3a735264339c3cef1a",
+    "docs/evidence/security-lock-20261019/saved-prefix-replay.json": "c5268424c14ea7161e07379efcacd2a23d79da0d205ae5a97cb42cb6ccdd25fb",
+    "docs/evidence/security-lock-20261019/validation.json": "071d6ebda60ef6c1277e960a7fef5d64e91c2ce7965d81cc00562e64e6e801c8",
+    "docs/evidence/shared-feed-native-pin-20261020/README.md": "bdbbb2c1ee45c6be51756cf48c7cd553c434c2b7fbb8f853d5c59add296716d8",
+    "docs/evidence/shared-feed-native-pin-20261020/validation.json": "b9f8d926a0c1279c0e5016c57300eb48b1bbbd42a77063a88abf4b8ec5c82adf",
+    "docs/evidence/shared-feed-pin-20261019/README.md": "2b167c7d10d28c1cae8d574b699efc61317457ab8e78a23795f183f773f74d37",
+    "docs/evidence/shared-feed-pin-20261019/saved-prefix-replay.json": "207ecf9febc3da99eca8788a984b58d015373b426cfa4fbb70b839d563cc6920",
+    "docs/evidence/shared-feed-pin-20261019/validation.json": "3a260a28094385162f54c4a5337de74b0edf693a3e916d1b2e1fd4e6b813de03",
+    "docs/evidence/shared-feed-streaming-pin-20261020/README.md": "1d174f27ca0e9b782c1d2ed5c766559639f33a8143a5dffd65ec1a9c809f102c",
+    "docs/evidence/shared-feed-streaming-pin-20261020/validation.json": "eafddffb18cd229b07c91a7d8298b2a1f480005072a1fa5d094f8a7a803874c7",
+    "docs/evidence/soak-validation-20261020/README.md": "522a69e67d053b53d98b60b191662b3070c87bda8e26db2cb89ba123b9a1dfb8",
+    "docs/evidence/soak-validation-20261020/validation.json": "bb1cbdccb6042ec31de68c4c2e293bfd4e1622739afda99a5a915ac352e320a0",
+    "docs/evidence/soak/shared-feed-20261019-15m.json": "ee3e5a00fcd4145832025453e1d7776e36724520705ae74eabb10c8aa1d4f8e7",
+    "docs/evidence/soak/sota-allpairs-20260720-15m.json": "685b705edd76997a67f9d7c2e6e22a47d04f691fcad7baaf321b1169e2650656"
+  },
+  "source_files_sha256": {
+    "Cargo.toml": "ac3ed5857ee7ad605b9c370f1d7ec91ab8a4e70db9afd03c44a2a426a43c223b",
+    "Cargo.lock": "7f98c58cf7ed03677936382a6195681126bdd8a01eff0d4b91bce347775b5841",
+    "README.md": "8e7321b576fb117ad26c80df98b2534e20c50c581f8c6a9d3f8149dd0bf81e70"
+  },
+  "log_sha256": {
+    "lag-hls-pr-check-02.log": "248b1b5e9985ca4e8daaab19237c93877b4be994a43f0481817fb86dc3a7536c",
+    "lag-hls-debug-build-01.log": "0b9c85a57402765a9638848a90eec54abbd9a68f42a071a97aaa9d8acc5ba131",
+    "lag-hls-saved-replay-01.log": "41e9a8a430547be5e39cd5db318ad4b14224cb5b852ebd4056699bcb5e249629",
+    "lag-hls-audit-02.log": "7e56634d4c6b52ccc8bb9ef6858fd38a78e441242f88062c5ca00c40794d4076",
+    "lag-hls-policy-02.log": "a09bbb250feeb5c0d6ac91177e3a1730bf09901eefcec1269ea8d00949a8f1a4",
+    "lag-hls-attribution-01.log": "edb814bb046435a2b1f8224b46bd879223326fa8dbd56b62e096f325ac461e3c",
+    "lag-hls-registry-01.json": "1911a44dcaf1a9321238f68f98846dee6bcb65e63434268b1ed15d1b39324e26",
+    "lag-hls-public-01.log": "c66b17581f9ca8db2efae22a5446623ac8eaebfd4a11ed0d84812c2b63a2936c"
+  },
+  "retained_superseded_update": {
+    "reason": "cargo update reselected9unrelated Windows registry dependency edges without changing419versions/checksums; comparison rejected this drift. Initial PR gate was interrupted, not counted as a passing current-source gate. Lock was restored from original bytes with only5Git source identities replaced; locked metadata/fullPR/security/policy checks reran.",
+    "auto_updated_lock_sha256": "fb62bdd2608077842e13add859f731990defee6e91f10e5913c5c8f5121c4d91",
+    "interrupted_pr_log_sha256": "5d759151c93d1cae2320c3110a5b7a4a86368313de0aa179d9f52f2d9bd78769"
+  },
+  "independent_review": {
+    "mode": "separate read-only reviewer; no edits/builds/workload/network",
+    "result": "pass; no material finding",
+    "verified": "all5direct/resolvedpins,419complete registry records and other package fields; actual binary, source/log/archive hashes and15historical files;543uniqueRust+23repeats+8Python; full1055event output; security/policy/attribution; failed producer diagnostic and historical scopes retained"
+  },
+  "ci_status": "not-yet-run for new consumer pin; prior source176 main+allplatform artifact CI completed success, promotion/publish jobs skipped",
+  "producer_limits": "registered Bybit durable ingress diagnostic at82a871b FAILS; no stream capacity/freshness or complete causal replay claim. Strategy context remains rsibot-owned."
+}

@@ -289,7 +289,8 @@ assert_source_unchanged
 minimum_duration="$duration_secs"
 python3 "$repo_root/scripts/validate-soak-report.py" "$report_path" \
   --minimum-duration-secs "$minimum_duration" \
-  --binary "$binary"
+  --binary "$binary" \
+  --runtime-source-root "$repo_root"
 validation_exit=$?
 echo "soak_report_path=$report_path"
 if ((signal_received != 0)); then

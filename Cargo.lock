@@ -85,7 +85,7 @@ version = "1.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "40c48f72fd53cd289104fc64099abca73db4166ad86ea0b4341abe65af83dadc"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -96,7 +96,7 @@ checksum = "291e6a250ff86cd4a820112fb8898808a366d8f9f58ce16d1f538353ad55747d"
 dependencies = [
  "anstyle",
  "once_cell_polyfill",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -277,9 +277,9 @@ checksum = "613afe47fcd5fac7ccf1db93babcb082c5994d996f20b8b159f2ad1658eb5724"
 
 [[package]]
 name = "chacha20"
-version = "0.10.1"
+version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d524456ba66e72eb8b115ff89e01e497f8e6d11d78b70b1aa13c0fbd97540a81"
+checksum = "65c35e4b699c7e15ccbe7ee35c005e4fc0a278d22238a2857e6ce2dadeda1b06"
 dependencies = [
  "cfg-if",
  "cpufeatures 0.3.0",
@@ -421,36 +421,36 @@ dependencies = [
 
 [[package]]
 name = "cranelift-assembler-x64"
-version = "0.123.12"
+version = "0.123.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3cd990d8a6304475bbad64534a0d418f5572f44d5f011437e6b9f1ee7d5c2570"
+checksum = "b3741b9ad77e89c710586b2fcdd619baf28482d92b70d88cecb2a081dd912ae6"
 dependencies = [
  "cranelift-assembler-x64-meta",
 ]
 
 [[package]]
 name = "cranelift-assembler-x64-meta"
-version = "0.123.12"
+version = "0.123.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ccabe4636007296721080e02d7dab46d4319638ec4e3f6f7402fcb46dc5122c6"
+checksum = "8243e149085051b23faebd352ef7031aeebc5f45e63aaefd63ee7f810c22c7df"
 dependencies = [
  "cranelift-srcgen",
 ]
 
 [[package]]
 name = "cranelift-bforest"
-version = "0.123.12"
+version = "0.123.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "da7ed173c870c0aea202a9830880156905a028a88df076e35ce383a8acbf90a7"
+checksum = "c538af3aee13eb6aa8a85d2ef85b4d0aa41623dae8b19f59bbacfd5d6c114920"
 dependencies = [
  "cranelift-entity",
 ]
 
 [[package]]
 name = "cranelift-bitset"
-version = "0.123.12"
+version = "0.123.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "800cc586df98b12c502e76707c96565e40629a5322eaa15aaa34ba05f5721e31"
+checksum = "2292ea3964d7d751031da1a1261d64feb09e89bd4fbebf3c78f43f9c34c20a11"
 dependencies = [
  "serde",
  "serde_derive",
@@ -458,9 +458,9 @@ dependencies = [
 
 [[package]]
 name = "cranelift-codegen"
-version = "0.123.12"
+version = "0.123.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ae93f863f9094ae34d2567f9edb0ae2c41d35228b286598354dd78b198868ebd"
+checksum = "8967a699a4982d02c32246a00f2aa4cee5bccfaaa042608d5e151cb99cba210e"
 dependencies = [
  "bumpalo",
  "cranelift-assembler-x64",
@@ -485,9 +485,9 @@ dependencies = [
 
 [[package]]
 name = "cranelift-codegen-meta"
-version = "0.123.12"
+version = "0.123.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "38c505162bcf77dcb859905b3eac56a1917fc3cf326424fb06e7732031e3a8ae"
+checksum = "e258eeeb6903b4e91e314a3667ab2a1e2924738ef2df08bdb50355e38decc749"
 dependencies = [
  "cranelift-assembler-x64-meta",
  "cranelift-codegen-shared",
@@ -498,24 +498,24 @@ dependencies = [
 
 [[package]]
 name = "cranelift-codegen-shared"
-version = "0.123.12"
+version = "0.123.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e3b786958bcb79bdb5fbae095af58f0c2da7d7895c475c991f6a6bb5a9c7e6d9"
+checksum = "e1d36ff0de30460c01dad152ca2097bcabef2f16c659b9ffbca2f67e9bbdb321"
 
 [[package]]
 name = "cranelift-control"
-version = "0.123.12"
+version = "0.123.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2faf9a5009bce7f725ce2af7a08c4883ebac6af933e7e0aa7d84f976f4e6deb5"
+checksum = "acc880d91877efb6199031bda872726ca3287dc1e18ccf3f61c07bfdab62930b"
 dependencies = [
  "arbitrary",
 ]
 
 [[package]]
 name = "cranelift-entity"
-version = "0.123.12"
+version = "0.123.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "017271194ba5e101d626560d0d6767efd341468d1ba0f4d015f19fe64020b65b"
+checksum = "5f7af321c4b6e5be4729e4a5b1ed0fc78fc31695c1ecd3c9b45b91908bf3d0a3"
 dependencies = [
  "cranelift-bitset",
  "serde",
@@ -524,9 +524,9 @@ dependencies = [
 
 [[package]]
 name = "cranelift-frontend"
-version = "0.123.12"
+version = "0.123.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f80847f0929967f0cec82f9e0543b3901e0f0063690405891f22107b5a130fd8"
+checksum = "3463f1b26faac3491008cede8e9cdf7ceb83139143bd92ba86c14b0882aaf1bb"
 dependencies = [
  "cranelift-codegen",
  "log",
@@ -536,15 +536,15 @@ dependencies = [
 
 [[package]]
 name = "cranelift-isle"
-version = "0.123.12"
+version = "0.123.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "75904abbc0e7b46d20f7a49c8042c8a4481c0db4253b99889c723c566295d506"
+checksum = "90b76554b329634c4241c5670a96058affca99ac3b33daa14fb221bd68c0038e"
 
 [[package]]
 name = "cranelift-native"
-version = "0.123.12"
+version = "0.123.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6e0135923540574362e16f01bf40000664263840991039ff3041ba717de6cf3a"
+checksum = "36e7c67bcfd30a8160187a6d52b2ec0cbe45698a9d61f12d1292bd24701f7ed2"
 dependencies = [
  "cranelift-codegen",
  "libc",
@@ -553,9 +553,9 @@ dependencies = [
 
 [[package]]
 name = "cranelift-srcgen"
-version = "0.123.12"
+version = "0.123.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "93fb12f76c482e034f6ebefa843c914e74112f088215d8d36d33a649f9fab99b"
+checksum = "1ccca83c45ddfe0412b1b2e4fe509d28d1bdbc014e306574a848519741bebc36"
 
 [[package]]
 name = "crc32fast"
@@ -716,6 +716,7 @@ checksum = "9ed9a281f7bc9b7576e61468ba615a66a5c8cfdff42420a70aa82701a3b1e292"
 dependencies = [
  "block-buffer",
  "crypto-common",
+ "subtle",
 ]
 
 [[package]]
@@ -775,7 +776,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -999,6 +1000,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "h2"
+version = "0.4.20"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7d29020232d6aa3fb1daca64c1127cf662cf97f254ae16c18c05b8ab635fc118"
+dependencies = [
+ "atomic-waker",
+ "bytes",
+ "fnv",
+ "futures-core",
+ "futures-sink",
+ "http",
+ "indexmap",
+ "slab",
+ "tokio",
+ "tokio-util",
+ "tracing",
+]
+
+[[package]]
 name = "half"
 version = "2.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1088,17 +1108,27 @@ dependencies = [
  "hls-server",
  "hls-store",
  "hls-tui",
+ "marketfeed-adapter-api",
+ "marketfeed-adapter-hyperliquid",
+ "marketfeed-daemon",
+ "marketfeed-engine",
+ "marketfeed-model",
+ "marketfeed-recording",
  "portable-pty",
  "predicates",
  "ratatui",
+ "rustls",
+ "rustls-webpki",
  "serde",
  "serde_json",
  "sha2",
  "tempfile",
  "tokio",
+ "tokio-rustls",
  "tokio-tungstenite",
  "toml",
  "wat",
+ "webpki-roots",
 ]
 
 [[package]]
@@ -1131,9 +1161,17 @@ name = "hls-hyperliquid"
 version = "0.1.2"
 dependencies = [
  "hls-core",
+ "marketfeed-adapter-api",
+ "marketfeed-adapter-hyperliquid",
+ "marketfeed-daemon",
+ "marketfeed-engine",
+ "marketfeed-model",
+ "marketfeed-recording",
+ "marketfeed-transport",
  "reqwest",
  "serde",
  "serde_json",
+ "tempfile",
  "time",
  "tokio",
 ]
@@ -1185,6 +1223,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "hmac"
+version = "0.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6c49c37c09c17a53d937dfbb742eb3a961d65a994e6bcdcf37e7399d0cc8ab5e"
+dependencies = [
+ "digest",
+]
+
+[[package]]
 name = "http"
 version = "1.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1233,6 +1280,7 @@ dependencies = [
  "bytes",
  "futures-channel",
  "futures-core",
+ "h2",
  "http",
  "http-body",
  "httparse",
@@ -1256,7 +1304,7 @@ dependencies = [
  "tokio",
  "tokio-rustls",
  "tower-service",
- "webpki-roots 1.0.8",
+ "webpki-roots",
 ]
 
 [[package]]
@@ -1593,9 +1641,9 @@ checksum = "0ceec5bc11778974d1bcb055b18002eba7f4b3518b6a0081b3af5f21666da9ad"
 
 [[package]]
 name = "lru"
-version = "0.18.1"
+version = "0.18.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b6180140927ee907000b0aa540091f6ea512ead4447c92b8fc35bc72788a5a6"
+checksum = "5d2f2f9b4ba7e6b24d95e7e899329d35be83bcded72c8540cdd5368932d1d90a"
 dependencies = [
  "hashbrown 0.17.1",
 ]
@@ -1623,6 +1671,347 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d640282b302c0bb0a2a8e0233ead9035e3bed871f0b7e81fe4a1ec829765db44"
 dependencies = [
  "libc",
+]
+
+[[package]]
+name = "marketfeed-adapter-api"
+version = "0.1.0-alpha.1"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9#20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9"
+dependencies = [
+ "bytes",
+ "marketfeed-model",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+]
+
+[[package]]
+name = "marketfeed-adapter-binance"
+version = "0.1.0-alpha.1"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9#20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9"
+dependencies = [
+ "bytes",
+ "marketfeed-adapter-api",
+ "marketfeed-book",
+ "marketfeed-model",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "marketfeed-adapter-bitfinex"
+version = "0.1.0-alpha.1"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9#20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9"
+dependencies = [
+ "bytes",
+ "marketfeed-adapter-api",
+ "marketfeed-book",
+ "marketfeed-model",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "marketfeed-adapter-bitstamp"
+version = "0.1.0-alpha.1"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9#20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9"
+dependencies = [
+ "bytes",
+ "marketfeed-adapter-api",
+ "marketfeed-book",
+ "marketfeed-model",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "marketfeed-adapter-bybit"
+version = "0.1.0-alpha.1"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9#20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9"
+dependencies = [
+ "bytes",
+ "marketfeed-adapter-api",
+ "marketfeed-book",
+ "marketfeed-model",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "marketfeed-adapter-coinbase"
+version = "0.1.0-alpha.1"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9#20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9"
+dependencies = [
+ "base64",
+ "bytes",
+ "hmac",
+ "marketfeed-adapter-api",
+ "marketfeed-book",
+ "marketfeed-model",
+ "serde",
+ "serde_json",
+ "sha2",
+]
+
+[[package]]
+name = "marketfeed-adapter-deribit"
+version = "0.1.0-alpha.1"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9#20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9"
+dependencies = [
+ "bytes",
+ "marketfeed-adapter-api",
+ "marketfeed-book",
+ "marketfeed-model",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "marketfeed-adapter-gemini"
+version = "0.1.0-alpha.1"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9#20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9"
+dependencies = [
+ "bytes",
+ "marketfeed-adapter-api",
+ "marketfeed-book",
+ "marketfeed-model",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "marketfeed-adapter-hyperliquid"
+version = "0.1.0-alpha.1"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9#20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9"
+dependencies = [
+ "bytes",
+ "marketfeed-adapter-api",
+ "marketfeed-model",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "marketfeed-adapter-kraken"
+version = "0.1.0-alpha.1"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9#20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9"
+dependencies = [
+ "bytes",
+ "marketfeed-adapter-api",
+ "marketfeed-book",
+ "marketfeed-model",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "marketfeed-adapter-okx"
+version = "0.1.0-alpha.1"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9#20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9"
+dependencies = [
+ "bytes",
+ "marketfeed-adapter-api",
+ "marketfeed-book",
+ "marketfeed-model",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "marketfeed-adapter-synthetic"
+version = "0.1.0-alpha.1"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9#20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9"
+dependencies = [
+ "bytes",
+ "marketfeed-adapter-api",
+ "marketfeed-book",
+ "marketfeed-model",
+]
+
+[[package]]
+name = "marketfeed-book"
+version = "0.1.0-alpha.1"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9#20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9"
+dependencies = [
+ "marketfeed-model",
+ "thiserror 2.0.18",
+]
+
+[[package]]
+name = "marketfeed-daemon"
+version = "0.1.0-alpha.1"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9#20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9"
+dependencies = [
+ "base64",
+ "bytes",
+ "futures-util",
+ "libc",
+ "marketfeed-adapter-api",
+ "marketfeed-adapter-binance",
+ "marketfeed-adapter-bitfinex",
+ "marketfeed-adapter-bitstamp",
+ "marketfeed-adapter-bybit",
+ "marketfeed-adapter-coinbase",
+ "marketfeed-adapter-deribit",
+ "marketfeed-adapter-gemini",
+ "marketfeed-adapter-hyperliquid",
+ "marketfeed-adapter-kraken",
+ "marketfeed-adapter-okx",
+ "marketfeed-adapter-synthetic",
+ "marketfeed-dispatch",
+ "marketfeed-engine",
+ "marketfeed-model",
+ "marketfeed-private",
+ "marketfeed-recording",
+ "marketfeed-sinks",
+ "marketfeed-transport",
+ "serde",
+ "serde_json",
+ "sha2",
+ "thiserror 2.0.18",
+ "tokio",
+ "toml",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "marketfeed-dispatch"
+version = "0.1.0-alpha.1"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9#20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9"
+dependencies = [
+ "marketfeed-adapter-api",
+ "marketfeed-model",
+ "thiserror 2.0.18",
+]
+
+[[package]]
+name = "marketfeed-engine"
+version = "0.1.0-alpha.1"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9#20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9"
+dependencies = [
+ "base64",
+ "bytes",
+ "libc",
+ "marketfeed-adapter-api",
+ "marketfeed-dispatch",
+ "marketfeed-model",
+ "marketfeed-recording",
+ "marketfeed-replay",
+ "marketfeed-sinks",
+ "marketfeed-transport",
+ "serde",
+ "serde_json",
+ "sha2",
+ "thiserror 2.0.18",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "marketfeed-filesystem"
+version = "0.1.0-alpha.1"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9#20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9"
+dependencies = [
+ "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "marketfeed-model"
+version = "0.1.0-alpha.1"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9#20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9"
+dependencies = [
+ "serde",
+ "thiserror 2.0.18",
+]
+
+[[package]]
+name = "marketfeed-private"
+version = "0.1.0-alpha.1"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9#20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9"
+dependencies = [
+ "base64",
+ "bytes",
+ "hmac",
+ "marketfeed-adapter-api",
+ "marketfeed-model",
+ "marketfeed-transport",
+ "serde",
+ "serde_json",
+ "sha2",
+ "thiserror 2.0.18",
+ "tokio",
+]
+
+[[package]]
+name = "marketfeed-recording"
+version = "0.1.0-alpha.1"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9#20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9"
+dependencies = [
+ "base64",
+ "bytes",
+ "getrandom 0.3.4",
+ "marketfeed-adapter-api",
+ "marketfeed-filesystem",
+ "marketfeed-model",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+]
+
+[[package]]
+name = "marketfeed-replay"
+version = "0.1.0-alpha.1"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9#20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9"
+dependencies = [
+ "marketfeed-adapter-api",
+ "marketfeed-dispatch",
+ "marketfeed-model",
+ "marketfeed-recording",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+]
+
+[[package]]
+name = "marketfeed-sinks"
+version = "0.1.0-alpha.1"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9#20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9"
+dependencies = [
+ "marketfeed-adapter-api",
+ "marketfeed-dispatch",
+ "marketfeed-model",
+ "marketfeed-recording",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.18",
+ "tracing",
+]
+
+[[package]]
+name = "marketfeed-transport"
+version = "0.1.0-alpha.1"
+source = "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9#20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9"
+dependencies = [
+ "bytes",
+ "futures-util",
+ "reqwest",
+ "rustls",
+ "rustls-webpki",
+ "thiserror 2.0.18",
+ "tokio",
+ "tokio-tungstenite",
+ "webpki-roots",
+]
+
+[[package]]
+name = "matchers"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d1525a2a28c7f4fa0fc98bb91ae755d1e2d1505079e05539e35bc876b5d65ae9"
+dependencies = [
+ "regex-automata",
 ]
 
 [[package]]
@@ -1715,10 +2104,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "61807f77802ff30975e01f4f071c8ba10c022052f98b3294119f3e615d13e5be"
 
 [[package]]
-name = "num-bigint"
-version = "0.4.8"
+name = "nu-ansi-term"
+version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c89e69e7e0f03bea5ef08013795c25018e101932225a656383bd384495ecc367"
+checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
+dependencies = [
+ "windows-sys 0.60.2",
+]
+
+[[package]]
+name = "num-bigint"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "93e7820bc0a80a0238e650327316f929ba18d5be054b647490a3a6a339f3e7c0"
 dependencies = [
  "num-integer",
  "num-traits",
@@ -1851,9 +2249,9 @@ dependencies = [
 
 [[package]]
 name = "parquet"
-version = "59.1.0"
+version = "60.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5302d4da74d6596a1f11f9928767995b53bca657cbeea1e4e8c5074f8a1157dd"
+checksum = "8af83d2940bc0510f9aef86d865f56fdc6095f87ab115ac885a80b7c5226d3ba"
 dependencies = [
  "ahash",
  "bytes",
@@ -1863,16 +2261,9 @@ dependencies = [
  "num-bigint",
  "num-integer",
  "num-traits",
- "paste",
  "seq-macro",
  "twox-hash",
 ]
-
-[[package]]
-name = "paste"
-version = "1.0.15"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a"
 
 [[package]]
 name = "percent-encoding"
@@ -2090,9 +2481,9 @@ dependencies = [
 
 [[package]]
 name = "pulley-interpreter"
-version = "36.0.12"
+version = "36.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "558181096e0df4984f45cfc3a7087052df4a61c36089b135a08ceca9cbd352fb"
+checksum = "c956c7140270b72e3bf03381a51f2eb79c70fd6881fc17cd027fa7cd3f56ae5a"
 dependencies = [
  "cranelift-bitset",
  "log",
@@ -2102,9 +2493,9 @@ dependencies = [
 
 [[package]]
 name = "pulley-macros"
-version = "36.0.12"
+version = "36.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b5d52e2f14e168d75cdabe9bd5fb1ff18a1b119dc6699684aee895dbc3524da9"
+checksum = "74db420d7ce2bb03eed5b81c1f778bda5771b3fd818e2b496dfc3a2783ceb60e"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2133,9 +2524,9 @@ dependencies = [
 
 [[package]]
 name = "quinn-proto"
-version = "0.11.16"
+version = "0.11.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2f4bfc015262b9df63c8845072ce59068853ff5872180c2ce2f13038b970e560"
+checksum = "a9746dbde176634f4f2f1faf2404e30a31b2bc1e9cafb5329c95d8177a18c9fc"
 dependencies = [
  "bytes",
  "getrandom 0.4.3",
@@ -2164,7 +2555,7 @@ dependencies = [
  "once_cell",
  "socket2",
  "tracing",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -2409,6 +2800,7 @@ dependencies = [
  "base64",
  "bytes",
  "futures-core",
+ "h2",
  "http",
  "http-body",
  "http-body-util",
@@ -2435,7 +2827,7 @@ dependencies = [
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
- "webpki-roots 1.0.8",
+ "webpki-roots",
 ]
 
 [[package]]
@@ -2491,14 +2883,14 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
 name = "rustls"
-version = "0.23.41"
+version = "0.23.46"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6b92b125634d9b795e7beca796cc790df15a7fb38323bf3196fda83292d06b1f"
+checksum = "48e13bd8c0e9365c43cfa5c9e8f9ad49d3c8444926c9aac819e0e4dc503c8fdf"
 dependencies = [
  "once_cell",
  "ring",
@@ -2520,9 +2912,9 @@ dependencies = [
 
 [[package]]
 name = "rustls-webpki"
-version = "0.103.13"
+version = "0.103.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61c429a8649f110dddef65e2a5ad240f747e85f7758a6bccc7e5777bd33f756e"
+checksum = "4443b1b6d39d7c663139942cc4558262562d2c84123bb6282ef177009ca8b281"
 dependencies = [
  "ring",
  "rustls-pki-types",
@@ -2657,6 +3049,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "sharded-slab"
+version = "0.1.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f40ca3c46823713e0d4209592e8d6e826aa57e928f09752619fc696c499637f6"
+dependencies = [
+ "lazy_static",
+]
+
+[[package]]
 name = "shared_library"
 version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2737,7 +3138,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "52d1cfed4120b4d927bf7c0f86d2087a4a7d6027c906d9f9d525a80573b9be51"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -2843,7 +3244,7 @@ dependencies = [
  "getrandom 0.4.3",
  "once_cell",
  "rustix",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -2865,7 +3266,7 @@ dependencies = [
  "parking_lot",
  "rustix",
  "signal-hook",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -2975,6 +3376,15 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.118",
+]
+
+[[package]]
+name = "thread_local"
+version = "1.1.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1ad99c4c6d32803332c548b1af0540b357b3f5fc0be8f6c6bfe8b2e6ae784070"
+dependencies = [
+ "cfg-if",
 ]
 
 [[package]]
@@ -3093,7 +3503,20 @@ dependencies = [
  "tokio",
  "tokio-rustls",
  "tungstenite",
- "webpki-roots 0.26.11",
+]
+
+[[package]]
+name = "tokio-util"
+version = "0.7.20"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e464cf451ba96ebfc6f9b6542f17ee8b8956e33f1e40d9690624e59d7a7f8a4b"
+dependencies = [
+ "bytes",
+ "futures-core",
+ "futures-sink",
+ "libc",
+ "pin-project-lite",
+ "tokio",
 ]
 
 [[package]]
@@ -3189,7 +3612,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "63e71662fa4b2a2c3a26f570f037eb95bb1f85397f3cd8076caed2f026a6d100"
 dependencies = [
  "pin-project-lite",
+ "tracing-attributes",
  "tracing-core",
+]
+
+[[package]]
+name = "tracing-attributes"
+version = "0.1.31"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7490cfa5ec963746568740651ac6781f701c9c5ea257c58e057f3ba8cf69e8da"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.118",
 ]
 
 [[package]]
@@ -3199,6 +3634,49 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "db97caf9d906fbde555dd62fa95ddba9eecfd14cb388e4f491a66d74cd5fb79a"
 dependencies = [
  "once_cell",
+ "valuable",
+]
+
+[[package]]
+name = "tracing-log"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ee855f1f400bd0e5c02d150ae5de3840039a3f54b025156404e34c23c03f47c3"
+dependencies = [
+ "log",
+ "once_cell",
+ "tracing-core",
+]
+
+[[package]]
+name = "tracing-serde"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "704b1aeb7be0d0a84fc9828cae51dab5970fee5088f83d1dd7ee6f6246fc6ff1"
+dependencies = [
+ "serde",
+ "tracing-core",
+]
+
+[[package]]
+name = "tracing-subscriber"
+version = "0.3.23"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cb7f578e5945fb242538965c2d0b04418d38ec25c79d160cd279bf0731c8d319"
+dependencies = [
+ "matchers",
+ "nu-ansi-term",
+ "once_cell",
+ "regex-automata",
+ "serde",
+ "serde_json",
+ "sharded-slab",
+ "smallvec",
+ "thread_local",
+ "tracing",
+ "tracing-core",
+ "tracing-log",
+ "tracing-serde",
 ]
 
 [[package]]
@@ -3320,6 +3798,12 @@ dependencies = [
  "js-sys",
  "wasm-bindgen",
 ]
+
+[[package]]
+name = "valuable"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ba73ea9cf16a25df0c8caa16c51acb937d5712a8429db78a3ee29d5dcacd3a65"
 
 [[package]]
 name = "vcpkg"
@@ -3487,9 +3971,9 @@ dependencies = [
 
 [[package]]
 name = "wasmtime"
-version = "36.0.12"
+version = "36.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4b4442dc12aa2473def8334f0e0f2b489be52c52507c938bbdc8be69ded4ded6"
+checksum = "60e5f244a2c9d40afa9e9a607ee7f048c0648bb1c22cc28b130c5fc71e23d71d"
 dependencies = [
  "addr2line",
  "anyhow",
@@ -3528,9 +4012,9 @@ dependencies = [
 
 [[package]]
 name = "wasmtime-environ"
-version = "36.0.12"
+version = "36.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5d881c3d6205898a226cc487b117f23b9ed1c7da39952d65bd5eeb6745b3789c"
+checksum = "3e246cd5107aa406cfa4acf6942e864bd189ae8136bab853365147da131c9ca3"
 dependencies = [
  "anyhow",
  "cranelift-bitset",
@@ -3551,18 +4035,18 @@ dependencies = [
 
 [[package]]
 name = "wasmtime-internal-asm-macros"
-version = "36.0.12"
+version = "36.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5ab1876bcfa51d6a05dea1c13933f53cbc1e316c783fddebc859f56a736eae07"
+checksum = "5380a8106fea8bfedb7208bb11ced9e7488ee44394ca889ede73acd3bdfd9d0b"
 dependencies = [
  "cfg-if",
 ]
 
 [[package]]
 name = "wasmtime-internal-cranelift"
-version = "36.0.12"
+version = "36.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ab3495aa8300e4ca6b53f81a53ce5eff6621fd5ff8378ef9ae552d1479d57371"
+checksum = "7339fdd64a3fde574505adea23244e065d5b1de0e72c8dd87e150f5d4ab63a63"
 dependencies = [
  "anyhow",
  "cfg-if",
@@ -3587,9 +4071,9 @@ dependencies = [
 
 [[package]]
 name = "wasmtime-internal-fiber"
-version = "36.0.12"
+version = "36.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "29b5e4023a6b167da157338f5f0f505945eb45e78f1cac2d4dcce0922457d7d4"
+checksum = "6f3afc72d3c72f71d4ebc72e83f479ba8ca24409c41d43e5e0228f0bf82b873e"
 dependencies = [
  "anyhow",
  "cc",
@@ -3603,9 +4087,9 @@ dependencies = [
 
 [[package]]
 name = "wasmtime-internal-jit-debug"
-version = "36.0.12"
+version = "36.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9da71e2d573e3cc6f753a3b7bff98f425ca060c0e8071cc55c3d867a9edf3ecc"
+checksum = "21d33adf2d1eae36df9b6b033a1d549c7553ea607f4f9a81f75d51627725c354"
 dependencies = [
  "cc",
  "wasmtime-internal-versioned-export-macros",
@@ -3613,9 +4097,9 @@ dependencies = [
 
 [[package]]
 name = "wasmtime-internal-jit-icache-coherence"
-version = "36.0.12"
+version = "36.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "627d8f57909a4f9bb1dbe57a96229a54b89d5995353d0b321f3cb9a1a118977a"
+checksum = "5bde2fcf14cc76084242c6fe792e49778b5a9008c7df28ca4fe21c35c69d5f55"
 dependencies = [
  "anyhow",
  "cfg-if",
@@ -3625,24 +4109,24 @@ dependencies = [
 
 [[package]]
 name = "wasmtime-internal-math"
-version = "36.0.12"
+version = "36.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "45b99315585a8a27125dd9b0150edb115d6f6ff0baae453c21d30822aab77f00"
+checksum = "4bd982249e933e730859f84c17254c7e95f38c3b0cdf81695bfc6a270e237852"
 dependencies = [
  "libm",
 ]
 
 [[package]]
 name = "wasmtime-internal-slab"
-version = "36.0.12"
+version = "36.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8eaee97281dd3fe47ec3d46c16fb9fe2dd32f37d0523c2d5c484f11b348734e4"
+checksum = "8280b359384cc412bddf0023193eeaffadcb0d7fbbf860f2b7e0580e8806a344"
 
 [[package]]
 name = "wasmtime-internal-unwinder"
-version = "36.0.12"
+version = "36.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d0c005f82c48492b6b44fa19ee5205bd933c4f8baca41e314eca8331dd3c4fd9"
+checksum = "bb43477c41769fec0d031d32cb3236195acfb1e6aa4efdf463e5fd001c23f6cc"
 dependencies = [
  "anyhow",
  "cfg-if",
@@ -3653,9 +4137,9 @@ dependencies = [
 
 [[package]]
 name = "wasmtime-internal-versioned-export-macros"
-version = "36.0.12"
+version = "36.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b73639a9c0c0e33a2ef942ca99b6772b48393be92bebbd0767c607e5b0a68e0"
+checksum = "b33afac17819f2f767ea280b4b87a6c95458ef1ae43da410cfc5b26813ecb78f"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3706,18 +4190,9 @@ dependencies = [
 
 [[package]]
 name = "webpki-roots"
-version = "0.26.11"
+version = "1.0.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "521bc38abb08001b01866da9f51eb7c5d647a19260e00054a8c7fd5f9e57f7a9"
-dependencies = [
- "webpki-roots 1.0.8",
-]
-
-[[package]]
-name = "webpki-roots"
-version = "1.0.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bf85cb06032201fa7c6f829d7db5a7e5aa45bcc0655327713065f6f0576731bf"
+checksum = "1c1c8e20c8a38fc7d65abfe74eb7280e4aa667e8eec8bc84996d2874810748d9"
 dependencies = [
  "rustls-pki-types",
 ]
@@ -3816,7 +4291,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]

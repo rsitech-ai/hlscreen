@@ -163,16 +163,16 @@ fn dependency_attribution_is_deterministic_and_matches_release_targets() {
 fn third_party_notices_cover_packaged_dependency_notices() {
     let notice = read("THIRD_PARTY_NOTICES.md");
     let notice_manifest = read("third_party/notices/manifest.json");
-    let parquet_notice = read("third_party/notices/parquet-59.1.0-NOTICE.txt");
+    let parquet_notice = read("third_party/notices/parquet-60.0.0-NOTICE.txt");
     let notice_checker = read("scripts/check-third-party-notices.py");
 
     assert!(notice.contains("Apache Arrow"));
     assert!(notice.contains("Copyright 2016-2026 The Apache Software Foundation"));
     assert!(notice.contains("https://github.com/olliemath/chronoutil"));
     assert!(notice.contains("https://github.com/jhorstmann/compact-thrift"));
-    assert!(notice.contains("third_party/notices/parquet-59.1.0-NOTICE.txt"));
+    assert!(notice.contains("third_party/notices/parquet-60.0.0-NOTICE.txt"));
     assert!(notice_manifest.contains("\"package\": \"parquet\""));
-    assert!(notice_manifest.contains("\"version\": \"59.1.0\""));
+    assert!(notice_manifest.contains("\"version\": \"60.0.0\""));
     assert!(notice_manifest.contains("\"source\": \"NOTICE.txt\""));
     assert!(notice_manifest.contains("\"package\": \"cfg_aliases\""));
     assert!(notice_manifest.contains("\"version\": \"0.1.1\""));
@@ -427,11 +427,17 @@ fn release_docs_explain_local_dry_run_and_no_secrets_boundary() {
 #[test]
 fn release_validation_scripts_cover_local_artifacts_checksums_and_public_readiness() {
     let local_smoke = read("scripts/local-release-artifact-smoke.sh");
-    assert!(local_smoke.contains("target/release/hls"));
+    assert!(local_smoke.contains("CARGO_TARGET_DIR"));
+    assert!(local_smoke.contains("$build_dir/$host_triple/release/hls"));
     assert!(local_smoke.contains("tar -czf"));
     assert!(local_smoke.contains("sha256"));
     assert!(local_smoke.contains("doctor --data-dir"));
     assert!(local_smoke.contains("--fixture-file"));
+    assert!(local_smoke.contains("scripts/verify-mfop5-smoke.py"));
+    assert!(
+        read("scripts/verify-dist-local-artifact.py").contains("scripts/verify-mfop5-smoke.py")
+    );
+    assert!(read("scripts/check-release-packaging.sh").contains("test-mfop5-smoke.py"));
     assert!(!local_smoke.contains("git push"));
     assert!(!local_smoke.contains("gh release upload"));
 
@@ -441,7 +447,7 @@ fn release_validation_scripts_cover_local_artifacts_checksums_and_public_readine
     assert!(public_scan.contains("SECURITY.md"));
     assert!(public_scan.contains("docs/ROADMAP.md"));
     assert!(public_scan.contains("docs/assets/screenshots/live-screen.svg"));
-    assert!(public_scan.contains("docs/evidence/soak/sota-allpairs-20260720-15m.json"));
+    assert!(public_scan.contains("docs/evidence/soak/shared-feed-20261019-15m.json"));
     assert!(public_scan.contains("scripts/harden-generated-release-workflow.py"));
     assert!(public_scan.contains("private_path_pattern"));
     assert!(public_scan.contains("credential_pattern"));
@@ -465,15 +471,17 @@ fn release_validation_scripts_cover_local_artifacts_checksums_and_public_readine
     assert!(hardener.contains("finally:"));
     assert!(packaging_check.contains("validate-soak-report.py"));
     assert!(packaging_check.contains("soak-report-valid.json"));
-    assert!(packaging_check.contains("sota-allpairs-20260720-15m.json"));
+    assert!(packaging_check.contains("shared-feed-20261019-15m.json"));
     assert!(!packaging_check.contains("merge-base --is-ancestor"));
     assert!(packaging_check.contains("soak-report-invalid.json"));
     assert!(packaging_check.contains("soak-report-invalid-command.json"));
     assert!(packaging_check.contains("check-supervisor-packaging.sh"));
-    assert!(packaging_check.contains("runtime-source-sha256.py"));
-    assert!(packaging_check.contains("runtime_source_sha256"));
-    assert!(packaging_check.contains("soak_evidence_binary_match"));
+    assert!(packaging_check.contains("test-soak-validation.py"));
+    assert!(packaging_check.contains("soak_evidence_scope=historical_report_only"));
+    assert!(packaging_check.contains("current_candidate_qualified=false"));
+    assert!(!packaging_check.contains("candidate_binary="));
     assert!(packaging_check.contains("--binary"));
+    assert!(packaging_check.contains("--runtime-source-root"));
 }
 
 #[test]
@@ -496,8 +504,8 @@ fn release_docs_and_roadmap_separate_local_proof_from_publication() {
 }
 
 #[test]
-fn rustsec_gate_keeps_one_documented_transitive_warning_exception() {
-    let expected = "cargo audit --deny warnings --ignore RUSTSEC-2024-0436";
+fn rustsec_gate_denies_all_warnings_after_removing_paste() {
+    let expected = "cargo audit --deny warnings";
     let workflow = read(".github/workflows/ci.yml");
     let releasing = read("docs/RELEASING.md");
     let readiness = read("docs/production-readiness.md");
@@ -505,9 +513,10 @@ fn rustsec_gate_keeps_one_documented_transitive_warning_exception() {
     assert!(workflow.contains(expected));
     assert!(releasing.contains(expected));
     assert!(readiness.contains(expected));
-    assert!(workflow.contains("Apache Parquet 59.1.0"));
-    assert!(releasing.contains("all other warnings remain denied"));
-    assert!(readiness.contains("all other dependency warnings remain denied"));
+    assert!(!workflow.contains("--ignore RUSTSEC-2024-0436"));
+    assert!(!read("Cargo.lock").contains("name = \"paste\""));
+    assert!(releasing.contains("all warnings remain denied"));
+    assert!(readiness.contains("all dependency warnings remain denied"));
 }
 
 #[test]
@@ -537,7 +546,7 @@ fn canonical_validation_entrypoint_has_bounded_modes_and_ci_doc_parity() {
     assert!(check.contains("git diff --check"));
     assert!(check.contains("cargo-audit 0.22.2"));
     assert!(check.contains("cargo-audit --version"));
-    assert!(check.contains("cargo audit --deny warnings --ignore RUSTSEC-2024-0436"));
+    assert!(check.contains("cargo audit --deny warnings"));
     assert!(check.contains("cargo-deny 0.20.2"));
     assert!(check.contains("cargo deny check licenses sources"));
     assert!(check.contains("scripts/check-third-party-licenses.sh"));
@@ -588,7 +597,7 @@ fn canonical_validation_entrypoint_has_bounded_modes_and_ci_doc_parity() {
     }
     for command in [
         "uvx \"zizmor@1.26.1\"",
-        "cargo audit --deny warnings --ignore RUSTSEC-2024-0436",
+        "cargo audit --deny warnings",
         "cargo deny check licenses sources",
         "scripts/check-third-party-licenses.sh",
     ] {
@@ -1031,4 +1040,173 @@ person@example.test\tperson@example.test\n",
         stderr.contains("exactly 8.30.1"),
         "unexpected error: {stderr}"
     );
+}
+
+#[cfg(unix)]
+#[test]
+fn local_release_smoke_builds_and_packages_override_candidate_and_refuses_failed_rebuild() {
+    use std::os::unix::fs::PermissionsExt;
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path();
+    fs::create_dir_all(root.join("scripts")).unwrap();
+    fs::create_dir_all(root.join("fake-tools")).unwrap();
+    fs::create_dir_all(root.join("target/release")).unwrap();
+    fs::copy(
+        repo_root().join("scripts/local-release-artifact-smoke.sh"),
+        root.join("scripts/smoke.sh"),
+    )
+    .unwrap();
+    // This sandbox verifies source-fresh artifact selection, not MFOP decoding.
+    // The real verifier/fixture path is exercised separately by native smokes.
+    fs::write(
+        root.join("scripts/verify-mfop5-smoke.py"),
+        r#"import argparse
+from pathlib import Path
+p=argparse.ArgumentParser()
+p.add_argument('--binary',required=True)
+p.add_argument('--data-dir',required=True)
+a=p.parse_args()
+assert b'freshly built override candidate' in Path(a.binary).read_bytes()
+print('mfop5_sandbox=fresh_override_candidate')
+"#,
+    )
+    .unwrap();
+    for name in [
+        "LICENSE",
+        "NOTICE",
+        "THIRD_PARTY_LICENSES.txt",
+        "THIRD_PARTY_NOTICES.md",
+        "README.md",
+        "CHANGELOG.md",
+    ] {
+        fs::write(root.join(name), "sandbox packaging input\n").unwrap();
+    }
+    #[cfg(target_os = "macos")]
+    assert!(
+        Command::new("xattr")
+            .args(["-w", "com.rsitech.hls.test", "packaging-metadata-fixture"])
+            .arg(root.join("LICENSE"))
+            .status()
+            .unwrap()
+            .success()
+    );
+    let stale = b"#!/bin/sh\n# stale default-target binary\nexit 0\n";
+    fs::write(root.join("target/release/hls"), stale).unwrap();
+    fs::set_permissions(
+        root.join("target/release/hls"),
+        fs::Permissions::from_mode(0o755),
+    )
+    .unwrap();
+    let cargo = root.join("fake-tools/cargo");
+    fs::write(
+        &cargo,
+        r#"#!/bin/sh
+set -eu
+if [ "${HLS_TEST_CARGO_FAIL:-0}" = 1 ]; then exit 17; fi
+target=""
+target_dir=""
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --target) shift; target="$1" ;;
+    --target-dir) shift; target_dir="$1" ;;
+  esac
+  shift
+done
+test -n "$target"
+test -n "$target_dir"
+test "$target" != "non-native-target-must-be-overridden"
+mkdir -p "$target_dir/$target/release"
+cat > "$target_dir/$target/release/hls" <<'HLS'
+#!/bin/sh
+# freshly built override candidate
+exit 0
+HLS
+chmod +x "$target_dir/$target/release/hls"
+"#,
+    )
+    .unwrap();
+    fs::set_permissions(&cargo, fs::Permissions::from_mode(0o755)).unwrap();
+    let mut paths = vec![root.join("fake-tools")];
+    paths.extend(env::split_paths(&env::var_os("PATH").unwrap()));
+    let path = env::join_paths(paths).unwrap();
+    fs::create_dir(root.join(".cargo")).unwrap();
+    fs::write(
+        root.join(".cargo/config.toml"),
+        "[build]\ntarget = \"non-native-target-must-be-overridden\"\ntarget-dir = \"unselected-config-dir\"\n",
+    )
+    .unwrap();
+    let run = |build_dir: &str, work_dir: &str, fail: bool| {
+        Command::new("bash")
+            .arg(root.join("scripts/smoke.sh"))
+            .current_dir(root)
+            .env("PATH", &path)
+            .env("CARGO_TARGET_DIR", build_dir)
+            .env("CARGO_BUILD_TARGET", "non-native-target-must-be-overridden")
+            .env("CARGO_BUILD_TARGET_DIR", "unselected-env-dir")
+            .env("HLS_RELEASE_SMOKE_DIR", root.join(work_dir))
+            .env("HLS_TEST_CARGO_FAIL", if fail { "1" } else { "0" })
+            .output()
+            .unwrap()
+    };
+    // Both relative and absolute overrides must identify the actual candidate,
+    // even with an executable stale default-target binary already present.
+    for (index, build_dir) in [
+        "isolated-build".to_owned(),
+        root.join("absolute-build").to_str().unwrap().to_owned(),
+    ]
+    .iter()
+    .enumerate()
+    {
+        let work = format!("work-{index}");
+        let candidate_root = root.join(build_dir);
+        fs::create_dir_all(candidate_root.join("release")).unwrap();
+        fs::write(candidate_root.join("release/hls"), stale).unwrap();
+        fs::set_permissions(
+            candidate_root.join("release/hls"),
+            fs::Permissions::from_mode(0o755),
+        )
+        .unwrap();
+        let result = run(build_dir, &work, false);
+        assert!(
+            result.status.success(),
+            "{}",
+            String::from_utf8_lossy(&result.stderr)
+        );
+        let unpack = root.join(&work).join("unpack");
+        let archive = fs::read_dir(root.join(&work))
+            .unwrap()
+            .map(|e| e.unwrap().path())
+            .find(|p| p.to_string_lossy().ends_with(".tar.gz"))
+            .unwrap();
+        let listing = Command::new("tar")
+            .arg("-tzf")
+            .arg(archive)
+            .output()
+            .unwrap();
+        assert!(listing.status.success());
+        assert!(
+            !String::from_utf8_lossy(&listing.stdout)
+                .lines()
+                .any(|name| name.split('/').any(|part| part.starts_with("._"))),
+            "archive must not contain AppleDouble metadata"
+        );
+        let package = fs::read_dir(unpack)
+            .unwrap()
+            .next()
+            .unwrap()
+            .unwrap()
+            .path();
+        let packaged = fs::read(package.join("bin/hls")).unwrap();
+        assert_eq!(
+            packaged,
+            b"#!/bin/sh\n# freshly built override candidate\nexit 0\n"
+        );
+        assert_eq!(fs::read(root.join("target/release/hls")).unwrap(), stale);
+        let failed = run(build_dir, "failed-rebuild", true);
+        assert_eq!(failed.status.code(), Some(17));
+        assert!(
+            !root.join("failed-rebuild").exists(),
+            "failed build must not package a previous executable"
+        );
+    }
 }

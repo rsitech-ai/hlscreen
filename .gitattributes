@@ -2,3 +2,6 @@
 # licenses intentionally contain CRLF or trailing spaces, so Git's whitespace
 # checker must not rewrite or reject this generated legal artifact.
 THIRD_PARTY_LICENSES.txt -text whitespace=-trailing-space,-cr-at-eol
+
+# Keep manifest-bound synthetic fixture bytes exact on every checkout.
+tests/fixtures/hyperliquid/mfop5-synthetic-v1/** -text

@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "head": "af6ff557d53ec672e5201631a7ab7b3bcd3bb343",
+  "tree": "f5e9175a2a29e2d39bf69d5d344cdf5fb8c4577d",
+  "tested_merge": "8878c7263f0b2d02f63115cdc7293a127cf73e11",
+  "whole_tree_matches": true,
+  "independent_receipt_sha256": "8a1600dbb0e07b5ea73857a41ab71fc88d884a0678b936f10db213f643339768",
+  "main_run": 39507682503,
+  "release_run": 39507682505,
+  "both_terminal": "failure",
+  "main": {
+    "rust_executions": 589,
+    "unique_rust_test_names": 565,
+    "packaging_repeats": 24,
+    "python_tests": 22,
+    "pty_tests_each": 6,
+    "failure": "stale generated third-party attribution"
+  },
+  "native": [
+    {
+      "target": "aarch64-apple-darwin",
+      "zip_sha256": "8cf0a829f2b1e71eaaf8ae1218b278badde53c2720816663a733a9c7bf7d0db6",
+      "archive_sha256": "1df17780fc30bc3b8fb8865e904c5d3182afe9951c814042691fe8a16da1c4d5",
+      "binary_sha256": "dac5e3961d5a1a3a4ca5828e55d4bc429d1e2019a70dfbcb7dc61cc7a4532483",
+      "crc_checksums_and_committed_docs": "pass",
+      "mfop_groups": 67,
+      "mfop_trade_events": 2,
+      "mfop_gaps": 6
+    },
+    {
+      "target": "x86_64-apple-darwin",
+      "zip_sha256": "35c758e519285bb8e2d3b0e0b92c95c3a28d77c7207be4f22dc7e921e71d8b3e",
+      "archive_sha256": "247fb97c88fe152d782103d80e6f91f24e61a96f68b1e1f3bb2f7f153a18aa88",
+      "binary_sha256": "98ddc9d30b63ee5025f453a736e4955294a975ee021b5e9f1dced157f92d26d6",
+      "crc_checksums_and_committed_docs": "pass",
+      "mfop_groups": 67,
+      "mfop_trade_events": 2,
+      "mfop_gaps": 6
+    },
+    {
+      "target": "x86_64-unknown-linux-gnu",
+      "zip_sha256": "7c738d5c2b84ae7493d4d9cf994c87e3877a210d198cf80890ae6582148f2a18",
+      "archive_sha256": "96722fcba722a9fb4d4162af2962842546802c72545a621a26dd4a6659707371",
+      "binary_sha256": "ca10565cd83e453b25fe4d60734bdb75f955b741021a95f3d0ba225d253c8a03",
+      "crc_checksums_and_committed_docs": "pass",
+      "mfop_groups": 67,
+      "mfop_trade_events": 2,
+      "mfop_gaps": 6
+    }
+  ],
+  "windows": "packaged MFOP child exit1; hidden child diagnostic means root cause unknown",
+  "available_workflow_zips": 5,
+  "global_source_export_artifact": "absent because global job skipped",
+  "publication_announcement": "skipped",
+  "qualification": "source-specific partial witnesses only; failed workflows are not overall qualification",
+  "availability_time_ns": null,
+  "native_source_authentication_on_artifact_platforms": false,
+  "operational_freshness_qualification": false
+}

@@ -1,0 +1,556 @@
+{
+  "schema_version": 1,
+  "base_consumer_head": "3cabbcb79968830331636524d877c48e57fdd99a",
+  "producer_pin": "7f383b2dba580740e5c60c3dcb572e236e89f588",
+  "prior_producer_pin": "8ba199a46f9a1e2e840d104c3da5610235ef753e",
+  "checks_before_commit": true,
+  "commands": [
+    {
+      "check": "metadata",
+      "command": [
+        "cargo",
+        "metadata",
+        "--locked",
+        "--format-version",
+        "1"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 5.337,
+      "log_sha256": "40bf5a64f9fd86ad52c4f4e713cc70db58c184ec7e75ecdcc86d116ab45701bd"
+    },
+    {
+      "check": "pr-check",
+      "command": [
+        "bash",
+        "scripts/check.sh",
+        "pr"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 111.424,
+      "log_sha256": "3990a48dfa83e371148e7fb0679a2e5e1c457784d14551ee4abdab3fafeab3c6"
+    },
+    {
+      "check": "debug-build",
+      "command": [
+        "cargo",
+        "build",
+        "--locked",
+        "-p",
+        "hls-cli"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.545,
+      "log_sha256": "a8dd5b4f852b782842253d071162bc7c3c44c3a9a07131cd1159e45bbb802a10"
+    },
+    {
+      "check": "saved-replay",
+      "command": [
+        "target/debug/hls",
+        "live",
+        "--shared-feed",
+        "../cryptofeed-rs/.local/evidence/hyperliquid-integration-review/live-pilot-07-feed",
+        "--once",
+        "--color",
+        "never",
+        "--ws-url",
+        "not-an-exchange-url"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 1.078,
+      "log_sha256": "41e9a8a430547be5e39cd5db318ad4b14224cb5b852ebd4056699bcb5e249629",
+      "binary_sha256": "3d2556acfd9927b9bc385eade7c11ceab8517d5ea8fbfb0b9ecc0e16ced955b1"
+    },
+    {
+      "check": "audit-version",
+      "command": [
+        "cargo-audit",
+        "--version"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.024,
+      "log_sha256": "8748580845bee726903e69bc4543958fb01e2594317e6c68bf80114bff13d541"
+    },
+    {
+      "check": "audit",
+      "command": [
+        "cargo",
+        "audit",
+        "--deny",
+        "warnings",
+        "--json"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 3.499,
+      "log_sha256": "4dececabc24229615f68a8c017a301d3aa43e42eaa26b1e69db18322a1d54fd1"
+    },
+    {
+      "check": "deny-version",
+      "command": [
+        "cargo-deny",
+        "--version"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.011,
+      "log_sha256": "1758f5ea93d8ad3585079f05c19358b7bb969cce1bf6c7bdab6659a8cd1ef6b8"
+    },
+    {
+      "check": "policy",
+      "command": [
+        "cargo",
+        "deny",
+        "check",
+        "licenses",
+        "sources"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.77,
+      "log_sha256": "a09bbb250feeb5c0d6ac91177e3a1730bf09901eefcec1269ea8d00949a8f1a4"
+    },
+    {
+      "check": "about-version",
+      "command": [
+        "cargo-about",
+        "--version"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.025,
+      "log_sha256": "529e34ea4b18f64d4862652888f69e8137b9e808b0fcc2e70aa4529a4cf431d7"
+    },
+    {
+      "check": "attribution",
+      "command": [
+        "bash",
+        "scripts/check-third-party-licenses.sh"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 14.896,
+      "log_sha256": "edb814bb046435a2b1f8224b46bd879223326fa8dbd56b62e096f325ac461e3c"
+    }
+  ],
+  "dependency_source": {
+    "schema_version": 1,
+    "new_producer_pin": "7f383b2dba580740e5c60c3dcb572e236e89f588",
+    "prior_pin": "8ba199a46f9a1e2e840d104c3da5610235ef753e",
+    "shared_packages": [
+      {
+        "name": "marketfeed-adapter-api",
+        "version": "0.1.0-alpha.1",
+        "source": "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=7f383b2dba580740e5c60c3dcb572e236e89f588#7f383b2dba580740e5c60c3dcb572e236e89f588"
+      },
+      {
+        "name": "marketfeed-adapter-hyperliquid",
+        "version": "0.1.0-alpha.1",
+        "source": "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=7f383b2dba580740e5c60c3dcb572e236e89f588#7f383b2dba580740e5c60c3dcb572e236e89f588"
+      },
+      {
+        "name": "marketfeed-filesystem",
+        "version": "0.1.0-alpha.1",
+        "source": "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=7f383b2dba580740e5c60c3dcb572e236e89f588#7f383b2dba580740e5c60c3dcb572e236e89f588"
+      },
+      {
+        "name": "marketfeed-model",
+        "version": "0.1.0-alpha.1",
+        "source": "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=7f383b2dba580740e5c60c3dcb572e236e89f588#7f383b2dba580740e5c60c3dcb572e236e89f588"
+      },
+      {
+        "name": "marketfeed-recording",
+        "version": "0.1.0-alpha.1",
+        "source": "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=7f383b2dba580740e5c60c3dcb572e236e89f588#7f383b2dba580740e5c60c3dcb572e236e89f588"
+      }
+    ],
+    "registry_records": 419,
+    "complete_registry_records_unchanged": true,
+    "only_five_git_source_identities_changed": true,
+    "all_other_lock_bytes_unchanged": true,
+    "cargo_checkout_shared_files_match_new_git_blobs": true,
+    "files": [
+      {
+        "relative_path": "crates/adapter-api/Cargo.toml",
+        "sha256": "f36d7a1e38955f7c7df98851e8e9363db0528f01b94ce1d9ef84c6566824bfb9",
+        "changed_from_old_pin": false
+      },
+      {
+        "relative_path": "crates/adapter-api/src/error.rs",
+        "sha256": "ba893780a8964a82d6ecb4c90a54e65628ac3c2853d45d573e9d16d85d79d5a7",
+        "changed_from_old_pin": false
+      },
+      {
+        "relative_path": "crates/adapter-api/src/exact_json.rs",
+        "sha256": "52e99a1763726761af0e5c8c3d6eecc29a72a7dd352ed0f7dff0cded983f6bc9",
+        "changed_from_old_pin": false
+      },
+      {
+        "relative_path": "crates/adapter-api/src/factory.rs",
+        "sha256": "cb023e90c3c6e3aabe27b67269301332018dbed5f7fbf892b05b077331b6bf32",
+        "changed_from_old_pin": false
+      },
+      {
+        "relative_path": "crates/adapter-api/src/lib.rs",
+        "sha256": "d29bb1dd2735b52ba6dc3f1b02e45a75b3a8af82d444ebef5122adb5662e6d9b",
+        "changed_from_old_pin": false
+      },
+      {
+        "relative_path": "crates/adapter-api/src/session.rs",
+        "sha256": "ee40e882fd5668e32b440adb29d627f0c1fd197aeef671ed42e74ec626197c0a",
+        "changed_from_old_pin": false
+      },
+      {
+        "relative_path": "crates/adapter-api/src/subscription.rs",
+        "sha256": "d4137e61e71f0fd2645f49ccf39a00eca94a1870891d9f8a6a6fca8b4894e788",
+        "changed_from_old_pin": false
+      },
+      {
+        "relative_path": "crates/adapter-api/src/venue.rs",
+        "sha256": "313aa93f9a59b04246f63dda2c1851d61bb7773fea47aed068a6b5af0eca1a94",
+        "changed_from_old_pin": false
+      },
+      {
+        "relative_path": "crates/adapters/hyperliquid/Cargo.toml",
+        "sha256": "8cbee1c921eca3eba80f2e0cf3a2ce77a7b79a98d21462022e0c71a2c1c3a7e5",
+        "changed_from_old_pin": false
+      },
+      {
+        "relative_path": "crates/adapters/hyperliquid/README.md",
+        "sha256": "867b577c7a2fbb39b4d188a7b4c45334f4c18398edc4b754bf720f8853898bdc",
+        "changed_from_old_pin": false
+      },
+      {
+        "relative_path": "crates/adapters/hyperliquid/src/factory.rs",
+        "sha256": "860712d4a1dd2d167d55aa740d6b14c6fc4508a54d218397cf7ce94bd24b2cea",
+        "changed_from_old_pin": false
+      },
+      {
+        "relative_path": "crates/adapters/hyperliquid/src/instruments.rs",
+        "sha256": "db6f736830f2d9592ce586847d4701ce0063f39b586a49b7e6846ce6cb66e3ae",
+        "changed_from_old_pin": false
+      },
+      {
+        "relative_path": "crates/adapters/hyperliquid/src/lib.rs",
+        "sha256": "910e4ff05641e7d83d455ba955e25f82d7be2a0a78d6deff0b188618ddc06a1e",
+        "changed_from_old_pin": false
+      },
+      {
+        "relative_path": "crates/adapters/hyperliquid/src/protocol.rs",
+        "sha256": "bc261fa1c9ddead71bb3c4ca51f08f35a2b2f69b36c04f77f69fb2b2b194c2b1",
+        "changed_from_old_pin": false
+      },
+      {
+        "relative_path": "crates/adapters/hyperliquid/src/session.rs",
+        "sha256": "177e0ca09899baf138db0308e99a3492a983a6838755ce3a689d4545872b3b8c",
+        "changed_from_old_pin": false
+      },
+      {
+        "relative_path": "crates/adapters/hyperliquid/src/specification.rs",
+        "sha256": "d03521ec7fb465a1fa30928f47a5ca5e9fd867582dd098ba0ce285ec2b0000d2",
+        "changed_from_old_pin": false
+      },
+      {
+        "relative_path": "crates/adapters/hyperliquid/tests/contracts.rs",
+        "sha256": "b201769bfa25e5d20851d89956c1f67fc6a3674c3a56918cd4e72300d6cdc27b",
+        "changed_from_old_pin": false
+      },
+      {
+        "relative_path": "crates/filesystem/Cargo.toml",
+        "sha256": "7dfbba76c96aa416ab77a740c3a5d8ae646b88d69b38b163327f9c453754fec1",
+        "changed_from_old_pin": false
+      },
+      {
+        "relative_path": "crates/filesystem/src/lib.rs",
+        "sha256": "8b11511762f47fa9159fc6e4d14f63e44a3ca952213c6d0de728c69c48fc1aef",
+        "changed_from_old_pin": false
+      },
+      {
+        "relative_path": "crates/filesystem/src/volume.rs",
+        "sha256": "0cdebe59ac713805ba7e76c27995a67f2532e018bd41d219e4f25272f21ac013",
+        "changed_from_old_pin": false
+      },
+      {
+        "relative_path": "crates/filesystem/src/windows.rs",
+        "sha256": "8b746ce2ddba68069b42dc934438613131957f1c9b82dff7f09e9648dc744587",
+        "changed_from_old_pin": false
+      },
+      {
+        "relative_path": "crates/model/Cargo.toml",
+        "sha256": "bb8979e682ad34d1881cd5f178cb72d5ce5c8711ccf96414fadc71c044dac612",
+        "changed_from_old_pin": false
+      },
+      {
+        "relative_path": "crates/model/src/events.rs",
+        "sha256": "c7778d9a373b6308d854882924ae8511739a446c9c3d2c9384962a17015c709e",
+        "changed_from_old_pin": false
+      },
+      {
+        "relative_path": "crates/model/src/fixed.rs",
+        "sha256": "b335cff3e6a071132dc65753a8916a9297a7bf2fb39ccad05b22b4a971ee8c5f",
+        "changed_from_old_pin": false
+      },
+      {
+        "relative_path": "crates/model/src/flags.rs",
+        "sha256": "35323a04af93d6a58867831b552ef493feac71f50b74a864bd95cf1cd5764caf",
+        "changed_from_old_pin": false
+      },
+      {
+        "relative_path": "crates/model/src/ids.rs",
+        "sha256": "f12e6e9297257320a4eaa4f488596277083b09e0866817352b9385d5a74e3353",
+        "changed_from_old_pin": false
+      },
+      {
+        "relative_path": "crates/model/src/instrument.rs",
+        "sha256": "02fd2d067325d8c378c418713971d796dd3693a7c1d8a3fcb61f7c662dafd6be",
+        "changed_from_old_pin": false
+      },
+      {
+        "relative_path": "crates/model/src/lib.rs",
+        "sha256": "1c6b2882a363ba489be3b2f799919ca96593a0efe06d5c097ca39f80aa56690e",
+        "changed_from_old_pin": false
+      },
+      {
+        "relative_path": "crates/model/src/overflow.rs",
+        "sha256": "09a82b78a2fd295ec790660c3f12ad8af87cbb0458f3f96ba0260720955a065f",
+        "changed_from_old_pin": false
+      },
+      {
+        "relative_path": "crates/model/src/time.rs",
+        "sha256": "870d88c65daac44b5b08a34254b53a3bd216889c8ea8b28dfa1bbfff469fd2a2",
+        "changed_from_old_pin": false
+      },
+      {
+        "relative_path": "crates/recording/Cargo.toml",
+        "sha256": "29dd6e1fcbaee9e6bd8ac5e240e43a0714e3799e71a284264b4f3302eb243977",
+        "changed_from_old_pin": false
+      },
+      {
+        "relative_path": "crates/recording/src/control.rs",
+        "sha256": "659b39d76c6cde311ad565377e15e566dc4bff01f8e89107a28dfd8ed807ef9b",
+        "changed_from_old_pin": false
+      },
+      {
+        "relative_path": "crates/recording/src/crc32c.rs",
+        "sha256": "c994f660ace7c60bc8a7c14a454e6e5450e945475f5bf00a949460f567c2ddae",
+        "changed_from_old_pin": false
+      },
+      {
+        "relative_path": "crates/recording/src/durability.rs",
+        "sha256": "d880ff7c791f70b820822401182ae2098f8b9ed280f58b46025925aed85424a2",
+        "changed_from_old_pin": false
+      },
+      {
+        "relative_path": "crates/recording/src/envelope_json.rs",
+        "sha256": "34bbeb625258eb20ec03a57740219c5e633475fb9c76e55cd3ff5be73fa7031f",
+        "changed_from_old_pin": false
+      },
+      {
+        "relative_path": "crates/recording/src/format.rs",
+        "sha256": "50ed45c9a904d4c173315886e04bd1ab48009a67e6d35bd59c213a561a058c83",
+        "changed_from_old_pin": false
+      },
+      {
+        "relative_path": "crates/recording/src/http.rs",
+        "sha256": "fec50d9eb1851741367a0a3a6214045390d3bf51719246d75a56f79a3c2eb0cb",
+        "changed_from_old_pin": false
+      },
+      {
+        "relative_path": "crates/recording/src/lib.rs",
+        "sha256": "a03a90eb18d06f03240170ddf5ade0e0976c560c6eed2ee18007e9f914eaab53",
+        "changed_from_old_pin": false
+      },
+      {
+        "relative_path": "crates/recording/src/metadata.rs",
+        "sha256": "042712c473ea60bd77261cbeb7913f134b0c9261e6ee53eb6f46f01424593be0",
+        "changed_from_old_pin": false
+      },
+      {
+        "relative_path": "crates/recording/src/normalized.rs",
+        "sha256": "8c80320d4356bbf44b8b40a3cb94429cffb1a7c31d2aa89d3280955cf51b7fe3",
+        "changed_from_old_pin": false
+      },
+      {
+        "relative_path": "crates/recording/src/pipeline.rs",
+        "sha256": "deffcafae3ca1a416c18f90e44b0673a98ab1fef52238d3a6c61dbdcfe078076",
+        "changed_from_old_pin": false
+      },
+      {
+        "relative_path": "crates/recording/src/queue.rs",
+        "sha256": "4937b2008d94539bb0edd92ea1b69a23b66ccf83ec6890bf280682578b9adb25",
+        "changed_from_old_pin": false
+      },
+      {
+        "relative_path": "crates/recording/src/reader.rs",
+        "sha256": "ca16f48b904784a4763f7be711e2ce4f47d81781219927362756410e996d3a9b",
+        "changed_from_old_pin": false
+      },
+      {
+        "relative_path": "crates/recording/src/shared_batch.rs",
+        "sha256": "53bf7c47a78976ec40de3f9df6f4fb4870ce3553b79b1160b5b7020f74327233",
+        "changed_from_old_pin": true
+      },
+      {
+        "relative_path": "crates/recording/src/shared_batch_tests.rs",
+        "sha256": "af16e21a21bcc018ec423700be05842e143b42ce85d005ddb2f2b7713111d377",
+        "changed_from_old_pin": true
+      },
+      {
+        "relative_path": "crates/recording/src/shared_causal.rs",
+        "sha256": "7adf88049791a356f23540b2d3d9639624ceb4ec23edcc617a3aa5a5e90facb8",
+        "changed_from_old_pin": true
+      },
+      {
+        "relative_path": "crates/recording/src/shared_causal_tests.rs",
+        "sha256": "bfd38ae559734e1d64638d8910a93095b69bfa7ca93ef512b71aece245bcdb39",
+        "changed_from_old_pin": true
+      },
+      {
+        "relative_path": "crates/recording/src/shared_feed.rs",
+        "sha256": "d68f6017118d5a5c7e947f994d55ba792088432bc1847918757cd4c989cb54f3",
+        "changed_from_old_pin": false
+      },
+      {
+        "relative_path": "crates/recording/src/writer.rs",
+        "sha256": "83bccdbd907248d4be5d547723fd620e8349d2e27195c32a316655bdcb97dfd7",
+        "changed_from_old_pin": false
+      },
+      {
+        "relative_path": "crates/recording/test_support/corpus_clock.rs",
+        "sha256": "8b22a2d447a584999b4ef18f56b90da32205fa3ffd078df7976f74dc2d3974f1",
+        "changed_from_old_pin": false
+      },
+      {
+        "relative_path": "crates/recording/tests/causal_profile.rs",
+        "sha256": "d3f85b8de3d8540a031b1fb954ac65c6e8e58c4c94b788a7212bf6930f28fbec",
+        "changed_from_old_pin": false
+      },
+      {
+        "relative_path": "crates/recording/tests/shared_feed.rs",
+        "sha256": "5908ddc3f4640d7b212771a165c268308ede5151491dcf72d8a39a9c11916696",
+        "changed_from_old_pin": false
+      }
+    ],
+    "shared_files_changed_from_old_pin": [
+      "crates/recording/src/shared_batch.rs",
+      "crates/recording/src/shared_batch_tests.rs",
+      "crates/recording/src/shared_causal.rs",
+      "crates/recording/src/shared_causal_tests.rs"
+    ],
+    "scope": "Shared source verification only; no artifact equivalence or whole-producer dependency-graph claim"
+  },
+  "validation": {
+    "full_pr_check": "pass",
+    "rust_unique_tests": 544,
+    "rust_summed_executions": 567,
+    "packaging_repeated_tests": 23,
+    "rust_suites": 82,
+    "python_tests": 12,
+    "python_suite_sizes": [
+      8,
+      4
+    ],
+    "failed": 0,
+    "ignored": 0,
+    "workspace_fmt_clippy_tests_release_docs_screenshots_packaging": "pass",
+    "audit_0_22_2": "pass;zero vulnerabilities/warnings",
+    "deny_0_20_2_licenses_sources": "pass",
+    "about_0_9_1_attribution": "pass",
+    "staged_public_check": "pass; final review metadata checked before commit"
+  },
+  "causal_header_rejection": {
+    "profiles": [
+      "MFCJ1",
+      "MFCJ2"
+    ],
+    "test": "shared_consumer_rejects_unprojected_causal_header_before_polling",
+    "missing_watermark": true,
+    "actual_consumer_open": true
+  },
+  "saved_prefix_replay": {
+    "binary_sha256": "3d2556acfd9927b9bc385eade7c11ceab8517d5ea8fbfb0b9ecc0e16ced955b1",
+    "preserved_artifact_bytes": 89234072,
+    "preserved_artifact_mode": "0555",
+    "full_output_sha256": "41e9a8a430547be5e39cd5db318ad4b14224cb5b852ebd4056699bcb5e249629",
+    "market_events": 1055,
+    "summary": {
+      "as_of_ms": 1792440727739,
+      "cursor": {
+        "feed_id": "fadae1df2c473d021fa8b06b0947ed664507e04d",
+        "offset": 1983487,
+        "sequence": 2683
+      },
+      "data_gaps": 0,
+      "events": {
+        "bbo": 512,
+        "book": 37,
+        "candle": 58,
+        "context": 178,
+        "trade": 270
+      },
+      "float_projection": "features_and_display_only",
+      "sealed": true
+    },
+    "matches_prior_full_output": true,
+    "all_saved_prefix_bytes_metadata_unchanged": true,
+    "saved_prefix_sha256": {
+      "events.mfsf": "9207b56e6cb1544f0d9d313b17824afb508a6d44d14c35ca740a7b9184a1a45a",
+      "committed.json": "d6ff3959631b582a2a8f7729f232264e2a986af28a9bac2b775857ed8f94c06d"
+    }
+  },
+  "historical_evidence": {
+    "files": 27,
+    "all_bytes_metadata_unchanged": true,
+    "file_sha256": {
+      "docs/evidence/artifact-output-decoding-20261020/README.md": "14371d2121d1a6736398e9cbed32e76e90749d0ea35e1acf40a4cf620321f759",
+      "docs/evidence/artifact-output-decoding-20261020/validation.json": "c31a6bc6a94203bab09186cb4e5b70acdc4570716b491d86c2941c8ef6af6c00",
+      "docs/evidence/security-lock-20261019/README.md": "4ae22043317d0008d58559c5b0ac8ef2193b4eed3c7781022e4730a3bcfe97ce",
+      "docs/evidence/security-lock-20261019/rustsec-audit.json": "89e584f6d87e0840692cb34a98d64ff0af6dcfd1ac817b3a735264339c3cef1a",
+      "docs/evidence/security-lock-20261019/saved-prefix-replay.json": "c5268424c14ea7161e07379efcacd2a23d79da0d205ae5a97cb42cb6ccdd25fb",
+      "docs/evidence/security-lock-20261019/validation.json": "071d6ebda60ef6c1277e960a7fef5d64e91c2ce7965d81cc00562e64e6e801c8",
+      "docs/evidence/shared-feed-batch-pin-20261020/README.md": "cc1e9f86a103eee7ab43a00017925ec82bca16c4f1bf7cbd874c8d12ad667048",
+      "docs/evidence/shared-feed-batch-pin-20261020/validation.json": "ef25923ddac6327e87df7634e5ff1a229da0fc445fdfb202d86ac3772c525e87",
+      "docs/evidence/shared-feed-causal-profile-pin-20261020/README.md": "803aac5a5eb749fafcfa3c6bb564abf078e6946e7e9559954121556cb5ed03b9",
+      "docs/evidence/shared-feed-causal-profile-pin-20261020/validation.json": "5e87076cc6ea2a2f594f3c418eb75acbf8a491660a1371b5b410ab8826a3489d",
+      "docs/evidence/shared-feed-diagnostics-pin-20261020/README.md": "54690229dbc324ef3862630141199fdde59e87f0a7727cd84f57f67998631fd6",
+      "docs/evidence/shared-feed-diagnostics-pin-20261020/validation.json": "dd43aeb9ba95cbf6b93e96986c0e89e7acafc25573018d37091d47cd13485eea",
+      "docs/evidence/shared-feed-native-pin-20261020/README.md": "bdbbb2c1ee45c6be51756cf48c7cd553c434c2b7fbb8f853d5c59add296716d8",
+      "docs/evidence/shared-feed-native-pin-20261020/validation.json": "b9f8d926a0c1279c0e5016c57300eb48b1bbbd42a77063a88abf4b8ec5c82adf",
+      "docs/evidence/shared-feed-operation-owner-pin-20261020/README.md": "7e42f05744661d6baebb7638e471635b5fee202651743964da6d1466a1f76a5f",
+      "docs/evidence/shared-feed-operation-owner-pin-20261020/validation.json": "2db5fba52582a624868d869b97544dc3df0eb0e232c80890552bd95b84bd6ffc",
+      "docs/evidence/shared-feed-operation-pin-20261020/README.md": "a5105c65319df0b13551e77c51171f843db2514ad9f89c16eaa5b4a2a547a0bb",
+      "docs/evidence/shared-feed-operation-pin-20261020/validation.json": "89d6366d842c8762a034b9b7807fbead1e63a98e2d63c7e4bbcf382c6d951a3a",
+      "docs/evidence/shared-feed-pin-20261019/README.md": "2b167c7d10d28c1cae8d574b699efc61317457ab8e78a23795f183f773f74d37",
+      "docs/evidence/shared-feed-pin-20261019/saved-prefix-replay.json": "207ecf9febc3da99eca8788a984b58d015373b426cfa4fbb70b839d563cc6920",
+      "docs/evidence/shared-feed-pin-20261019/validation.json": "3a260a28094385162f54c4a5337de74b0edf693a3e916d1b2e1fd4e6b813de03",
+      "docs/evidence/shared-feed-streaming-pin-20261020/README.md": "1d174f27ca0e9b782c1d2ed5c766559639f33a8143a5dffd65ec1a9c809f102c",
+      "docs/evidence/shared-feed-streaming-pin-20261020/validation.json": "eafddffb18cd229b07c91a7d8298b2a1f480005072a1fa5d094f8a7a803874c7",
+      "docs/evidence/soak-validation-20261020/README.md": "522a69e67d053b53d98b60b191662b3070c87bda8e26db2cb89ba123b9a1dfb8",
+      "docs/evidence/soak-validation-20261020/validation.json": "bb1cbdccb6042ec31de68c4c2e293bfd4e1622739afda99a5a915ac352e320a0",
+      "docs/evidence/soak/shared-feed-20261019-15m.json": "ee3e5a00fcd4145832025453e1d7776e36724520705ae74eabb10c8aa1d4f8e7",
+      "docs/evidence/soak/sota-allpairs-20260720-15m.json": "685b705edd76997a67f9d7c2e6e22a47d04f691fcad7baaf321b1169e2650656"
+    }
+  },
+  "source_files_sha256": {
+    "Cargo.toml": "90346c2cc750a4b7439619ebbb2761c6a57e450c5ae54cdea2453ccd2020ac46",
+    "Cargo.lock": "82799297b4ec8aaffd56d4b21cf9fa8a0f1180a0860c9aa25eaa9ee26af4995c",
+    "README.md": "4a62b1873b0b0cdc0a1e99894058388fe4d36051a16c7a7187e5cd0e82af0a1c",
+    "crates/hls-hyperliquid/tests/shared_feed.rs": "92ecfa8803bb46f0af84c82fb8fe0f644a6afbf6cd3541b9600fa27d00612ff2"
+  },
+  "baseline_receipt_sha256": "73abf51ed6f0d6100194dff9e4756d37e222539e94fb7e1e7b19e853c331c518",
+  "ci_status": "New consumer source not yet published; own-source main and all-four-native-artifact checks required",
+  "producer_limits": "MFCJ2 codec and physical-order validator implemented and locally verified; own-source producer CI is running. Actual runtime owner history, committed projection, bound external I/O, actual-engine replay/live migration and registered failed-ingress comparison remain open. Hlscreen rejects both causal journals and continues reading legacy MFSF1.",
+  "ownership": {
+    "cryptofeed": "acquisition/native identity/timing/quality/storage/replay",
+    "rsibot": "context/features/models/ETF/strategy decisions through existing owners",
+    "hlscreen": "shared-feed consumer and presentation"
+  },
+  "scope": "Pin compatibility and actual saved-prefix replay; not whole-window continuity, strict dataset admission, native Windows writer durability or operational promotion",
+  "public_log_sha256": "c66b17581f9ca8db2efae22a5446623ac8eaebfd4a11ed0d84812c2b63a2936c",
+  "history_secret_scan": {
+    "tool": "gitleaks8.30.1",
+    "result": "pass; all fetched hosted heads/PR refs and reachable history",
+    "log_sha256": "689502b4d95b110c6d839842549e26ab6d65fa5d352ea8395abb314963052e2b"
+  },
+  "independent_review": {
+    "result": "pass; no material findings in scope",
+    "receipt_sha256": "cb6364cfcad1fabefe9dd5f9f01379888ed3eb9764e1e45aeaacee195c8ff60b",
+    "inspected_validation_sha256": "5af4d068bd64ac354dae06fbf92fdc6b42fe05b9a35039841f69dbc7a39536af",
+    "mode": "Separate read-only source/actual Cargo checkout/binary/raw logs/historical metadata inspection; no builds, replay, network or source edits by reviewer",
+    "bookkeeping": "Final review metadata added after inspection; checked source, binary, replay and historical data unchanged"
+  }
+}

@@ -1,0 +1,190 @@
+{
+  "kind": "session",
+  "schema_version": 1,
+  "session_id": 2,
+  "venue_id": 22,
+  "adapter": "hyperliquid",
+  "environment": "production",
+  "endpoint": "wss://api.hyperliquid.xyz/ws",
+  "catalog_version": 1,
+  "catalog": [
+    {
+      "instrument_id": 1,
+      "native_symbol": "BTC",
+      "kind": "PerpetualLinear",
+      "base": "BTC",
+      "quote": "USDC",
+      "settlement": "USDC",
+      "price_scale": 1,
+      "quantity_scale": 5,
+      "price_increment": {
+        "coefficient": "1",
+        "scale": 1
+      },
+      "quantity_increment": {
+        "coefficient": "1",
+        "scale": 5
+      },
+      "min_quantity": null,
+      "max_quantity": null,
+      "min_notional": null,
+      "contract_size": null,
+      "expiry_ns": null,
+      "status": "Active",
+      "inverse": false
+    },
+    {
+      "instrument_id": 2,
+      "native_symbol": "ETH",
+      "kind": "PerpetualLinear",
+      "base": "ETH",
+      "quote": "USDC",
+      "settlement": "USDC",
+      "price_scale": 2,
+      "quantity_scale": 4,
+      "price_increment": {
+        "coefficient": "1",
+        "scale": 2
+      },
+      "quantity_increment": {
+        "coefficient": "1",
+        "scale": 4
+      },
+      "min_quantity": null,
+      "max_quantity": null,
+      "min_notional": null,
+      "contract_size": null,
+      "expiry_ns": null,
+      "status": "Active",
+      "inverse": false
+    }
+  ],
+  "initial_subscriptions": [
+    {
+      "instrument_id": 1,
+      "channel": "Candles { interval: M1 }",
+      "emit_book_snapshots": false,
+      "emit_book_deltas": false,
+      "emit_bbo": false
+    },
+    {
+      "instrument_id": 1,
+      "channel": "MarkPrice",
+      "emit_book_snapshots": false,
+      "emit_book_deltas": false,
+      "emit_bbo": false
+    },
+    {
+      "instrument_id": 1,
+      "channel": "IndexPrice",
+      "emit_book_snapshots": false,
+      "emit_book_deltas": false,
+      "emit_bbo": false
+    },
+    {
+      "instrument_id": 1,
+      "channel": "Funding",
+      "emit_book_snapshots": false,
+      "emit_book_deltas": false,
+      "emit_bbo": false
+    },
+    {
+      "instrument_id": 1,
+      "channel": "OpenInterest",
+      "emit_book_snapshots": false,
+      "emit_book_deltas": false,
+      "emit_bbo": false
+    },
+    {
+      "instrument_id": 1,
+      "channel": "Statistics24h",
+      "emit_book_snapshots": false,
+      "emit_book_deltas": false,
+      "emit_bbo": false
+    },
+    {
+      "instrument_id": 1,
+      "channel": "Quote",
+      "emit_book_snapshots": false,
+      "emit_book_deltas": false,
+      "emit_bbo": true
+    },
+    {
+      "instrument_id": 1,
+      "channel": "L2Book { depth: None, cadence: None }",
+      "emit_book_snapshots": true,
+      "emit_book_deltas": false,
+      "emit_bbo": true
+    },
+    {
+      "instrument_id": 1,
+      "channel": "Trades",
+      "emit_book_snapshots": false,
+      "emit_book_deltas": false,
+      "emit_bbo": false
+    },
+    {
+      "instrument_id": 2,
+      "channel": "Candles { interval: M1 }",
+      "emit_book_snapshots": false,
+      "emit_book_deltas": false,
+      "emit_bbo": false
+    },
+    {
+      "instrument_id": 2,
+      "channel": "MarkPrice",
+      "emit_book_snapshots": false,
+      "emit_book_deltas": false,
+      "emit_bbo": false
+    },
+    {
+      "instrument_id": 2,
+      "channel": "IndexPrice",
+      "emit_book_snapshots": false,
+      "emit_book_deltas": false,
+      "emit_bbo": false
+    },
+    {
+      "instrument_id": 2,
+      "channel": "Funding",
+      "emit_book_snapshots": false,
+      "emit_book_deltas": false,
+      "emit_bbo": false
+    },
+    {
+      "instrument_id": 2,
+      "channel": "OpenInterest",
+      "emit_book_snapshots": false,
+      "emit_book_deltas": false,
+      "emit_bbo": false
+    },
+    {
+      "instrument_id": 2,
+      "channel": "Statistics24h",
+      "emit_book_snapshots": false,
+      "emit_book_deltas": false,
+      "emit_bbo": false
+    },
+    {
+      "instrument_id": 2,
+      "channel": "Quote",
+      "emit_book_snapshots": false,
+      "emit_book_deltas": false,
+      "emit_bbo": true
+    },
+    {
+      "instrument_id": 2,
+      "channel": "L2Book { depth: None, cadence: None }",
+      "emit_book_snapshots": true,
+      "emit_book_deltas": false,
+      "emit_bbo": true
+    },
+    {
+      "instrument_id": 2,
+      "channel": "Trades",
+      "emit_book_snapshots": false,
+      "emit_book_deltas": false,
+      "emit_bbo": false
+    }
+  ]
+}

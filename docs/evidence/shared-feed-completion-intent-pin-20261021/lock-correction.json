@@ -1,0 +1,23 @@
+{
+  "producer_commit": "20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9",
+  "actual_initial_pin_update": {
+    "session": 75873,
+    "chunk": "51ca81",
+    "exit": 0,
+    "scope": "7/23Gitidentities updated;10unrelated Windows edges drifted, rejected"
+  },
+  "correction": "retain original Cargo.lock with only exact old\u2192newproducer fullSHA substitution",
+  "baseline_registry_records": 430,
+  "current_registry_records": 430,
+  "normalized_lock_bytes_exact": true,
+  "failed_lock_sha256": "a0ff50065a2d2125e155fbbd83bfcd4c5817e710c5b6187e0b7d86ccbf8a9952",
+  "corrected_lock_sha256": "150f93f627d64991cd80eaea49e8f724d9a8271f99fabb0f6506832a50590dfc",
+  "unrelated_diff_sha256": "18e798b258898420048d715102b5d8c1bbbddb13b2d9e0ecd34970b77216aecd",
+  "no_capacity_policy_runtime_schema_or_feature_changes": true,
+  "portable_copy": {
+    "original_file": "pin-update-02.json",
+    "original_sha256": "3022f5f863415b127f42e9147e068f101753bc4e0daa01bb1ab0ba30c8aeb1a4",
+    "original_bytes": 811,
+    "scope": "Only absolute private path roots are replaced. All original result values, counts, types, hashes and status remain unchanged. Raw-hash references still identify original receipts; this copy is a derivative, not a new execution."
+  }
+}

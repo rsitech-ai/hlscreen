@@ -1,0 +1,116 @@
+{
+  "schema_version": 1,
+  "parent_source": "d40d4136a53ad130c4374d2e34ccb9778f1c8748",
+  "producer_pin": "410c3cae95f17c3b2b8ee88a9809c5fc1d7ad28b",
+  "source_inputs": [
+    {
+      "path": "Cargo.lock",
+      "sha256": "4a68ec577e5a359039b002c385a773b8b31d57793ae9a0493b59ec971b56bcb0"
+    },
+    {
+      "path": "THIRD_PARTY_LICENSES.txt",
+      "sha256": "0c68a2adbe14e42f68a916731b7462f6fc7f3eb525402ae1b90a324e6117d6ba"
+    },
+    {
+      "path": "crates/hls-cli/tests/pty_tui.rs",
+      "sha256": "b01877b3c14828b1f0e4ad3dc1986ad9ccc014aadd357d0c4e4c8d83e788f9a9"
+    }
+  ],
+  "checks": [
+    {
+      "check": "workspace-final",
+      "command": "cargo test --locked --workspace --all-targets",
+      "exit": 0,
+      "log_name": "hlscreen-rustsec-tests-final-02.log",
+      "sha256": "28c28b2b018435efb6c81782e22ae4a0a852848d6a8329bf87c818c3afc2641b",
+      "test_counts": {
+        "passed": 543,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "check": "clippy-final",
+      "command": "cargo clippy --locked --workspace --all-targets -- -D warnings",
+      "exit": 0,
+      "log_name": "hlscreen-rustsec-clippy-final-02.log",
+      "sha256": "6ab1d21bd938c9b87959a5b576b749e32551a64fb9ed8986279fd71b4593dd09",
+      "test_counts": {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "check": "licenses",
+      "command": "PATH=<local-tools>:$PATH bash scripts/check-third-party-licenses.sh",
+      "exit": 0,
+      "log_name": "hlscreen-rustsec-licenses-final-01.log",
+      "sha256": "edb814bb046435a2b1f8224b46bd879223326fa8dbd56b62e096f325ac461e3c",
+      "test_counts": {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "check": "source-license-policy",
+      "command": "PATH=<local-tools>:$PATH cargo deny check licenses sources",
+      "exit": 0,
+      "log_name": "hlscreen-rustsec-policy-final-01.log",
+      "sha256": "a09bbb250feeb5c0d6ac91177e3a1730bf09901eefcec1269ea8d00949a8f1a4",
+      "test_counts": {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "check": "bounded-pty-file",
+      "command": "cargo test --locked -p hls-cli --test pty_tui -- --nocapture",
+      "exit": 0,
+      "log_name": "hlscreen-pty-cleanup-repair-01.log",
+      "sha256": "57cee465021c3581edeb857ead384f24042bd0eae0a68d1b9c7757c72c656043",
+      "test_counts": {
+        "passed": 6,
+        "failed": 0,
+        "ignored": 0
+      }
+    }
+  ],
+  "full_lock_audit": {
+    "tool": "cargo-audit0.22.2",
+    "command": "cargo audit --deny warnings --json",
+    "exit": 0,
+    "result": "rustsec-audit.json",
+    "ignores": []
+  },
+  "retained_failures": [
+    {
+      "log_name": "hlscreen-readiness-ci-rustsec-failure-01.log",
+      "sha256": "9a32b22d0da63082917fcef56b0186b7d81e9a2a3c5f9be10b4cc00c5493e2b0",
+      "bytes": 58997,
+      "disposition": "remote real5 vulnerabilities and2 denied warnings on prior lock"
+    },
+    {
+      "log_name": "hlscreen-rustsec-tests-final-01.log",
+      "sha256": "4d4386400d991c7f3c55ade1e3df9a4203cd6b1c2c202cd890aaab8ab1c89294",
+      "bytes": 17422,
+      "disposition": "PTY group survived one-shot cleanup; failure retained; bounded implementation repair applied"
+    },
+    {
+      "log_name": "hlscreen-rustsec-licenses-01.log",
+      "sha256": "02e77f17b1973bef8220556ddebcfa0534545e415fd69a0699315c6b38452219",
+      "bytes": 660,
+      "disposition": "generated license attribution stale after lru patch; regenerated and independently checked"
+    }
+  ],
+  "exploratory_test_attempt": "hlscreen-rustsec-tests-01.log compiled while resolver edges changed; not final-source qualification",
+  "independent_review": {
+    "lock": "three changed package records only; versions/checksums change and all dependency vectors remain identical; all patch MSRV declarations1.85 or1.85.0",
+    "pty": "separate engineer repaired only test harness and ran full6-case PTY file; parent reviewed unchanged absolute deadline/watchdog and repeated group signal latching",
+    "inferred_cause": "orphan consistent with group-kill/fork-delivery race; exact kernel interleaving not instrumented"
+  },
+  "operational_promotion": false,
+  "windows_producer_durability_verified": false
+}

@@ -544,3 +544,101 @@ Security issues should follow [SECURITY.md](SECURITY.md). General support guidan
 Licensed under the Apache License, Version 2.0. Copyright 2026 Rafal Sikora;
 publicly maintained by RSI Tech. See [LICENSE](LICENSE), [NOTICE](NOTICE), and
 [MAINTAINERS.md](MAINTAINERS.md).
+
+## Shared cryptofeed collector (spot and perpetuals)
+
+`hls live --shared-feed CAPTURE_DIRECTORY`, `hls tui --shared-feed CAPTURE_DIRECTORY`
+and `hls server --live --shared-feed CAPTURE_DIRECTORY` read a committed feed
+without opening an exchange connection. `--once` replays its committed prefix
+and exits; restarting rebuilds feature windows from the header. All three also
+accept `HLS_SHARED_FEED=CAPTURE_DIRECTORY`.
+
+The reader selects the profile from the file header:
+
+- Legacy `MFSF1` captures keep their original native keys, such as `@107`, `BTC`
+  or `xyz:TSLA`. Select them with `--symbols @107,BTC`. This compatibility reader
+  retains the original accepted-frame decoding and saved replay behavior.
+- `MFOP1` reads typed native observations from complete committed projection
+  groups. Its keys include the product: `spot:@107`, `perps:BTC` or
+  `perps:xyz:TSLA`. Select them with `--symbols spot:@107,perps:BTC`. The API
+  retains the original per-session instrument definitions, units and native IDs.
+  Trade, BBO, book, candle and context fields come from the producer's native
+  observations; canonical companion batches do not duplicate them. Original
+  context mid and circulating supply are retained separately from executable
+  book mid. This producer profile does not admit all-mids observations.
+
+Omitting `--symbols` includes the captured universe. The API health response
+includes the target cursor, seal and recorded time. For `MFOP1` it also reports
+source cursor, instrument metadata, clock policy and an unavailable
+`availability_time_ns`. Groups follow source physical order. Feature time uses
+the maximum checked owner wall-clock approximation; the storage seal does not
+advance it. This approximation does not establish when information became
+usable for a strategy. Health still reports wall-time staleness.
+
+`MFOP1` publishes its cursor pair and clock only after the CLI/server applies the
+whole bounded batch. Decode/application failures or a caught application panic
+poison that reader; callers discard partial feature state and rebuild from the
+header. Input bytes, converted update bytes, native events and book levels have
+separate limits. A deferred whole group does not expose future metadata. These
+are logical limits, not measured process-memory guarantees or a persisted
+feature checkpoint. Floating-point conversion happens at the feature/display
+boundary; producer storage retains exact native values.
+
+The seven direct shared crates and all 23 resolved marketfeed packages use
+immutable producer revision `20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9`.
+Run `python3 scripts/check-shared-feed-pin.py` to check the complete resolution.
+For collection settings, see the [owned public capture guide](https://github.com/rsitech-ai/cryptofeed-rs/blob/20f5b1fa16665ce93d0d2da6764e9ad0fd2bfca9/docs/ops/hyperliquid-causal-capture.md).
+The coordinated pin and package checks are recorded in
+[the current integration evidence](docs/evidence/shared-feed-completion-intent-pin-20261021/README.md).
+Producer joint14 passes its unchanged two-second feed-tail diagnostic after
+bounded Completion/Intent co-admission. Native acquisition freshness remains
+unqualified: public timestamp/receipt differences are unsynchronized diagnostics,
+and the samples are not controlled latency comparisons or an SLA. A file tail
+is separate from feature availability. This HLS pin requires its own local,
+hosted and integrated-run evidence; predecessor passes do not qualify it.
+
+The producer's opt-in `marketfeed-capture` command owns public transports,
+persistent native owners, durable application-write authorization and the
+projection writer. Its new output root contains `source/` (MFCJ5 history) and
+`feed/` (MFOP1 projection). Point HLS at **`feed/`**, using the actual captured
+product keys. Direct `MFCJ1` through `MFCJ5` journals are unsupported HLS inputs.
+Native replay/source comparison is a separate producer check; structural
+consumption alone does not authenticate financial values or establish freshness.
+
+MFCJ5 uses OwnerHistory4. Successful application-write intent/invocation/result
+groups advance structural cursors without creating market features. A committed
+Failed/Unknown wire settlement invalidates feature state through a Gap before a
+later revocation group. The bounded whole-group callback/ACK behavior stays the
+same. New offline integration tests execute real owners, opaque one-use wire
+calls, source replay, projection and HLS conversion for spot and perpetuals.
+The [synthetic MFOP5 fixture](tests/fixtures/hyperliquid/mfop5-synthetic-v1/README.md) is
+exported only after those assertions pass. Native artifact jobs consume its exact
+cursor/count/clock summary; that proves portable structural compatibility, not
+same-platform native producer authentication or exchange coverage.
+
+The closed public pilot04 contains 1,415 groups and 271 projected items, with a
+clean seal and separate native source comparison. HLS reads of it are structural
+consumer checks. The prior pilot03 freshness audit FAILED with 10–11 seconds of
+native/acquisition lag; that result stays failed. Source-specific current local
+and hosted status is recorded in the [causal wire evidence](docs/evidence/shared-feed-causal-wire-pin-20261020/README.md).
+Live loss/freshness, historical usable time, strict dataset admission, strategy
+feature checkpoints, registered load and 24h/7d operation remain separate gates.
+
+Legacy hls recording/backfill formats remain available in standalone mode.
+Original captures and historical evidence retain their source pins and status;
+none is relabeled by this update. Wasmtime 36.0.19 and unrelated registry records
+remain unchanged. Legacy HLS WebSockets use explicit normal-verifier Rustls ring
+TLS with patched Mozilla roots and verifier floors. Dev/test SHA2 package
+optimization preserves every executable recheck and existing deadline.
+
+cryptofeed owns acquisition, exact storage and replay. The Quants/rsibot Python
+diagnostic reader consumes the same MFOP1 feed directly with its own pinned Rust
+bridge and independent ACK pair; HLS does not forward that feed. Diagnostic
+progress does not persist strategy feature state or qualify availability.
+HLS presents the shared observations. No trading, economic run, deployment or
+operational promotion follows from a passing consumer test.
+
+The earlier [security lock repair](docs/evidence/security-lock-20261019/README.md)
+updated three transitive package versions at producer revision
+`410c3cae95f17c3b2b8ee88a9809c5fc1d7ad28b` and fixed bounded PTY test cleanup.
+Its recorded full-lock RustSec audit and 543 tests retain that historical scope.

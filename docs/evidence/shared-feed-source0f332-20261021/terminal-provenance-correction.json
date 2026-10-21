@@ -1,0 +1,11 @@
+{
+  "scope": "Editorial provenance correction only: initial parent receipt left a placeholder toolchunk; actual completion was session46680/exit0/chunk3d3b84. Initial receipt/qualification retained; every command/log/input/artifact/status unchanged. No rerun.",
+  "previous_terminal_sha256": "15d706a08c151f65ec501542f2d9f7c3b7314249a56af30ff978f7b6f2cf0860",
+  "previous_qualification_sha256": "7c846353115f11e6cb5b18cac6b5b903cdc259f941c3d85e242d25a5a253baab",
+  "corrected_terminal_sha256": "81d08e3eb6603e60dcf6c482a3b760b8e4ead772fd1b3a9db60f8c1df1a438c8",
+  "portable_copy": {
+    "original_sha256": "83f79c11eec664037e990fcdde2e97db0b13d5c6140d4f0591eb12dc919b2f0e",
+    "original_bytes": 563,
+    "scope": "Absolute private paths replaced with stable opaque roots; raw receipts, artifacts and failures retained privately. No original capture archived in Git."
+  }
+}

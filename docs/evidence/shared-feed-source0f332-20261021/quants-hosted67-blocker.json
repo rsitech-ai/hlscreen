@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "status": "blocked:external",
+  "scope": "ActualownCI67a docs-only successor; all4jobs fail before steps underaccountrestriction. No test failures/passes or platformexecution inferred. No workflow/credential/billing change or manualrerun.",
+  "run": "https://github.com/s1korrrr/quants-lab/actions/runs/39579537152",
+  "commit": "67a9e1d055fe3dd137756225fd8d97c8ee1f7b2a",
+  "jobs": [
+    {
+      "job": "75 boundary tests (macos-15, Python 3.12)",
+      "id": 119153410556,
+      "steps": 0,
+      "tests_executed": 0,
+      "conclusion": "failure",
+      "billing_restriction_confirmed": true,
+      "annotations": {
+        "name": "hosted67-annotations-119153410556.json",
+        "sha256": "0b74c39b3a95c3d0078202a2fea8d38794003155fc582b0bc0698fc66090393a",
+        "bytes": 795
+      }
+    },
+    {
+      "job": "75 boundary tests (ubuntu-24.04, Python 3.12)",
+      "id": 119153410879,
+      "steps": 0,
+      "tests_executed": 0,
+      "conclusion": "failure",
+      "billing_restriction_confirmed": true,
+      "annotations": {
+        "name": "hosted67-annotations-119153410879.json",
+        "sha256": "4de691a71c314ac96b1cb548960e9c8e8629a922bfa9dfd4ad3d9214b709643a",
+        "bytes": 436
+      }
+    },
+    {
+      "job": "75 boundary tests (macos-15, Python 3.13)",
+      "id": 119153410970,
+      "steps": 0,
+      "tests_executed": 0,
+      "conclusion": "failure",
+      "billing_restriction_confirmed": true,
+      "annotations": {
+        "name": "hosted67-annotations-119153410970.json",
+        "sha256": "0b74c39b3a95c3d0078202a2fea8d38794003155fc582b0bc0698fc66090393a",
+        "bytes": 795
+      }
+    },
+    {
+      "job": "75 boundary tests (ubuntu-24.04, Python 3.13)",
+      "id": 119153411032,
+      "steps": 0,
+      "tests_executed": 0,
+      "conclusion": "failure",
+      "billing_restriction_confirmed": true,
+      "annotations": {
+        "name": "hosted67-annotations-119153411032.json",
+        "sha256": "4de691a71c314ac96b1cb548960e9c8e8629a922bfa9dfd4ad3d9214b709643a",
+        "bytes": 436
+      }
+    }
+  ],
+  "source_run": {
+    "name": "hosted67-run-01.json",
+    "sha256": "57be84957bfd224f53ae13729705e81b16b1c711d28f366f567c35c7b0988043",
+    "bytes": 1368
+  },
+  "next_external_action": "Account owner resolves GitHub Billing & plans payment/spending restriction, then reruns unchanged market-observations-boundaries workflow.",
+  "blocker_package": "complete for this externalCI gate only; other implementation/integration gates remain separate.",
+  "portable_copy": {
+    "original_sha256": "90fbd823812a67cfbffbfd82d6a2db0c4e9526cc9b66f00c5e34c5f9f74042e1",
+    "original_bytes": 2528,
+    "scope": "Absolute private paths replaced with stable opaque roots; raw receipts, artifacts and failures retained privately. No original capture archived in Git."
+  }
+}

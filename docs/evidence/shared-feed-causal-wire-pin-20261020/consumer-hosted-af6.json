@@ -1,0 +1,163 @@
+{
+  "schema_version": 1,
+  "status": "TERMINAL_FAILURE_ATTRIBUTION_ONLY; own-source functional/security jobs recorded separately",
+  "head": "af6ff557d53ec672e5201631a7ab7b3bcd3bb343",
+  "tree": "f5e9175a2a29e2d39bf69d5d344cdf5fb8c4577d",
+  "merge": "8878c7263f0b2d02f63115cdc7293a127cf73e11",
+  "whole_tested_merge_tree_equal_author": true,
+  "source_git_files": 336,
+  "source_git_manifest_sha256": "3bbb46ff1fc3b32e9b644ce6b09826bae5635224eef147835030e9e854069241",
+  "jobs": [
+    {
+      "job_id": 118920609871,
+      "name": "Dependency license and source policy",
+      "conclusion": "failure",
+      "raw_log": {
+        "file": "hlsaf6-hosted-job-118920609871-01.log",
+        "bytes": 50921,
+        "sha256": "398205191fd19555e7dc26bf21243a95cb4f2bb0e27ef66b9e3197678c373f5d"
+      },
+      "checkout_merge": "8878c7263f0b2d02f63115cdc7293a127cf73e11",
+      "passed": 0,
+      "failed": 0,
+      "ignored": 0,
+      "test_result_suites": 0,
+      "actual_failure": "cargo-about0.9.1 generated TLS roots/verifier attribution differs from checked-in stale inventory"
+    },
+    {
+      "job_id": 118920610221,
+      "name": "GitHub Actions security",
+      "conclusion": "success",
+      "raw_log": {
+        "file": "hlsaf6-hosted-job-118920610221-01.log",
+        "bytes": 16948,
+        "sha256": "25e8225a9845b36026a333049902bb42fb0efc54fc69b86c8234a4004e263ba1"
+      },
+      "checkout_merge": "8878c7263f0b2d02f63115cdc7293a127cf73e11",
+      "passed": 0,
+      "failed": 0,
+      "ignored": 0,
+      "test_result_suites": 0
+    },
+    {
+      "job_id": 118920610233,
+      "name": "PTY TUI (ubuntu-24.04)",
+      "conclusion": "success",
+      "raw_log": {
+        "file": "hlsaf6-hosted-job-118920610233-01.log",
+        "bytes": 27730,
+        "sha256": "07169b0c931b6003899c84b2decf18e9442753244ff185be06f2413072451b74"
+      },
+      "checkout_merge": "8878c7263f0b2d02f63115cdc7293a127cf73e11",
+      "passed": 6,
+      "failed": 0,
+      "ignored": 0,
+      "test_result_suites": 1
+    },
+    {
+      "job_id": 118920610253,
+      "name": "RustSec advisory scan",
+      "conclusion": "success",
+      "raw_log": {
+        "file": "hlsaf6-hosted-job-118920610253-01.log",
+        "bytes": 55510,
+        "sha256": "ca2acddeae2c5010dc4a9acfdfd69927bbd06a272ef0e4cf5d7f0640ebc3b148"
+      },
+      "checkout_merge": "8878c7263f0b2d02f63115cdc7293a127cf73e11",
+      "passed": 0,
+      "failed": 0,
+      "ignored": 0,
+      "test_result_suites": 0
+    },
+    {
+      "job_id": 118920610275,
+      "name": "PTY TUI (macos-15)",
+      "conclusion": "success",
+      "raw_log": {
+        "file": "hlsaf6-hosted-job-118920610275-01.log",
+        "bytes": 30128,
+        "sha256": "bfda44fd5ee1df222973408cdc1786fee41c2c7f769420ce2bdfe7004fc52c33"
+      },
+      "checkout_merge": "8878c7263f0b2d02f63115cdc7293a127cf73e11",
+      "passed": 6,
+      "failed": 0,
+      "ignored": 0,
+      "test_result_suites": 1
+    },
+    {
+      "job_id": 118920610298,
+      "name": "Rust workspace",
+      "conclusion": "success",
+      "raw_log": {
+        "file": "hlsaf6-hosted-job-118920610298-01.log",
+        "bytes": 212391,
+        "sha256": "a452329e0aa935a5394513faaec0582b8b8014c3a60653d192b74fc2e91f0ac9"
+      },
+      "checkout_merge": "8878c7263f0b2d02f63115cdc7293a127cf73e11",
+      "passed": 589,
+      "failed": 0,
+      "ignored": 0,
+      "test_result_suites": 86,
+      "unique_rust_test_names": 565,
+      "repeated_packaging_executions": 24,
+      "python_test_summaries": [
+        8,
+        4,
+        10
+      ],
+      "no_hidden_UTF8_or_reader_errors": true
+    },
+    {
+      "job_id": 118920612150,
+      "name": "Scheduled public API contract smoke",
+      "conclusion": "skipped",
+      "scope": "Scheduled API smoke conditional skip, not tested"
+    }
+  ],
+  "run": {
+    "file": "hlsaf6-hosted-39507682503-run-02.json",
+    "bytes": 12757,
+    "sha256": "b83b7a4bae1d0d18532dc4151def7b90c06e8b3f3e9357cc20825a8d031f07e9"
+  },
+  "jobs_snapshot": {
+    "file": "hlsaf6-hosted-39507682503-jobs-04.json",
+    "bytes": 13794,
+    "sha256": "469e6cb821fced7e2e72e95e8eb402f9084ecdabc36001246d58e238f98e7043"
+  },
+  "merge_api": {
+    "file": "hlsaf6-hosted-tested-merge-01.json",
+    "bytes": 2628,
+    "sha256": "7d81cd02f584ffce194349faa30f6c628a2000289434af1b0d72b74bf462b248"
+  },
+  "actual_watch_terminal": {
+    "file": "hlsaf6-hosted-main-watch-terminal-01.json",
+    "bytes": 122,
+    "sha256": "169ab015e0acf230e25f0278031ef9f724bc1a804f5131929c12e7892f456bf2"
+  },
+  "attribution_finding": {
+    "file": "hlsaf6-hosted-attribution-finding-01.json",
+    "bytes": 1429,
+    "sha256": "b8c666f4f63544535401b5b578c5c77f878f196e3db014183a96fd87d696c300"
+  },
+  "local_unpublished_repair": {
+    "file": "hlsaf6-attribution-repair-independent-01.json",
+    "bytes": 1932,
+    "sha256": "27ea01f4a1eb53d1a83e9216774eeb25f600d06142d74c473254b30c4a5a8413"
+  },
+  "remaining": [
+    "Same exactaf6 Release39507682505 notyetterminal; Linuxnative MFOP witness retained,3nativejobs/global/sourceartifactchecks pending.",
+    "Localnotice-only repair is differentunpublishedbytes; no successor CI inferred.",
+    "Original unexplained localPTYfailure retained; currenthosted2platform PTYpasses do not establish historicalcause.",
+    "Functional sharedsource/consumer integration doesnot qualifyfreshness/nativeavailability/registeredload/longsoak/economic/operational readiness."
+  ],
+  "helper": {
+    "file": "hlsaf6-hosted-main-audit-01.py",
+    "bytes": 4740,
+    "sha256": "65cc92974c3ccfb9bb06b3d9ddd828b3f533ef75f6990874bc7bfd53629e1aff"
+  },
+  "independent_full_receipt": {
+    "file": "hlsaf6-hosted-main-independent-01.json",
+    "bytes": 84954,
+    "sha256": "ae2fd3b0238888a338a8fce519f3db3d3d3fa2530e75fe98c0d6ba95decfc323"
+  }
+}

@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "scope": "immutable shared decoder/reader pin migration; no registry version updates, live-forward/soak/economic qualification",
+  "parent_source": "d5a26dd80398338c0ebe05d93847d7b6c435f0c7",
+  "previous_producer_pin": "62a8fef3ed17b23ad968eb4f0d897acd969055a1",
+  "producer_pin": "410c3cae95f17c3b2b8ee88a9809c5fc1d7ad28b",
+  "rustc": "1.88.0 (6b00bc388 2025-06-23)",
+  "source_inputs": [
+    {
+      "path": "Cargo.toml",
+      "sha256": "7b5bc320df2a7cf6e436bf302d7a7b12572bf6273416b854727a6f43984c9ec4"
+    },
+    {
+      "path": "Cargo.lock",
+      "sha256": "29f698ce7c7e776601a502d1b922e12fc4908c8ba91f23a867fef917964e5067"
+    }
+  ],
+  "checks": [
+    {
+      "check": "workspace-tests",
+      "command": "cargo test --locked --workspace --all-targets",
+      "exit": 0,
+      "log_name": "hlscreen-readiness-pin-tests-01.log",
+      "log_sha256": "c77ce1d1b145e26e88b2a87fe8777342c0f9f591b8e17727d0cc5e4d1d73eff7",
+      "tests": {
+        "passed": 542,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "check": "clippy",
+      "command": "cargo clippy --locked --workspace --all-targets -- -D warnings",
+      "exit": 0,
+      "log_name": "hlscreen-readiness-pin-clippy-01.log",
+      "log_sha256": "fdde9d7b96d4adb462c64b27fcc949325bb3a51f04b613199fbe09145ed9da64",
+      "tests": {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "check": "pin-resolution",
+      "command": "python3 scripts/check-shared-feed-pin.py",
+      "exit": 0,
+      "log_name": "hlscreen-readiness-pin-check-01.log",
+      "log_sha256": "5b4baeb7a4a3376972d9c765ac20c4f7383a69c3daafc061812daee01af74990",
+      "tests": {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "check": "msrv-target",
+      "command": "cargo +1.88.0 check --locked -p hls-hyperliquid",
+      "exit": 0,
+      "log_name": "hlscreen-readiness-pin-msrv-01.log",
+      "log_sha256": "e7b17c1afe88b31c8b1fccdd1a805c82a4c1fbb29be6498b8cdcc19195253770",
+      "tests": {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "check": "third-party-licenses",
+      "command": "PATH=<local-tools>:$PATH bash scripts/check-third-party-licenses.sh",
+      "exit": 0,
+      "log_name": "hlscreen-readiness-pin-licenses-01.log",
+      "log_sha256": "51e84521283d704a323f20d4c8095be7db07ae83699092e105179f461d32af22",
+      "tests": {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "check": "source-license-policy",
+      "command": "PATH=<local-tools>:$PATH cargo deny check licenses sources",
+      "exit": 0,
+      "log_name": "hlscreen-readiness-pin-deny-01.log",
+      "log_sha256": "a09bbb250feeb5c0d6ac91177e3a1730bf09901eefcec1269ea8d00949a8f1a4",
+      "tests": {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "check": "doctests",
+      "command": "cargo test --locked --workspace --doc",
+      "exit": 0,
+      "log_name": "hlscreen-readiness-pin-doctests-01.log",
+      "log_sha256": "b709ad9b6e6afb3eb1724ebaf7862dd1354438d9922c9086605d20cc51953822",
+      "tests": {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0
+      }
+    }
+  ],
+  "windows_writer_durability": "unresolved producer defect; local consumer checks are not Windows writer qualification",
+  "operational_promotion": false,
+  "independent_review": {
+    "pin_and_lock": "all4 marketfeed packages share full immutable source; registry package/version/checksum/dependency tuples unchanged",
+    "saved_replay": "independent offline invalid-exchange-URL replay reproduced same1055-event summary; all feed file hashes unchanged",
+    "scope": "reviewer reran pincheck and one saved replay; aggregate tests/clippy/MSRV/policy outcomes reviewed from logs, not independently rerun"
+  }
+}

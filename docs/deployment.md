@@ -95,10 +95,27 @@ python3 scripts/validate-soak-report.py \
   --minimum-duration-secs 900
 ```
 
-Add `--binary /path/to/hls` to the validator when verifying the retained report
-against the exact candidate binary. Repository release packaging also
-recomputes `runtime_source_sha256`; a later documentation-only commit remains
-valid, while any tracked runtime input change invalidates the evidence.
+This default `scope=report_only` check validates a historical report's contents;
+it does not qualify the current build. The report retains its original commit,
+host, runtime-source hash and binary hash even after dependencies or sources change.
+Repository release packaging checks historical reports and tests the binding
+checks without comparing a historical macOS binary to a new Linux build.
+
+For a current candidate, require both the exact binary and runtime-source inputs:
+
+```bash
+python3 scripts/validate-soak-report.py \
+  /var/tmp/hlscreen-soak/soak-reports/<run-id>/report.json \
+  --minimum-duration-secs 900 \
+  --binary /path/to/hls \
+  --runtime-source-root .
+```
+
+Both hashes must match for `scope=binary_and_source_bound`. A changed binary or
+tracked runtime input fails this check; a documentation-only change remains valid.
+To check only a retained original binary, use `--binary` alone (`scope=binary_bound`).
+The supervised runner checks both bindings when it creates a report. A passing
+historical check or packaging check never substitutes for a new candidate soak.
 
 A passing 15-minute report is bounded smoke evidence, not multi-day soak proof.
 The latest reviewed example is the

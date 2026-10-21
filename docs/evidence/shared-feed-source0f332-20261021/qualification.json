@@ -1,0 +1,3724 @@
+{
+  "schema_version": 1,
+  "scope": "localmacOSaarch64 Rust1.88 source-qualified HLS compatibility/security/package verification; no currentownhosted/live/freshness/availability/economic qualification",
+  "source_map_sha256": "69e3fa03cdf849be672392a5682c1d574d614532b6e75329c1fbcb3577ef447f",
+  "source_freeze": {
+    "path": "private-evidence/hls/.hls/source0f332-pin-03/source-freeze-01.json",
+    "bytes": 55195,
+    "sha256": "c86180969940a7f1b5c7bc23ce93678bf9be0d5c7d788cdf885c79dc241930a0",
+    "document": "source.json"
+  },
+  "hls_parent": "27bdca46bb37f809fad0dc90de980d1c254ceb1c",
+  "producer_commit": "84aa63534f79ae65161117effd624d66f0294f48",
+  "producer_source_files": 566,
+  "producer_source_sha256": "0f332bdf2535607281fe89330e3457498e5d81ef91867d6a4b05d2f3e91d0221",
+  "direct_pins": 7,
+  "resolved_marketfeed_packages": 23,
+  "registry_packages": 430,
+  "graph_receipt": {
+    "path": "private-evidence/hls/.hls/source0f332-pin-03/graph-01.json",
+    "bytes": 135726,
+    "sha256": "1c1df6a7b0f3741e522655b46abbc3899ca2eda12ec0ae9d0e065513a1ba0fd1"
+  },
+  "resolved_graph_nodes": 461,
+  "resolved_graph_edges": 1315,
+  "required_checks_all_passed": true,
+  "commands": [
+    {
+      "name": "rustc",
+      "argv": [
+        "rustc",
+        "-vV"
+      ],
+      "cwd": "private-evidence/hls",
+      "exit_code": 0,
+      "elapsed_seconds": 0.018049875274300575,
+      "stdout": {
+        "path": "private-evidence/hls/.hls/source0f332-pin-03/rustc-01.log",
+        "bytes": 192,
+        "sha256": "a779a874801ceac76338a2d4ec40ee690149a5b9b36793dfe152c48aa21d0184"
+      },
+      "stderr": {
+        "path": "private-evidence/hls/.hls/source0f332-pin-03/rustc-01.stderr",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "cargo-version",
+      "argv": [
+        "cargo",
+        "--version"
+      ],
+      "cwd": "private-evidence/hls",
+      "exit_code": 0,
+      "elapsed_seconds": 0.018795665819197893,
+      "stdout": {
+        "path": "private-evidence/hls/.hls/source0f332-pin-03/cargo-version-01.log",
+        "bytes": 36,
+        "sha256": "6c2df3721232c841c6af639c7b1c37c3032fcbf711e4f2914435f97ab5f4dff1"
+      },
+      "stderr": {
+        "path": "private-evidence/hls/.hls/source0f332-pin-03/cargo-version-01.stderr",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "python-version",
+      "argv": [
+        "python3",
+        "--version"
+      ],
+      "cwd": "private-evidence/hls",
+      "exit_code": 0,
+      "elapsed_seconds": 0.006945208180695772,
+      "stdout": {
+        "path": "private-evidence/hls/.hls/source0f332-pin-03/python-version-01.log",
+        "bytes": 15,
+        "sha256": "4c3569f5da09975434dd9fd9a91fadbc4367a91d8f3c3fab59e9241ab9ee4bd8"
+      },
+      "stderr": {
+        "path": "private-evidence/hls/.hls/source0f332-pin-03/python-version-01.stderr",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "audit-version",
+      "argv": [
+        "private-evidence/primary/.tools/bin/cargo-audit",
+        "--version"
+      ],
+      "cwd": "private-evidence/hls",
+      "exit_code": 0,
+      "elapsed_seconds": 0.006438334006816149,
+      "stdout": {
+        "path": "private-evidence/hls/.hls/source0f332-pin-03/audit-version-01.log",
+        "bytes": 19,
+        "sha256": "8748580845bee726903e69bc4543958fb01e2594317e6c68bf80114bff13d541"
+      },
+      "stderr": {
+        "path": "private-evidence/hls/.hls/source0f332-pin-03/audit-version-01.stderr",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "deny-version",
+      "argv": [
+        "private-evidence/hls/target/validation-tools/bin/cargo-deny",
+        "--version"
+      ],
+      "cwd": "private-evidence/hls",
+      "exit_code": 0,
+      "elapsed_seconds": 0.004281207919120789,
+      "stdout": {
+        "path": "private-evidence/hls/.hls/source0f332-pin-03/deny-version-01.log",
+        "bytes": 18,
+        "sha256": "1758f5ea93d8ad3585079f05c19358b7bb969cce1bf6c7bdab6659a8cd1ef6b8"
+      },
+      "stderr": {
+        "path": "private-evidence/hls/.hls/source0f332-pin-03/deny-version-01.stderr",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "about-version",
+      "argv": [
+        "private-evidence/primary/.tools/bin/cargo-about",
+        "--version"
+      ],
+      "cwd": "private-evidence/hls",
+      "exit_code": 0,
+      "elapsed_seconds": 0.005929958075284958,
+      "stdout": {
+        "path": "private-evidence/hls/.hls/source0f332-pin-03/about-version-01.log",
+        "bytes": 18,
+        "sha256": "529e34ea4b18f64d4862652888f69e8137b9e808b0fcc2e70aa4529a4cf431d7"
+      },
+      "stderr": {
+        "path": "private-evidence/hls/.hls/source0f332-pin-03/about-version-01.stderr",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "cargo-deny-resolution",
+      "argv": [
+        "cargo",
+        "deny",
+        "--version"
+      ],
+      "cwd": "private-evidence/hls",
+      "exit_code": 0,
+      "elapsed_seconds": 0.02005712501704693,
+      "stdout": {
+        "path": "private-evidence/hls/.hls/source0f332-pin-03/cargo-deny-resolution-01.log",
+        "bytes": 18,
+        "sha256": "1758f5ea93d8ad3585079f05c19358b7bb969cce1bf6c7bdab6659a8cd1ef6b8"
+      },
+      "stderr": {
+        "path": "private-evidence/hls/.hls/source0f332-pin-03/cargo-deny-resolution-01.stderr",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "cargo-about-resolution",
+      "argv": [
+        "cargo",
+        "about",
+        "--version"
+      ],
+      "cwd": "private-evidence/hls",
+      "exit_code": 0,
+      "elapsed_seconds": 0.01943629188463092,
+      "stdout": {
+        "path": "private-evidence/hls/.hls/source0f332-pin-03/cargo-about-resolution-01.log",
+        "bytes": 18,
+        "sha256": "529e34ea4b18f64d4862652888f69e8137b9e808b0fcc2e70aa4529a4cf431d7"
+      },
+      "stderr": {
+        "path": "private-evidence/hls/.hls/source0f332-pin-03/cargo-about-resolution-01.stderr",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "baseline-metadata",
+      "argv": [
+        "cargo",
+        "metadata",
+        "--format-version",
+        "1",
+        "--locked",
+        "--all-features"
+      ],
+      "cwd": "private-evidence/hls/.hls/source0f332-pin-03/baseline-workspace",
+      "exit_code": 0,
+      "elapsed_seconds": 0.3619014578871429,
+      "stdout": {
+        "path": "private-evidence/hls/.hls/source0f332-pin-03/baseline-metadata-01.log",
+        "bytes": 2197523,
+        "sha256": "53c74b36afdf0695e6c47cc3400f7fa00a824a91aa539bd3d9f207027d72db01"
+      },
+      "stderr": {
+        "path": "private-evidence/hls/.hls/source0f332-pin-03/baseline-metadata-01.stderr",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "metadata",
+      "argv": [
+        "cargo",
+        "metadata",
+        "--format-version",
+        "1",
+        "--locked",
+        "--all-features"
+      ],
+      "cwd": "private-evidence/hls",
+      "exit_code": 0,
+      "elapsed_seconds": 0.306143666151911,
+      "stdout": {
+        "path": "private-evidence/hls/.hls/source0f332-pin-03/metadata-01.log",
+        "bytes": 2189826,
+        "sha256": "c342504119e936aefad09893965d646b9c004cd4bca093fbf2c7b822ffc97f5d"
+      },
+      "stderr": {
+        "path": "private-evidence/hls/.hls/source0f332-pin-03/metadata-01.stderr",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "graph",
+      "argv": [
+        "python3",
+        "private-evidence/hls/.hls/source0f332-pin-03/verify_graph.py"
+      ],
+      "cwd": "private-evidence/hls",
+      "exit_code": 0,
+      "elapsed_seconds": 5.6611360418610275,
+      "stdout": {
+        "path": "private-evidence/hls/.hls/source0f332-pin-03/graph-01.log",
+        "bytes": 1136,
+        "sha256": "e02613eeec9a1cbb5b7a98bc4145dd6d4c92459c1bbe549fc8a9fa97d922cc35"
+      },
+      "stderr": {
+        "path": "private-evidence/hls/.hls/source0f332-pin-03/graph-01.stderr",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "pin",
+      "argv": [
+        "python3",
+        "scripts/check-shared-feed-pin.py"
+      ],
+      "cwd": "private-evidence/hls",
+      "exit_code": 0,
+      "elapsed_seconds": 0.34051254112273455,
+      "stdout": {
+        "path": "private-evidence/hls/.hls/source0f332-pin-03/pin-01.log",
+        "bytes": 62,
+        "sha256": "3f5850ff6b38e8fd8da2fe76014387835956974cf29b64f0b833aecbaca37c84"
+      },
+      "stderr": {
+        "path": "private-evidence/hls/.hls/source0f332-pin-03/pin-01.stderr",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "pr",
+      "argv": [
+        "bash",
+        "scripts/check.sh",
+        "pr"
+      ],
+      "cwd": "private-evidence/hls",
+      "exit_code": 0,
+      "elapsed_seconds": 150.136059791781,
+      "stdout": {
+        "path": "private-evidence/hls/.hls/source0f332-pin-03/pr-01.log",
+        "bytes": 55791,
+        "sha256": "4c3a010c78eae3c7e1a0fb37f97c3ddd8cdbbbe5c42af4f933e6802bd4166a4c"
+      },
+      "stderr": {
+        "path": "private-evidence/hls/.hls/source0f332-pin-03/pr-01.stderr",
+        "bytes": 19059,
+        "sha256": "1ed4894f54a50079996214d600aa8306800252bd54744897dda8e99cf2e0278d"
+      }
+    },
+    {
+      "name": "audit",
+      "argv": [
+        "private-evidence/primary/.tools/bin/cargo-audit",
+        "audit",
+        "--json",
+        "--deny",
+        "warnings"
+      ],
+      "cwd": "private-evidence/hls",
+      "exit_code": 0,
+      "elapsed_seconds": 4.799950958229601,
+      "stdout": {
+        "path": "private-evidence/hls/.hls/source0f332-pin-03/audit-01.log",
+        "bytes": 375,
+        "sha256": "761a859d68bd9172ab85adb90aed4202701c8dc40a9017bb60a2772032ea123d"
+      },
+      "stderr": {
+        "path": "private-evidence/hls/.hls/source0f332-pin-03/audit-01.stderr",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "deny",
+      "argv": [
+        "private-evidence/hls/target/validation-tools/bin/cargo-deny",
+        "check",
+        "licenses",
+        "sources"
+      ],
+      "cwd": "private-evidence/hls",
+      "exit_code": 0,
+      "elapsed_seconds": 1.1579496669583023,
+      "stdout": {
+        "path": "private-evidence/hls/.hls/source0f332-pin-03/deny-01.log",
+        "bytes": 24,
+        "sha256": "a09bbb250feeb5c0d6ac91177e3a1730bf09901eefcec1269ea8d00949a8f1a4"
+      },
+      "stderr": {
+        "path": "private-evidence/hls/.hls/source0f332-pin-03/deny-01.stderr",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "generated-attribution",
+      "argv": [
+        "bash",
+        "scripts/check-third-party-licenses.sh"
+      ],
+      "cwd": "private-evidence/hls",
+      "exit_code": 0,
+      "elapsed_seconds": 12.519720292184502,
+      "stdout": {
+        "path": "private-evidence/hls/.hls/source0f332-pin-03/generated-attribution-01.log",
+        "bytes": 67,
+        "sha256": "edb814bb046435a2b1f8224b46bd879223326fa8dbd56b62e096f325ac461e3c"
+      },
+      "stderr": {
+        "path": "private-evidence/hls/.hls/source0f332-pin-03/generated-attribution-01.stderr",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  ],
+  "environment": {
+    "RUSTUP_TOOLCHAIN": "1.88.0",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "CARGO_TARGET_DIR": "private-evidence/hls/.hls/target-source002a-pin-01",
+    "HLS_RELEASE_SMOKE_DIR": "private-evidence/hls/.hls/source0f332-pin-03/release-smoke-01",
+    "RUSTDOCFLAGS": "-D warnings",
+    "RUSTFLAGS": "",
+    "PATH": "private-runtime/dependencies/python/bin:private-evidence/hls/target/validation-tools/bin:private-evidence/primary/.tools/bin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/pkg/env/global/bin:private-cargo/bin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:private-home/.codex/tmp/arg0-macos/codex-arg0VQFUHg:private-runtime/dependencies/bin/override:private-runtime/dependencies/bin/fallback:/Applications/ChatGPT.app/Contents/Resources:/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS"
+  },
+  "actual_terminal": {
+    "actual_terminal_exit_code": 0,
+    "actual_session_id": 46680,
+    "actual_tool_result": {
+      "exit_code": 0,
+      "tool_chunk": "3d3b84"
+    },
+    "terminal_marker": "HLS_SOURCE0F332_QUALIFICATION_RUNNER_TERMINAL_ZERO_SOURCE_UNCHANGED",
+    "runner_log_sha256": "ca9c89fe3c26a7c7abbb0afdfc325c8991d73416db5ce8c7fe1c5c4bba295b9a",
+    "scope": "Actual16commandrunner finished; source342unchanged. All failures from01/02retained. No hosted/live result.",
+    "runner_log": {
+      "path": "private-evidence/hls/.hls/source0f332-pin-03/runner-01.log",
+      "bytes": 648,
+      "sha256": "ca9c89fe3c26a7c7abbb0afdfc325c8991d73416db5ce8c7fe1c5c4bba295b9a"
+    },
+    "validation": {
+      "path": "private-evidence/hls/.hls/source0f332-pin-03/validation-01.json",
+      "bytes": 13302,
+      "sha256": "9bdbc4f2478eaa198b63c43e39e378d0d9e3ae6359b29a40e7166a7e5302505f"
+    },
+    "terminal_marker_observed_in_bound_log": true
+  },
+  "retained_executable": {
+    "path": "private-evidence/hls/.hls/source0f332-pin-03/hls-release-retained-01",
+    "bytes": 26916832,
+    "sha256": "8a63828d5f4ae686cd6caade59faea78ca180e38c78a5aca1c28d001eae1bb89",
+    "mode": "0555",
+    "loaded_image_attestation": false,
+    "embedded_producer_recipe_claimed": false,
+    "binding": "actual fresh Cargo hosttriple release output equals unpacked runtime smoke executable bytes; metadata/cache/sourcefreeze binds current producer source"
+  },
+  "current_build_output": {
+    "path": "private-evidence/hls/.hls/target-source002a-pin-01/aarch64-apple-darwin/release/hls",
+    "bytes": 26916832,
+    "sha256": "8a63828d5f4ae686cd6caade59faea78ca180e38c78a5aca1c28d001eae1bb89"
+  },
+  "rust_counts": {
+    "rust_executions": 589,
+    "rust_test_names_executions": 589,
+    "unique_rust_names": 565,
+    "test_result_summaries": 86,
+    "required_actual_owner_tests": [
+      "public_capture_profile_fits_unchanged_hls_reader_limits",
+      "mfcj5_spot_perps_native_values_and_control_only_groups_are_consumed_atomically",
+      "failed_application_write_invalidates_at_its_committed_wire_group",
+      "cancelled_application_write_invalidates_at_its_committed_unknown_group",
+      "callback_failure_on_empty_wire_group_preserves_ack_pair_and_poisons_reader"
+    ],
+    "source_unchanged": true
+  },
+  "python_test_counts": [
+    8,
+    5,
+    10
+  ],
+  "security": {
+    "audit": {
+      "path": "private-evidence/hls/.hls/source0f332-pin-03/audit-01.log",
+      "bytes": 375,
+      "sha256": "761a859d68bd9172ab85adb90aed4202701c8dc40a9017bb60a2772032ea123d"
+    },
+    "audit_stderr": {
+      "path": "private-evidence/hls/.hls/source0f332-pin-03/audit-01.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "vulnerabilities": 0,
+    "warnings": {},
+    "tool_binding": {
+      "path": "private-evidence/hls/.hls/source0f332-pin-03/tool-bindings-01.json",
+      "bytes": 700,
+      "sha256": "22f13d24fd464c5c7cc3c41fafa600331f0044d102b935f408db46cc99f42c5d"
+    },
+    "deny": {
+      "path": "private-evidence/hls/.hls/source0f332-pin-03/deny-01.log",
+      "bytes": 24,
+      "sha256": "a09bbb250feeb5c0d6ac91177e3a1730bf09901eefcec1269ea8d00949a8f1a4"
+    },
+    "deny_stderr": {
+      "path": "private-evidence/hls/.hls/source0f332-pin-03/deny-01.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "generated_attribution": {
+      "path": "private-evidence/hls/.hls/source0f332-pin-03/generated-attribution-01.log",
+      "bytes": 67,
+      "sha256": "edb814bb046435a2b1f8224b46bd879223326fa8dbd56b62e096f325ac461e3c"
+    }
+  },
+  "archive": {
+    "path": "private-evidence/hls/.hls/source0f332-pin-03/release-smoke-01/hlscreen-aarch64-apple-darwin.tar.gz",
+    "bytes": 10421382,
+    "sha256": "a260c20b8a3faa8a0c5f4c5d395fcdc3be9960eb4c579e932090e341b8f6a43b",
+    "checksum": {
+      "path": "private-evidence/hls/.hls/source0f332-pin-03/release-smoke-01/hlscreen-aarch64-apple-darwin.tar.gz.sha256",
+      "bytes": 103,
+      "sha256": "d561825ed2a036d189ec6ccf5e8bbc6a5a585eac0d88b64a3e5369a8e2bd7f98"
+    },
+    "ordinary_files": 7,
+    "docs": [
+      {
+        "path": "LICENSE",
+        "bytes": 11358,
+        "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      {
+        "path": "CHANGELOG.md",
+        "bytes": 4564,
+        "sha256": "bfc7f83424eb70d224f1d8fcf2185e5bd361bf718484067df94c7ada35b0b0e0"
+      },
+      {
+        "path": "THIRD_PARTY_LICENSES.txt",
+        "bytes": 389925,
+        "sha256": "16a3528924b61603922c52aee6aa8463214059e5c4948c4aea3093c78afa6b84"
+      },
+      {
+        "path": "THIRD_PARTY_NOTICES.md",
+        "bytes": 3571,
+        "sha256": "fd22881a716ce6a6fc6b38b41aef7d66dee7a58914a2be1a404e3ea7c9292c05"
+      },
+      {
+        "path": "NOTICE",
+        "bytes": 124,
+        "sha256": "2f58cf26f1ba2892920da15ec52489e4f7c855b4b0cd7d93450815a8277d7ca9"
+      },
+      {
+        "path": "README.md",
+        "bytes": 31746,
+        "sha256": "a92c0f04c70a8b48ba4db33d962ab7ab5aba1d517438b13c6a6da9cce41621e5"
+      }
+    ],
+    "no_extra_AppleDouble": true
+  },
+  "synthetic_smoke": {
+    "schema_version": 1,
+    "scope": "portable synthetic MFOP5 structural consumer smoke",
+    "binary_sha256": "8a63828d5f4ae686cd6caade59faea78ca180e38c78a5aca1c28d001eae1bb89",
+    "fixture_manifest_sha256": "471e5b765aeab083aaf7167306b98e0385aa96a4baae08f390bc6dfea5b7e5ae",
+    "argv": [
+      "private-evidence/hls/.hls/source0f332-pin-03/release-smoke-01/unpack/hlscreen-aarch64-apple-darwin/bin/hls",
+      "live",
+      "--shared-feed",
+      "private-evidence/hls/tests/fixtures/hyperliquid/mfop5-synthetic-v1/feed",
+      "--once",
+      "--data-dir",
+      "private-evidence/hls/.hls/source0f332-pin-03/release-smoke-01/smoke-data/mfop5"
+    ],
+    "exit_code": 0,
+    "market_events": 2,
+    "summary": {
+      "as_of_ms": 1792533583392,
+      "availability_time_ns": null,
+      "clock_policy": "max_checked_owner_approximation_physical_order_v1",
+      "cursor": {
+        "feed_id": "c68007e7c93ae3fe9dcbb6c09242d9ab1f4cf9bb",
+        "offset": 171188,
+        "sequence": 67
+      },
+      "data_gaps": 6,
+      "events": {
+        "trade": 2
+      },
+      "float_projection": "features_and_display_only",
+      "instruments": [
+        {
+          "display_key": "spot:@12",
+          "instrument": 1,
+          "metadata": {
+            "base": "PURR",
+            "catalog_version": 7,
+            "contract_size": null,
+            "expiry_ns": null,
+            "id": 1,
+            "inverse": false,
+            "key": {
+              "expiry_ns": null,
+              "kind": "spot",
+              "native_symbol": "@12",
+              "settlement": null,
+              "venue": "hyperliquid-spot"
+            },
+            "max_quantity": null,
+            "min_notional": null,
+            "min_quantity": null,
+            "price_increment": {
+              "coefficient": "0",
+              "scale": 8
+            },
+            "price_scale": 8,
+            "quantity_increment": {
+              "coefficient": "1",
+              "scale": 0
+            },
+            "quantity_scale": 0,
+            "quote": "USDC",
+            "settlement": null,
+            "status": "Active"
+          },
+          "native_symbol": "@12",
+          "session": 31,
+          "venue": 21
+        },
+        {
+          "display_key": "perps:BTC",
+          "instrument": 1,
+          "metadata": {
+            "base": "BTC",
+            "catalog_version": 7,
+            "contract_size": null,
+            "expiry_ns": null,
+            "id": 1,
+            "inverse": false,
+            "key": {
+              "expiry_ns": null,
+              "kind": "perpetual_linear",
+              "native_symbol": "BTC",
+              "settlement": "USDC",
+              "venue": "hyperliquid-perps"
+            },
+            "max_quantity": null,
+            "min_notional": null,
+            "min_quantity": null,
+            "price_increment": {
+              "coefficient": "0",
+              "scale": 1
+            },
+            "price_scale": 1,
+            "quantity_increment": {
+              "coefficient": "1",
+              "scale": 5
+            },
+            "quantity_scale": 5,
+            "quote": "USDC",
+            "settlement": "USDC",
+            "status": "Active"
+          },
+          "native_symbol": "BTC",
+          "session": 32,
+          "venue": 22
+        }
+      ],
+      "sealed": true,
+      "source_cursor": {
+        "feed_id": "346159efd6918398a7122cc315cfb217a1ebceec",
+        "offset": 115383,
+        "sequence": 67
+      }
+    },
+    "fixture_bytes_and_metadata_unchanged": true,
+    "native_source_authentication_on_this_platform": false,
+    "availability_time_ns": null,
+    "loaded_image_attestation": false,
+    "stderr_sha256": "93cdad03621b0856bd28acb370ad3cca36a4437527e2073e66422ca27b2f0324"
+  },
+  "fixture_generation_scope": "unchanged historical5479/recipe16a synthetic fixture; currentproducer actualowner5tests independently pass; no historicalfixture regen or newnativeauth claim",
+  "preservation": {
+    "qualified_files": 342,
+    "baseline_tracked_files": 341,
+    "all338_nonpin_nonREADME_baseline_files_fullstats_unchanged": true,
+    "already_approved_attributes_rule_preserved": true,
+    "historical_fixture_manifest_and3files_unchanged": true,
+    "fullstats": {
+      ".gitattributes": {
+        "sha256": "f02453aa1ad367b1322150c24010510d09ddaedf078f4b633a58978406060947",
+        "bytes": 422,
+        "mode": 33188,
+        "inode": 53433270,
+        "device": 16777229,
+        "mtime_ns": 1792539180006808985,
+        "ctime_ns": 1792539180006808985
+      },
+      ".github/ISSUE_TEMPLATE/bug_report.yml": {
+        "sha256": "8620071805973b7ddd9755510c1cb3917ee23b7f3ae9fa8a15d429395595065d",
+        "bytes": 1880,
+        "mode": 33188,
+        "inode": 53433273,
+        "device": 16777229,
+        "mtime_ns": 1792434261846724772,
+        "ctime_ns": 1792434261846724772
+      },
+      ".github/ISSUE_TEMPLATE/config.yml": {
+        "sha256": "4fa42649ff023d523c3a97845f426487ed60ee652f3383468ddd48085d55ac10",
+        "bytes": 462,
+        "mode": 33188,
+        "inode": 53433274,
+        "device": 16777229,
+        "mtime_ns": 1792434261846775981,
+        "ctime_ns": 1792434261846775981
+      },
+      ".github/ISSUE_TEMPLATE/docs.yml": {
+        "sha256": "ff7e157288c2a733ff21944c505ae6a288f45ea6533aa36be9d197b1a50170a0",
+        "bytes": 482,
+        "mode": 33188,
+        "inode": 53433275,
+        "device": 16777229,
+        "mtime_ns": 1792434261846837773,
+        "ctime_ns": 1792434261846837773
+      },
+      ".github/ISSUE_TEMPLATE/feature_request.yml": {
+        "sha256": "1912debb31c070268f3b7a19d8f1cf765f7f476b69bb15154db6931f0a4c5d67",
+        "bytes": 1267,
+        "mode": 33188,
+        "inode": 53433276,
+        "device": 16777229,
+        "mtime_ns": 1792434261846890107,
+        "ctime_ns": 1792434261846890107
+      },
+      ".github/dependabot.yml": {
+        "sha256": "c31fbdaa97670a196cccfb5a30bffc147235bba77f12ed87b1a6cb9743635892",
+        "bytes": 945,
+        "mode": 33188,
+        "inode": 53433277,
+        "device": 16777229,
+        "mtime_ns": 1792434261846934399,
+        "ctime_ns": 1792434261846934399
+      },
+      ".github/pull_request_template.md": {
+        "sha256": "7b2216ce12eed2292b9735ddca6c53bf184918b5afcf2d1f732260be6c4358b9",
+        "bytes": 771,
+        "mode": 33188,
+        "inode": 53433278,
+        "device": 16777229,
+        "mtime_ns": 1792434261846980733,
+        "ctime_ns": 1792434261846980733
+      },
+      ".github/workflows/ci.yml": {
+        "sha256": "e108d959e7b89662b1b723081aaff4369a7654ee56399d444e2f9d53e6902cb0",
+        "bytes": 5071,
+        "mode": 33188,
+        "inode": 53433280,
+        "device": 16777229,
+        "mtime_ns": 1792440891913358768,
+        "ctime_ns": 1792440891913358768
+      },
+      ".github/workflows/release.yml": {
+        "sha256": "b25b394a39fc117224d6a2746f8ee19fe38a2208018ad3a4b37af89f6c284f29",
+        "bytes": 16142,
+        "mode": 33188,
+        "inode": 53433281,
+        "device": 16777229,
+        "mtime_ns": 1792434261847209568,
+        "ctime_ns": 1792434261847209568
+      },
+      ".gitignore": {
+        "sha256": "c4be2f25476f5eec7b4703c7b48962885e9d85fb748369b0d108cfed4f729ff2",
+        "bytes": 375,
+        "mode": 33188,
+        "inode": 53433282,
+        "device": 16777229,
+        "mtime_ns": 1792434261847260943,
+        "ctime_ns": 1792434261847260943
+      },
+      "CHANGELOG.md": {
+        "sha256": "bfc7f83424eb70d224f1d8fcf2185e5bd361bf718484067df94c7ada35b0b0e0",
+        "bytes": 4564,
+        "mode": 33188,
+        "inode": 53433283,
+        "device": 16777229,
+        "mtime_ns": 1792434261847334402,
+        "ctime_ns": 1792434261847334402
+      },
+      "CODE_OF_CONDUCT.md": {
+        "sha256": "f9fffe173db8df934a184057f76b37df6342273627317abfdc653a78950f523c",
+        "bytes": 1691,
+        "mode": 33188,
+        "inode": 53433284,
+        "device": 16777229,
+        "mtime_ns": 1792434261847394903,
+        "ctime_ns": 1792434261847394903
+      },
+      "CONTRIBUTING.md": {
+        "sha256": "7a159308c8b3624d20b444834f8ed8429917991bd7e1fe9fd0e19d0d052fe56b",
+        "bytes": 2955,
+        "mode": 33188,
+        "inode": 53433285,
+        "device": 16777229,
+        "mtime_ns": 1792434261847447570,
+        "ctime_ns": 1792434261847447570
+      },
+      "LICENSE": {
+        "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "bytes": 11358,
+        "mode": 33188,
+        "inode": 53433288,
+        "device": 16777229,
+        "mtime_ns": 1792434261847771239,
+        "ctime_ns": 1792434261847771239
+      },
+      "MAINTAINERS.md": {
+        "sha256": "f499190f75043796e53cae0bae95c56520f9ee2b22e21834383b21527552de31",
+        "bytes": 599,
+        "mode": 33188,
+        "inode": 53433289,
+        "device": 16777229,
+        "mtime_ns": 1792434261847825323,
+        "ctime_ns": 1792434261847825323
+      },
+      "NOTICE": {
+        "sha256": "2f58cf26f1ba2892920da15ec52489e4f7c855b4b0cd7d93450815a8277d7ca9",
+        "bytes": 124,
+        "mode": 33188,
+        "inode": 53433290,
+        "device": 16777229,
+        "mtime_ns": 1792434261847881115,
+        "ctime_ns": 1792434261847881115
+      },
+      "SECURITY.md": {
+        "sha256": "15ddb3c380fff595c1edfad328afa3f0d2b0aa52ced92cf34cbe66606ab67264",
+        "bytes": 1703,
+        "mode": 33188,
+        "inode": 53433292,
+        "device": 16777229,
+        "mtime_ns": 1792434261848033116,
+        "ctime_ns": 1792434261848033116
+      },
+      "SUPPORT.md": {
+        "sha256": "0816f9eb48c86ef1745afeea676381c1c0f3d2ac5160c886331bd79ffe9c1465",
+        "bytes": 1223,
+        "mode": 33188,
+        "inode": 53433293,
+        "device": 16777229,
+        "mtime_ns": 1792434261848085033,
+        "ctime_ns": 1792434261848085033
+      },
+      "THIRD_PARTY_LICENSES.txt": {
+        "sha256": "16a3528924b61603922c52aee6aa8463214059e5c4948c4aea3093c78afa6b84",
+        "bytes": 389925,
+        "mode": 33188,
+        "inode": 53433294,
+        "device": 16777229,
+        "mtime_ns": 1792535460591077946,
+        "ctime_ns": 1792535460591077946
+      },
+      "THIRD_PARTY_NOTICES.md": {
+        "sha256": "fd22881a716ce6a6fc6b38b41aef7d66dee7a58914a2be1a404e3ea7c9292c05",
+        "bytes": 3571,
+        "mode": 33188,
+        "inode": 53433295,
+        "device": 16777229,
+        "mtime_ns": 1792454856593968822,
+        "ctime_ns": 1792454856593968822
+      },
+      "about.hbs": {
+        "sha256": "dd551bc8dd89b3505ff20faa50581413c7bd08f9350e7fd7340a1bec12274679",
+        "bytes": 495,
+        "mode": 33188,
+        "inode": 53433296,
+        "device": 16777229,
+        "mtime_ns": 1792434261848540120,
+        "ctime_ns": 1792434261848540120
+      },
+      "about.toml": {
+        "sha256": "29e2f3af6eb5b944cfbcc0bd185ae8657ffafbd217e6df163c7cb33fcfbe3352",
+        "bytes": 954,
+        "mode": 33188,
+        "inode": 53433297,
+        "device": 16777229,
+        "mtime_ns": 1792434261848593496,
+        "ctime_ns": 1792434261848593496
+      },
+      "config/example.toml": {
+        "sha256": "f040abd853b8b14258b226d52152081e3510024db363f3cb67353c2cbeaa6046",
+        "bytes": 645,
+        "mode": 33188,
+        "inode": 53433299,
+        "device": 16777229,
+        "mtime_ns": 1792434261848671496,
+        "ctime_ns": 1792434261848671496
+      },
+      "crates/hls-cli/Cargo.toml": {
+        "sha256": "a680f54cba31a09fc9d1819806b776fdad401b6808724f948bf156e9b8223c4b",
+        "bytes": 1600,
+        "mode": 33188,
+        "inode": 53433302,
+        "device": 16777229,
+        "mtime_ns": 1792526773537137499,
+        "ctime_ns": 1792526773537137499
+      },
+      "crates/hls-cli/src/commands/alerts.rs": {
+        "sha256": "16511744aa5271a0c51874a3b480aafeca8aad98c81205400648b311fe361857",
+        "bytes": 12065,
+        "mode": 33188,
+        "inode": 53433305,
+        "device": 16777229,
+        "mtime_ns": 1792434261848966541,
+        "ctime_ns": 1792434261848966541
+      },
+      "crates/hls-cli/src/commands/analog.rs": {
+        "sha256": "4437d08765ca31ae3d0940f8ce1baafb1ade944a46d4acf836ffdab20c19118a",
+        "bytes": 3786,
+        "mode": 33188,
+        "inode": 53433306,
+        "device": 16777229,
+        "mtime_ns": 1792434261849027291,
+        "ctime_ns": 1792434261849027291
+      },
+      "crates/hls-cli/src/commands/backfill.rs": {
+        "sha256": "251f260a0483ba8d1ae917f96f19badb81cbd4846ffa18e6470658f7278baf78",
+        "bytes": 18152,
+        "mode": 33188,
+        "inode": 53433307,
+        "device": 16777229,
+        "mtime_ns": 1792434261849097583,
+        "ctime_ns": 1792434261849097583
+      },
+      "crates/hls-cli/src/commands/bench.rs": {
+        "sha256": "3e42a019ea47c3e73d7ba6249f944d37ec0894b6d39dc1c6993b878ef45b8779",
+        "bytes": 1751,
+        "mode": 33188,
+        "inode": 53433308,
+        "device": 16777229,
+        "mtime_ns": 1792434261849153792,
+        "ctime_ns": 1792434261849153792
+      },
+      "crates/hls-cli/src/commands/doctor.rs": {
+        "sha256": "fe4b50745d3867b994c5aeef704b2b10c7bcd561966f9bc921c841726f738bb5",
+        "bytes": 6953,
+        "mode": 33188,
+        "inode": 53433309,
+        "device": 16777229,
+        "mtime_ns": 1792434261849412877,
+        "ctime_ns": 1792434261849412877
+      },
+      "crates/hls-cli/src/commands/explain.rs": {
+        "sha256": "645e625820f74e179b3a52b21c3c0ce9215e0b4b0836e8f735880919f5152eb5",
+        "bytes": 2812,
+        "mode": 33188,
+        "inode": 53433310,
+        "device": 16777229,
+        "mtime_ns": 1792434261849472545,
+        "ctime_ns": 1792434261849472545
+      },
+      "crates/hls-cli/src/commands/export_parquet.rs": {
+        "sha256": "eae4635bfa7b86c6107758582ef1e70aaf9fe2efb502de381727d176d1f3467c",
+        "bytes": 2050,
+        "mode": 33188,
+        "inode": 53433311,
+        "device": 16777229,
+        "mtime_ns": 1792434261849521003,
+        "ctime_ns": 1792434261849521003
+      },
+      "crates/hls-cli/src/commands/extension.rs": {
+        "sha256": "94298480a1a8d22c37058f2341f15f371e8ebee67427834c04af0925910f6b28",
+        "bytes": 4511,
+        "mode": 33188,
+        "inode": 53433312,
+        "device": 16777229,
+        "mtime_ns": 1792434261849579295,
+        "ctime_ns": 1792434261849579295
+      },
+      "crates/hls-cli/src/commands/fees.rs": {
+        "sha256": "08f1a9a21d91ac7ed2954fc03431394b8f9870aadd30018ea9a4b910163a289b",
+        "bytes": 1656,
+        "mode": 33188,
+        "inode": 53433313,
+        "device": 16777229,
+        "mtime_ns": 1792434261849627212,
+        "ctime_ns": 1792434261849627212
+      },
+      "crates/hls-cli/src/commands/health.rs": {
+        "sha256": "94ae17cbd84c31c34bbf2d8df039ab61ae826235381120b2eb07d555c3304a0c",
+        "bytes": 1491,
+        "mode": 33188,
+        "inode": 53433314,
+        "device": 16777229,
+        "mtime_ns": 1792434261849681338,
+        "ctime_ns": 1792434261849681338
+      },
+      "crates/hls-cli/src/commands/init.rs": {
+        "sha256": "f206787a52bbbe5f87426c59bd86ef00f521aa77435ac97687b6837ac1163b8f",
+        "bytes": 1674,
+        "mode": 33188,
+        "inode": 53433315,
+        "device": 16777229,
+        "mtime_ns": 1792434261849748463,
+        "ctime_ns": 1792434261849748463
+      },
+      "crates/hls-cli/src/commands/live.rs": {
+        "sha256": "e5f0a6e536e7be2de6dd154a6ca20b54dbe20123db3b120d5c08b85718af9fcb",
+        "bytes": 296066,
+        "mode": 33188,
+        "inode": 53433316,
+        "device": 16777229,
+        "mtime_ns": 1792526773538279853,
+        "ctime_ns": 1792526773538279853
+      },
+      "crates/hls-cli/src/commands/metadata.rs": {
+        "sha256": "6b1aa0ada6b96e42407101e8bf8af4e12c6a985d9edc0a8eab2cd84d88baac4a",
+        "bytes": 1053,
+        "mode": 33188,
+        "inode": 53433317,
+        "device": 16777229,
+        "mtime_ns": 1792434261850093716,
+        "ctime_ns": 1792434261850093716
+      },
+      "crates/hls-cli/src/commands/mod.rs": {
+        "sha256": "5ba1013e82b4f23fc7b00fc0727618f72d8eb965fe0ccf65cb83fe2bb9b234f2",
+        "bytes": 436,
+        "mode": 33188,
+        "inode": 53433318,
+        "device": 16777229,
+        "mtime_ns": 1792526773537607925,
+        "ctime_ns": 1792526773537607925
+      },
+      "crates/hls-cli/src/commands/record.rs": {
+        "sha256": "88139ed0a097cc7e5596b0b9569854fa323c71a3f0982b087d8da71b8fd76b23",
+        "bytes": 3157,
+        "mode": 33188,
+        "inode": 53433319,
+        "device": 16777229,
+        "mtime_ns": 1792434261850199134,
+        "ctime_ns": 1792434261850199134
+      },
+      "crates/hls-cli/src/commands/replay.rs": {
+        "sha256": "768ea67a4262fe23ee664747da377bf53e0e652e6b4bfa93d61d0a07777161df",
+        "bytes": 2929,
+        "mode": 33188,
+        "inode": 53433320,
+        "device": 16777229,
+        "mtime_ns": 1792434261850251968,
+        "ctime_ns": 1792434261850251968
+      },
+      "crates/hls-cli/src/commands/screen.rs": {
+        "sha256": "7c07228321b38d4707a1827805688e5d99b58ee0d582729022bb7c27809f3c19",
+        "bytes": 3957,
+        "mode": 33188,
+        "inode": 53433321,
+        "device": 16777229,
+        "mtime_ns": 1792434261850312301,
+        "ctime_ns": 1792434261850312301
+      },
+      "crates/hls-cli/src/commands/server.rs": {
+        "sha256": "1cc96f7fe3cd5ac1c19d9b8881762dae338e036c5fe869944382fc3d9e282bec",
+        "bytes": 63577,
+        "mode": 33188,
+        "inode": 53433322,
+        "device": 16777229,
+        "mtime_ns": 1792526799539598701,
+        "ctime_ns": 1792526799539598701
+      },
+      "crates/hls-cli/src/commands/symbols.rs": {
+        "sha256": "fd386af4997598de2df7ffd816e11d25aaf4e02bfd87f013f9fa8ad78cdb49dd",
+        "bytes": 3681,
+        "mode": 33188,
+        "inode": 53433323,
+        "device": 16777229,
+        "mtime_ns": 1792434261850501928,
+        "ctime_ns": 1792434261850501928
+      },
+      "crates/hls-cli/src/commands/ws_rate_limit.rs": {
+        "sha256": "b505406cb50b9324d72f2e762d9240044bcc34745bd988abbbfdfd00bb1e8910",
+        "bytes": 6263,
+        "mode": 33188,
+        "inode": 53433324,
+        "device": 16777229,
+        "mtime_ns": 1792434261850580804,
+        "ctime_ns": 1792434261850580804
+      },
+      "crates/hls-cli/src/commands/ws_tls.rs": {
+        "sha256": "0a776cce6b26156f27808903e085db6cb340cabcd26f4cc74889a8240964f099",
+        "bytes": 1309,
+        "mode": 33188,
+        "inode": 58203442,
+        "device": 16777229,
+        "mtime_ns": 1792526862638289424,
+        "ctime_ns": 1792526862638289424
+      },
+      "crates/hls-cli/src/commands/ws_tls_tests.rs": {
+        "sha256": "fb790fce93cedf6f42dccdcb1909993d8286749da7a2275a3e17c53d69c99614",
+        "bytes": 4298,
+        "mode": 33188,
+        "inode": 58204763,
+        "device": 16777229,
+        "mtime_ns": 1792527211221869400,
+        "ctime_ns": 1792527211221869400
+      },
+      "crates/hls-cli/src/main.rs": {
+        "sha256": "92a5a64c1e5f45eff1ea300e260804473b50aca5860a922cc7ed257599bf87ae",
+        "bytes": 6291,
+        "mode": 33188,
+        "inode": 53433325,
+        "device": 16777229,
+        "mtime_ns": 1792434261850644262,
+        "ctime_ns": 1792434261850644262
+      },
+      "crates/hls-cli/tests/alerts_command.rs": {
+        "sha256": "7bb26209f0397c1a10cd31af0ab8bc182d53bbc4019f7934bd1add9bc0452645",
+        "bytes": 10205,
+        "mode": 33188,
+        "inode": 53433327,
+        "device": 16777229,
+        "mtime_ns": 1792434261850787972,
+        "ctime_ns": 1792434261850787972
+      },
+      "crates/hls-cli/tests/analog_command.rs": {
+        "sha256": "e8a2a7d16f671ab409c83d67e89b7d5adfa0aefa667589db817f1358e8e99957",
+        "bytes": 5011,
+        "mode": 33188,
+        "inode": 53433328,
+        "device": 16777229,
+        "mtime_ns": 1792434261850876431,
+        "ctime_ns": 1792434261850876431
+      },
+      "crates/hls-cli/tests/backfill_command.rs": {
+        "sha256": "4143c3976ccc5a35ef07706b05096aa603439bc7e8cb28887cdf6642015dd021",
+        "bytes": 7109,
+        "mode": 33188,
+        "inode": 53433329,
+        "device": 16777229,
+        "mtime_ns": 1792434261850936223,
+        "ctime_ns": 1792434261850936223
+      },
+      "crates/hls-cli/tests/basic_commands.rs": {
+        "sha256": "82988f47ab5e972080b789f902c1bde03989a770bead4496995a8b68073ccda6",
+        "bytes": 5875,
+        "mode": 33188,
+        "inode": 53433330,
+        "device": 16777229,
+        "mtime_ns": 1792434261850992557,
+        "ctime_ns": 1792434261850992557
+      },
+      "crates/hls-cli/tests/bench_command.rs": {
+        "sha256": "01fb1c33e3b47194a4af6c60de571078334ff27096f8ab9da59ff693a4d7d3ec",
+        "bytes": 1415,
+        "mode": 33188,
+        "inode": 53433331,
+        "device": 16777229,
+        "mtime_ns": 1792434261851043891,
+        "ctime_ns": 1792434261851043891
+      },
+      "crates/hls-cli/tests/explain_command.rs": {
+        "sha256": "afcc1f9b7bfe1d5b0185ebb05c5b6f039b92f8a4cae0e5cb06a87082b76df562",
+        "bytes": 2014,
+        "mode": 33188,
+        "inode": 53433332,
+        "device": 16777229,
+        "mtime_ns": 1792434261851094349,
+        "ctime_ns": 1792434261851094349
+      },
+      "crates/hls-cli/tests/export_parquet_command.rs": {
+        "sha256": "7802f8c16757e607f975e389da7c08a9f18ca3ac9d79666f43340d548cc5779b",
+        "bytes": 6361,
+        "mode": 33188,
+        "inode": 53433333,
+        "device": 16777229,
+        "mtime_ns": 1792434261851161767,
+        "ctime_ns": 1792434261851161767
+      },
+      "crates/hls-cli/tests/extension_command.rs": {
+        "sha256": "f3b8860874b5c2f39b9676dec41c922bbc99d143a1a2876f998f1f5c5fac9ea5",
+        "bytes": 3077,
+        "mode": 33188,
+        "inode": 53433334,
+        "device": 16777229,
+        "mtime_ns": 1792434261851228850,
+        "ctime_ns": 1792434261851228850
+      },
+      "crates/hls-cli/tests/fixtures/localhost-cert.der": {
+        "sha256": "3454363e8b9d2f6a9ebdad7ec2aafb4d5ccd6e45b90380295888d94d50c25737",
+        "bytes": 748,
+        "mode": 33188,
+        "inode": 58203440,
+        "device": 16777229,
+        "mtime_ns": 1792526773539270496,
+        "ctime_ns": 1792526773539282038
+      },
+      "crates/hls-cli/tests/fixtures/localhost-test-only-key.der": {
+        "sha256": "3ab79bf082ff934d6aad8bd81b3fb0d8a3adfe21ae6d862d7dba4c3eb792c85f",
+        "bytes": 1218,
+        "mode": 33188,
+        "inode": 58203441,
+        "device": 16777229,
+        "mtime_ns": 1792526773539737379,
+        "ctime_ns": 1792526773539752046
+      },
+      "crates/hls-cli/tests/full_pipeline_smoke.rs": {
+        "sha256": "3f77476c84d624e16b3e848a7bfdd4c3f04820a7e8dd82b0d06d4e5041c3b564",
+        "bytes": 3044,
+        "mode": 33188,
+        "inode": 53433335,
+        "device": 16777229,
+        "mtime_ns": 1792434261851299809,
+        "ctime_ns": 1792434261851299809
+      },
+      "crates/hls-cli/tests/health_commands.rs": {
+        "sha256": "4d0b5b47a22d2646e240bca9ec19726539567a35b372f4dcd1f0a9801e128c5f",
+        "bytes": 3964,
+        "mode": 33188,
+        "inode": 53433336,
+        "device": 16777229,
+        "mtime_ns": 1792434261851363227,
+        "ctime_ns": 1792434261851363227
+      },
+      "crates/hls-cli/tests/live_mock.rs": {
+        "sha256": "3665725d793dbbae779de466f2215934a5f41664cbe012abef5f09f26193451d",
+        "bytes": 10131,
+        "mode": 33188,
+        "inode": 53433337,
+        "device": 16777229,
+        "mtime_ns": 1792434261851442019,
+        "ctime_ns": 1792434261851442019
+      },
+      "crates/hls-cli/tests/metrics_output.rs": {
+        "sha256": "df1bef6dc6c870b1139f13e488a59acbe133ac2a1f2e5694c529893340d6a045",
+        "bytes": 1114,
+        "mode": 33188,
+        "inode": 53433338,
+        "device": 16777229,
+        "mtime_ns": 1792434261851514853,
+        "ctime_ns": 1792434261851514853
+      },
+      "crates/hls-cli/tests/microstructure_safety.rs": {
+        "sha256": "27faf5bafe25a68f77dcceb45cae59618a085d68a4fdc8082c847f49a48ba393",
+        "bytes": 1700,
+        "mode": 33188,
+        "inode": 53433339,
+        "device": 16777229,
+        "mtime_ns": 1792434261851582353,
+        "ctime_ns": 1792434261851582353
+      },
+      "crates/hls-cli/tests/projected_shared.rs": {
+        "sha256": "b5fbe0641362561fcf2feb2c5c6bf3ab264c92319309f79a1d2d4af01453cbd0",
+        "bytes": 2034,
+        "mode": 33188,
+        "inode": 57899299,
+        "device": 16777229,
+        "mtime_ns": 1792516408293319103,
+        "ctime_ns": 1792516408293319103
+      },
+      "crates/hls-cli/tests/pty_tui.rs": {
+        "sha256": "b01877b3c14828b1f0e4ad3dc1986ad9ccc014aadd357d0c4e4c8d83e788f9a9",
+        "bytes": 35672,
+        "mode": 33188,
+        "inode": 53433340,
+        "device": 16777229,
+        "mtime_ns": 1792452610682205826,
+        "ctime_ns": 1792452610682205826
+      },
+      "crates/hls-cli/tests/record_replay.rs": {
+        "sha256": "c6c8a383f1a8b8448d00a789f1dcab6e902a7c09ebc173fbdc0874be50a0e341",
+        "bytes": 1623,
+        "mode": 33188,
+        "inode": 53433341,
+        "device": 16777229,
+        "mtime_ns": 1792434261851757438,
+        "ctime_ns": 1792434261851757438
+      },
+      "crates/hls-cli/tests/replay_parity_command.rs": {
+        "sha256": "4be378ae311def8edb91e4a36cf3163da03fb4fb47f81f8993ec3d3dd20f041c",
+        "bytes": 4220,
+        "mode": 33188,
+        "inode": 53433342,
+        "device": 16777229,
+        "mtime_ns": 1792434261851841522,
+        "ctime_ns": 1792434261851841522
+      },
+      "crates/hls-cli/tests/screen_command.rs": {
+        "sha256": "89fa6403f845f28837152a2117c5916129051c69dd79b79ea5aad457a252d64e",
+        "bytes": 4288,
+        "mode": 33188,
+        "inode": 53433343,
+        "device": 16777229,
+        "mtime_ns": 1792434261851919064,
+        "ctime_ns": 1792434261851919064
+      },
+      "crates/hls-core/Cargo.toml": {
+        "sha256": "6fba5cb260e972033fd90a4ab298cb5980e81ea4aa322b2455dcd81b9d1620bc",
+        "bytes": 490,
+        "mode": 33188,
+        "inode": 53433345,
+        "device": 16777229,
+        "mtime_ns": 1792434261852037899,
+        "ctime_ns": 1792434261852037899
+      },
+      "crates/hls-core/src/alerts.rs": {
+        "sha256": "2c81f06510f40dd5dbf9045738658bee134c2eef14d06a8be22a963b043d1a1e",
+        "bytes": 9271,
+        "mode": 33188,
+        "inode": 53433347,
+        "device": 16777229,
+        "mtime_ns": 1792434261852158691,
+        "ctime_ns": 1792434261852158691
+      },
+      "crates/hls-core/src/confidence.rs": {
+        "sha256": "30dfc349f6227d89f4aa91fcdf4c402c9b5823635555049a94fd551f9d4ba5b4",
+        "bytes": 3079,
+        "mode": 33188,
+        "inode": 53433348,
+        "device": 16777229,
+        "mtime_ns": 1792434261852225775,
+        "ctime_ns": 1792434261852225775
+      },
+      "crates/hls-core/src/config.rs": {
+        "sha256": "b8a8f48157a3e9d491b474257c0bb3e3eaec114e000c4b41e665ec468045e8c3",
+        "bytes": 5601,
+        "mode": 33188,
+        "inode": 53433349,
+        "device": 16777229,
+        "mtime_ns": 1792434261852287067,
+        "ctime_ns": 1792434261852287067
+      },
+      "crates/hls-core/src/data_gap.rs": {
+        "sha256": "1753aae8cb3a0ab38b10235484d2f062efd1ca6a0f14180e17efc3422bf0da21",
+        "bytes": 925,
+        "mode": 33188,
+        "inode": 53433350,
+        "device": 16777229,
+        "mtime_ns": 1792434261852336234,
+        "ctime_ns": 1792434261852336234
+      },
+      "crates/hls-core/src/error.rs": {
+        "sha256": "0e41be9aeaf848727e6fe6e780fc5b4bb0df2344604e468da36c67f4f8b09ad6",
+        "bytes": 629,
+        "mode": 33188,
+        "inode": 53433351,
+        "device": 16777229,
+        "mtime_ns": 1792434261852391568,
+        "ctime_ns": 1792434261852391568
+      },
+      "crates/hls-core/src/extension.rs": {
+        "sha256": "d1303d6812dc68b3f8647845c925300c75b4854fa5d66575594c95d94ef27ded",
+        "bytes": 33162,
+        "mode": 33188,
+        "inode": 53433352,
+        "device": 16777229,
+        "mtime_ns": 1792434261852505194,
+        "ctime_ns": 1792434261852505194
+      },
+      "crates/hls-core/src/fees.rs": {
+        "sha256": "55f8e4ba1427bea3d75e8910a904998726d6266bb667e24f49f3c449bb7014a9",
+        "bytes": 5098,
+        "mode": 33188,
+        "inode": 53433353,
+        "device": 16777229,
+        "mtime_ns": 1792434261852588112,
+        "ctime_ns": 1792434261852588112
+      },
+      "crates/hls-core/src/health.rs": {
+        "sha256": "0e3bfd6c4f37ade8ae607debd44a613a5892f02a900227c8640d5788ae309262",
+        "bytes": 7420,
+        "mode": 33188,
+        "inode": 53433354,
+        "device": 16777229,
+        "mtime_ns": 1792434261852671404,
+        "ctime_ns": 1792434261852671404
+      },
+      "crates/hls-core/src/lib.rs": {
+        "sha256": "f775a80141f826f1a35bb3933028b7a333e91c77193a431563398ac36fc73e32",
+        "bytes": 319,
+        "mode": 33188,
+        "inode": 53433355,
+        "device": 16777229,
+        "mtime_ns": 1792434261852739071,
+        "ctime_ns": 1792434261852739071
+      },
+      "crates/hls-core/src/market_state.rs": {
+        "sha256": "de44141bac348a8a94d7d974b109e052cc0cd9b286157a098052e5bc30a140b3",
+        "bytes": 30685,
+        "mode": 33188,
+        "inode": 53433356,
+        "device": 16777229,
+        "mtime_ns": 1792517178960057880,
+        "ctime_ns": 1792517178960057880
+      },
+      "crates/hls-core/src/metadata.rs": {
+        "sha256": "a009ceb212860a8293ae97b7bd00b3b93669fb873fd6ad310353a8574a992c00",
+        "bytes": 4653,
+        "mode": 33188,
+        "inode": 53433357,
+        "device": 16777229,
+        "mtime_ns": 1792434261852926698,
+        "ctime_ns": 1792434261852926698
+      },
+      "crates/hls-core/src/metrics.rs": {
+        "sha256": "90b686c17ce8b8fcd925321d873c84ec7f133f559d771fa36a4497f40f90d367",
+        "bytes": 22246,
+        "mode": 33188,
+        "inode": 53433358,
+        "device": 16777229,
+        "mtime_ns": 1792434261853026740,
+        "ctime_ns": 1792434261853026740
+      },
+      "crates/hls-core/src/score.rs": {
+        "sha256": "eb870aaab33f0bbd79d456c26f8a87b68d8ae3205d6cf05ab8ac25acd5f99ed7",
+        "bytes": 6031,
+        "mode": 33188,
+        "inode": 53433359,
+        "device": 16777229,
+        "mtime_ns": 1792434261853127741,
+        "ctime_ns": 1792434261853127741
+      },
+      "crates/hls-core/src/symbol.rs": {
+        "sha256": "fb424089dbbd15cd3c115d5f6a63d9bb94dcc28fad7eba7c9f0d86be113811a1",
+        "bytes": 2007,
+        "mode": 33188,
+        "inode": 53433360,
+        "device": 16777229,
+        "mtime_ns": 1792434261853196491,
+        "ctime_ns": 1792434261853196491
+      },
+      "crates/hls-core/src/telemetry.rs": {
+        "sha256": "70f263414e5fa557871c57561957ed7a96021ccb1d78fad96f4b4a313be5846e",
+        "bytes": 2367,
+        "mode": 33188,
+        "inode": 53433361,
+        "device": 16777229,
+        "mtime_ns": 1792434261853254659,
+        "ctime_ns": 1792434261853254659
+      },
+      "crates/hls-core/src/time.rs": {
+        "sha256": "55389a45eb4a421453a0789421bbc7c94292b40471f428ca3edb16ab3a603f0d",
+        "bytes": 1421,
+        "mode": 33188,
+        "inode": 53433362,
+        "device": 16777229,
+        "mtime_ns": 1792434261853314284,
+        "ctime_ns": 1792434261853314284
+      },
+      "crates/hls-core/tests/alerts_contract.rs": {
+        "sha256": "e81217261cee5bd0ad2a0ae3600f6fd89e13dfe5374d0fb1a670f1a26bd98d38",
+        "bytes": 8836,
+        "mode": 33188,
+        "inode": 53433364,
+        "device": 16777229,
+        "mtime_ns": 1792434261853419285,
+        "ctime_ns": 1792434261853419285
+      },
+      "crates/hls-core/tests/confidence_state.rs": {
+        "sha256": "b787b6f4c92d3be2c53f9bb0d36b302416703ad87133c3d5b13c6317fdbc04e3",
+        "bytes": 1454,
+        "mode": 33188,
+        "inode": 53433365,
+        "device": 16777229,
+        "mtime_ns": 1792434261853496119,
+        "ctime_ns": 1792434261853496119
+      },
+      "crates/hls-core/tests/config_symbol.rs": {
+        "sha256": "ff161a8feb53e63ae4229aa61f74799335793be1a57b5e0bf3bf4bb6e31dd108",
+        "bytes": 1818,
+        "mode": 33188,
+        "inode": 53433366,
+        "device": 16777229,
+        "mtime_ns": 1792434261853560286,
+        "ctime_ns": 1792434261853560286
+      },
+      "crates/hls-core/tests/extension_contract.rs": {
+        "sha256": "cfb9cd2e6dd7ea5e58e30a865f260533ec75c6964f9ee3d6816354444d92e58d",
+        "bytes": 9825,
+        "mode": 33188,
+        "inode": 53433367,
+        "device": 16777229,
+        "mtime_ns": 1792434261853620870,
+        "ctime_ns": 1792434261853620870
+      },
+      "crates/hls-core/tests/fees_contract.rs": {
+        "sha256": "d7cd2fa74a3354d6f9d13998ad56498a577c485eb655c31d8577d32718d29d2d",
+        "bytes": 2125,
+        "mode": 33188,
+        "inode": 53433368,
+        "device": 16777229,
+        "mtime_ns": 1792434261853683120,
+        "ctime_ns": 1792434261853683120
+      },
+      "crates/hls-core/tests/health_state.rs": {
+        "sha256": "e567763077f8d05f5a803ddee07e6dff6d0e2f186d8a55c1e2534be5f1790c9d",
+        "bytes": 3694,
+        "mode": 33188,
+        "inode": 53433369,
+        "device": 16777229,
+        "mtime_ns": 1792434261853761204,
+        "ctime_ns": 1792434261853761204
+      },
+      "crates/hls-core/tests/market_state.rs": {
+        "sha256": "dacee5705bace54e671fb4206d42de80687d30fbb67bb34c5720d2f4fc6366b8",
+        "bytes": 11842,
+        "mode": 33188,
+        "inode": 53433370,
+        "device": 16777229,
+        "mtime_ns": 1792517204492450026,
+        "ctime_ns": 1792517204492450026
+      },
+      "crates/hls-core/tests/metadata_enrichment.rs": {
+        "sha256": "c3425a9d99a15cc037df3b9f1ba978355123860694483ca187e3c960a0129669",
+        "bytes": 2227,
+        "mode": 33188,
+        "inode": 53433371,
+        "device": 16777229,
+        "mtime_ns": 1792434261853878330,
+        "ctime_ns": 1792434261853878330
+      },
+      "crates/hls-core/tests/metrics_contract.rs": {
+        "sha256": "1d1f36be17a67c00b390db5d8456f29abdd394f4c2c3f75232cc99ed4cc3385c",
+        "bytes": 7198,
+        "mode": 33188,
+        "inode": 53433372,
+        "device": 16777229,
+        "mtime_ns": 1792434261853938872,
+        "ctime_ns": 1792434261853938872
+      },
+      "crates/hls-core/tests/score_breakdown.rs": {
+        "sha256": "b6f93266d66ec15f19bb643cd73d7cf54f6bbe277dd5c03cf6d7533b2f3f1c1a",
+        "bytes": 4108,
+        "mode": 33188,
+        "inode": 53433373,
+        "device": 16777229,
+        "mtime_ns": 1792434261853993664,
+        "ctime_ns": 1792434261853993664
+      },
+      "crates/hls-features/Cargo.toml": {
+        "sha256": "1f837d8fef3365366a5c352ce1e3f311ecfbb1a280e05419d7fd0d181c50f4d0",
+        "bytes": 359,
+        "mode": 33188,
+        "inode": 53433375,
+        "device": 16777229,
+        "mtime_ns": 1792434261854076790,
+        "ctime_ns": 1792434261854076790
+      },
+      "crates/hls-features/src/alerts.rs": {
+        "sha256": "e7c81fa4c3cf169a9b538998bd42fe014022a6b2fc95d2d1bf75f779ada88cb0",
+        "bytes": 6605,
+        "mode": 33188,
+        "inode": 53433377,
+        "device": 16777229,
+        "mtime_ns": 1792434261854220750,
+        "ctime_ns": 1792434261854220750
+      },
+      "crates/hls-features/src/composite.rs": {
+        "sha256": "12ac6c92c46de29760cbea07a93c9684de788d9abe98555f2a3384cec38f2271",
+        "bytes": 8827,
+        "mode": 33188,
+        "inode": 53433378,
+        "device": 16777229,
+        "mtime_ns": 1792434261854294750,
+        "ctime_ns": 1792434261854294750
+      },
+      "crates/hls-features/src/engine.rs": {
+        "sha256": "39d19dd12454a63bd064a68f152529b092ab77e357b333354dd5cbf7f8043c35",
+        "bytes": 12735,
+        "mode": 33188,
+        "inode": 53433379,
+        "device": 16777229,
+        "mtime_ns": 1792434261854373043,
+        "ctime_ns": 1792434261854373043
+      },
+      "crates/hls-features/src/formulas.rs": {
+        "sha256": "e93e4f55e6e6d3255873cb0e82eaea462624745955cebeaf08f75d3b9cabef63",
+        "bytes": 1472,
+        "mode": 33188,
+        "inode": 53433380,
+        "device": 16777229,
+        "mtime_ns": 1792434261854428876,
+        "ctime_ns": 1792434261854428876
+      },
+      "crates/hls-features/src/lib.rs": {
+        "sha256": "bb4f770f9284e67a8df50537947d4f8d1daa56e1a108dae5cda00bb353abc595",
+        "bytes": 194,
+        "mode": 33188,
+        "inode": 53433381,
+        "device": 16777229,
+        "mtime_ns": 1792434261854491085,
+        "ctime_ns": 1792434261854491085
+      },
+      "crates/hls-features/src/metrics.rs": {
+        "sha256": "3e83348c5c78f33f8cdcb84c6ab34ed600539ca06bb0d9674bf240a4a8c8217a",
+        "bytes": 11222,
+        "mode": 33188,
+        "inode": 53433382,
+        "device": 16777229,
+        "mtime_ns": 1792434261854560294,
+        "ctime_ns": 1792434261854560294
+      },
+      "crates/hls-features/src/microstructure.rs": {
+        "sha256": "7b067c1c3e5bd1ed61b283db3885274d615e46b28cad4c7167ca3b9d6645a653",
+        "bytes": 255,
+        "mode": 33188,
+        "inode": 53433383,
+        "device": 16777229,
+        "mtime_ns": 1792434261854609128,
+        "ctime_ns": 1792434261854609128
+      },
+      "crates/hls-features/src/resilience.rs": {
+        "sha256": "f138bec34dc71f35e8f80a73b5d2db2f51f28040c32423ef1b728a44085aa2ed",
+        "bytes": 8618,
+        "mode": 33188,
+        "inode": 53433384,
+        "device": 16777229,
+        "mtime_ns": 1792434261854677920,
+        "ctime_ns": 1792434261854677920
+      },
+      "crates/hls-features/src/tradeability.rs": {
+        "sha256": "73842baaccb24efe3ea32192382c5684a02d2ecfc996a665c308b2083c0621e8",
+        "bytes": 3545,
+        "mode": 33188,
+        "inode": 53433385,
+        "device": 16777229,
+        "mtime_ns": 1792434261854736170,
+        "ctime_ns": 1792434261854736170
+      },
+      "crates/hls-features/src/windows.rs": {
+        "sha256": "c131c788c6659de973f1a5990de2b23bc5db131c2fb2d312c082eb5d1156fee6",
+        "bytes": 2818,
+        "mode": 33188,
+        "inode": 53433386,
+        "device": 16777229,
+        "mtime_ns": 1792434261854799296,
+        "ctime_ns": 1792434261854799296
+      },
+      "crates/hls-features/tests/alerts.rs": {
+        "sha256": "1a7e029931ec373845e04ea5b82ea571cc18fe65f53e35bced3f083b0521cc77",
+        "bytes": 7589,
+        "mode": 33188,
+        "inode": 53433388,
+        "device": 16777229,
+        "mtime_ns": 1792434261854909172,
+        "ctime_ns": 1792434261854909172
+      },
+      "crates/hls-features/tests/canonical_metrics.rs": {
+        "sha256": "25db0fefb27af01463512d5bf514735241dffa6c75b55c67f9ac54cf7e4512a3",
+        "bytes": 11921,
+        "mode": 33188,
+        "inode": 53433389,
+        "device": 16777229,
+        "mtime_ns": 1792434261854976589,
+        "ctime_ns": 1792434261854976589
+      },
+      "crates/hls-features/tests/composite.rs": {
+        "sha256": "81dc10eab9391b80191f243a9252729fc367b820cbea35ea25821e674244963d",
+        "bytes": 4613,
+        "mode": 33188,
+        "inode": 53433390,
+        "device": 16777229,
+        "mtime_ns": 1792434261855041548,
+        "ctime_ns": 1792434261855041548
+      },
+      "crates/hls-features/tests/fee_tradeability.rs": {
+        "sha256": "6c3323aeef63df83fb46c1302ed70442083c626cd791155e720cce6bccff442b",
+        "bytes": 3515,
+        "mode": 33188,
+        "inode": 53433391,
+        "device": 16777229,
+        "mtime_ns": 1792434261855098090,
+        "ctime_ns": 1792434261855098090
+      },
+      "crates/hls-features/tests/formulas.rs": {
+        "sha256": "b6c59d3a2b6c26070da93e3bdb61bf4d86d2205682d3c656f76e84e1c3db8bed",
+        "bytes": 11290,
+        "mode": 33188,
+        "inode": 53433392,
+        "device": 16777229,
+        "mtime_ns": 1792434261855156757,
+        "ctime_ns": 1792434261855156757
+      },
+      "crates/hls-features/tests/resilience.rs": {
+        "sha256": "8c5bb2d51a915d6df094be183441c2cd1b673d2467654e1a988e7da7f7572da9",
+        "bytes": 2205,
+        "mode": 33188,
+        "inode": 53433393,
+        "device": 16777229,
+        "mtime_ns": 1792434261855215591,
+        "ctime_ns": 1792434261855215591
+      },
+      "crates/hls-features/tests/tradeability.rs": {
+        "sha256": "de1256bb8aff3a44d4c22bc17f4ec93d872ab18d0ba997ff81fd763794a25890",
+        "bytes": 1816,
+        "mode": 33188,
+        "inode": 53433394,
+        "device": 16777229,
+        "mtime_ns": 1792434261855289217,
+        "ctime_ns": 1792434261855289217
+      },
+      "crates/hls-features/tests/windows.rs": {
+        "sha256": "50ffba56e3b741eb1c7a1c06a36938b3cb36a548e2395743b9a0f080e839752b",
+        "bytes": 1301,
+        "mode": 33188,
+        "inode": 53433395,
+        "device": 16777229,
+        "mtime_ns": 1792434261855337342,
+        "ctime_ns": 1792434261855337342
+      },
+      "crates/hls-hyperliquid/Cargo.toml": {
+        "sha256": "694200144f81fb91be4620b29089b71cb21c30d0e704c00607e516bcd6b3a5d9",
+        "bytes": 789,
+        "mode": 33188,
+        "inode": 53433397,
+        "device": 16777229,
+        "mtime_ns": 1792531099415762938,
+        "ctime_ns": 1792531099415762938
+      },
+      "crates/hls-hyperliquid/src/lib.rs": {
+        "sha256": "eba9bcd06cd0fcbf0ea76440043e9602b6be554dc1a2ca33e8e60b012d692f4b",
+        "bytes": 68,
+        "mode": 33188,
+        "inode": 53433399,
+        "device": 16777229,
+        "mtime_ns": 1792434869306847467,
+        "ctime_ns": 1792434869306847467
+      },
+      "crates/hls-hyperliquid/src/rest.rs": {
+        "sha256": "ffcb5355e5654c7e1972ca00a6f5197484ee86c1e7749c7142759cb00a439643",
+        "bytes": 38770,
+        "mode": 33188,
+        "inode": 53433400,
+        "device": 16777229,
+        "mtime_ns": 1792434261855630636,
+        "ctime_ns": 1792434261855630636
+      },
+      "crates/hls-hyperliquid/src/shared.rs": {
+        "sha256": "c95c31859bbb5620867eee1649a3dcca46195f7bf6539a8edb08bcb118912a70",
+        "bytes": 15160,
+        "mode": 33188,
+        "inode": 53450540,
+        "device": 16777229,
+        "mtime_ns": 1792517401638737851,
+        "ctime_ns": 1792517401638737851
+      },
+      "crates/hls-hyperliquid/src/shared_projection.rs": {
+        "sha256": "aef917726d5158afe3d80647dcc14e4b270f4a380acc28d968086765a135fc0c",
+        "bytes": 27078,
+        "mode": 33188,
+        "inode": 58370021,
+        "device": 16777229,
+        "mtime_ns": 1792531099386774714,
+        "ctime_ns": 1792531099386774714
+      },
+      "crates/hls-hyperliquid/src/ws/connection.rs": {
+        "sha256": "080026f06e474c36d3a633590dead097c978e7d0cba156a0f1036dda5b09f86a",
+        "bytes": 4097,
+        "mode": 33188,
+        "inode": 53433402,
+        "device": 16777229,
+        "mtime_ns": 1792434261855743762,
+        "ctime_ns": 1792434261855743762
+      },
+      "crates/hls-hyperliquid/src/ws/mod.rs": {
+        "sha256": "fe7ad45fceca37893a90652f07cad96802be2bd79c863c0e52e3728a373a8114",
+        "bytes": 2261,
+        "mode": 33188,
+        "inode": 53433403,
+        "device": 16777229,
+        "mtime_ns": 1792434261855802679,
+        "ctime_ns": 1792434261855802679
+      },
+      "crates/hls-hyperliquid/src/ws/parser.rs": {
+        "sha256": "d9c6659741a72b2a7ee1d28c61b43fdb5dc2b916367decaa7d61e2e0c0c44a7b",
+        "bytes": 14293,
+        "mode": 33188,
+        "inode": 53433404,
+        "device": 16777229,
+        "mtime_ns": 1792515990724402723,
+        "ctime_ns": 1792515990724402723
+      },
+      "crates/hls-hyperliquid/src/ws/subscriptions.rs": {
+        "sha256": "c8a67145fabd05e2a5f426b09002e0d591638fde77207d2dd4b4452a964d0f44",
+        "bytes": 9304,
+        "mode": 33188,
+        "inode": 53433405,
+        "device": 16777229,
+        "mtime_ns": 1792434261855921763,
+        "ctime_ns": 1792434261855921763
+      },
+      "crates/hls-hyperliquid/src/ws/types.rs": {
+        "sha256": "4f84601a6cc9282af0f73ebfa9f124f602c57f19d83c90c7218a5a5ae828becf",
+        "bytes": 1830,
+        "mode": 33188,
+        "inode": 53433406,
+        "device": 16777229,
+        "mtime_ns": 1792434261855984181,
+        "ctime_ns": 1792434261855984181
+      },
+      "crates/hls-hyperliquid/tests/fixtures/shared_perps_session.json": {
+        "sha256": "d0270261029c6ab9996c5bbaa683e83f109ce8f78e0f202a0176f8e8e583955c",
+        "bytes": 4421,
+        "mode": 33188,
+        "inode": 53485293,
+        "device": 16777229,
+        "mtime_ns": 1792435134154041437,
+        "ctime_ns": 1792435134154041437
+      },
+      "crates/hls-hyperliquid/tests/metadata_enrichment.rs": {
+        "sha256": "2a0dd9ccd107535c8a58fcd886e0c2bea77118e1ac204e916ea0daf070633d92",
+        "bytes": 3431,
+        "mode": 33188,
+        "inode": 53433408,
+        "device": 16777229,
+        "mtime_ns": 1792434261856075098,
+        "ctime_ns": 1792434261856075098
+      },
+      "crates/hls-hyperliquid/tests/projected_feed.rs": {
+        "sha256": "103e19f3d1d6e51fe88f585f05a806d31178e72e16d752e75c7aab9f7a085a0a",
+        "bytes": 15791,
+        "mode": 33188,
+        "inode": 57895109,
+        "device": 16777229,
+        "mtime_ns": 1792517301829111050,
+        "ctime_ns": 1792517301829111050
+      },
+      "crates/hls-hyperliquid/tests/projected_output_budget.rs": {
+        "sha256": "24f74823204008b2c85f062d3e55ef42672efc2e7edfdfa165b657ab12e9cec7",
+        "bytes": 8824,
+        "mode": 33188,
+        "inode": 57923106,
+        "device": 16777229,
+        "mtime_ns": 1792517994198143951,
+        "ctime_ns": 1792517994198143951
+      },
+      "crates/hls-hyperliquid/tests/projected_wire.rs": {
+        "sha256": "2e23e15db7ce93e38750e5c05174826c0c17650eb04580e7d1d8042b3fe3e0ae",
+        "bytes": 21953,
+        "mode": 33188,
+        "inode": 58370023,
+        "device": 16777229,
+        "mtime_ns": 1792531970456403654,
+        "ctime_ns": 1792531970456403654
+      },
+      "crates/hls-hyperliquid/tests/rest_metadata.rs": {
+        "sha256": "c64ece9cf0f2eaed06ed6a5c0b649d55ec0c938689fc4e7265a00e972aa3d28f",
+        "bytes": 3465,
+        "mode": 33188,
+        "inode": 53433409,
+        "device": 16777229,
+        "mtime_ns": 1792434261856150849,
+        "ctime_ns": 1792434261856150849
+      },
+      "crates/hls-hyperliquid/tests/shared_feed.rs": {
+        "sha256": "a87fff1798a4eb311ea1e142a0c95084e5927825ccae4672795aaacfe0d7092f",
+        "bytes": 7328,
+        "mode": 33188,
+        "inode": 53485631,
+        "device": 16777229,
+        "mtime_ns": 1792526507903679450,
+        "ctime_ns": 1792526507903679450
+      },
+      "crates/hls-hyperliquid/tests/support/mfop.rs": {
+        "sha256": "4cfce7f6d4e5b997cf4780821ee20d80689dd37e5f6aa15e1676642f12bc4247",
+        "bytes": 13066,
+        "mode": 33188,
+        "inode": 58370022,
+        "device": 16777229,
+        "mtime_ns": 1792534038153816670,
+        "ctime_ns": 1792534038153816670
+      },
+      "crates/hls-hyperliquid/tests/ws_parser.rs": {
+        "sha256": "5c78543c86d437a0732297cbe662797b3b5347ac904f183d8fb321168305031e",
+        "bytes": 10966,
+        "mode": 33188,
+        "inode": 53433410,
+        "device": 16777229,
+        "mtime_ns": 1792434261856210183,
+        "ctime_ns": 1792434261856210183
+      },
+      "crates/hls-hyperliquid/tests/ws_subscriptions.rs": {
+        "sha256": "fef850e83800261039fa12f34927cf4062f0dc5b87c37031d44b19e2793016c5",
+        "bytes": 3117,
+        "mode": 33188,
+        "inode": 53433411,
+        "device": 16777229,
+        "mtime_ns": 1792434261856268100,
+        "ctime_ns": 1792434261856268100
+      },
+      "crates/hls-screen/Cargo.toml": {
+        "sha256": "8d0e17a7c9e9966036a9a709c79f3ee3d62a0a5d4187e124543f384895b6e05d",
+        "bytes": 253,
+        "mode": 33188,
+        "inode": 53433413,
+        "device": 16777229,
+        "mtime_ns": 1792434261856366392,
+        "ctime_ns": 1792434261856366392
+      },
+      "crates/hls-screen/src/dsl/ast.rs": {
+        "sha256": "d66944e7b68937d4b9c323b5b7d2a17990b97a110c89b3ee3c3d4c38deca6828",
+        "bytes": 4848,
+        "mode": 33188,
+        "inode": 53433416,
+        "device": 16777229,
+        "mtime_ns": 1792434261856482726,
+        "ctime_ns": 1792434261856482726
+      },
+      "crates/hls-screen/src/dsl/evaluator.rs": {
+        "sha256": "dedf57867d7da5e1afd98548afb40a360ed7cf308517374cffd10e0000b83080",
+        "bytes": 4404,
+        "mode": 33188,
+        "inode": 53433417,
+        "device": 16777229,
+        "mtime_ns": 1792434261856563602,
+        "ctime_ns": 1792434261856563602
+      },
+      "crates/hls-screen/src/dsl/mod.rs": {
+        "sha256": "91e643a91fb584f074cde3d7c7da1e785da425596c464c7e78035598994bb9ee",
+        "bytes": 48,
+        "mode": 33188,
+        "inode": 53433418,
+        "device": 16777229,
+        "mtime_ns": 1792434261856677603,
+        "ctime_ns": 1792434261856677603
+      },
+      "crates/hls-screen/src/dsl/parser.rs": {
+        "sha256": "3199ee419b2a75dfd442ccf8c930697e4404674009ac03ed6c3f0f671f707ea1",
+        "bytes": 10293,
+        "mode": 33188,
+        "inode": 53433419,
+        "device": 16777229,
+        "mtime_ns": 1792434261856750520,
+        "ctime_ns": 1792434261856750520
+      },
+      "crates/hls-screen/src/engine.rs": {
+        "sha256": "621ec6cbcf35e96e707461a0fdce5ae7f0b7b9461c3e12e1449b8e9cb49686e5",
+        "bytes": 3006,
+        "mode": 33188,
+        "inode": 53433420,
+        "device": 16777229,
+        "mtime_ns": 1792434261856820562,
+        "ctime_ns": 1792434261856820562
+      },
+      "crates/hls-screen/src/lib.rs": {
+        "sha256": "e2fa7498f609c83b3e3633ed7b991905578db1ce7b55785a8515f9fbb8e797d0",
+        "bytes": 147,
+        "mode": 33188,
+        "inode": 53433421,
+        "device": 16777229,
+        "mtime_ns": 1792434261856881605,
+        "ctime_ns": 1792434261856881605
+      },
+      "crates/hls-screen/src/presets.rs": {
+        "sha256": "b802aebf58544aadb1b902705e208d274d9ab9f1265d61f1483979343f597569",
+        "bytes": 2495,
+        "mode": 33188,
+        "inode": 53433422,
+        "device": 16777229,
+        "mtime_ns": 1792434261856940230,
+        "ctime_ns": 1792434261856940230
+      },
+      "crates/hls-screen/src/row.rs": {
+        "sha256": "dba01e724e79d030f70b2e64300145a25ac7de7f35ee9cd973bb7a81087e6cf0",
+        "bytes": 8814,
+        "mode": 33188,
+        "inode": 53433423,
+        "device": 16777229,
+        "mtime_ns": 1792434261857005189,
+        "ctime_ns": 1792434261857005189
+      },
+      "crates/hls-screen/tests/dsl_evaluator.rs": {
+        "sha256": "3e8e20d2b1f8581a12dba928a6227c7d0ab1780fd638cbe3a609d992900975b4",
+        "bytes": 7381,
+        "mode": 33188,
+        "inode": 53433425,
+        "device": 16777229,
+        "mtime_ns": 1792434261857227941,
+        "ctime_ns": 1792434261857227941
+      },
+      "crates/hls-screen/tests/dsl_parser.rs": {
+        "sha256": "c5e4780382406f4b43b7d0e3ee56fd5e780237db9f9ad955f73c3f4aea74284e",
+        "bytes": 4250,
+        "mode": 33188,
+        "inode": 53433426,
+        "device": 16777229,
+        "mtime_ns": 1792434261857284150,
+        "ctime_ns": 1792434261857284150
+      },
+      "crates/hls-screen/tests/metadata_presets.rs": {
+        "sha256": "2931f1729a9e73196f4b193f437e498e98024d96c325b6a370da02e2fbda5f01",
+        "bytes": 4597,
+        "mode": 33188,
+        "inode": 53433427,
+        "device": 16777229,
+        "mtime_ns": 1792434261857338692,
+        "ctime_ns": 1792434261857338692
+      },
+      "crates/hls-screen/tests/microstructure_presets.rs": {
+        "sha256": "bcbc85e1b6ad834b957b16d05c1337808c691f50164ad1c0203c91dd4a7f1920",
+        "bytes": 4277,
+        "mode": 33188,
+        "inode": 53433428,
+        "device": 16777229,
+        "mtime_ns": 1792434261857391234,
+        "ctime_ns": 1792434261857391234
+      },
+      "crates/hls-screen/tests/presets.rs": {
+        "sha256": "dd2140a571d6f97c69ff614b77d3495beeb68a5f440f139e2c8ea285c1769613",
+        "bytes": 4721,
+        "mode": 33188,
+        "inode": 53433429,
+        "device": 16777229,
+        "mtime_ns": 1792434261857450984,
+        "ctime_ns": 1792434261857450984
+      },
+      "crates/hls-server/Cargo.toml": {
+        "sha256": "056b90b8cafeded058dc2af0b27db47eb9ba650584b01668a782dc336b135108",
+        "bytes": 400,
+        "mode": 33188,
+        "inode": 53433431,
+        "device": 16777229,
+        "mtime_ns": 1792434261857538568,
+        "ctime_ns": 1792434261857538568
+      },
+      "crates/hls-server/src/lib.rs": {
+        "sha256": "15fc479666c7986aa6c676e6ae4a0fee36b69ffd521b240b2d919869a6e6f4fb",
+        "bytes": 12227,
+        "mode": 33188,
+        "inode": 53433433,
+        "device": 16777229,
+        "mtime_ns": 1792439563076410752,
+        "ctime_ns": 1792439563076410752
+      },
+      "crates/hls-server/tests/read_only_api.rs": {
+        "sha256": "368c57d5398add61e0c885c0ccfccf280ad6db89f7fdd2edd11770c55d9b162b",
+        "bytes": 11208,
+        "mode": 33188,
+        "inode": 53433435,
+        "device": 16777229,
+        "mtime_ns": 1792434261857739528,
+        "ctime_ns": 1792434261857739528
+      },
+      "crates/hls-store/Cargo.toml": {
+        "sha256": "286aa7389bc55e6b40d9deb895ce29c13e4fca8015424459b7e453d250c4760d",
+        "bytes": 507,
+        "mode": 33188,
+        "inode": 53433437,
+        "device": 16777229,
+        "mtime_ns": 1792434261857827279,
+        "ctime_ns": 1792434261857827279
+      },
+      "crates/hls-store/src/analog.rs": {
+        "sha256": "7c4c0590205b699411cc1e2781b5666ad9cc29861f5f03022a94801eeab4870f",
+        "bytes": 25058,
+        "mode": 33188,
+        "inode": 53433439,
+        "device": 16777229,
+        "mtime_ns": 1792434261857923738,
+        "ctime_ns": 1792434261857923738
+      },
+      "crates/hls-store/src/backfill.rs": {
+        "sha256": "97e73b4426554d0d2072d7eeb9010c0f0dd2198ba79f78632d363fe194d4ce62",
+        "bytes": 12273,
+        "mode": 33188,
+        "inode": 53433440,
+        "device": 16777229,
+        "mtime_ns": 1792434261858015364,
+        "ctime_ns": 1792434261858015364
+      },
+      "crates/hls-store/src/benchmark.rs": {
+        "sha256": "043e408448492ee04936035151c31d4f70587bf68f433178ec86e20b5f60171f",
+        "bytes": 7893,
+        "mode": 33188,
+        "inode": 53433441,
+        "device": 16777229,
+        "mtime_ns": 1792434261858073531,
+        "ctime_ns": 1792434261858073531
+      },
+      "crates/hls-store/src/candle_cache.rs": {
+        "sha256": "d2dd0768c4c41feeee1eccbf46b0181d82e5dfaf196d5d9665e23827298c22a9",
+        "bytes": 10913,
+        "mode": 33188,
+        "inode": 53433442,
+        "device": 16777229,
+        "mtime_ns": 1792434261858126490,
+        "ctime_ns": 1792434261858126490
+      },
+      "crates/hls-store/src/lib.rs": {
+        "sha256": "caf306370604b1be3abbb92af187169e3bc8410193526e3093bee7badbb45828",
+        "bytes": 233,
+        "mode": 33188,
+        "inode": 53433443,
+        "device": 16777229,
+        "mtime_ns": 1792434261858178865,
+        "ctime_ns": 1792434261858178865
+      },
+      "crates/hls-store/src/metadata.rs": {
+        "sha256": "89b5fceec68c49779217c329b8c6e882b403cd50f1d34c115f3455338376ab96",
+        "bytes": 29996,
+        "mode": 33188,
+        "inode": 53433444,
+        "device": 16777229,
+        "mtime_ns": 1792434261858242741,
+        "ctime_ns": 1792434261858242741
+      },
+      "crates/hls-store/src/normalized.rs": {
+        "sha256": "67518d438994611c58439e6dc05e15e6e6df09f937e738c022abb1d25f799cec",
+        "bytes": 4263,
+        "mode": 33188,
+        "inode": 53433445,
+        "device": 16777229,
+        "mtime_ns": 1792434261858327325,
+        "ctime_ns": 1792434261858327325
+      },
+      "crates/hls-store/src/parquet.rs": {
+        "sha256": "16d827efacb77e82e8d3c3004eadba2232505acf1eed0c7bb481187e086167e1",
+        "bytes": 20722,
+        "mode": 33188,
+        "inode": 53433446,
+        "device": 16777229,
+        "mtime_ns": 1792434261858400742,
+        "ctime_ns": 1792434261858400742
+      },
+      "crates/hls-store/src/paths.rs": {
+        "sha256": "daa8a29d9f556e3747ea5144a76e2c1aa8609bbe4954ef43d553de1f6cbbd45f",
+        "bytes": 3735,
+        "mode": 33188,
+        "inode": 53433447,
+        "device": 16777229,
+        "mtime_ns": 1792434261858476951,
+        "ctime_ns": 1792434261858476951
+      },
+      "crates/hls-store/src/raw.rs": {
+        "sha256": "bfac9013630c6309dd282e738c00a58b1a2621cb71311f169f56540b3cd5a0fe",
+        "bytes": 4811,
+        "mode": 33188,
+        "inode": 53433448,
+        "device": 16777229,
+        "mtime_ns": 1792434261858546576,
+        "ctime_ns": 1792434261858546576
+      },
+      "crates/hls-store/src/recorder.rs": {
+        "sha256": "4f84c63f41414f9a4a0db141165d4dc259b80fa544a2a89dbf258b853ea276af",
+        "bytes": 6096,
+        "mode": 33188,
+        "inode": 53433449,
+        "device": 16777229,
+        "mtime_ns": 1792434261858616619,
+        "ctime_ns": 1792434261858616619
+      },
+      "crates/hls-store/src/replay.rs": {
+        "sha256": "0d27e8754b854586a693fc5948ad3631dfe07731c27917e8e594614f6a058258",
+        "bytes": 9466,
+        "mode": 33188,
+        "inode": 53433450,
+        "device": 16777229,
+        "mtime_ns": 1792434261858683161,
+        "ctime_ns": 1792434261858683161
+      },
+      "crates/hls-store/src/schema.rs": {
+        "sha256": "66d2fce0843bfe943356eaa3c3cfa592952f343be9d00430f7feede286f5b49b",
+        "bytes": 4065,
+        "mode": 33188,
+        "inode": 53433451,
+        "device": 16777229,
+        "mtime_ns": 1792434261858742203,
+        "ctime_ns": 1792434261858742203
+      },
+      "crates/hls-store/tests/analog_search.rs": {
+        "sha256": "b2d3407f152c3ca2742d43cb0b5d00940781d318adf4f2bff7715279d6735047",
+        "bytes": 6864,
+        "mode": 33188,
+        "inode": 53433453,
+        "device": 16777229,
+        "mtime_ns": 1792434261858848870,
+        "ctime_ns": 1792434261858848870
+      },
+      "crates/hls-store/tests/backfill_gaps.rs": {
+        "sha256": "f72566677465cf3ba73bda94d99b6c3f0fb7e8f8c56e93bdd6aa3eb227df1208",
+        "bytes": 12745,
+        "mode": 33188,
+        "inode": 53433454,
+        "device": 16777229,
+        "mtime_ns": 1792434261858928746,
+        "ctime_ns": 1792434261858928746
+      },
+      "crates/hls-store/tests/benchmark_manifest.rs": {
+        "sha256": "f77581b4da64aa94255a63f04cfedf9025f20bb90a7c5dd3218fb39f6b0e512a",
+        "bytes": 1528,
+        "mode": 33188,
+        "inode": 53433455,
+        "device": 16777229,
+        "mtime_ns": 1792434261858987455,
+        "ctime_ns": 1792434261858987455
+      },
+      "crates/hls-store/tests/candle_cache.rs": {
+        "sha256": "3f7d4e6ad90e40d467b3645c24f260265b6c0d147fa79cf4501d810f93369680",
+        "bytes": 2933,
+        "mode": 33188,
+        "inode": 53433456,
+        "device": 16777229,
+        "mtime_ns": 1792434261859041622,
+        "ctime_ns": 1792434261859041622
+      },
+      "crates/hls-store/tests/metadata_registry.rs": {
+        "sha256": "df25b4d64f480bc556e799f06b39d6124240a8f22a2f1d864883507dd684e494",
+        "bytes": 7584,
+        "mode": 33188,
+        "inode": 53433457,
+        "device": 16777229,
+        "mtime_ns": 1792434261859195415,
+        "ctime_ns": 1792434261859195415
+      },
+      "crates/hls-store/tests/normalized_writer.rs": {
+        "sha256": "e82a308c85fa839aaa87c9f5da4ae0243b71646e99b9817a50805fd4bbed703e",
+        "bytes": 891,
+        "mode": 33188,
+        "inode": 53433458,
+        "device": 16777229,
+        "mtime_ns": 1792434261859260332,
+        "ctime_ns": 1792434261859260332
+      },
+      "crates/hls-store/tests/parquet_export.rs": {
+        "sha256": "c11a65bee06fb5243521ba200a769a64addc5287286bf1e65195119262ec625a",
+        "bytes": 15372,
+        "mode": 33188,
+        "inode": 53433459,
+        "device": 16777229,
+        "mtime_ns": 1792434261859339375,
+        "ctime_ns": 1792434261859339375
+      },
+      "crates/hls-store/tests/raw_writer.rs": {
+        "sha256": "364c9bdf1d013f1c89534d30e490535de59778e2d482350e600a3bc744602161",
+        "bytes": 1271,
+        "mode": 33188,
+        "inode": 53433460,
+        "device": 16777229,
+        "mtime_ns": 1792434261859397042,
+        "ctime_ns": 1792434261859397042
+      },
+      "crates/hls-store/tests/replay_parity.rs": {
+        "sha256": "8738e51f48b3a232d291dbaf672ce6735f5515a7dd197e79f92eb0a951a4ab58",
+        "bytes": 6439,
+        "mode": 33188,
+        "inode": 53433461,
+        "device": 16777229,
+        "mtime_ns": 1792434261859460542,
+        "ctime_ns": 1792434261859460542
+      },
+      "crates/hls-store/tests/schema_version.rs": {
+        "sha256": "63e77b71527c55e545451cd8be71ac71cd48e77275ae100118b988158c98d1ca",
+        "bytes": 1876,
+        "mode": 33188,
+        "inode": 53433462,
+        "device": 16777229,
+        "mtime_ns": 1792434261859518126,
+        "ctime_ns": 1792434261859518126
+      },
+      "crates/hls-store/tests/storage_boundaries.rs": {
+        "sha256": "8ea919128e026d6f906b5e455574b04808537291e08cb2a593db8575e228593f",
+        "bytes": 9996,
+        "mode": 33188,
+        "inode": 53433463,
+        "device": 16777229,
+        "mtime_ns": 1792434261859592127,
+        "ctime_ns": 1792434261859592127
+      },
+      "crates/hls-tui/Cargo.toml": {
+        "sha256": "a8466eed8039b54bb5245bdcd5fac87a8aa939098a2982d4bb3f8951f3791d71",
+        "bytes": 386,
+        "mode": 33188,
+        "inode": 53433465,
+        "device": 16777229,
+        "mtime_ns": 1792434261859677961,
+        "ctime_ns": 1792434261859677961
+      },
+      "crates/hls-tui/src/alerts.rs": {
+        "sha256": "238ed4ada7ccd13dd649be818887bc6c0084912d6a7e5f9aa4b1c04491a50d95",
+        "bytes": 2522,
+        "mode": 33188,
+        "inode": 53433467,
+        "device": 16777229,
+        "mtime_ns": 1792434261859770545,
+        "ctime_ns": 1792434261859770545
+      },
+      "crates/hls-tui/src/app.rs": {
+        "sha256": "2929fc24eee45f394fb1aaf47f4b571bbca7892a2809fb95e86ff97b1b9242de",
+        "bytes": 42306,
+        "mode": 33188,
+        "inode": 53433468,
+        "device": 16777229,
+        "mtime_ns": 1792434261859869254,
+        "ctime_ns": 1792434261859869254
+      },
+      "crates/hls-tui/src/detail.rs": {
+        "sha256": "ce7dc5636b96f9dad548dbafc33d4f96207c4f38e6b07228067d9cf6bd44c43d",
+        "bytes": 6708,
+        "mode": 33188,
+        "inode": 53433469,
+        "device": 16777229,
+        "mtime_ns": 1792434261859946171,
+        "ctime_ns": 1792434261859946171
+      },
+      "crates/hls-tui/src/health.rs": {
+        "sha256": "7573c3153a5bea2b8e21f9ce15913338c0d01b7b99ba0548c9e6c5de66d63a31",
+        "bytes": 3117,
+        "mode": 33188,
+        "inode": 53433470,
+        "device": 16777229,
+        "mtime_ns": 1792434261860013130,
+        "ctime_ns": 1792434261860013130
+      },
+      "crates/hls-tui/src/interaction.rs": {
+        "sha256": "68607749ec4c243087dcfc3e55fbc605564e627f33651375bc145819562bd462",
+        "bytes": 17381,
+        "mode": 33188,
+        "inode": 53433471,
+        "device": 16777229,
+        "mtime_ns": 1792434261860081922,
+        "ctime_ns": 1792434261860081922
+      },
+      "crates/hls-tui/src/lib.rs": {
+        "sha256": "bfe8c0b1589f7249e14e159600ffbd0938fcd3e86154208be3b868d692397499",
+        "bytes": 139,
+        "mode": 33188,
+        "inode": 53433472,
+        "device": 16777229,
+        "mtime_ns": 1792434261860146423,
+        "ctime_ns": 1792434261860146423
+      },
+      "crates/hls-tui/src/ratatui_app.rs": {
+        "sha256": "ee950a10dd0c5a645b0147eec27dc570b921ca8358f44d629a9393f3232226eb",
+        "bytes": 332903,
+        "mode": 33188,
+        "inode": 53433473,
+        "device": 16777229,
+        "mtime_ns": 1792434261860439092,
+        "ctime_ns": 1792434261860439092
+      },
+      "crates/hls-tui/src/theme.rs": {
+        "sha256": "6003b4743b04cfd335e0777c50f1b552bf38675c261e09d89ef9e7ed74a7f122",
+        "bytes": 1549,
+        "mode": 33188,
+        "inode": 53433474,
+        "device": 16777229,
+        "mtime_ns": 1792434261860843595,
+        "ctime_ns": 1792434261860843595
+      },
+      "crates/hls-tui/tests/alert_history.rs": {
+        "sha256": "c1741e2a534de6be5e268e14b688aa8117a192ce6c9944e65d97433cd7890115",
+        "bytes": 3901,
+        "mode": 33188,
+        "inode": 53433476,
+        "device": 16777229,
+        "mtime_ns": 1792434261860958346,
+        "ctime_ns": 1792434261860958346
+      },
+      "crates/hls-tui/tests/confidence_pane.rs": {
+        "sha256": "e5cb3249c035e33038eccb758d55d633d83e35c4c092e0213e16db9cd9b4bee0",
+        "bytes": 1035,
+        "mode": 33188,
+        "inode": 53433477,
+        "device": 16777229,
+        "mtime_ns": 1792434261861025847,
+        "ctime_ns": 1792434261861025847
+      },
+      "crates/hls-tui/tests/health_pane.rs": {
+        "sha256": "f7ed00b0f0f1f51b480c53725fa231b17782268d3737ba70315d286147ba4bda",
+        "bytes": 1082,
+        "mode": 33188,
+        "inode": 53433478,
+        "device": 16777229,
+        "mtime_ns": 1792434261861083597,
+        "ctime_ns": 1792434261861083597
+      },
+      "crates/hls-tui/tests/main_table_golden.rs": {
+        "sha256": "8b38929c9360e9b6820bac20412522c4dc66628c85688b885b4b649dfa9433cb",
+        "bytes": 8314,
+        "mode": 33188,
+        "inode": 53433479,
+        "device": 16777229,
+        "mtime_ns": 1792434261861145556,
+        "ctime_ns": 1792434261861145556
+      },
+      "crates/hls-tui/tests/ratatui_cockpit.rs": {
+        "sha256": "c1fe7f3cf5ac2279b845dbdd23207b9f3740b183e1a2865f23bb5fae241f5472",
+        "bytes": 160075,
+        "mode": 33188,
+        "inode": 53433480,
+        "device": 16777229,
+        "mtime_ns": 1792434261861327099,
+        "ctime_ns": 1792434261861327099
+      },
+      "crates/hls-tui/tests/why_ranked_pane.rs": {
+        "sha256": "ee8aa86df009770f14596c89e24996f1fe8fb5e26f0be6027ccefecd77deb853",
+        "bytes": 1395,
+        "mode": 33188,
+        "inode": 53433481,
+        "device": 16777229,
+        "mtime_ns": 1792434261861610935,
+        "ctime_ns": 1792434261861610935
+      },
+      "crates/hls-tui/tests/workstation_interaction.rs": {
+        "sha256": "b0bcead63e543d9c66924864d8632c671bb5f5cd226873e37a1f5befc0d82ee0",
+        "bytes": 11489,
+        "mode": 33188,
+        "inode": 53433482,
+        "device": 16777229,
+        "mtime_ns": 1792434261861673352,
+        "ctime_ns": 1792434261861673352
+      },
+      "deny.toml": {
+        "sha256": "a77763caeeb7117b423d0a97ac8ae8902f9b311d80f6ea50479063b36ce66689",
+        "bytes": 836,
+        "mode": 33188,
+        "inode": 53433483,
+        "device": 16777229,
+        "mtime_ns": 1792440864280840843,
+        "ctime_ns": 1792440864280840843
+      },
+      "deploy/launchd/com.hlscreen.live.plist.template": {
+        "sha256": "43b8e13f2fa21b6f5681a620b08895625e634011dbad98a70c2e8fb045393ba9",
+        "bytes": 1122,
+        "mode": 33188,
+        "inode": 53433486,
+        "device": 16777229,
+        "mtime_ns": 1792434261861858312,
+        "ctime_ns": 1792434261861858312
+      },
+      "deploy/systemd/hlscreen-live.service": {
+        "sha256": "dad45cee5ae94148283cf620fa4741161d4a477dcb7f80abf8e926db05404779",
+        "bytes": 604,
+        "mode": 33188,
+        "inode": 53433488,
+        "device": 16777229,
+        "mtime_ns": 1792434261861958854,
+        "ctime_ns": 1792434261861958854
+      },
+      "dist-workspace.toml": {
+        "sha256": "1205b467b343d63e88537fc706c5a7d00ff6ee40de0db830ca9b08e56cc65b22",
+        "bytes": 1910,
+        "mode": 33188,
+        "inode": 53433489,
+        "device": 16777229,
+        "mtime_ns": 1792434261862011855,
+        "ctime_ns": 1792434261862011855
+      },
+      "docs/PRIVACY.md": {
+        "sha256": "a2abaa7106410eb79eb8b3362821906f5d6e5b08be12023569af2af8bdf43208",
+        "bytes": 2241,
+        "mode": 33188,
+        "inode": 53433491,
+        "device": 16777229,
+        "mtime_ns": 1792434261862097480,
+        "ctime_ns": 1792434261862097480
+      },
+      "docs/README.md": {
+        "sha256": "1e72752e0204772ac3ee4c9553d17db0497d935ff700a8f75d4002aa663684df",
+        "bytes": 697,
+        "mode": 33188,
+        "inode": 53433492,
+        "device": 16777229,
+        "mtime_ns": 1792434261862159564,
+        "ctime_ns": 1792434261862159564
+      },
+      "docs/RELEASING.md": {
+        "sha256": "0112f80610fb9b128229b5ffccb3a1418a755a212ac49a47f642ae288e9277a9",
+        "bytes": 11518,
+        "mode": 33188,
+        "inode": 53433493,
+        "device": 16777229,
+        "mtime_ns": 1792441021465784732,
+        "ctime_ns": 1792441021465784732
+      },
+      "docs/ROADMAP.md": {
+        "sha256": "abb733ce15f09b56a1b01c7a328eab9dd933f66ba596ce68c269a7d15fe3d548",
+        "bytes": 4214,
+        "mode": 33188,
+        "inode": 53433494,
+        "device": 16777229,
+        "mtime_ns": 1792434261862313607,
+        "ctime_ns": 1792434261862313607
+      },
+      "docs/THREAT_MODEL.md": {
+        "sha256": "486eb0c11295c479831138b9369f521cb98919c9ba92befdab21a88a55c16079",
+        "bytes": 2964,
+        "mode": 33188,
+        "inode": 53433495,
+        "device": 16777229,
+        "mtime_ns": 1792434261862366982,
+        "ctime_ns": 1792434261862366982
+      },
+      "docs/architecture.md": {
+        "sha256": "548e744c113e32c9b77c5dac124adc994f3476bd0955eb75b0639beda8b888ea",
+        "bytes": 8493,
+        "mode": 33188,
+        "inode": 53433496,
+        "device": 16777229,
+        "mtime_ns": 1792434261862453358,
+        "ctime_ns": 1792434261862453358
+      },
+      "docs/assets/screenshots/alert-history.svg": {
+        "sha256": "3089479f7cde68acc585bcbce377ff1b07bbf3198ca5dac7922e87dc40147cee",
+        "bytes": 3180,
+        "mode": 33188,
+        "inode": 53433499,
+        "device": 16777229,
+        "mtime_ns": 1792434261862602859,
+        "ctime_ns": 1792434261862602859
+      },
+      "docs/assets/screenshots/confidence-degraded.svg": {
+        "sha256": "aa7b8c2e22f93594217eb5c69fd1689347e1be8a68e056e599786af1b5643e39",
+        "bytes": 6216,
+        "mode": 33188,
+        "inode": 53433500,
+        "device": 16777229,
+        "mtime_ns": 1792434261862684610,
+        "ctime_ns": 1792434261862684610
+      },
+      "docs/assets/screenshots/health-json.svg": {
+        "sha256": "db1cb6b93bfc72662f76e39bade8337812d7377fb5a382702ff0669d4747d5ce",
+        "bytes": 18521,
+        "mode": 33188,
+        "inode": 53433501,
+        "device": 16777229,
+        "mtime_ns": 1792434261862744527,
+        "ctime_ns": 1792434261862744527
+      },
+      "docs/assets/screenshots/health-panel.svg": {
+        "sha256": "b365fbc4064a65ab62857be382f7b3dcccb9ad521aeaf0346da38b65db4a8d9b",
+        "bytes": 5461,
+        "mode": 33188,
+        "inode": 53433502,
+        "device": 16777229,
+        "mtime_ns": 1792434261862827694,
+        "ctime_ns": 1792434261862827694
+      },
+      "docs/assets/screenshots/live-screen.svg": {
+        "sha256": "99393488c4937eeb39ec115e9b513036f4e9a261aeccc31aa06d44fad3f52e49",
+        "bytes": 6514,
+        "mode": 33188,
+        "inode": 53433503,
+        "device": 16777229,
+        "mtime_ns": 1792434261862881653,
+        "ctime_ns": 1792434261862881653
+      },
+      "docs/assets/screenshots/metadata-discovery.svg": {
+        "sha256": "3879e62f7ea6603dc62814d8b52c6eb334d29d4007589f00fd3cccc452796c1a",
+        "bytes": 6280,
+        "mode": 33188,
+        "inode": 53433504,
+        "device": 16777229,
+        "mtime_ns": 1792434261862960237,
+        "ctime_ns": 1792434261862960237
+      },
+      "docs/assets/screenshots/record-replay.svg": {
+        "sha256": "5d119374178549de1964e1ee6508a7b42cf4d09e508b00799b7201f89d26f804",
+        "bytes": 8831,
+        "mode": 33188,
+        "inode": 53433505,
+        "device": 16777229,
+        "mtime_ns": 1792434261863015446,
+        "ctime_ns": 1792434261863015446
+      },
+      "docs/assets/screenshots/resilience-screen.svg": {
+        "sha256": "424b6d04bbab620409287864339a9d2655ab0ba1ba89f1efc5e6c651a69a20bd",
+        "bytes": 6266,
+        "mode": 33188,
+        "inode": 53433506,
+        "device": 16777229,
+        "mtime_ns": 1792434261863083822,
+        "ctime_ns": 1792434261863083822
+      },
+      "docs/assets/screenshots/symbols.svg": {
+        "sha256": "551e7cf041580d3dc9cd5b6715fa7063996e7fa0ff8125c894e876448b75a573",
+        "bytes": 1926,
+        "mode": 33188,
+        "inode": 53433507,
+        "device": 16777229,
+        "mtime_ns": 1792434261863200698,
+        "ctime_ns": 1792434261863200698
+      },
+      "docs/assets/screenshots/why-ranked.svg": {
+        "sha256": "b544824aba2a6a3fa6dff2d75dc5c81d276081309c1baa5c2f4f218d43b1e079",
+        "bytes": 7608,
+        "mode": 33188,
+        "inode": 53433508,
+        "device": 16777229,
+        "mtime_ns": 1792434261863278573,
+        "ctime_ns": 1792434261863278573
+      },
+      "docs/data-format.md": {
+        "sha256": "b4e5bb3fa0e27cb30e3402bc3a6d8fd411fe946e9685c0b8fa260ba92d1d8c7d",
+        "bytes": 13341,
+        "mode": 33188,
+        "inode": 53433509,
+        "device": 16777229,
+        "mtime_ns": 1792434261863369574,
+        "ctime_ns": 1792434261863369574
+      },
+      "docs/deployment.md": {
+        "sha256": "5b0cbf0c2b54bca852a92bd7cc32f2d6b513e7568e3e6e1b48ac697537d0d549",
+        "bytes": 8583,
+        "mode": 33188,
+        "inode": 53433510,
+        "device": 16777229,
+        "mtime_ns": 1792453559791125155,
+        "ctime_ns": 1792453559791125155
+      },
+      "docs/evidence/artifact-output-decoding-20261020/README.md": {
+        "sha256": "14371d2121d1a6736398e9cbed32e76e90749d0ea35e1acf40a4cf620321f759",
+        "bytes": 1392,
+        "mode": 33188,
+        "inode": 55992143,
+        "device": 16777229,
+        "mtime_ns": 1792474998781986164,
+        "ctime_ns": 1792474998781986164
+      },
+      "docs/evidence/artifact-output-decoding-20261020/validation.json": {
+        "sha256": "c31a6bc6a94203bab09186cb4e5b70acdc4570716b491d86c2941c8ef6af6c00",
+        "bytes": 6990,
+        "mode": 33188,
+        "inode": 55992142,
+        "device": 16777229,
+        "mtime_ns": 1792475103639041377,
+        "ctime_ns": 1792475103639041377
+      },
+      "docs/evidence/security-lock-20261019/README.md": {
+        "sha256": "4ae22043317d0008d58559c5b0ac8ef2193b4eed3c7781022e4730a3bcfe97ce",
+        "bytes": 3520,
+        "mode": 33188,
+        "inode": 55190037,
+        "device": 16777229,
+        "mtime_ns": 1792452775962992173,
+        "ctime_ns": 1792452775962992173
+      },
+      "docs/evidence/security-lock-20261019/rustsec-audit.json": {
+        "sha256": "89e584f6d87e0840692cb34a98d64ff0af6dcfd1ac817b3a735264339c3cef1a",
+        "bytes": 805,
+        "mode": 33188,
+        "inode": 55190036,
+        "device": 16777229,
+        "mtime_ns": 1792452566521197961,
+        "ctime_ns": 1792452566521197961
+      },
+      "docs/evidence/security-lock-20261019/saved-prefix-replay.json": {
+        "sha256": "c5268424c14ea7161e07379efcacd2a23d79da0d205ae5a97cb42cb6ccdd25fb",
+        "bytes": 1058,
+        "mode": 33188,
+        "inode": 55191772,
+        "device": 16777229,
+        "mtime_ns": 1792452711917034375,
+        "ctime_ns": 1792452711917034375
+      },
+      "docs/evidence/security-lock-20261019/validation.json": {
+        "sha256": "071d6ebda60ef6c1277e960a7fef5d64e91c2ce7965d81cc00562e64e6e801c8",
+        "bytes": 4264,
+        "mode": 33188,
+        "inode": 55191823,
+        "device": 16777229,
+        "mtime_ns": 1792452775958482984,
+        "ctime_ns": 1792452775958482984
+      },
+      "docs/evidence/shared-feed-atomic-observations-20261020/README.md": {
+        "sha256": "316eeb79b30f5a752df6e96deddf1fbde6966cb42a871e71fbedfc738d7bb0c8",
+        "bytes": 4281,
+        "mode": 33188,
+        "inode": 57934373,
+        "device": 16777229,
+        "mtime_ns": 1792519418736919469,
+        "ctime_ns": 1792519418736919469
+      },
+      "docs/evidence/shared-feed-atomic-observations-20261020/source.json": {
+        "sha256": "829e7435bee41b33f484ad3da200b003fce9de45b2039f2976b14f763ef8d31c",
+        "bytes": 44770,
+        "mode": 33188,
+        "inode": 57969398,
+        "device": 16777229,
+        "mtime_ns": 1792519372674956268,
+        "ctime_ns": 1792519372674967976
+      },
+      "docs/evidence/shared-feed-atomic-observations-20261020/validation.json": {
+        "sha256": "4b2e93c3b920aa2edf2df6e6b6c8e69c8dc19f19636f26916a3e7b572b7b0c29",
+        "bytes": 89328,
+        "mode": 33188,
+        "inode": 57969399,
+        "device": 16777229,
+        "mtime_ns": 1792519581211490847,
+        "ctime_ns": 1792519581211490847
+      },
+      "docs/evidence/shared-feed-batch-pin-20261020/README.md": {
+        "sha256": "cc1e9f86a103eee7ab43a00017925ec82bca16c4f1bf7cbd874c8d12ad667048",
+        "bytes": 2285,
+        "mode": 33188,
+        "inode": 55685174,
+        "device": 16777229,
+        "mtime_ns": 1792466526739716244,
+        "ctime_ns": 1792466526739716244
+      },
+      "docs/evidence/shared-feed-batch-pin-20261020/validation.json": {
+        "sha256": "ef25923ddac6327e87df7634e5ff1a229da0fc445fdfb202d86ac3772c525e87",
+        "bytes": 7519,
+        "mode": 33188,
+        "inode": 55685173,
+        "device": 16777229,
+        "mtime_ns": 1792466626886814384,
+        "ctime_ns": 1792466626886814384
+      },
+      "docs/evidence/shared-feed-causal-profile-pin-20261020/README.md": {
+        "sha256": "803aac5a5eb749fafcfa3c6bb564abf078e6946e7e9559954121556cb5ed03b9",
+        "bytes": 1946,
+        "mode": 33188,
+        "inode": 55929277,
+        "device": 16777229,
+        "mtime_ns": 1792473017357243251,
+        "ctime_ns": 1792473017357243251
+      },
+      "docs/evidence/shared-feed-causal-profile-pin-20261020/validation.json": {
+        "sha256": "5e87076cc6ea2a2f594f3c418eb75acbf8a491660a1371b5b410ab8826a3489d",
+        "bytes": 10029,
+        "mode": 33188,
+        "inode": 55929280,
+        "device": 16777229,
+        "mtime_ns": 1792473097683228980,
+        "ctime_ns": 1792473097683228980
+      },
+      "docs/evidence/shared-feed-causal-wire-pin-20261020/README.md": {
+        "sha256": "42e3caf8eb3df70c5135b9a45b707d40c0c21a6c8ea90fe50b0876b218f51a6d",
+        "bytes": 5098,
+        "mode": 33188,
+        "inode": 58469554,
+        "device": 16777229,
+        "mtime_ns": 1792537151547331764,
+        "ctime_ns": 1792537151547331764
+      },
+      "docs/evidence/shared-feed-causal-wire-pin-20261020/artifact-diagnostics.json": {
+        "sha256": "239bf0df27daffc19a08e6f3c0f65150497c4d7bb1106a266e46974d7eaaee29",
+        "bytes": 2643,
+        "mode": 33188,
+        "inode": 58621279,
+        "device": 16777229,
+        "mtime_ns": 1792536638039768390,
+        "ctime_ns": 1792536638039768390
+      },
+      "docs/evidence/shared-feed-causal-wire-pin-20261020/attribution-repair.json": {
+        "sha256": "30c3733e102b39c2e068a2bd109924d35b44a551d889f9b20ae67e0940b17798",
+        "bytes": 1773,
+        "mode": 33188,
+        "inode": 58569846,
+        "device": 16777229,
+        "mtime_ns": 1792535896487306175,
+        "ctime_ns": 1792535896487306175
+      },
+      "docs/evidence/shared-feed-causal-wire-pin-20261020/consumer-hosted-af6.json": {
+        "sha256": "d9b72f4f814956891c2b3c713c05ec6c006fd355213f5471640afb9c2d6b2786",
+        "bytes": 5773,
+        "mode": 33188,
+        "inode": 58621278,
+        "device": 16777229,
+        "mtime_ns": 1792536638038603128,
+        "ctime_ns": 1792536638038603128
+      },
+      "docs/evidence/shared-feed-causal-wire-pin-20261020/consumer-native-artifacts-af6.json": {
+        "sha256": "7d93017e09549dc6b224438119aa23839aa430da3771e35661c9ff59b13f8c1d",
+        "bytes": 2488,
+        "mode": 33188,
+        "inode": 58635387,
+        "device": 16777229,
+        "mtime_ns": 1792537151546829719,
+        "ctime_ns": 1792537151546829719
+      },
+      "docs/evidence/shared-feed-causal-wire-pin-20261020/joint05.json": {
+        "sha256": "d224ab9493d5555b22f1c9275dcb92e0714b7fd5a9db63e6516bcd6ab3c8c31f",
+        "bytes": 14871,
+        "mode": 33188,
+        "inode": 58571632,
+        "device": 16777229,
+        "mtime_ns": 1792535982650524282,
+        "ctime_ns": 1792535982650524282
+      },
+      "docs/evidence/shared-feed-causal-wire-pin-20261020/producer-hosted.json": {
+        "sha256": "8d0f2b905cfdb7d309b8a95e3144e7a9b26599bc55acd25bff1dec5ba8f9c270",
+        "bytes": 12595,
+        "mode": 33188,
+        "inode": 58532736,
+        "device": 16777229,
+        "mtime_ns": 1792534774564967948,
+        "ctime_ns": 1792534774564978323
+      },
+      "docs/evidence/shared-feed-causal-wire-pin-20261020/source.json": {
+        "sha256": "064b36dea5cebf9e961e64780920563f565abc4aa3d2192612bd45df324edc04",
+        "bytes": 59548,
+        "mode": 33188,
+        "inode": 58525077,
+        "device": 16777229,
+        "mtime_ns": 1792534774572668056,
+        "ctime_ns": 1792534774572668056
+      },
+      "docs/evidence/shared-feed-causal-wire-pin-20261020/validation.json": {
+        "sha256": "cb184b9e36a90289559a9896fbaf1ca44ae37aec28dccd801b347fee6e8b8896",
+        "bytes": 22609,
+        "mode": 33188,
+        "inode": 58525079,
+        "device": 16777229,
+        "mtime_ns": 1792534934308106830,
+        "ctime_ns": 1792534934308106830
+      },
+      "docs/evidence/shared-feed-diagnostics-pin-20261020/README.md": {
+        "sha256": "54690229dbc324ef3862630141199fdde59e87f0a7727cd84f57f67998631fd6",
+        "bytes": 2256,
+        "mode": 33188,
+        "inode": 55517916,
+        "device": 16777229,
+        "mtime_ns": 1792462520268057743,
+        "ctime_ns": 1792462520268057743
+      },
+      "docs/evidence/shared-feed-diagnostics-pin-20261020/validation.json": {
+        "sha256": "dd43aeb9ba95cbf6b93e96986c0e89e7acafc25573018d37091d47cd13485eea",
+        "bytes": 6786,
+        "mode": 33188,
+        "inode": 55517915,
+        "device": 16777229,
+        "mtime_ns": 1792462600345895933,
+        "ctime_ns": 1792462600345895933
+      },
+      "docs/evidence/shared-feed-hyperliquid-bootstrap-pin-20261020/README.md": {
+        "sha256": "57d9f751a02033518b463970eb48fdee7c7633e4cf3aedc7366da4f0853efdd4",
+        "bytes": 2620,
+        "mode": 33188,
+        "inode": 57475525,
+        "device": 16777229,
+        "mtime_ns": 1792496285300813721,
+        "ctime_ns": 1792496285300813721
+      },
+      "docs/evidence/shared-feed-hyperliquid-bootstrap-pin-20261020/validation.json": {
+        "sha256": "91d352cb4df6aafdfce85a13512668c9753e70645a469251e8b58976ba763023",
+        "bytes": 22218,
+        "mode": 33188,
+        "inode": 57475529,
+        "device": 16777229,
+        "mtime_ns": 1792496647204449105,
+        "ctime_ns": 1792496647204449105
+      },
+      "docs/evidence/shared-feed-native-pin-20261020/README.md": {
+        "sha256": "bdbbb2c1ee45c6be51756cf48c7cd553c434c2b7fbb8f853d5c59add296716d8",
+        "bytes": 2217,
+        "mode": 33188,
+        "inode": 55338247,
+        "device": 16777229,
+        "mtime_ns": 1792455293293547755,
+        "ctime_ns": 1792455293293547755
+      },
+      "docs/evidence/shared-feed-native-pin-20261020/validation.json": {
+        "sha256": "b9f8d926a0c1279c0e5016c57300eb48b1bbbd42a77063a88abf4b8ec5c82adf",
+        "bytes": 7946,
+        "mode": 33188,
+        "inode": 55338246,
+        "device": 16777229,
+        "mtime_ns": 1792455293294241000,
+        "ctime_ns": 1792455293294241000
+      },
+      "docs/evidence/shared-feed-native-replay-pin-20261020/README.md": {
+        "sha256": "1d9addd2f00a973275f087c466bdfb88a71d972fcbec55b193d6b8481cf451fc",
+        "bytes": 2556,
+        "mode": 33188,
+        "inode": 57653895,
+        "device": 16777229,
+        "mtime_ns": 1792500608636824045,
+        "ctime_ns": 1792500608636824045
+      },
+      "docs/evidence/shared-feed-native-replay-pin-20261020/validation.json": {
+        "sha256": "005923dea6ab6ecbbb5ae7e5e185c22c06a9ff45fe2a0c1f62096d058b03c421",
+        "bytes": 11023,
+        "mode": 33188,
+        "inode": 57671516,
+        "device": 16777229,
+        "mtime_ns": 1792500781943363049,
+        "ctime_ns": 1792500781943363049
+      },
+      "docs/evidence/shared-feed-operation-owner-pin-20261020/README.md": {
+        "sha256": "7e42f05744661d6baebb7638e471635b5fee202651743964da6d1466a1f76a5f",
+        "bytes": 1712,
+        "mode": 33188,
+        "inode": 56280376,
+        "device": 16777229,
+        "mtime_ns": 1792481948174354987,
+        "ctime_ns": 1792481948174354987
+      },
+      "docs/evidence/shared-feed-operation-owner-pin-20261020/validation.json": {
+        "sha256": "2db5fba52582a624868d869b97544dc3df0eb0e232c80890552bd95b84bd6ffc",
+        "bytes": 22767,
+        "mode": 33188,
+        "inode": 56280375,
+        "device": 16777229,
+        "mtime_ns": 1792482191050688212,
+        "ctime_ns": 1792482191050688212
+      },
+      "docs/evidence/shared-feed-operation-pin-20261020/README.md": {
+        "sha256": "a5105c65319df0b13551e77c51171f843db2514ad9f89c16eaa5b4a2a547a0bb",
+        "bytes": 2614,
+        "mode": 33188,
+        "inode": 55797627,
+        "device": 16777229,
+        "mtime_ns": 1792469386437005118,
+        "ctime_ns": 1792469386437005118
+      },
+      "docs/evidence/shared-feed-operation-pin-20261020/validation.json": {
+        "sha256": "89d6366d842c8762a034b9b7807fbead1e63a98e2d63c7e4bbcf382c6d951a3a",
+        "bytes": 12391,
+        "mode": 33188,
+        "inode": 55797625,
+        "device": 16777229,
+        "mtime_ns": 1792469470664611324,
+        "ctime_ns": 1792469470664611324
+      },
+      "docs/evidence/shared-feed-owner-history-pin-20261020/README.md": {
+        "sha256": "4625f217493ae185ac92176e94d7c24f21d50fc70de63e737f7e4b1f98e71099",
+        "bytes": 2031,
+        "mode": 33188,
+        "inode": 56640223,
+        "device": 16777229,
+        "mtime_ns": 1792485936158271342,
+        "ctime_ns": 1792485936158271342
+      },
+      "docs/evidence/shared-feed-owner-history-pin-20261020/validation.json": {
+        "sha256": "01fc015bb818a4b2fb02512066fd58a9b00052bd07799b5a2496d63c30224c73",
+        "bytes": 23968,
+        "mode": 33188,
+        "inode": 56640222,
+        "device": 16777229,
+        "mtime_ns": 1792485936157656091,
+        "ctime_ns": 1792485936157656091
+      },
+      "docs/evidence/shared-feed-owner-runtime-pin-20261020/README.md": {
+        "sha256": "6bca1d57d648d4e48f89276f9c08cb13b2326e9f8730ac77458fd35129045c4b",
+        "bytes": 2129,
+        "mode": 33188,
+        "inode": 57329816,
+        "device": 16777229,
+        "mtime_ns": 1792492236946738255,
+        "ctime_ns": 1792492236946738255
+      },
+      "docs/evidence/shared-feed-owner-runtime-pin-20261020/validation.json": {
+        "sha256": "71bacf9052d9eba3928bcdcb3d5b96807107221c366e3ff6d1399314c8f6d498",
+        "bytes": 24331,
+        "mode": 33188,
+        "inode": 57329815,
+        "device": 16777229,
+        "mtime_ns": 1792492400893134359,
+        "ctime_ns": 1792492400893134359
+      },
+      "docs/evidence/shared-feed-pin-20261019/README.md": {
+        "sha256": "2b167c7d10d28c1cae8d574b699efc61317457ab8e78a23795f183f773f74d37",
+        "bytes": 1564,
+        "mode": 33188,
+        "inode": 55151974,
+        "device": 16777229,
+        "mtime_ns": 1792451907724066575,
+        "ctime_ns": 1792451907724066575
+      },
+      "docs/evidence/shared-feed-pin-20261019/saved-prefix-replay.json": {
+        "sha256": "207ecf9febc3da99eca8788a984b58d015373b426cfa4fbb70b839d563cc6920",
+        "bytes": 1348,
+        "mode": 33188,
+        "inode": 55151973,
+        "device": 16777229,
+        "mtime_ns": 1792451907724383868,
+        "ctime_ns": 1792451907724383868
+      },
+      "docs/evidence/shared-feed-pin-20261019/validation.json": {
+        "sha256": "3a260a28094385162f54c4a5337de74b0edf693a3e916d1b2e1fd4e6b813de03",
+        "bytes": 3878,
+        "mode": 33188,
+        "inode": 55151972,
+        "device": 16777229,
+        "mtime_ns": 1792451942535508400,
+        "ctime_ns": 1792451942535508400
+      },
+      "docs/evidence/shared-feed-streaming-pin-20261020/README.md": {
+        "sha256": "1d174f27ca0e9b782c1d2ed5c766559639f33a8143a5dffd65ec1a9c809f102c",
+        "bytes": 1697,
+        "mode": 33188,
+        "inode": 55475650,
+        "device": 16777229,
+        "mtime_ns": 1792459600501571939,
+        "ctime_ns": 1792459600501571939
+      },
+      "docs/evidence/shared-feed-streaming-pin-20261020/validation.json": {
+        "sha256": "eafddffb18cd229b07c91a7d8298b2a1f480005072a1fa5d094f8a7a803874c7",
+        "bytes": 7078,
+        "mode": 33188,
+        "inode": 55475649,
+        "device": 16777229,
+        "mtime_ns": 1792459702746476269,
+        "ctime_ns": 1792459702746476269
+      },
+      "docs/evidence/soak-validation-20261020/README.md": {
+        "sha256": "522a69e67d053b53d98b60b191662b3070c87bda8e26db2cb89ba123b9a1dfb8",
+        "bytes": 1912,
+        "mode": 33188,
+        "inode": 55248271,
+        "device": 16777229,
+        "mtime_ns": 1792453820333776885,
+        "ctime_ns": 1792453820333776885
+      },
+      "docs/evidence/soak-validation-20261020/validation.json": {
+        "sha256": "bb1cbdccb6042ec31de68c4c2e293bfd4e1622739afda99a5a915ac352e320a0",
+        "bytes": 3214,
+        "mode": 33188,
+        "inode": 55248270,
+        "device": 16777229,
+        "mtime_ns": 1792453983686244533,
+        "ctime_ns": 1792453983686244533
+      },
+      "docs/evidence/soak/shared-feed-20261019-15m.json": {
+        "sha256": "ee3e5a00fcd4145832025453e1d7776e36724520705ae74eabb10c8aa1d4f8e7",
+        "bytes": 5360,
+        "mode": 33188,
+        "inode": 54352756,
+        "device": 16777229,
+        "mtime_ns": 1792442114182825385,
+        "ctime_ns": 1792442114182968053
+      },
+      "docs/evidence/soak/sota-allpairs-20260720-15m.json": {
+        "sha256": "685b705edd76997a67f9d7c2e6e22a47d04f691fcad7baaf321b1169e2650656",
+        "bytes": 5363,
+        "mode": 33188,
+        "inode": 53433513,
+        "device": 16777229,
+        "mtime_ns": 1792434261863602826,
+        "ctime_ns": 1792434261863602826
+      },
+      "docs/extensions.md": {
+        "sha256": "2e739a1fb85610c52c88af6cdfe452721e1a5e0f722a7999f7d28ae5f7c86cfe",
+        "bytes": 5091,
+        "mode": 33188,
+        "inode": 53433514,
+        "device": 16777229,
+        "mtime_ns": 1792434261863677743,
+        "ctime_ns": 1792434261863677743
+      },
+      "docs/feature-definitions.md": {
+        "sha256": "0ea5e61dea84e0dff6e6d722515650eb03ad5d74b3cba82b35138450565f35dc",
+        "bytes": 18592,
+        "mode": 33188,
+        "inode": 53433515,
+        "device": 16777229,
+        "mtime_ns": 1792434261863765452,
+        "ctime_ns": 1792434261863765452
+      },
+      "docs/metric-validation.md": {
+        "sha256": "efe63d4f0feb468918826049151e88357ae5e81591dbe5caa9655345a7374f4c",
+        "bytes": 3159,
+        "mode": 33188,
+        "inode": 53433516,
+        "device": 16777229,
+        "mtime_ns": 1792434261863833036,
+        "ctime_ns": 1792434261863833036
+      },
+      "docs/microstructure.md": {
+        "sha256": "c435016b0bd5479afa219a38071d88c8378930b3cdc1bc60b4640871e9ef4e10",
+        "bytes": 7365,
+        "mode": 33188,
+        "inode": 53433517,
+        "device": 16777229,
+        "mtime_ns": 1792434261863912037,
+        "ctime_ns": 1792434261863912037
+      },
+      "docs/production-readiness.md": {
+        "sha256": "9b3fbc21677a6f5fb1150f13ea8dd2c3731f34fc2f5d7984d4105a445d3f029f",
+        "bytes": 13018,
+        "mode": 33188,
+        "inode": 53433518,
+        "device": 16777229,
+        "mtime_ns": 1792441021466213862,
+        "ctime_ns": 1792441021466213862
+      },
+      "docs/releases/v0.1.0.md": {
+        "sha256": "83ad4527e12f217d7571d0cfc41af4057d1778965c5d11535b6aafebeee5095e",
+        "bytes": 2999,
+        "mode": 33188,
+        "inode": 53433520,
+        "device": 16777229,
+        "mtime_ns": 1792434261864093163,
+        "ctime_ns": 1792434261864093163
+      },
+      "docs/releases/v0.1.1.md": {
+        "sha256": "2d92b4dc529c21cca1d786797e7e7779a6813d4f5fec3b491b8fd36ffdf0ac44",
+        "bytes": 1909,
+        "mode": 33188,
+        "inode": 53433521,
+        "device": 16777229,
+        "mtime_ns": 1792434261864154872,
+        "ctime_ns": 1792434261864154872
+      },
+      "docs/releases/v0.1.2.md": {
+        "sha256": "4cf7300374c5447d2770457af7a7ffe787740c3fb3dfb3b9b887bf2348669dc8",
+        "bytes": 2236,
+        "mode": 33188,
+        "inode": 53433522,
+        "device": 16777229,
+        "mtime_ns": 1792434261864220706,
+        "ctime_ns": 1792434261864220706
+      },
+      "examples/screen-rules.md": {
+        "sha256": "a4e11bc2597daea2cf00de68db4e10dbc61d35fe46847885e715af44264cf635",
+        "bytes": 1370,
+        "mode": 33188,
+        "inode": 53433524,
+        "device": 16777229,
+        "mtime_ns": 1792434261864409707,
+        "ctime_ns": 1792434261864409707
+      },
+      "rust-toolchain.toml": {
+        "sha256": "8e6e20ff37fec81dcc984e412c5e82a21083e34d15f3b23e080fdc72bafc8955",
+        "bytes": 84,
+        "mode": 33188,
+        "inode": 53433525,
+        "device": 16777229,
+        "mtime_ns": 1792434261864487833,
+        "ctime_ns": 1792434261864487833
+      },
+      "scripts/check-history-secrets.sh": {
+        "sha256": "2f6f1a4d0af503436b7d79bb956d0ad6adef8d8765fd43e4f9bb122a09bd5988",
+        "bytes": 4140,
+        "mode": 33261,
+        "inode": 53433527,
+        "device": 16777229,
+        "mtime_ns": 1792434261864597501,
+        "ctime_ns": 1792434261864597501
+      },
+      "scripts/check-public-readiness.sh": {
+        "sha256": "91dcbef55512838a1f01b563f07b432006bcd0bf4ce1817fd3f40e49e1804eb1",
+        "bytes": 6909,
+        "mode": 33261,
+        "inode": 53433528,
+        "device": 16777229,
+        "mtime_ns": 1792442150288584531,
+        "ctime_ns": 1792442150288584531
+      },
+      "scripts/check-release-packaging.sh": {
+        "sha256": "f81765985bb27eab0d97a50d6627c202741a1c686ac57221f2aea6e9fc4079f9",
+        "bytes": 1823,
+        "mode": 33261,
+        "inode": 53433529,
+        "device": 16777229,
+        "mtime_ns": 1792531447593962783,
+        "ctime_ns": 1792531447593962783
+      },
+      "scripts/check-shared-feed-pin.py": {
+        "sha256": "4e256087784079ceadce62f7882bfbafd17538924e1b5d444a3be7b01642962d",
+        "bytes": 1860,
+        "mode": 33188,
+        "inode": 54172092,
+        "device": 16777229,
+        "mtime_ns": 1792531099415858939,
+        "ctime_ns": 1792531099415858939
+      },
+      "scripts/check-supervisor-packaging.sh": {
+        "sha256": "054b86ce7819a3166ae6942385d08f46c92e895d541dbc8bae25802ecdd3b972",
+        "bytes": 5332,
+        "mode": 33261,
+        "inode": 53433530,
+        "device": 16777229,
+        "mtime_ns": 1792434261864856419,
+        "ctime_ns": 1792434261864856419
+      },
+      "scripts/check-third-party-licenses.sh": {
+        "sha256": "9c907258449c42885da819908b6511654bf861902e9d6ff0229a2654d6ab34f3",
+        "bytes": 1108,
+        "mode": 33261,
+        "inode": 53433531,
+        "device": 16777229,
+        "mtime_ns": 1792434261864912670,
+        "ctime_ns": 1792434261864912670
+      },
+      "scripts/check-third-party-notices.py": {
+        "sha256": "b82f29df49d412b56819f81c78a33fa64c10349e76139736162d7afe8a91222f",
+        "bytes": 3123,
+        "mode": 33261,
+        "inode": 53433532,
+        "device": 16777229,
+        "mtime_ns": 1792434261864965295,
+        "ctime_ns": 1792434261864965295
+      },
+      "scripts/check.sh": {
+        "sha256": "79e8259c78b1eb2e52a9fd3429247c9769706e17a339f6e41b2b96faac754697",
+        "bytes": 1846,
+        "mode": 33261,
+        "inode": 53433533,
+        "device": 16777229,
+        "mtime_ns": 1792440891912944513,
+        "ctime_ns": 1792440891912944513
+      },
+      "scripts/generate-screenshots.py": {
+        "sha256": "a63122891b9ced73b0c90700d3c46104b6356d80a965a8eab370478a480fad9a",
+        "bytes": 14671,
+        "mode": 33261,
+        "inode": 53433534,
+        "device": 16777229,
+        "mtime_ns": 1792434261865122463,
+        "ctime_ns": 1792434261865122463
+      },
+      "scripts/harden-generated-release-workflow.py": {
+        "sha256": "3eb7e5bab692b85fd42b524736f39b03a90eedfc485aa5facaf6a8a8fd6fdf17",
+        "bytes": 14400,
+        "mode": 33261,
+        "inode": 53433535,
+        "device": 16777229,
+        "mtime_ns": 1792434261865196214,
+        "ctime_ns": 1792434261865196214
+      },
+      "scripts/local-release-artifact-smoke.sh": {
+        "sha256": "a2eddb795fbeb306c05ee218d4a2ba2ab83a31d057b38f8b9539e35fd03b52d7",
+        "bytes": 2623,
+        "mode": 33261,
+        "inode": 53433536,
+        "device": 16777229,
+        "mtime_ns": 1792531447593025808,
+        "ctime_ns": 1792531447593025808
+      },
+      "scripts/run-supervised-soak.sh": {
+        "sha256": "e0fd7acb07b61d1f4e14f2435bbe987b2d7ddf867276e51c37455a44bf404bd5",
+        "bytes": 10483,
+        "mode": 33261,
+        "inode": 53433537,
+        "device": 16777229,
+        "mtime_ns": 1792453559789691736,
+        "ctime_ns": 1792453559789691736
+      },
+      "scripts/runtime-source-sha256.py": {
+        "sha256": "618df106eb319ea07e0dfb68fec4620d25ee454c0908e479508928244e81d609",
+        "bytes": 1383,
+        "mode": 33188,
+        "inode": 53433538,
+        "device": 16777229,
+        "mtime_ns": 1792453543530715341,
+        "ctime_ns": 1792453543530715341
+      },
+      "scripts/summarize-git-history-privacy.py": {
+        "sha256": "b98e7a42182005b97d07b5971f79693a992758089e2e86066b9842d44442fd49",
+        "bytes": 2815,
+        "mode": 33261,
+        "inode": 53433539,
+        "device": 16777229,
+        "mtime_ns": 1792434261865449466,
+        "ctime_ns": 1792434261865449466
+      },
+      "scripts/summarize-git-identities.py": {
+        "sha256": "fac43358659691b164945f3c94bb4fa2c59f36b83ca3f314d4a27c1b77cba191",
+        "bytes": 1144,
+        "mode": 33261,
+        "inode": 53433540,
+        "device": 16777229,
+        "mtime_ns": 1792434261865506508,
+        "ctime_ns": 1792434261865506508
+      },
+      "scripts/test-dist-local-artifact.py": {
+        "sha256": "3c4bde7afe76f25c97e39fca89f9f3f9222619a544acac2c691705229875b62d",
+        "bytes": 3291,
+        "mode": 33188,
+        "inode": 55980400,
+        "device": 16777229,
+        "mtime_ns": 1792536254510353403,
+        "ctime_ns": 1792536254510353403
+      },
+      "scripts/test-history-privacy.py": {
+        "sha256": "86e25bbe0492abf46b6c20c3d1c687cf25173c3565bdde5e7468016399db7690",
+        "bytes": 2263,
+        "mode": 33261,
+        "inode": 53433541,
+        "device": 16777229,
+        "mtime_ns": 1792434261865562133,
+        "ctime_ns": 1792434261865562133
+      },
+      "scripts/test-mfop5-smoke.py": {
+        "sha256": "189677e9972cfc570460003d9b2f860bc2d439e9b52df42924b2a6c1c293a8dd",
+        "bytes": 7866,
+        "mode": 33188,
+        "inode": 58379553,
+        "device": 16777229,
+        "mtime_ns": 1792531802983450751,
+        "ctime_ns": 1792531802983450751
+      },
+      "scripts/test-soak-validation.py": {
+        "sha256": "821345586cc306b1d880083941b5dca6b411f918d2e7dafb1b03e3a3e057854d",
+        "bytes": 5214,
+        "mode": 33188,
+        "inode": 55203199,
+        "device": 16777229,
+        "mtime_ns": 1792453581006260734,
+        "ctime_ns": 1792453581006260734
+      },
+      "scripts/validate-soak-report.py": {
+        "sha256": "397a34b30b1c921024c9e14e8094aa076633709bc282dfb8ccfa8a0a696ff83c",
+        "bytes": 13087,
+        "mode": 33261,
+        "inode": 53433542,
+        "device": 16777229,
+        "mtime_ns": 1792453559785785022,
+        "ctime_ns": 1792453559785785022
+      },
+      "scripts/verify-dist-local-artifact.py": {
+        "sha256": "11e1e63c50a353e9429402ead0c6f74a9bacc9f2f7eefe0c07c8ec0726e8ebdf",
+        "bytes": 8767,
+        "mode": 33261,
+        "inode": 53433543,
+        "device": 16777229,
+        "mtime_ns": 1792536254509517106,
+        "ctime_ns": 1792536254509517106
+      },
+      "scripts/verify-mfop5-smoke.py": {
+        "sha256": "183a65e17cd06dd0a9c1264cec2f115a257634a468ebcb0f7b6cb278f26054f8",
+        "bytes": 10538,
+        "mode": 33188,
+        "inode": 58379474,
+        "device": 16777229,
+        "mtime_ns": 1792534293909952022,
+        "ctime_ns": 1792534293909952022
+      },
+      "tests/fixtures/.gitkeep": {
+        "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "bytes": 1,
+        "mode": 33188,
+        "inode": 53433546,
+        "device": 16777229,
+        "mtime_ns": 1792434261865841052,
+        "ctime_ns": 1792434261865841052
+      },
+      "tests/fixtures/README.md": {
+        "sha256": "142e0699c639c31153e1ce9040c8fa5697f3cda32055b88f4db4ef63e8bb7db8",
+        "bytes": 1259,
+        "mode": 33188,
+        "inode": 53433547,
+        "device": 16777229,
+        "mtime_ns": 1792434261865890761,
+        "ctime_ns": 1792434261865890761
+      },
+      "tests/fixtures/hyperliquid/mfop5-synthetic-v1/README.md": {
+        "sha256": "fc0000e40e009ba804e8eb046f15a614e6401d49265344f14cc0fefa92cc50d9",
+        "bytes": 1317,
+        "mode": 33188,
+        "inode": 58469549,
+        "device": 16777229,
+        "mtime_ns": 1792533615136802938,
+        "ctime_ns": 1792533615136802938
+      },
+      "tests/fixtures/hyperliquid/mfop5-synthetic-v1/feed/committed.json": {
+        "sha256": "ff91816745d00ec47eba9c27a907a212b87722d12f8442b9320a40ff232565db",
+        "bytes": 114,
+        "mode": 33188,
+        "inode": 58469548,
+        "device": 16777229,
+        "mtime_ns": 1792533615136511016,
+        "ctime_ns": 1792533615136511016
+      },
+      "tests/fixtures/hyperliquid/mfop5-synthetic-v1/feed/events.mfsf": {
+        "sha256": "bd6b103850ce49a1405c581a894350425043f7d14fca86a7683cc61dbdbdd308",
+        "bytes": 171188,
+        "mode": 33188,
+        "inode": 58469547,
+        "device": 16777229,
+        "mtime_ns": 1792533615136104551,
+        "ctime_ns": 1792533615136104551
+      },
+      "tests/fixtures/hyperliquid/mfop5-synthetic-v1/manifest.json": {
+        "sha256": "471e5b765aeab083aaf7167306b98e0385aa96a4baae08f390bc6dfea5b7e5ae",
+        "bytes": 6127,
+        "mode": 33188,
+        "inode": 58469550,
+        "device": 16777229,
+        "mtime_ns": 1792533615144471570,
+        "ctime_ns": 1792533615144471570
+      },
+      "tests/fixtures/hyperliquid/spot_meta.json": {
+        "sha256": "11dc060f76544c92a2fe8735bf41a60169ddce786d7eec1224503a8214462b4b",
+        "bytes": 981,
+        "mode": 33188,
+        "inode": 53433549,
+        "device": 16777229,
+        "mtime_ns": 1792434261865971803,
+        "ctime_ns": 1792434261865971803
+      },
+      "tests/fixtures/hyperliquid/spot_meta_and_asset_ctxs.json": {
+        "sha256": "0987b932d0906c772219c14e9339a68d673be4a38ba5743db04830d54d50141d",
+        "bytes": 1651,
+        "mode": 33188,
+        "inode": 53433550,
+        "device": 16777229,
+        "mtime_ns": 1792434261866035304,
+        "ctime_ns": 1792434261866035304
+      },
+      "tests/fixtures/hyperliquid/ws_mock_live.ndjson": {
+        "sha256": "613f75669430e33d00f29c376fae48864584b2f13d111e10b26af478f5223899",
+        "bytes": 832,
+        "mode": 33188,
+        "inode": 53433551,
+        "device": 16777229,
+        "mtime_ns": 1792434261866086013,
+        "ctime_ns": 1792434261866086013
+      },
+      "tests/fixtures/microstructure/README.md": {
+        "sha256": "0fc613c4b5b049582c17ea74ae4adf7eaa878c2c50bcdd9060871e68208829c4",
+        "bytes": 745,
+        "mode": 33188,
+        "inode": 53433553,
+        "device": 16777229,
+        "mtime_ns": 1792434261866172555,
+        "ctime_ns": 1792434261866172555
+      },
+      "tests/fixtures/microstructure/alert_playbook_boolean_watch.json": {
+        "sha256": "f323eb3660e8f048d24150c3b06480797136e5763d7986677bd8956742db4f6c",
+        "bytes": 1166,
+        "mode": 33188,
+        "inode": 53433554,
+        "device": 16777229,
+        "mtime_ns": 1792434261866228139,
+        "ctime_ns": 1792434261866228139
+      },
+      "tests/fixtures/microstructure/alert_playbook_spread_watch.json": {
+        "sha256": "b0105758340ee5ac5ed110533533fa87499197f16c503dec604a10ce13bcec33",
+        "bytes": 556,
+        "mode": 33188,
+        "inode": 53433555,
+        "device": 16777229,
+        "mtime_ns": 1792434261866285473,
+        "ctime_ns": 1792434261866285473
+      },
+      "tests/fixtures/microstructure/alert_playbook_threshold_watch.json": {
+        "sha256": "eb1dd086afc6c934e13947cb11040260befa7e961a62bd180f8eae687e67cb8f",
+        "bytes": 786,
+        "mode": 33188,
+        "inode": 53433556,
+        "device": 16777229,
+        "mtime_ns": 1792434261866332973,
+        "ctime_ns": 1792434261866332973
+      },
+      "tests/fixtures/microstructure/alert_playbook_tui_watch.json": {
+        "sha256": "6bb1ae0d51081d685cebdd6b07967cfc1bd98947cde4c414737f04078ed2c3a3",
+        "bytes": 499,
+        "mode": 33188,
+        "inode": 53433557,
+        "device": 16777229,
+        "mtime_ns": 1792434261866470974,
+        "ctime_ns": 1792434261866470974
+      },
+      "tests/fixtures/microstructure/analog_search_snapshots.json": {
+        "sha256": "d9f5eb90e3417ba07e426dee91a3c52ee187a1aa72f69bcedbc58702cb5daa31",
+        "bytes": 897,
+        "mode": 33188,
+        "inode": 53433558,
+        "device": 16777229,
+        "mtime_ns": 1792434261866533683,
+        "ctime_ns": 1792434261866533683
+      },
+      "tests/fixtures/microstructure/backfill_candle_repaired.json": {
+        "sha256": "dc98d5cf4632713a5402ff7918ec3dbb289095f310c73e0d60ea6b13a99a333d",
+        "bytes": 378,
+        "mode": 33188,
+        "inode": 53433559,
+        "device": 16777229,
+        "mtime_ns": 1792434261866588975,
+        "ctime_ns": 1792434261866588975
+      },
+      "tests/fixtures/microstructure/backfill_candle_unrepaired.json": {
+        "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+        "bytes": 3,
+        "mode": 33188,
+        "inode": 53433560,
+        "device": 16777229,
+        "mtime_ns": 1792434261866637684,
+        "ctime_ns": 1792434261866637684
+      },
+      "tests/fixtures/microstructure/benchmark_gap_replay.json": {
+        "sha256": "6a7715cc056fb0bcda9f9ba4263047e268a1b9cc26fd3bc150839d89c3d8fbca",
+        "bytes": 396,
+        "mode": 33188,
+        "inode": 53433561,
+        "device": 16777229,
+        "mtime_ns": 1792434261866688268,
+        "ctime_ns": 1792434261866688268
+      },
+      "tests/fixtures/microstructure/canonical_metric_benchmark.json": {
+        "sha256": "eed6accadd729a5c6589812f7c196f81d36fe80463335188ff276dc19f1b7d69",
+        "bytes": 1295,
+        "mode": 33188,
+        "inode": 53433562,
+        "device": 16777229,
+        "mtime_ns": 1792434261866742976,
+        "ctime_ns": 1792434261866742976
+      },
+      "tests/fixtures/microstructure/explainable_scores.json": {
+        "sha256": "e4fd80c860352428178311545d1aa7426163c3ecb812cb816680453c2f1165de",
+        "bytes": 1037,
+        "mode": 33188,
+        "inode": 53433563,
+        "device": 16777229,
+        "mtime_ns": 1792434261866799393,
+        "ctime_ns": 1792434261866799393
+      },
+      "tests/fixtures/microstructure/fee_profile_blended.json": {
+        "sha256": "eadbf80ff7ea9dc593fddde9f2057f5a42a9f6fbd23b9cacb0930d3990bbf2ce",
+        "bytes": 283,
+        "mode": 33188,
+        "inode": 53433564,
+        "device": 16777229,
+        "mtime_ns": 1792434261866851102,
+        "ctime_ns": 1792434261866851102
+      },
+      "tests/fixtures/microstructure/fee_profile_high_cost.json": {
+        "sha256": "f65c6906e6ba7adc47a38705d75d7d68cc00b31038fe19fd4eaa8d83ace1fb48",
+        "bytes": 281,
+        "mode": 33188,
+        "inode": 53433565,
+        "device": 16777229,
+        "mtime_ns": 1792434261866912686,
+        "ctime_ns": 1792434261866912686
+      },
+      "tests/fixtures/microstructure/fee_profile_invalid_thresholds.json": {
+        "sha256": "c6cabc66400520ea0ea0d57cd4a3c36cbdff1e57f58e475813d150f79c0692bf",
+        "bytes": 244,
+        "mode": 33188,
+        "inode": 53433566,
+        "device": 16777229,
+        "mtime_ns": 1792434261866971145,
+        "ctime_ns": 1792434261866971145
+      },
+      "tests/fixtures/microstructure/gap_replay.ndjson": {
+        "sha256": "96703ccdd097cd2fe4b943df90a27849e97d665c7e364f67b0ef38e25dac1f6e",
+        "bytes": 586,
+        "mode": 33188,
+        "inode": 53433567,
+        "device": 16777229,
+        "mtime_ns": 1792434261867023687,
+        "ctime_ns": 1792434261867023687
+      },
+      "tests/fixtures/microstructure/metadata_enrichment.json": {
+        "sha256": "9c9e337e08456846d7879ee33fa5f91b760bd8d0e811aee6bdeb5f3803fb803d",
+        "bytes": 2529,
+        "mode": 33188,
+        "inode": 53433568,
+        "device": 16777229,
+        "mtime_ns": 1792434261867081771,
+        "ctime_ns": 1792434261867081771
+      },
+      "tests/fixtures/microstructure/parquet_parity_events.ndjson": {
+        "sha256": "d4e250cb0a6743e74f541a17dc01c353ac7a08556cd35ba28c5b78fc68b97ad8",
+        "bytes": 862,
+        "mode": 33188,
+        "inode": 53433569,
+        "device": 16777229,
+        "mtime_ns": 1792434261867266397,
+        "ctime_ns": 1792434261867266397
+      },
+      "tests/fixtures/microstructure/plugin_safe_manifest.json": {
+        "sha256": "c3866587bef5c35df252af0e942462f6ccd6c71480b03a13ddab3f36754bd90c",
+        "bytes": 668,
+        "mode": 33188,
+        "inode": 53433570,
+        "device": 16777229,
+        "mtime_ns": 1792434261867466482,
+        "ctime_ns": 1792434261867466482
+      },
+      "tests/fixtures/microstructure/plugin_safe_row_labeler.wat": {
+        "sha256": "b07efd99d4adae19ddfeac73d5cb9eaf564aaf0c95441605f3d5952af6001bcc",
+        "bytes": 374,
+        "mode": 33188,
+        "inode": 53433571,
+        "device": 16777229,
+        "mtime_ns": 1792434261867597566,
+        "ctime_ns": 1792434261867597566
+      },
+      "tests/fixtures/microstructure/plugin_unsafe_manifest.json": {
+        "sha256": "6e23423f34a532d5badb8b35f4db7e927ad88853623dfb13910f52f2e1239df1",
+        "bytes": 685,
+        "mode": 33188,
+        "inode": 53433572,
+        "device": 16777229,
+        "mtime_ns": 1792434261867781568,
+        "ctime_ns": 1792434261867781568
+      },
+      "tests/fixtures/microstructure/resilience_shock.ndjson": {
+        "sha256": "bf3b5b2a3dff22daf8275b4e129bca4231005d6f20640fce0a2980118167d3cf",
+        "bytes": 1031,
+        "mode": 33188,
+        "inode": 53433573,
+        "device": 16777229,
+        "mtime_ns": 1792434261867867860,
+        "ctime_ns": 1792434261867867860
+      },
+      "tests/fixtures/microstructure/schema_manifest_supported.json": {
+        "sha256": "7c7bf3e78d694f9c1c224e2a4e2a33f833dd98579a18c9bf96599edee90cb0dc",
+        "bytes": 135,
+        "mode": 33188,
+        "inode": 53433574,
+        "device": 16777229,
+        "mtime_ns": 1792434261867934694,
+        "ctime_ns": 1792434261867934694
+      },
+      "tests/fixtures/microstructure/schema_manifest_unsupported.json": {
+        "sha256": "51db72353ba6a535f011236d4fe35a1cbd960ee7ab7154e737acc30ff3a9199f",
+        "bytes": 136,
+        "mode": 33188,
+        "inode": 53433575,
+        "device": 16777229,
+        "mtime_ns": 1792434261868009736,
+        "ctime_ns": 1792434261868009736
+      },
+      "tests/fixtures/microstructure/sparse_trades.ndjson": {
+        "sha256": "7d7837c70faef99f76d0425e701651e7fc4530ffec89c217b3db68441ccaf9c3",
+        "bytes": 294,
+        "mode": 33188,
+        "inode": 53433576,
+        "device": 16777229,
+        "mtime_ns": 1792434261868180988,
+        "ctime_ns": 1792434261868180988
+      },
+      "tests/fixtures/microstructure/thin_brittle_book.ndjson": {
+        "sha256": "dffe7974eab07ef7ab1c735b03e67b34c6d80796e5e028fee6d88846e7e49922",
+        "bytes": 891,
+        "mode": 33188,
+        "inode": 53433577,
+        "device": 16777229,
+        "mtime_ns": 1792434261868244988,
+        "ctime_ns": 1792434261868244988
+      },
+      "tests/fixtures/operations/soak-report-invalid-command.json": {
+        "sha256": "6d84c6fe5756518163fb41b62dbd3ff310ce0e086cd27e58b7e9773cfc485488",
+        "bytes": 1341,
+        "mode": 33188,
+        "inode": 53433579,
+        "device": 16777229,
+        "mtime_ns": 1792434261868353156,
+        "ctime_ns": 1792434261868353156
+      },
+      "tests/fixtures/operations/soak-report-invalid.json": {
+        "sha256": "cf65829ca770ec4a1e347fe993f0c28b18f9c8384836990c01d6556b854fe6bb",
+        "bytes": 862,
+        "mode": 33188,
+        "inode": 53433580,
+        "device": 16777229,
+        "mtime_ns": 1792434261868524907,
+        "ctime_ns": 1792434261868524907
+      },
+      "tests/fixtures/operations/soak-report-valid.json": {
+        "sha256": "749cc71fa713e14390d1d1ab2632b11e9f71b523fb92700d7f107cdb4f9caf05",
+        "bytes": 1557,
+        "mode": 33188,
+        "inode": 53433581,
+        "device": 16777229,
+        "mtime_ns": 1792434261868710992,
+        "ctime_ns": 1792434261868710992
+      },
+      "tests/golden/.gitkeep": {
+        "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "bytes": 1,
+        "mode": 33188,
+        "inode": 53433583,
+        "device": 16777229,
+        "mtime_ns": 1792434261868920452,
+        "ctime_ns": 1792434261868920452
+      },
+      "tests/golden/microstructure/.gitkeep": {
+        "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "bytes": 1,
+        "mode": 33188,
+        "inode": 53433585,
+        "device": 16777229,
+        "mtime_ns": 1792434261869008911,
+        "ctime_ns": 1792434261869008911
+      },
+      "tests/integration/.gitkeep": {
+        "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "bytes": 1,
+        "mode": 33188,
+        "inode": 53433587,
+        "device": 16777229,
+        "mtime_ns": 1792434261869111079,
+        "ctime_ns": 1792434261869111079
+      },
+      "tests/integration/reconnect_heartbeat.rs": {
+        "sha256": "4a4e9619d8efccb33818a58f9309c0ace1b77e181ed3d916126ca67c6c8eafab",
+        "bytes": 1446,
+        "mode": 33188,
+        "inode": 53433588,
+        "device": 16777229,
+        "mtime_ns": 1792434261869164496,
+        "ctime_ns": 1792434261869164496
+      },
+      "tests/integration/release_packaging.rs": {
+        "sha256": "5a47929be5bf5f3dd5491c4342a6f829f671e5497d40217d192268ad7b720f30",
+        "bytes": 47395,
+        "mode": 33188,
+        "inode": 53433589,
+        "device": 16777229,
+        "mtime_ns": 1792534293376892033,
+        "ctime_ns": 1792534293376892033
+      },
+      "third_party/notices/cfg_aliases-0.1.1-and-0.2.1-NOTICES.md": {
+        "sha256": "1e2b7ade3fb228130408b9990cae6a7618eb314c75aa0b164bfe485d9d9756ee",
+        "bytes": 1472,
+        "mode": 33188,
+        "inode": 53433592,
+        "device": 16777229,
+        "mtime_ns": 1792434261869439415,
+        "ctime_ns": 1792434261869439415
+      },
+      "third_party/notices/manifest.json": {
+        "sha256": "7bea5fe88b82f733fe42320a771172662d646f41488d72dcb475e52f42d97b8e",
+        "bytes": 564,
+        "mode": 33188,
+        "inode": 53433593,
+        "device": 16777229,
+        "mtime_ns": 1792441183868899197,
+        "ctime_ns": 1792441183868899197
+      },
+      "third_party/notices/parquet-59.1.0-NOTICE.txt": {
+        "sha256": "e5b198d7f809311723889814d99a92f808c69e89a847efa7a7b65270f5fdeae6",
+        "bytes": 470,
+        "mode": 33188,
+        "inode": 53433594,
+        "device": 16777229,
+        "mtime_ns": 1792434261869655000,
+        "ctime_ns": 1792434261869655000
+      },
+      "third_party/notices/parquet-60.0.0-NOTICE.txt": {
+        "sha256": "e5b198d7f809311723889814d99a92f808c69e89a847efa7a7b65270f5fdeae6",
+        "bytes": 470,
+        "mode": 33188,
+        "inode": 54208929,
+        "device": 16777229,
+        "mtime_ns": 1792441183866739547,
+        "ctime_ns": 1792441183866758881
+      }
+    }
+  },
+  "earlier_failures": [
+    "unexplained priorPTYflake retained; no inferred fix",
+    "27bdWindowsREADMEhashfailure retained; attributes-only candidate no Windowsrun",
+    "producer prior timing failures06/07 remainfailed; no HLS currenttimingclaim"
+  ],
+  "limits": [
+    "No source mutation during qualification; final producer pins and README corrections precede this342path sourcefreeze. DerivativeJSONreceipts are assembled afterwards.",
+    "Fullsourcefreeze includes finalpinned publicREADME and new integration evidenceREADME. All six packaged docs exactly match frozen current files.",
+    "Historicalsoakcheck is structural savedreport validation only, no newsoak",
+    "Parent must explicitly release capture after heavyjobs idle; no joint12execution performed by this qualification"
+  ],
+  "assembly_helper": {
+    "path": "private-evidence/hls/.hls/source0f332-pin-03/assemble-01.py",
+    "bytes": 8605,
+    "sha256": "64ca7e2474718d18bd70968e00c73591708403b0df5345c8f5dbffff3f466bb3"
+  },
+  "predecessor_helper_failures_retained": [
+    {
+      "path": "private-evidence/hls/.hls/source0f332-pin-01/runner-terminal-01.json",
+      "bytes": 423,
+      "sha256": "da66192c7cd7187f212768f71623a9f6a9efdd165a499fe92e16e418fead33e0"
+    },
+    {
+      "path": "private-evidence/hls/.hls/source0f332-pin-02/runner-terminal-01.json",
+      "bytes": 729,
+      "sha256": "8700e632107ba7c53f75fcf6c770f710a156e1fed4d70151193c96f2941b85ca"
+    }
+  ],
+  "same_failed_packaging_executable_corrected_link_green": {
+    "path": "private-evidence/hls/.hls/source0f332-pin-02/packaging-link-correction-01.log",
+    "bytes": 193,
+    "sha256": "c73bf7ec3803d626bc1e4d305ebbc1604906a191ed9a7ddc14a05e87fde6b685"
+  },
+  "terminal_provenance_correction": {
+    "path": "private-evidence/hls/.hls/source0f332-pin-03/terminal-provenance-correction-01.json",
+    "bytes": 563,
+    "sha256": "83f79c11eec664037e990fcdde2e97db0b13d5c6140d4f0591eb12dc919b2f0e"
+  },
+  "portable_copy": {
+    "original_sha256": "19168d8585bca30a27af3cad974935b884a54d19c4b0f9a62598c8a3a0c2e009",
+    "original_bytes": 137299,
+    "scope": "Absolute private paths replaced with stable opaque roots; raw receipts, artifacts and failures retained privately. No original capture archived in Git."
+  }
+}

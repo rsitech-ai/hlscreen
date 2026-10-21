@@ -1,0 +1,227 @@
+{
+  "schema": "hlscreen.shared_causal_profile_pin.v1",
+  "base_head": "46c962abe56c2e7ddd2a24956a1ec6a9304369da",
+  "checks_before_commit": true,
+  "producer_pin": "6565c9428e0c97636f1c5988f4a2c22b4d17f52e",
+  "shared_packages": [
+    "marketfeed-adapter-api",
+    "marketfeed-adapter-hyperliquid",
+    "marketfeed-filesystem",
+    "marketfeed-model",
+    "marketfeed-recording"
+  ],
+  "graph": {
+    "registry_records": 419,
+    "all_complete_registry_records_unchanged": true,
+    "all_other_lock_fields_and_bytes_unchanged": true,
+    "only_five_git_source_identities_changed": true
+  },
+  "validation": {
+    "full_pr_check": "pass",
+    "rust_unique_tests": 544,
+    "rust_summed_executions": 567,
+    "packaging_repeated_tests": 23,
+    "python_tests": 8,
+    "failed": 0,
+    "ignored": 0,
+    "fmt_clippy_release_docs_screenshots_packaging_smoke": "pass",
+    "audit_0_22_2_deny_warnings": "pass; zero vulnerabilities/warnings",
+    "deny_0_20_2_licenses_sources": "pass",
+    "about_0_9_1_attribution": "pass",
+    "final_staged_public_check": "pass; finalized receipt metadata rechecked before commit"
+  },
+  "commands": [
+    {
+      "check": "metadata",
+      "command": [
+        "cargo",
+        "metadata",
+        "--locked",
+        "--format-version",
+        "1"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 4.446,
+      "log_sha256": "5e96752148b70156559f617b55dcd500c55ca9e11de0f0dd377791679056dcef"
+    },
+    {
+      "check": "pr-check",
+      "command": [
+        "bash",
+        "scripts/check.sh",
+        "pr"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 112.174,
+      "log_sha256": "25e509bdca26c216f3526563f38da109e73882a58b5cfe024da98c328662dd67"
+    },
+    {
+      "check": "debug-build",
+      "command": [
+        "cargo",
+        "build",
+        "--locked",
+        "-p",
+        "hls-cli"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.537,
+      "log_sha256": "45d8f7d972875790a6cec7ca48e9acc17c5af68372da1940633becec3b4cd60a"
+    },
+    {
+      "check": "saved-replay",
+      "command": [
+        "target/debug/hls",
+        "live",
+        "--shared-feed",
+        "../cryptofeed-rs/.local/evidence/hyperliquid-integration-review/live-pilot-07-feed",
+        "--once",
+        "--color",
+        "never",
+        "--ws-url",
+        "not-an-exchange-url"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 1.13,
+      "log_sha256": "41e9a8a430547be5e39cd5db318ad4b14224cb5b852ebd4056699bcb5e249629",
+      "binary_sha256": "2bfefa5fddb6bbebda95a62fab8cdc285e20f73653991ba497e6b383eb9516d0"
+    },
+    {
+      "check": "audit-version",
+      "command": [
+        "cargo-audit",
+        "--version"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.007,
+      "log_sha256": "8748580845bee726903e69bc4543958fb01e2594317e6c68bf80114bff13d541"
+    },
+    {
+      "check": "audit",
+      "command": [
+        "cargo",
+        "audit",
+        "--deny",
+        "warnings",
+        "--json"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 3.391,
+      "log_sha256": "4dececabc24229615f68a8c017a301d3aa43e42eaa26b1e69db18322a1d54fd1"
+    },
+    {
+      "check": "deny-version",
+      "command": [
+        "cargo-deny",
+        "--version"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.027,
+      "log_sha256": "1758f5ea93d8ad3585079f05c19358b7bb969cce1bf6c7bdab6659a8cd1ef6b8"
+    },
+    {
+      "check": "policy",
+      "command": [
+        "cargo",
+        "deny",
+        "check",
+        "licenses",
+        "sources"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.77,
+      "log_sha256": "a09bbb250feeb5c0d6ac91177e3a1730bf09901eefcec1269ea8d00949a8f1a4"
+    },
+    {
+      "check": "about-version",
+      "command": [
+        "cargo-about",
+        "--version"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.021,
+      "log_sha256": "529e34ea4b18f64d4862652888f69e8137b9e808b0fcc2e70aa4529a4cf431d7"
+    },
+    {
+      "check": "attribution",
+      "command": [
+        "bash",
+        "scripts/check-third-party-licenses.sh"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 11.995,
+      "log_sha256": "edb814bb046435a2b1f8224b46bd879223326fa8dbd56b62e096f325ac461e3c"
+    }
+  ],
+  "format_boundary": "Consumer remains default Legacy/MFSF1. New regression requires unsupported-header rejection of MFCJ1 before watermark access. No causal consumption or compatibility projection implemented.",
+  "saved_replay": {
+    "exit_code": 0,
+    "binary_sha256": "2bfefa5fddb6bbebda95a62fab8cdc285e20f73653991ba497e6b383eb9516d0",
+    "log_sha256": "41e9a8a430547be5e39cd5db318ad4b14224cb5b852ebd4056699bcb5e249629",
+    "market_events": 1055,
+    "summary": {
+      "as_of_ms": 1792440727739,
+      "cursor": {
+        "feed_id": "fadae1df2c473d021fa8b06b0947ed664507e04d",
+        "offset": 1983487,
+        "sequence": 2683
+      },
+      "data_gaps": 0,
+      "events": {
+        "bbo": 512,
+        "book": 37,
+        "candle": 58,
+        "context": 178,
+        "trade": 270
+      },
+      "float_projection": "features_and_display_only",
+      "sealed": true
+    },
+    "saved_prefix_unchanged": true,
+    "saved_prefix_sha256": {
+      "events.mfsf": "9207b56e6cb1544f0d9d313b17824afb508a6d44d14c35ca740a7b9184a1a45a",
+      "committed.json": "d6ff3959631b582a2a8f7729f232264e2a986af28a9bac2b775857ed8f94c06d"
+    }
+  },
+  "historical_file_sha256": {
+    "docs/evidence/security-lock-20261019/README.md": "4ae22043317d0008d58559c5b0ac8ef2193b4eed3c7781022e4730a3bcfe97ce",
+    "docs/evidence/security-lock-20261019/rustsec-audit.json": "89e584f6d87e0840692cb34a98d64ff0af6dcfd1ac817b3a735264339c3cef1a",
+    "docs/evidence/security-lock-20261019/saved-prefix-replay.json": "c5268424c14ea7161e07379efcacd2a23d79da0d205ae5a97cb42cb6ccdd25fb",
+    "docs/evidence/security-lock-20261019/validation.json": "071d6ebda60ef6c1277e960a7fef5d64e91c2ce7965d81cc00562e64e6e801c8",
+    "docs/evidence/shared-feed-batch-pin-20261020/README.md": "cc1e9f86a103eee7ab43a00017925ec82bca16c4f1bf7cbd874c8d12ad667048",
+    "docs/evidence/shared-feed-batch-pin-20261020/validation.json": "ef25923ddac6327e87df7634e5ff1a229da0fc445fdfb202d86ac3772c525e87",
+    "docs/evidence/shared-feed-diagnostics-pin-20261020/README.md": "54690229dbc324ef3862630141199fdde59e87f0a7727cd84f57f67998631fd6",
+    "docs/evidence/shared-feed-diagnostics-pin-20261020/validation.json": "dd43aeb9ba95cbf6b93e96986c0e89e7acafc25573018d37091d47cd13485eea",
+    "docs/evidence/shared-feed-native-pin-20261020/README.md": "bdbbb2c1ee45c6be51756cf48c7cd553c434c2b7fbb8f853d5c59add296716d8",
+    "docs/evidence/shared-feed-native-pin-20261020/validation.json": "b9f8d926a0c1279c0e5016c57300eb48b1bbbd42a77063a88abf4b8ec5c82adf",
+    "docs/evidence/shared-feed-pin-20261019/README.md": "2b167c7d10d28c1cae8d574b699efc61317457ab8e78a23795f183f773f74d37",
+    "docs/evidence/shared-feed-pin-20261019/saved-prefix-replay.json": "207ecf9febc3da99eca8788a984b58d015373b426cfa4fbb70b839d563cc6920",
+    "docs/evidence/shared-feed-pin-20261019/validation.json": "3a260a28094385162f54c4a5337de74b0edf693a3e916d1b2e1fd4e6b813de03",
+    "docs/evidence/shared-feed-streaming-pin-20261020/README.md": "1d174f27ca0e9b782c1d2ed5c766559639f33a8143a5dffd65ec1a9c809f102c",
+    "docs/evidence/shared-feed-streaming-pin-20261020/validation.json": "eafddffb18cd229b07c91a7d8298b2a1f480005072a1fa5d094f8a7a803874c7",
+    "docs/evidence/soak-validation-20261020/README.md": "522a69e67d053b53d98b60b191662b3070c87bda8e26db2cb89ba123b9a1dfb8",
+    "docs/evidence/soak-validation-20261020/validation.json": "bb1cbdccb6042ec31de68c4c2e293bfd4e1622739afda99a5a915ac352e320a0",
+    "docs/evidence/soak/shared-feed-20261019-15m.json": "ee3e5a00fcd4145832025453e1d7776e36724520705ae74eabb10c8aa1d4f8e7",
+    "docs/evidence/soak/sota-allpairs-20260720-15m.json": "685b705edd76997a67f9d7c2e6e22a47d04f691fcad7baaf321b1169e2650656",
+    "docs/evidence/shared-feed-operation-pin-20261020/README.md": "a5105c65319df0b13551e77c51171f843db2514ad9f89c16eaa5b4a2a547a0bb",
+    "docs/evidence/shared-feed-operation-pin-20261020/validation.json": "89d6366d842c8762a034b9b7807fbead1e63a98e2d63c7e4bbcf382c6d951a3a"
+  },
+  "all_21_historical_files_and_2_archives_preserve_sha_size_mode_mtime_ctime_inode": true,
+  "baseline_receipt_sha256": "d21448725810136672123b728a02bf5f34502093c43eabc4df0b6d3a3ea2e9f1",
+  "source_files_sha256": {
+    "Cargo.toml": "6a50d116f446611d04ad0e281bd970675a3bde759b6711055a29652e51eafbac",
+    "Cargo.lock": "c1744e8c8fefc0176bf6992929d9bd4d466b5da458ab16e0ed54e5db7f83b127",
+    "README.md": "1618c26b2503a79cf0ca35b914c0761d96476722b95ff8e7343a1a8f44aecfde",
+    "crates/hls-hyperliquid/tests/shared_feed.rs": "fa8e1d602058cd614ba484adbff039a7d4efdf40b645417023719e6b29f4ff75"
+  },
+  "independent_review": {
+    "result": "pass; no findings",
+    "closure_sha256": "9515edb241cd3be2b24b8295922231a5b8cfbe4fef066c2b272ea915ef530413",
+    "inspected_receipt_sha256": "b95549caeab3387688388e6f34391e97369dbd5aa892466c4c678b90a2ac0189",
+    "mode": "read-only independent verification of actual files, source resolution, complete logs, executable and historical bytes/metadata; no builds/replay/network",
+    "bookkeeping": "pending public/review fields finalized after inspection; source and historical evidence unchanged"
+  },
+  "new_source_ci": "Not yet published/run at this checked-before-commit snapshot; requires own hosted qualification.",
+  "producer_limits": "Storage/profile only: final98recording cases independently and same98Rust1.85 pass, workspaceClippy/docs/security/public pass. Earlier1376workspace/511Rust1.85core checks are before the late watermark-boundary fix and not full current-code qualification. ProducerCI39373231566 pending. Engine codec/losslessbootstrap/privateowner/release/projection/replay/live migration and unchanged failed-ingress comparison remain open, alongside native/continuity/strict/rsibot/calendar/hardware gates.",
+  "public_log_sha256": "c66b17581f9ca8db2efae22a5446623ac8eaebfd4a11ed0d84812c2b63a2936c"
+}

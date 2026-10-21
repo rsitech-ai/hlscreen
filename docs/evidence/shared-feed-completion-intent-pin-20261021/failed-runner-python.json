@@ -1,0 +1,16 @@
+{
+  "actual_tool_chunk": "71c44a",
+  "actual_terminal_exit_code": 1,
+  "phase": "before sourcefreeze and before any16gate",
+  "cause": "default Python3.9 lacks tomllib; then explicit runner>=3.11 preflight refused",
+  "raw_runner_log_sha256": "d44e06fe2d8084f6e1af432367fcf741237f9938b2d3742d7bed91df73957040",
+  "source_changed_by_failed_helpers": false,
+  "product_test_or_runtime_failure": false,
+  "next_invocation_python": "Python3.12.14 absolute Codex runtime path",
+  "portable_copy": {
+    "original_file": "runner-terminal-01.json",
+    "original_sha256": "a0e52b97acc1ebee817e71de9fd7ea816cf34a58d08a2822e54028d21364e7c9",
+    "original_bytes": 474,
+    "scope": "Only absolute private path roots are replaced. All original result values, counts, types, hashes and status remain unchanged. Raw-hash references still identify original receipts; this copy is a derivative, not a new execution."
+  }
+}

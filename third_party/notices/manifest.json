@@ -15,9 +15,9 @@
     },
     {
       "package": "parquet",
-      "version": "59.1.0",
+      "version": "60.0.0",
       "source": "NOTICE.txt",
-      "preserved": "third_party/notices/parquet-59.1.0-NOTICE.txt"
+      "preserved": "third_party/notices/parquet-60.0.0-NOTICE.txt"
     }
   ]
 }

@@ -1,0 +1,3157 @@
+{
+  "schema_version": 1,
+  "status": "All8 frozen-source local gates passed; own-source hosted qualification pending",
+  "base_head": "735784b88b06e6f75a74081fe762cf5c0db131cd",
+  "producer_pin": "e812e44b9893f200a4e357e6e8ae77ae41db1c3b",
+  "source_sha256": "eeb2de34cd741b55904adb189665dc31659e66d774530f28fd5a8924620e8a9e",
+  "source_files": 283,
+  "source_inventory_sha256": "829e7435bee41b33f484ad3da200b003fce9de45b2039f2976b14f763ef8d31c",
+  "source_scope": "All tracked/nonignored-new files except docs/evidence; historical evidence checked separately. Membership and bytes fixed throughout gates. Not a complete transitive compiler/OS/loaded-image attestation.",
+  "source_scheme": "SHA256 of UTF8 JSON files dictionary, sort_keys=true,separators=comma/colon; membership/size/fileSHA256 fixed for every gate. Excluded evidence outputs are checked separately.",
+  "private_qualified_receipt_sha256": "ca965a917a21e1e21f18d4aba0cb09da84cbec1ce5a6343a4537a791039c0c7f",
+  "runner": {
+    "session_id": 1571,
+    "actual_terminal_exit": 0,
+    "completion_marker": true,
+    "log_sha256": "279ba127d1d7f9d58c339e7d0e7c89ed57913f13fca46436667a1145e548f23f"
+  },
+  "commands": [
+    {
+      "name": "rustc",
+      "command": [
+        "rustc",
+        "-Vv"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 0.024,
+      "log": ".codex/mfop/qualify-02-rustc.log",
+      "log_bytes": 192,
+      "log_sha256": "a779a874801ceac76338a2d4ec40ee690149a5b9b36793dfe152c48aa21d0184",
+      "source_unchanged": true,
+      "test_totals": null,
+      "test_summaries": 0
+    },
+    {
+      "name": "cargo",
+      "command": [
+        "cargo",
+        "-V"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 0.026,
+      "log": ".codex/mfop/qualify-02-cargo.log",
+      "log_bytes": 36,
+      "log_sha256": "6c2df3721232c841c6af639c7b1c37c3032fcbf711e4f2914435f97ab5f4dff1",
+      "source_unchanged": true,
+      "test_totals": null,
+      "test_summaries": 0
+    },
+    {
+      "name": "metadata",
+      "command": [
+        "cargo",
+        "metadata",
+        "--locked",
+        "--format-version",
+        "1"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 0.327,
+      "log": ".codex/mfop/qualify-02-metadata.log",
+      "log_bytes": 2188710,
+      "log_sha256": "8eda85631beac3c4faf032cb3187f2e1807e174b0f64f4049b890b13a88235a1",
+      "source_unchanged": true,
+      "test_totals": null,
+      "test_summaries": 0
+    },
+    {
+      "name": "pr",
+      "command": [
+        "bash",
+        "scripts/check.sh",
+        "pr"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 99.715,
+      "log": ".codex/mfop/qualify-02-pr.log",
+      "log_bytes": 64052,
+      "log_sha256": "1e839526deec0c7bb9d8fc8f9256f9d6fe2d75839237bd15ca3f9bc8bb56773a",
+      "source_unchanged": true,
+      "test_totals": [
+        580,
+        0,
+        0
+      ],
+      "test_summaries": 85
+    },
+    {
+      "name": "saved-replay",
+      "command": [
+        "<consumer-build>/debug/hls",
+        "live",
+        "--shared-feed",
+        "<retained-pilot>",
+        "--once",
+        "--color",
+        "never",
+        "--ws-url",
+        "not-an-exchange-url"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 1.023,
+      "log": ".codex/mfop/qualify-02-saved-replay.log",
+      "log_bytes": 3532,
+      "log_sha256": "41e9a8a430547be5e39cd5db318ad4b14224cb5b852ebd4056699bcb5e249629",
+      "source_unchanged": true,
+      "test_totals": null,
+      "test_summaries": 0
+    },
+    {
+      "name": "audit",
+      "command": [
+        "cargo",
+        "audit",
+        "--deny",
+        "warnings",
+        "--json"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 5.528,
+      "log": ".codex/mfop/qualify-02-audit.log",
+      "log_bytes": 375,
+      "log_sha256": "049c6a202b8f172efa042943cd17085d6d31005ac311643281bc936be87d0228",
+      "source_unchanged": true,
+      "test_totals": null,
+      "test_summaries": 0
+    },
+    {
+      "name": "deny",
+      "command": [
+        "cargo",
+        "deny",
+        "--all-features",
+        "check",
+        "advisories",
+        "bans",
+        "licenses",
+        "sources"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 2.648,
+      "log": ".codex/mfop/qualify-02-deny.log",
+      "log_bytes": 42307,
+      "log_sha256": "09950ea4ed351568997a8005b38a68d9cbb06a3a6e7dc12ffbed51ffbd9aaa6d",
+      "source_unchanged": true,
+      "test_totals": null,
+      "test_summaries": 0
+    },
+    {
+      "name": "attribution",
+      "command": [
+        "bash",
+        "scripts/check-third-party-licenses.sh"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 8.117,
+      "log": ".codex/mfop/qualify-02-attribution.log",
+      "log_bytes": 67,
+      "log_sha256": "edb814bb046435a2b1f8224b46bd879223326fa8dbd56b62e096f325ac461e3c",
+      "source_unchanged": true,
+      "test_totals": null,
+      "test_summaries": 0
+    }
+  ],
+  "rust_test_executions": 580,
+  "rust_unique_target_test_pairs": 556,
+  "python_test_counts": [
+    8,
+    4
+  ],
+  "named_rust_executions": [
+    [
+      "hls",
+      "commands::backfill::tests::candle_snapshot_weight_counts_interval_boundaries_conservatively"
+    ],
+    [
+      "hls",
+      "commands::backfill::tests::retry_after_is_bounded_even_when_the_server_requests_a_long_delay"
+    ],
+    [
+      "hls",
+      "commands::backfill::tests::candle_snapshot_weight_caps_the_worst_case_at_five_thousand_candles"
+    ],
+    [
+      "hls",
+      "commands::live::tests::duration_elapsed_outage_remains_a_run_failure"
+    ],
+    [
+      "hls",
+      "commands::live::tests::control_frames_do_not_make_a_no_market_data_run_successful"
+    ],
+    [
+      "hls",
+      "commands::live::tests::fixture_once_skips_unbounded_tty_validation"
+    ],
+    [
+      "hls",
+      "commands::backfill::tests::retry_wait_exits_immediately_on_shutdown"
+    ],
+    [
+      "hls",
+      "commands::live::tests::cancellable_send_preserves_completed_write_result"
+    ],
+    [
+      "hls",
+      "commands::live::tests::cancellable_send_stop_wins_over_pending_write"
+    ],
+    [
+      "hls",
+      "commands::live::tests::interrupted_session_rejects_subsequent_draw_operation"
+    ],
+    [
+      "hls",
+      "commands::live::tests::explicit_live_symbol_selector_errors_on_unknown_pair"
+    ],
+    [
+      "hls",
+      "commands::live::tests::explicit_live_symbol_selectors_resolve_display_names_to_feed_ids"
+    ],
+    [
+      "hls",
+      "commands::live::tests::live_closeout_orders_terminal_teardown_before_blocking_work"
+    ],
+    [
+      "hls",
+      "commands::backfill::tests::meaningful_retry_after_delay_is_honored_without_wall_clock_sleep"
+    ],
+    [
+      "hls",
+      "commands::live::tests::live_drive_summary_preserves_clean_stop_reasons"
+    ],
+    [
+      "hls",
+      "commands::live::tests::live_connection_rate_wait_is_cancelled_by_stop"
+    ],
+    [
+      "hls",
+      "commands::live::tests::live_drive_summary_rejects_unstopped_no_message_runs"
+    ],
+    [
+      "hls",
+      "commands::live::tests::live_drive_summary_reports_truthful_recorder_state"
+    ],
+    [
+      "hls",
+      "commands::live::tests::live_ratatui_viewport_uses_terminal_size_with_workstation_fallback"
+    ],
+    [
+      "hls",
+      "commands::live::tests::frozen_shared_replay_evaluates_features_at_the_archive_clock"
+    ],
+    [
+      "hls",
+      "commands::live::tests::live_progress_reuses_supplied_tui_frame_sink"
+    ],
+    [
+      "hls",
+      "commands::live::tests::live_run_lifetime_only_bounded_lifetimes_expire"
+    ],
+    [
+      "hls",
+      "commands::live::tests::live_run_lifetime_overflow_returns_an_error"
+    ],
+    [
+      "hls",
+      "commands::live::tests::live_run_lifetime_positive_duration_is_bounded"
+    ],
+    [
+      "hls",
+      "commands::live::tests::live_run_lifetime_zero_is_unbounded"
+    ],
+    [
+      "hls",
+      "commands::live::tests::current_size_all_symbol_plan_keeps_trades_and_bbo_under_headroom"
+    ],
+    [
+      "hls",
+      "commands::live::tests::live_runtime_intervals_skip_missed_ticks"
+    ],
+    [
+      "hls",
+      "commands::live::tests::all_symbol_subscription_plan_degrades_to_global_mids_and_contexts"
+    ],
+    [
+      "hls",
+      "commands::live::tests::live_tui_color_flag_resolves_auto_always_and_never"
+    ],
+    [
+      "hls",
+      "commands::live::tests::live_tui_alerts_require_new_observable_market_evidence"
+    ],
+    [
+      "hls",
+      "commands::live::tests::live_tui_command_submission_preserves_active_request_on_invalid_filter"
+    ],
+    [
+      "hls",
+      "commands::live::tests::live_tui_command_submission_applies_preset_and_sort"
+    ],
+    [
+      "hls",
+      "commands::live::tests::live_tui_control_keys_map_to_screen_actions"
+    ],
+    [
+      "hls",
+      "commands::live::tests::live_tui_command_submission_jumps_to_visible_symbol"
+    ],
+    [
+      "hls",
+      "commands::live::tests::live_tui_diagnostics_do_not_bypass_frame_sink"
+    ],
+    [
+      "hls",
+      "commands::live::tests::live_tui_event_effect_preserves_key_and_mouse_action_mapping"
+    ],
+    [
+      "hls",
+      "commands::live::tests::live_tui_force_color_env_flags_are_explicit"
+    ],
+    [
+      "hls",
+      "commands::live::tests::live_tui_mouse_clicks_active_top_bar_pane_as_zoom_control"
+    ],
+    [
+      "hls",
+      "commands::live::tests::live_tui_mouse_clicks_market_internals_rail"
+    ],
+    [
+      "hls",
+      "commands::live::tests::live_tui_mouse_clicks_standard_wide_selected_quote_rail"
+    ],
+    [
+      "hls",
+      "commands::live::tests::live_tui_defaults_to_colored_workstation_theme"
+    ],
+    [
+      "hls",
+      "commands::live::tests::live_tui_mouse_clicks_visible_command_controls"
+    ],
+    [
+      "hls",
+      "commands::live::tests::live_tui_mouse_clicks_visible_pane_rails"
+    ],
+    [
+      "hls",
+      "commands::live::tests::live_tui_mouse_clicks_visible_view_and_chart_tabs"
+    ],
+    [
+      "hls",
+      "commands::live::tests::live_tui_mouse_events_map_to_pointer_aware_actions"
+    ],
+    [
+      "hls",
+      "commands::backfill::tests::loopback_retry_after_delta_seconds_is_preserved_as_typed_metadata"
+    ],
+    [
+      "hls",
+      "commands::live::tests::invalid_live_arguments_fail_preflight_before_runtime_side_effects"
+    ],
+    [
+      "hls",
+      "commands::backfill::tests::loopback_429_retry_can_recover_and_each_attempt_reaches_the_server"
+    ],
+    [
+      "hls",
+      "commands::backfill::tests::loopback_429_retries_are_bounded_and_other_4xx_are_not_retried"
+    ],
+    [
+      "hls",
+      "commands::live::tests::live_tui_presentation_payload_is_bounded_per_symbol"
+    ],
+    [
+      "hls",
+      "commands::live::tests::live_tui_preferences_load_rejects_symlink_destination"
+    ],
+    [
+      "hls",
+      "commands::live::tests::live_tui_resize_event_requests_redraw_without_mutating_state"
+    ],
+    [
+      "hls",
+      "commands::live::tests::operator_and_signal_outages_stop_cleanly"
+    ],
+    [
+      "hls",
+      "commands::live::tests::operator_quit_reason_is_available_during_connection_waits"
+    ],
+    [
+      "hls",
+      "commands::live::tests::operator_quit_reason_is_available_during_subscription_startup"
+    ],
+    [
+      "hls",
+      "commands::live::tests::other_thread_hook_blocks_until_activation_operation_finishes"
+    ],
+    [
+      "hls",
+      "commands::live::tests::other_thread_hook_cannot_interleave_active_draw"
+    ],
+    [
+      "hls",
+      "commands::live::tests::oversized_all_symbol_plan_falls_back_to_one_global_feed"
+    ],
+    [
+      "hls",
+      "commands::live::tests::live_tui_renderer_reuses_terminal_and_diffs_identical_frames"
+    ],
+    [
+      "hls",
+      "commands::live::tests::ready_stop_beats_an_immediately_available_live_connection_slot"
+    ],
+    [
+      "hls",
+      "commands::live::tests::reconnect_backoff_is_bounded_for_live_runtime"
+    ],
+    [
+      "hls",
+      "commands::live::tests::reconnect_gaps_lower_confidence_for_every_affected_symbol"
+    ],
+    [
+      "hls",
+      "commands::live::tests::same_thread_panic_path_reenters_coordinator_without_deadlock"
+    ],
+    [
+      "hls",
+      "commands::live::tests::sequential_interactive_sessions_restore_and_reactivate"
+    ],
+    [
+      "hls",
+      "commands::live::tests::shutdown_listener_errors_are_not_successful_signal_stops"
+    ],
+    [
+      "hls",
+      "commands::live::tests::stopped_fixture_backfill_does_not_continue_to_post_processing"
+    ],
+    [
+      "hls",
+      "commands::live::tests::live_tui_preferences_fall_back_for_bad_local_files"
+    ],
+    [
+      "hls",
+      "commands::live::tests::thirtieth_live_connection_waits_for_the_rolling_window"
+    ],
+    [
+      "hls",
+      "commands::live::tests::unbounded_tui_duration_requires_interactive_stdio"
+    ],
+    [
+      "hls",
+      "commands::live::tests::paused_live_tui_freezes_market_data_but_keeps_runtime_status_current"
+    ],
+    [
+      "hls",
+      "commands::live::tests::subscriptions_and_control_frames_share_one_outbound_rate_window"
+    ],
+    [
+      "hls",
+      "commands::live::tests::live_tui_preflight_captures_malformed_preferences_before_activation"
+    ],
+    [
+      "hls",
+      "commands::live::tests::unmanaged_renderer_operation_works_without_interactive_session"
+    ],
+    [
+      "hls",
+      "commands::live::tests::viewport_change_requests_one_redraw_without_a_terminal_event"
+    ],
+    [
+      "hls",
+      "commands::live::tests::websocket_inactivity_uses_a_monotonic_deadline"
+    ],
+    [
+      "hls",
+      "commands::live::tests::websocket_reply_write_failure_preserves_gap_context_for_reconnect"
+    ],
+    [
+      "hls",
+      "commands::server::tests::all_symbol_server_plan_stays_within_subscription_budget"
+    ],
+    [
+      "hls",
+      "commands::server::tests::live_api_publish_interval_skips_missed_ticks"
+    ],
+    [
+      "hls",
+      "commands::server::tests::live_server_http_termination_precedes_other_ready_outcomes"
+    ],
+    [
+      "hls",
+      "commands::server::tests::live_server_releases_listener_when_publication_fails"
+    ],
+    [
+      "hls",
+      "commands::server::tests::live_server_signal_cancels_a_pending_publisher"
+    ],
+    [
+      "hls",
+      "commands::server::tests::live_server_signal_precedes_a_simultaneously_ready_publisher"
+    ],
+    [
+      "hls",
+      "commands::server::tests::live_server_summary_rejects_runs_without_market_data"
+    ],
+    [
+      "hls",
+      "commands::live::tests::live_tui_preferences_reject_symlinked_data_directory"
+    ],
+    [
+      "hls",
+      "commands::server::tests::recovered_connection_preserves_gap_evidence_without_staying_reconnecting"
+    ],
+    [
+      "hls",
+      "commands::server::tests::server_connection_attempts_keep_headroom_below_the_official_rate_limit"
+    ],
+    [
+      "hls",
+      "commands::server::tests::server_reconnect_backoff_caps_at_thirty_seconds"
+    ],
+    [
+      "hls",
+      "commands::live::tests::live_tui_preferences_round_trip_display_state"
+    ],
+    [
+      "hls",
+      "commands::server::tests::server_reconnect_backoff_restarts_after_market_data_recovery"
+    ],
+    [
+      "hls",
+      "commands::server::tests::server_shutdown_signal_mapping_is_successful_and_fail_closed"
+    ],
+    [
+      "hls",
+      "commands::ws_rate_limit::tests::rolling_window_defers_only_messages_beyond_the_budget"
+    ],
+    [
+      "hls",
+      "commands::ws_rate_limit::tests::weighted_reservations_reject_zero_and_over_budget_units"
+    ],
+    [
+      "hls",
+      "commands::ws_rate_limit::tests::weighted_reservations_release_in_true_rolling_order"
+    ],
+    [
+      "hls",
+      "tests::public_cli_help_describes_every_command_and_option"
+    ],
+    [
+      "hls",
+      "tests::tui_command_defaults_to_unbounded_operator_session"
+    ],
+    [
+      "hls",
+      "commands::live::tests::live_tui_preferences_reject_intermediate_symlink_parent"
+    ],
+    [
+      "hls",
+      "tests::tui_command_preserves_explicit_user_overrides"
+    ],
+    [
+      "hls",
+      "commands::live::tests::live_recorder_spawn_failure_happens_before_run_insertion"
+    ],
+    [
+      "hls",
+      "commands::live::tests::live_recorder_worker_error_still_persists_unclean_shutdown"
+    ],
+    [
+      "hls",
+      "commands::live::tests::live_recorder_worker_initialization_failure_terminalizes_inserted_run"
+    ],
+    [
+      "hls",
+      "commands::live::tests::live_recorder_writer_closeout_failure_terminalizes_run_as_unclean"
+    ],
+    [
+      "hls",
+      "commands::server::tests::outbound_messages_wait_for_the_rolling_rate_window"
+    ],
+    [
+      "hls",
+      "commands::live::tests::live_recorder_file_registration_failures_are_combined_before_terminalization"
+    ],
+    [
+      "hls",
+      "commands::live::tests::live_recorder_worker_preserves_receive_timestamps_and_gaps"
+    ],
+    [
+      "hls",
+      "commands::live::tests::live_recorder_drop_joins_worker_as_unclean"
+    ],
+    [
+      "hls",
+      "commands::live::tests::live_tui_preferences_save_rejects_symlink_without_touching_target"
+    ],
+    [
+      "hls",
+      "commands::server::shared_server_tests::shared_api_uses_saved_spot_perp_inputs_and_archive_clock_without_exchange_io"
+    ],
+    [
+      "hls",
+      "commands::server::tests::idle_then_burst_is_coalesced_and_published_before_deadline"
+    ],
+    [
+      "hls",
+      "commands::server::shared_server_tests::shared_api_consumes_actual_native_spot_perps_with_product_metadata_and_source_cursor"
+    ],
+    [
+      "alerts_command",
+      "alerts_command_keeps_default_low_confidence_threshold_conservative"
+    ],
+    [
+      "alerts_command",
+      "alerts_command_emits_local_only_json_from_fixture_rows"
+    ],
+    [
+      "alerts_command",
+      "alerts_command_loads_threshold_grammar_playbook_file"
+    ],
+    [
+      "alerts_command",
+      "alerts_command_loads_boolean_grammar_playbook_file"
+    ],
+    [
+      "alerts_command",
+      "alerts_command_loads_local_playbook_file"
+    ],
+    [
+      "alerts_command",
+      "alerts_command_rejects_exchange_action_playbook_file"
+    ],
+    [
+      "alerts_command",
+      "alerts_command_writes_local_history_jsonl"
+    ],
+    [
+      "alerts_command",
+      "alerts_command_persists_cooldown_state_in_history_across_invocations"
+    ],
+    [
+      "alerts_command",
+      "alerts_command_lists_local_history_jsonl"
+    ],
+    [
+      "analog_command",
+      "analog_command_emits_replay_backed_matches_as_json"
+    ],
+    [
+      "analog_command",
+      "analog_command_reports_insufficient_evidence_instead_of_fabricating_matches"
+    ],
+    [
+      "analog_command",
+      "analog_command_writes_and_reuses_local_index"
+    ],
+    [
+      "backfill_command",
+      "backfill_command_rejects_spoofed_loopback_http_host_before_storage"
+    ],
+    [
+      "backfill_command",
+      "backfill_command_appends_coarse_candles_without_restoring_tick_confidence"
+    ],
+    [
+      "basic_commands",
+      "version_identifies_the_ratatui_workstation_binary"
+    ],
+    [
+      "basic_commands",
+      "symbols_prints_fixture_backed_volume_ranked_markets"
+    ],
+    [
+      "basic_commands",
+      "terminal_doctor_json_disables_auto_color_for_non_tty_stderr"
+    ],
+    [
+      "basic_commands",
+      "terminal_doctor_json_reports_force_color_precedence"
+    ],
+    [
+      "basic_commands",
+      "terminal_doctor_is_read_only_and_explains_color_detection"
+    ],
+    [
+      "basic_commands",
+      "doctor_reports_invalid_existing_config_as_safety_failure"
+    ],
+    [
+      "basic_commands",
+      "init_creates_config_under_requested_data_dir"
+    ],
+    [
+      "basic_commands",
+      "doctor_reports_read_only_status_for_local_config"
+    ],
+    [
+      "bench_command",
+      "bench_command_rejects_missing_manifest"
+    ],
+    [
+      "bench_command",
+      "bench_command_validates_public_fixture_pack"
+    ],
+    [
+      "explain_command",
+      "explain_can_emit_json_score_breakdown"
+    ],
+    [
+      "explain_command",
+      "explain_renders_why_ranked_pane_from_recorded_replay_data"
+    ],
+    [
+      "export_parquet_command",
+      "record_parquet_exports_after_normalizing_fixture_run"
+    ],
+    [
+      "export_parquet_command",
+      "fixture_live_parquet_exports_after_bounded_recording"
+    ],
+    [
+      "export_parquet_command",
+      "export_parquet_can_write_feature_confidence_dataset"
+    ],
+    [
+      "export_parquet_command",
+      "export_parquet_writes_registered_file_from_normalized_run"
+    ],
+    [
+      "export_parquet_command",
+      "export_parquet_all_writes_events_and_feature_datasets"
+    ],
+    [
+      "extension_command",
+      "extension_command_rejects_unsafe_manifest_before_loading_wasm"
+    ],
+    [
+      "extension_command",
+      "extension_command_executes_safe_plugin_against_fixture_row"
+    ],
+    [
+      "full_pipeline_smoke",
+      "fixture_full_pipeline_smoke_covers_live_record_replay_screen_and_health"
+    ],
+    [
+      "health_commands",
+      "server_live_rejects_zero_refresh_interval_before_starting"
+    ],
+    [
+      "health_commands",
+      "server_rejects_non_loopback_bind_before_starting"
+    ],
+    [
+      "health_commands",
+      "server_live_fixture_publishes_read_only_market_rows"
+    ],
+    [
+      "health_commands",
+      "doctor_live_json_reports_simulated_health"
+    ],
+    [
+      "health_commands",
+      "server_print_health_outputs_read_only_local_api_payload"
+    ],
+    [
+      "health_commands",
+      "doctor_live_text_renders_next_gen_health_panel"
+    ],
+    [
+      "live_mock",
+      "live_once_allows_zero_duration_fixture_without_tty"
+    ],
+    [
+      "live_mock",
+      "live_once_renders_fixture_backed_read_only_table"
+    ],
+    [
+      "live_mock",
+      "live_rejects_alert_playbook_without_explicit_tui_surface"
+    ],
+    [
+      "live_mock",
+      "live_once_applies_screen_preset_before_rendering"
+    ],
+    [
+      "live_mock",
+      "tui_rejects_exchange_action_playbook_before_fixture_processing"
+    ],
+    [
+      "live_mock",
+      "live_rejects_oversized_boolean_filter_chains_without_stack_overflow"
+    ],
+    [
+      "live_mock",
+      "fixture_recording_runs_the_requested_gap_backfill_closeout_hook"
+    ],
+    [
+      "live_mock",
+      "fixture_tui_renders_local_playbook_alert_history"
+    ],
+    [
+      "live_mock",
+      "tui_command_once_auto_color_omits_ansi_for_redirected_stdout"
+    ],
+    [
+      "live_mock",
+      "live_once_tui_uses_unified_ratatui_cockpit"
+    ],
+    [
+      "live_mock",
+      "tui_command_once_uses_unified_ratatui_cockpit_without_extra_flags"
+    ],
+    [
+      "metrics_output",
+      "doctor_live_json_includes_low_cardinality_metrics_snapshot"
+    ],
+    [
+      "microstructure_safety",
+      "top_level_help_does_not_expose_private_or_order_capable_commands"
+    ],
+    [
+      "microstructure_safety",
+      "tui_is_a_first_class_read_only_command"
+    ],
+    [
+      "microstructure_safety",
+      "live_help_keeps_microstructure_fields_read_only"
+    ],
+    [
+      "projected_shared",
+      "cli_consumes_actual_typed_spot_perps_and_reports_original_identity_and_cursor_pair"
+    ],
+    [
+      "pty_tui",
+      "fixture_tui_restores_terminal_when_signaled_during_initial_frame"
+    ],
+    [
+      "pty_tui",
+      "fixture_tui_uses_production_terminal_session_and_restores_the_pty"
+    ],
+    [
+      "pty_tui",
+      "explicit_color_overrides_inherited_no_color_in_a_real_pty"
+    ],
+    [
+      "pty_tui",
+      "fixture_tui_honors_a_bounded_duration_without_operator_input"
+    ],
+    [
+      "pty_tui",
+      "pty_cleanup_escalates_past_ignored_hup_without_hanging"
+    ],
+    [
+      "pty_tui",
+      "pty_cleanup_reaps_stubborn_descendants_in_each_bounded_session"
+    ],
+    [
+      "record_replay",
+      "record_then_replay_fixture_without_network"
+    ],
+    [
+      "release_packaging",
+      "distributable_crate_inherits_public_repository_metadata"
+    ],
+    [
+      "release_packaging",
+      "dist_workspace_declares_tag_gated_release_artifacts"
+    ],
+    [
+      "release_packaging",
+      "public_readiness_gate_is_fail_closed_and_secret_safe"
+    ],
+    [
+      "release_packaging",
+      "local_release_archive_stages_project_and_third_party_notices"
+    ],
+    [
+      "release_packaging",
+      "dist_release_contract_builds_pr_artifacts_sbom_and_provenance"
+    ],
+    [
+      "release_packaging",
+      "release_docs_explain_local_dry_run_and_no_secrets_boundary"
+    ],
+    [
+      "release_packaging",
+      "dependency_attribution_is_deterministic_and_matches_release_targets"
+    ],
+    [
+      "release_packaging",
+      "public_routes_are_actionable_and_separate_security_conduct_and_questions"
+    ],
+    [
+      "release_packaging",
+      "release_docs_and_roadmap_separate_local_proof_from_publication"
+    ],
+    [
+      "release_packaging",
+      "public_docs_do_not_claim_unwired_runtime_features_and_list_local_writes"
+    ],
+    [
+      "release_packaging",
+      "release_workflow_is_pull_request_plan_and_tag_publish_only"
+    ],
+    [
+      "release_packaging",
+      "public_docs_state_identity_contribution_and_build_contracts"
+    ],
+    [
+      "release_packaging",
+      "workspace_ci_bounds_heavy_rust_build_disk_usage"
+    ],
+    [
+      "release_packaging",
+      "third_party_notices_cover_packaged_dependency_notices"
+    ],
+    [
+      "release_packaging",
+      "release_validation_scripts_cover_local_artifacts_checksums_and_public_readiness"
+    ],
+    [
+      "release_packaging",
+      "rustsec_gate_denies_all_warnings_after_removing_paste"
+    ],
+    [
+      "release_packaging",
+      "soak_tooling_is_bounded_fail_closed_and_documented"
+    ],
+    [
+      "release_packaging",
+      "workflows_pin_runners_actions_and_release_permissions"
+    ],
+    [
+      "release_packaging",
+      "public_docs_define_fixture_tooling_release_and_unreleased_contracts"
+    ],
+    [
+      "release_packaging",
+      "canonical_validation_entrypoint_has_bounded_modes_and_ci_doc_parity"
+    ],
+    [
+      "release_packaging",
+      "maintainer_journals_and_agent_state_are_not_tracked"
+    ],
+    [
+      "release_packaging",
+      "distributable_crates_are_not_publishable"
+    ],
+    [
+      "release_packaging",
+      "history_secret_scan_pins_gitleaks_and_redacts_findings"
+    ],
+    [
+      "release_packaging",
+      "local_release_smoke_builds_and_packages_override_candidate_and_refuses_failed_rebuild"
+    ],
+    [
+      "replay_parity_command",
+      "replay_command_can_read_normalized_event_parquet"
+    ],
+    [
+      "replay_parity_command",
+      "replay_verify_parity_writes_matches_and_fails_on_confidence_drift"
+    ],
+    [
+      "screen_command",
+      "screen_rejects_invalid_fee_profile_file"
+    ],
+    [
+      "screen_command",
+      "screen_applies_explicit_fee_profile_file_to_fee_aware_fields"
+    ],
+    [
+      "screen_command",
+      "screen_applies_blended_maker_taker_fee_profile_file"
+    ],
+    [
+      "screen_command",
+      "screen_preset_uses_shared_rule_engine"
+    ],
+    [
+      "screen_command",
+      "screen_filters_fixture_rows_with_custom_rule"
+    ],
+    [
+      "hls_core",
+      "market_state::internal_tests::latest_update_cache_advances_only_for_selected_all_mids_data"
+    ],
+    [
+      "hls_core",
+      "market_state::internal_tests::all_mids_does_not_track_symbols_outside_the_selected_universe"
+    ],
+    [
+      "hls_core",
+      "market_state::internal_tests::immediately_evicted_history_does_not_advance_snapshot_revision"
+    ],
+    [
+      "hls_core",
+      "extension::worker_tests::extension_worker_timeout_is_terminal_and_retained_annotations_become_stale"
+    ],
+    [
+      "hls_core",
+      "extension::worker_tests::extension_worker_queue_overload_returns_without_blocking_caller"
+    ],
+    [
+      "alerts_contract",
+      "alert_playbook_rejects_empty_rules_and_non_local_actions"
+    ],
+    [
+      "alerts_contract",
+      "alert_playbook_rejects_invalid_boolean_grammar"
+    ],
+    [
+      "alerts_contract",
+      "alert_playbook_contract_supports_typed_threshold_grammar"
+    ],
+    [
+      "alerts_contract",
+      "alert_playbook_contract_supports_boolean_grammar"
+    ],
+    [
+      "alerts_contract",
+      "alert_playbook_rejects_invalid_threshold_grammar"
+    ],
+    [
+      "alerts_contract",
+      "alert_playbook_contract_is_local_only_and_serializable"
+    ],
+    [
+      "confidence_state",
+      "confidence_defaults_to_high_when_no_quality_reasons_exist"
+    ],
+    [
+      "confidence_state",
+      "confidence_reason_codes_are_deduplicated"
+    ],
+    [
+      "confidence_state",
+      "confidence_degrades_from_gaps_sparse_data_and_incomplete_windows"
+    ],
+    [
+      "config_symbol",
+      "duration_helpers_are_deterministic"
+    ],
+    [
+      "config_symbol",
+      "symbol_mapping_rejects_empty_display_names"
+    ],
+    [
+      "config_symbol",
+      "symbol_mapping_preserves_display_name_and_feed_identifier"
+    ],
+    [
+      "config_symbol",
+      "example_config_parses_with_read_only_safety_defaults"
+    ],
+    [
+      "extension_contract",
+      "extension_manifest_rejects_network_filesystem_private_or_trading_permissions"
+    ],
+    [
+      "extension_contract",
+      "extension_manifest_accepts_read_only_wasm_contract"
+    ],
+    [
+      "extension_contract",
+      "extension_manifest_requires_relative_wasm_path_and_hash"
+    ],
+    [
+      "extension_contract",
+      "extension_runtime_rejects_unsafe_manifest_before_loading_wasm"
+    ],
+    [
+      "extension_contract",
+      "extension_runtime_rejects_oversized_module_before_compilation"
+    ],
+    [
+      "extension_contract",
+      "extension_runtime_rejects_wasm_hash_mismatch"
+    ],
+    [
+      "extension_contract",
+      "extension_runtime_executes_safe_wasm_row_annotation_fixture"
+    ],
+    [
+      "extension_contract",
+      "extension_runtime_rejects_annotations_for_another_symbol"
+    ],
+    [
+      "fees_contract",
+      "fee_profile_contract_is_explicit_local_and_integer_bps"
+    ],
+    [
+      "fees_contract",
+      "fee_profile_supports_explicit_maker_taker_fill_mix"
+    ],
+    [
+      "fees_contract",
+      "fee_profile_rejects_missing_or_unbounded_assumptions"
+    ],
+    [
+      "health_state",
+      "interrupted_safety_status_is_not_downgraded_by_reconnecting_state"
+    ],
+    [
+      "health_state",
+      "health_snapshot_classifies_healthy_degraded_and_interrupted_states"
+    ],
+    [
+      "health_state",
+      "telemetry_window_measures_lag_percentiles"
+    ],
+    [
+      "market_state",
+      "asset_context_updates_refresh_live_staleness_when_receive_time_is_present"
+    ],
+    [
+      "market_state",
+      "market_events_can_be_stamped_with_live_receive_time"
+    ],
+    [
+      "market_state",
+      "duplicate_trade_ids_are_idempotent_across_replay_or_reconnect"
+    ],
+    [
+      "market_state",
+      "one_sided_bbo_clears_executable_mid_and_native_context_changes_are_retained"
+    ],
+    [
+      "market_state",
+      "out_of_order_quote_and_context_events_do_not_regress_current_market_state"
+    ],
+    [
+      "market_state",
+      "trade_history_is_hour_bounded_and_late_events_do_not_regress_live_price"
+    ],
+    [
+      "market_state",
+      "per_symbol_events_outside_selected_universe_are_ignored"
+    ],
+    [
+      "market_state",
+      "candle_updates_replace_current_interval_and_bound_history"
+    ],
+    [
+      "metadata_enrichment",
+      "complete_public_metadata_computes_listing_and_liquidity_tags"
+    ],
+    [
+      "metadata_enrichment",
+      "partial_public_metadata_marks_unknown_fields_explicitly"
+    ],
+    [
+      "metrics_contract",
+      "metrics_registry_requires_hls_prefixed_metric_names"
+    ],
+    [
+      "metrics_contract",
+      "metrics_registry_rejects_high_cardinality_labels"
+    ],
+    [
+      "metrics_contract",
+      "metrics_registry_accepts_low_cardinality_labels"
+    ],
+    [
+      "metrics_contract",
+      "microstructure_metric_definitions_capture_canonical_proxy_and_unavailable_states"
+    ],
+    [
+      "metrics_contract",
+      "operations_metrics_cover_recovery_and_data_quality_without_symbol_labels"
+    ],
+    [
+      "metrics_contract",
+      "sampling_contract_rejects_vague_tolerances_and_non_finite_values"
+    ],
+    [
+      "metrics_contract",
+      "microstructure_metric_definitions_fail_closed_on_unsafe_or_vague_contracts"
+    ],
+    [
+      "metrics_contract",
+      "operations_metrics_omit_unknown_repair_latency"
+    ],
+    [
+      "score_breakdown",
+      "score_breakdown_clamps_totals_to_screen_score_bounds"
+    ],
+    [
+      "score_breakdown",
+      "duplicate_component_names_are_rejected"
+    ],
+    [
+      "score_breakdown",
+      "score_breakdown_sums_named_components_and_applies_confidence"
+    ],
+    [
+      "score_breakdown",
+      "score_breakdown_fixture_matches_serialized_contract"
+    ],
+    [
+      "score_breakdown",
+      "weighted_components_explain_direction_and_unavailable_evidence"
+    ],
+    [
+      "alerts",
+      "alert_evaluator_emits_boolean_grammar_event"
+    ],
+    [
+      "alerts",
+      "alert_evaluator_emits_local_event_and_suppresses_cooldown_noise"
+    ],
+    [
+      "alerts",
+      "alert_evaluator_emits_typed_threshold_grammar_event"
+    ],
+    [
+      "canonical_metrics",
+      "benchmark_contract_rejects_values_outside_tolerance"
+    ],
+    [
+      "canonical_metrics",
+      "canonical_public_trade_metrics_require_the_contract_observation_floor"
+    ],
+    [
+      "canonical_metrics",
+      "canonical_return_uses_exchange_time_order_and_excludes_future_events"
+    ],
+    [
+      "canonical_metrics",
+      "canonical_public_trade_metrics_match_versioned_benchmark_contracts"
+    ],
+    [
+      "canonical_metrics",
+      "signed_flow_toxicity_proxy_is_unavailable_for_sparse_public_trades"
+    ],
+    [
+      "canonical_metrics",
+      "research_metrics_expose_unavailable_states_instead_of_fake_values"
+    ],
+    [
+      "canonical_metrics",
+      "signed_flow_toxicity_proxy_uses_public_trade_imbalance"
+    ],
+    [
+      "canonical_metrics",
+      "public_trade_metric_formulas_are_exposed_as_research_proxies"
+    ],
+    [
+      "composite",
+      "composite_uses_exact_public_trade_notional_when_available"
+    ],
+    [
+      "composite",
+      "composite_chains_normalized_constituent_returns"
+    ],
+    [
+      "composite",
+      "composite_reports_partial_weight_coverage_without_fabricating_constituents"
+    ],
+    [
+      "composite",
+      "latest_receive_ordered_candle_wins_deterministically"
+    ],
+    [
+      "composite",
+      "dominant_liquidity_is_capped_before_composite_returns_are_aggregated"
+    ],
+    [
+      "fee_tradeability",
+      "feature_engine_leaves_fee_aware_tradeability_absent_without_profile"
+    ],
+    [
+      "fee_tradeability",
+      "high_taker_fee_profile_marks_otherwise_tradeable_row_costly"
+    ],
+    [
+      "fee_tradeability",
+      "low_fee_profile_preserves_tradeable_state_with_explicit_cost"
+    ],
+    [
+      "fee_tradeability",
+      "blended_fee_profile_uses_maker_taker_fill_mix"
+    ],
+    [
+      "formulas",
+      "computes_top_of_book_and_return_formulas"
+    ],
+    [
+      "formulas",
+      "computes_anomaly_and_bounded_score_helpers"
+    ],
+    [
+      "formulas",
+      "feature_engine_accepts_explicit_runtime_confidence_inputs"
+    ],
+    [
+      "formulas",
+      "feature_engine_uses_distinct_time_windows_and_candle_anomaly_baselines"
+    ],
+    [
+      "formulas",
+      "feature_engine_clamps_future_exchange_timestamps_to_zero_age"
+    ],
+    [
+      "formulas",
+      "feature_engine_marks_duplicate_trades_without_replaying_them"
+    ],
+    [
+      "formulas",
+      "fixture_events_produce_feature_snapshot_with_freshness_state"
+    ],
+    [
+      "resilience",
+      "brittle_fixture_flags_unrecovered_spread_shock"
+    ],
+    [
+      "resilience",
+      "spread_shock_fixture_reports_recovery_and_bbo_proxies"
+    ],
+    [
+      "tradeability",
+      "sparse_trade_only_window_stays_unknown_when_quote_history_is_insufficient"
+    ],
+    [
+      "tradeability",
+      "thin_brittle_book_is_not_reported_tradeable"
+    ],
+    [
+      "tradeability",
+      "resilient_recovered_book_is_tradeable_after_recovery"
+    ],
+    [
+      "windows",
+      "candle_anomaly_baselines_exclude_other_intervals"
+    ],
+    [
+      "hls_hyperliquid",
+      "rest::tests::candle_snapshot_response_rejects_rows_outside_requested_window"
+    ],
+    [
+      "hls_hyperliquid",
+      "rest::tests::public_rest_base_url_rejects_query_and_fragment_components"
+    ],
+    [
+      "hls_hyperliquid",
+      "rest::tests::retry_after_parses_delta_seconds_and_http_date_against_injected_time"
+    ],
+    [
+      "hls_hyperliquid",
+      "ws::tests::public_ws_url_enforces_encrypted_remote_and_loopback_cleartext"
+    ],
+    [
+      "hls_hyperliquid",
+      "rest::tests::loopback_http_date_retry_after_is_preserved_as_typed_metadata"
+    ],
+    [
+      "hls_hyperliquid",
+      "rest::tests::public_rest_client_rejects_declared_oversized_response"
+    ],
+    [
+      "hls_hyperliquid",
+      "rest::tests::public_rest_client_rejects_chunked_oversized_response"
+    ],
+    [
+      "hls_hyperliquid",
+      "rest::tests::public_rest_client_does_not_follow_redirects"
+    ],
+    [
+      "metadata_enrichment",
+      "token_details_reject_negative_supply_values"
+    ],
+    [
+      "metadata_enrichment",
+      "parses_public_token_details_numeric_strings_and_deploy_time"
+    ],
+    [
+      "metadata_enrichment",
+      "metadata_enrichment_tolerates_missing_token_details"
+    ],
+    [
+      "metadata_enrichment",
+      "parses_public_metadata_bundle_into_complete_and_partial_enrichments"
+    ],
+    [
+      "projected_feed",
+      "accepted_trade_without_committed_observed_handoff_is_never_resurrected"
+    ],
+    [
+      "projected_feed",
+      "caught_application_panic_preserves_acknowledged_pair_and_refuses_reuse"
+    ],
+    [
+      "projected_feed",
+      "failed_multi_group_batch_does_not_deliver_updates_or_acknowledge_prior_good_groups"
+    ],
+    [
+      "projected_feed",
+      "actual_negative_receipt_fails_whole_group_without_advancing_visible_cursor_and_poisons"
+    ],
+    [
+      "projected_feed",
+      "application_failure_preserves_acknowledged_pair_and_rebuild_applies_before_acknowledgment"
+    ],
+    [
+      "projected_feed",
+      "actual_native_spot_perps_projected_values_features_and_restart_match_reference"
+    ],
+    [
+      "projected_feed",
+      "every_committed_live_prefix_matches_rebuilt_feature_state_without_future_metadata"
+    ],
+    [
+      "projected_output_budget",
+      "actual_gap_amplification_defers_whole_bootstrap_without_future_metadata_or_duplicate_updates"
+    ],
+    [
+      "reconnect_heartbeat",
+      "reconnect_backoff_is_bounded"
+    ],
+    [
+      "reconnect_heartbeat",
+      "heartbeat_ping_reconnect_and_resubscribe_flow_is_deterministic"
+    ],
+    [
+      "rest_metadata",
+      "parses_spot_meta_into_market_symbols"
+    ],
+    [
+      "rest_metadata",
+      "spot_context_parser_rejects_non_finite_numeric_strings"
+    ],
+    [
+      "rest_metadata",
+      "universe_selection_applies_include_and_exclude_by_display_or_feed_id"
+    ],
+    [
+      "rest_metadata",
+      "parses_asset_contexts_and_sorts_volume_ranked_universe"
+    ],
+    [
+      "rest_metadata",
+      "spot_context_parser_treats_zero_price_sentinels_as_missing"
+    ],
+    [
+      "rest_metadata",
+      "spot_context_parser_rejects_negative_volume_and_prices"
+    ],
+    [
+      "shared_feed",
+      "shared_projection_preserves_legacy_feature_values_and_trade_identity"
+    ],
+    [
+      "shared_feed",
+      "archive_clock_is_bound_to_the_consumed_cursor_and_seal"
+    ],
+    [
+      "shared_feed",
+      "consumer_rejects_acceptance_with_wrong_original_frame"
+    ],
+    [
+      "shared_feed",
+      "interleaved_session_receipts_cannot_rewind_the_archive_clock"
+    ],
+    [
+      "shared_feed",
+      "consumer_waits_for_acceptance_and_replays_the_same_committed_input"
+    ],
+    [
+      "shared_feed",
+      "shared_consumer_rejects_unprojected_causal_header_before_polling"
+    ],
+    [
+      "ws_parser",
+      "parse_ws_message_ignores_control_channels"
+    ],
+    [
+      "ws_parser",
+      "parse_ws_message_rejects_private_user_channels"
+    ],
+    [
+      "ws_parser",
+      "parse_ws_message_rejects_non_finite_market_numbers"
+    ],
+    [
+      "ws_parser",
+      "parses_l2_book_snapshot"
+    ],
+    [
+      "ws_parser",
+      "parses_single_candle_runtime_payload"
+    ],
+    [
+      "ws_parser",
+      "parse_ws_message_rejects_semantically_invalid_market_numbers"
+    ],
+    [
+      "ws_parser",
+      "parses_spot_asset_context_runtime_channel_alias"
+    ],
+    [
+      "ws_parser",
+      "parses_public_market_data_channels_from_fixture"
+    ],
+    [
+      "ws_parser",
+      "subscription_messages_match_official_public_shape"
+    ],
+    [
+      "ws_parser",
+      "rejects_invalid_l2_book_snapshots_without_partial_events"
+    ],
+    [
+      "ws_parser",
+      "subscription_plan_counts_public_channels_and_preserves_headroom"
+    ],
+    [
+      "ws_parser",
+      "default_subscription_budget_covers_default_top_universe_with_headroom"
+    ],
+    [
+      "ws_parser",
+      "global_all_mids_is_counted_once_for_large_universes"
+    ],
+    [
+      "ws_subscriptions",
+      "configured_ceiling_cannot_exceed_the_official_limit"
+    ],
+    [
+      "ws_subscriptions",
+      "tiered_plan_deduplicates_symbols_before_budgeting"
+    ],
+    [
+      "ws_subscriptions",
+      "unsubscribe_payload_matches_the_original_subscription"
+    ],
+    [
+      "ws_subscriptions",
+      "uniform_plan_emits_each_global_stream_once"
+    ],
+    [
+      "ws_subscriptions",
+      "tiered_plan_keeps_every_candle_and_stays_below_budget"
+    ],
+    [
+      "ws_subscriptions",
+      "mandatory_candles_fail_closed_when_the_budget_cannot_fit"
+    ],
+    [
+      "dsl_evaluator",
+      "evaluator_filters_sorts_and_treats_missing_numeric_values_as_non_matches"
+    ],
+    [
+      "dsl_evaluator",
+      "invalid_expression_does_not_replace_active_session_rows"
+    ],
+    [
+      "dsl_evaluator",
+      "fee_aware_fields_filter_and_sort_when_profile_evidence_exists"
+    ],
+    [
+      "dsl_evaluator",
+      "type_incompatible_comparisons_are_rejected"
+    ],
+    [
+      "dsl_evaluator",
+      "score_fields_filter_sort_and_keep_missing_components_out"
+    ],
+    [
+      "dsl_parser",
+      "parses_boolean_comparisons_literals_and_abs_field"
+    ],
+    [
+      "dsl_parser",
+      "parses_score_component_fields_with_dot_notation"
+    ],
+    [
+      "dsl_parser",
+      "parses_fee_aware_tradeability_fields"
+    ],
+    [
+      "dsl_parser",
+      "parses_sort_fields_and_rejects_unknown_identifiers"
+    ],
+    [
+      "dsl_parser",
+      "rejects_non_finite_numeric_literals"
+    ],
+    [
+      "dsl_parser",
+      "rejects_excessive_parenthesis_nesting_without_overflowing_the_stack"
+    ],
+    [
+      "dsl_parser",
+      "bounds_total_boolean_filter_complexity"
+    ],
+    [
+      "metadata_presets",
+      "metadata_presets_filter_and_sort_cohort_tags"
+    ],
+    [
+      "microstructure_presets",
+      "microstructure_presets_filter_resilience_and_tradeability_fields"
+    ],
+    [
+      "presets",
+      "built_in_presets_match_expected_rows_and_order"
+    ],
+    [
+      "read_only_api",
+      "health_endpoint_returns_read_only_status_without_action_surfaces"
+    ],
+    [
+      "read_only_api",
+      "encoded_symbol_paths_round_trip_and_malformed_queries_return_400"
+    ],
+    [
+      "read_only_api",
+      "unsafe_or_unknown_routes_are_not_exposed"
+    ],
+    [
+      "read_only_api",
+      "symbol_detail_accepts_display_pair_hyphen_pair_and_feed_identifier"
+    ],
+    [
+      "read_only_api",
+      "screen_endpoint_applies_filter_and_rejects_invalid_rules"
+    ],
+    [
+      "read_only_api",
+      "running_server_rejects_oversized_request_headers"
+    ],
+    [
+      "read_only_api",
+      "long_running_server_serves_read_only_http_until_shutdown"
+    ],
+    [
+      "read_only_api",
+      "running_server_serves_replaced_market_state_without_restart"
+    ],
+    [
+      "hls_store",
+      "analog::tests::production_policy_is_one_day_at_five_minute_resolution"
+    ],
+    [
+      "hls_store",
+      "analog::tests::ignored_and_duplicate_events_do_not_advance_the_replay_clock"
+    ],
+    [
+      "hls_store",
+      "analog::tests::dense_events_do_not_generate_a_candidate_at_every_event_timestamp"
+    ],
+    [
+      "hls_store",
+      "analog::tests::injected_policy_samples_deterministically_and_replaces_the_final_state"
+    ],
+    [
+      "hls_store",
+      "analog::tests::terminal_cadence_sample_is_not_recomputed_after_ignored_event"
+    ],
+    [
+      "hls_store",
+      "analog::tests::multi_symbol_policy_bounds_cardinality_and_orders_output_stably"
+    ],
+    [
+      "hls_store",
+      "analog::tests::production_policy_caps_each_symbol_and_retains_the_newest_final_state"
+    ],
+    [
+      "analog_search",
+      "analog_search_reports_insufficient_evidence_without_fabricating_matches"
+    ],
+    [
+      "analog_search",
+      "analog_search_returns_nearest_matches_with_driver_explanations"
+    ],
+    [
+      "analog_search",
+      "analog_index_round_trips_replay_candidates"
+    ],
+    [
+      "backfill_gaps",
+      "backfill_rejects_path_shaping_run_ids_and_intervals_before_writing"
+    ],
+    [
+      "backfill_gaps",
+      "public_source_failure_is_recorded_as_unrepaired_evidence"
+    ],
+    [
+      "backfill_gaps",
+      "failed_backfill_registration_rolls_back_registry_and_file"
+    ],
+    [
+      "backfill_gaps",
+      "unrepaired_public_backfill_attempt_keeps_gap_confidence_degraded"
+    ],
+    [
+      "backfill_gaps",
+      "public_candle_backfill_writes_coarse_rows_but_keeps_tick_gap_degraded"
+    ],
+    [
+      "benchmark_manifest",
+      "benchmark_manifest_rejects_absolute_or_private_inputs"
+    ],
+    [
+      "benchmark_manifest",
+      "benchmark_manifest_parses_and_validates_public_fixture_pack"
+    ],
+    [
+      "candle_cache",
+      "cache_rejects_invalid_candles_without_partial_writes"
+    ],
+    [
+      "candle_cache",
+      "cache_roundtrip_keeps_the_latest_receive_ordered_candle_and_provenance"
+    ],
+    [
+      "candle_cache",
+      "cache_rejects_corrupt_rows_when_loading"
+    ],
+    [
+      "metadata_registry",
+      "metadata_registry_persists_enrichment_freshness"
+    ],
+    [
+      "metadata_registry",
+      "metadata_registry_tracks_runs_files_and_data_gaps"
+    ],
+    [
+      "metadata_registry",
+      "metadata_registry_tracks_backfill_attempts_by_run_and_gap"
+    ],
+    [
+      "normalized_writer",
+      "normalized_writer_persists_replayable_market_events"
+    ],
+    [
+      "parquet_export",
+      "all_dataset_export_rolls_back_events_when_feature_preflight_rejects_unclean_run"
+    ],
+    [
+      "parquet_export",
+      "normalized_events_export_reads_every_registered_jsonl_part"
+    ],
+    [
+      "parquet_export",
+      "parquet_export_preserves_committed_jsonl_fixture_rows"
+    ],
+    [
+      "parquet_export",
+      "parquet_export_rejects_missing_run_and_existing_destination_without_writing"
+    ],
+    [
+      "parquet_export",
+      "normalized_events_export_to_readable_parquet"
+    ],
+    [
+      "parquet_export",
+      "feature_snapshots_export_to_readable_parquet"
+    ],
+    [
+      "raw_writer",
+      "raw_writer_rotates_flushes_and_preserves_payloads"
+    ],
+    [
+      "replay_parity",
+      "parquet_replay_requires_exported_schema_manifest"
+    ],
+    [
+      "replay_parity",
+      "replay_parity_writes_then_matches_confidence_baseline"
+    ],
+    [
+      "replay_parity",
+      "replay_applies_recorded_data_gaps_to_confidence"
+    ],
+    [
+      "replay_parity",
+      "replay_parity_reports_confidence_drift"
+    ],
+    [
+      "replay_parity",
+      "replay_can_use_normalized_event_parquet_as_input"
+    ],
+    [
+      "schema_version",
+      "unsupported_schema_manifest_fails_with_actionable_version_error"
+    ],
+    [
+      "schema_version",
+      "supported_schema_manifest_validates_and_round_trips"
+    ],
+    [
+      "storage_boundaries",
+      "recording_rejects_run_ids_with_path_components_before_writing"
+    ],
+    [
+      "storage_boundaries",
+      "metadata_registry_rejects_symlinked_database_files"
+    ],
+    [
+      "storage_boundaries",
+      "file_registry_rejects_entries_for_missing_runs"
+    ],
+    [
+      "storage_boundaries",
+      "atomic_file_registration_rolls_back_every_entry_on_conflict"
+    ],
+    [
+      "storage_boundaries",
+      "file_registry_does_not_replace_existing_evidence_rows"
+    ],
+    [
+      "storage_boundaries",
+      "replay_rejects_registry_paths_that_escape_the_data_directory"
+    ],
+    [
+      "storage_boundaries",
+      "recording_rejects_symlinked_run_directories"
+    ],
+    [
+      "storage_boundaries",
+      "replay_rejects_symlinks_that_escape_the_data_directory"
+    ],
+    [
+      "storage_boundaries",
+      "recording_rejects_duplicate_run_ids_without_replacing_evidence"
+    ],
+    [
+      "alert_history",
+      "alert_history_is_newest_first_and_bounded_by_rows_and_bytes"
+    ],
+    [
+      "alert_history",
+      "focused_status_pane_renders_bounded_alert_fields_and_keyboard_cursor"
+    ],
+    [
+      "confidence_pane",
+      "renders_degraded_confidence_in_market_board_and_detail_pane"
+    ],
+    [
+      "health_pane",
+      "health_pane_renders_degraded_operational_state"
+    ],
+    [
+      "main_table_golden",
+      "missing_quote_depth_marks_quality_partial"
+    ],
+    [
+      "main_table_golden",
+      "renders_resilience_and_tradeability_in_market_board_and_detail_pane"
+    ],
+    [
+      "main_table_golden",
+      "renders_compact_row_for_each_visible_pair_and_selects_first"
+    ],
+    [
+      "main_table_golden",
+      "partial_quote_depth_coverage_marks_quality_partial"
+    ],
+    [
+      "main_table_golden",
+      "renders_metadata_tags_in_market_board_and_detail_pane"
+    ],
+    [
+      "main_table_golden",
+      "renders_read_only_main_table_for_fixture_snapshot"
+    ],
+    [
+      "ratatui_cockpit",
+      "book_pane_flow_view_renders_depth_flow_mode"
+    ],
+    [
+      "ratatui_cockpit",
+      "book_pane_renders_bid_ask_share_and_notional_bars"
+    ],
+    [
+      "ratatui_cockpit",
+      "book_pane_renders_pressure_tape"
+    ],
+    [
+      "ratatui_cockpit",
+      "cockpit_chart_renders_price_axis_and_public_candle_footer"
+    ],
+    [
+      "ratatui_cockpit",
+      "cockpit_chart_renders_interactive_window_tab_rail"
+    ],
+    [
+      "ratatui_cockpit",
+      "cockpit_chart_uses_real_candle_ohlc_and_volume_when_available"
+    ],
+    [
+      "ratatui_cockpit",
+      "cockpit_chart_renders_session_microstructure_strip"
+    ],
+    [
+      "ratatui_cockpit",
+      "cockpit_chart_renders_latest_candle_hud"
+    ],
+    [
+      "ratatui_cockpit",
+      "cockpit_chart_colorizes_directional_candles_in_color_mode"
+    ],
+    [
+      "ratatui_cockpit",
+      "book_pane_renders_read_only_bbo_ladder"
+    ],
+    [
+      "ratatui_cockpit",
+      "book_pane_renders_execution_quality_band"
+    ],
+    [
+      "ratatui_cockpit",
+      "cockpit_chart_renders_selected_pair_edge_hud"
+    ],
+    [
+      "ratatui_cockpit",
+      "cockpit_chart_renders_bootstrap_lens_before_public_candles_arrive"
+    ],
+    [
+      "ratatui_cockpit",
+      "book_pane_quality_view_renders_read_only_liquidity_evidence"
+    ],
+    [
+      "ratatui_cockpit",
+      "cockpit_header_renders_interactive_desk_tab_rail"
+    ],
+    [
+      "ratatui_cockpit",
+      "cockpit_header_renders_market_internals_rail"
+    ],
+    [
+      "ratatui_cockpit",
+      "cockpit_color_mode_is_explicit_and_does_not_pollute_no_color_snapshots"
+    ],
+    [
+      "ratatui_cockpit",
+      "book_pane_color_mode_renders_semantic_depth_lens"
+    ],
+    [
+      "ratatui_cockpit",
+      "cockpit_header_renders_selected_quote_rail"
+    ],
+    [
+      "ratatui_cockpit",
+      "cockpit_header_renders_terminal_top_command_strip"
+    ],
+    [
+      "ratatui_cockpit",
+      "cockpit_renders_command_palette_with_validation_error"
+    ],
+    [
+      "ratatui_cockpit",
+      "command_palette_renders_live_symbol_suggestions"
+    ],
+    [
+      "ratatui_cockpit",
+      "cockpit_reflects_keyboard_view_pause_density_and_help_state"
+    ],
+    [
+      "ratatui_cockpit",
+      "command_palette_renders_preset_deck_with_active_context"
+    ],
+    [
+      "ratatui_cockpit",
+      "command_palette_renders_symbol_jump_deck"
+    ],
+    [
+      "ratatui_cockpit",
+      "command_palette_color_mode_renders_semantic_command_deck"
+    ],
+    [
+      "ratatui_cockpit",
+      "compact_medium_panel_titles_and_router_fit_without_half_words"
+    ],
+    [
+      "ratatui_cockpit",
+      "detail_panel_renders_selected_pair_alpha_risk_stack"
+    ],
+    [
+      "ratatui_cockpit",
+      "detail_explain_view_renders_why_ranked_deck"
+    ],
+    [
+      "ratatui_cockpit",
+      "cockpit_color_mode_uses_pane_accented_borders"
+    ],
+    [
+      "ratatui_cockpit",
+      "expanded_book_renders_depth_map_drilldown"
+    ],
+    [
+      "ratatui_cockpit",
+      "detail_panel_renders_liquidity_radar"
+    ],
+    [
+      "ratatui_cockpit",
+      "detail_panel_renders_score_factor_stack"
+    ],
+    [
+      "ratatui_cockpit",
+      "expanded_book_renders_liquidity_wall_monitor"
+    ],
+    [
+      "ratatui_cockpit",
+      "detail_panel_renders_interactive_view_tab_rail"
+    ],
+    [
+      "ratatui_cockpit",
+      "expanded_book_renders_queue_terminal"
+    ],
+    [
+      "ratatui_cockpit",
+      "compact_medium_and_standard_wide_rails_fit_without_half_words"
+    ],
+    [
+      "ratatui_cockpit",
+      "expanded_chart_renders_price_action_terminal"
+    ],
+    [
+      "ratatui_cockpit",
+      "expanded_chart_renders_public_intelligence_deck"
+    ],
+    [
+      "ratatui_cockpit",
+      "cockpit_header_renders_layout_director_across_viewports"
+    ],
+    [
+      "ratatui_cockpit",
+      "exact_180_column_rails_use_standard_compact_copy"
+    ],
+    [
+      "ratatui_cockpit",
+      "expanded_chart_renders_semantic_zoom_deck"
+    ],
+    [
+      "ratatui_cockpit",
+      "expanded_detail_renders_instrument_dossier"
+    ],
+    [
+      "ratatui_cockpit",
+      "expanded_detail_renders_quote_terminal_deck"
+    ],
+    [
+      "ratatui_cockpit",
+      "expanded_chart_renders_tactical_matrix"
+    ],
+    [
+      "ratatui_cockpit",
+      "detail_overview_renders_quote_card"
+    ],
+    [
+      "ratatui_cockpit",
+      "expanded_detail_renders_selected_pair_route_deck"
+    ],
+    [
+      "ratatui_cockpit",
+      "expanded_status_renders_desk_exposure_radar"
+    ],
+    [
+      "ratatui_cockpit",
+      "expanded_status_renders_mission_control_deck"
+    ],
+    [
+      "ratatui_cockpit",
+      "expanded_status_renders_ops_command_center"
+    ],
+    [
+      "ratatui_cockpit",
+      "expanded_tape_renders_public_print_ladder"
+    ],
+    [
+      "ratatui_cockpit",
+      "expanded_tape_renders_print_terminal"
+    ],
+    [
+      "ratatui_cockpit",
+      "expanded_tape_renders_time_and_sales_board"
+    ],
+    [
+      "ratatui_cockpit",
+      "expanded_status_renders_portfolio_risk_terminal"
+    ],
+    [
+      "ratatui_cockpit",
+      "expanded_status_renders_color_lab_diagnostics"
+    ],
+    [
+      "ratatui_cockpit",
+      "cockpit_header_renders_adaptive_layout_profile"
+    ],
+    [
+      "ratatui_cockpit",
+      "cockpit_header_self_identifies_unified_ratatui_color_path"
+    ],
+    [
+      "ratatui_cockpit",
+      "header_renders_keyboard_pane_hotkey_rail"
+    ],
+    [
+      "ratatui_cockpit",
+      "expanded_watchlist_renders_market_heatmap_deck"
+    ],
+    [
+      "ratatui_cockpit",
+      "expanded_watchlist_renders_metadata_cohort_intelligence"
+    ],
+    [
+      "ratatui_cockpit",
+      "medium_cockpit_compacts_market_board_without_truncated_signals"
+    ],
+    [
+      "ratatui_cockpit",
+      "expanded_watchlist_renders_command_center_deck"
+    ],
+    [
+      "ratatui_cockpit",
+      "market_pulse_uses_display_symbols_for_metadata_backed_rows"
+    ],
+    [
+      "ratatui_cockpit",
+      "focused_chart_renders_strategy_hud_without_execution_language"
+    ],
+    [
+      "ratatui_cockpit",
+      "market_board_explain_view_renders_ranking_reason_columns"
+    ],
+    [
+      "ratatui_cockpit",
+      "market_board_quality_view_renders_pair_quality_columns"
+    ],
+    [
+      "ratatui_cockpit",
+      "micro_cockpit_uses_focused_pane_on_very_short_terminals"
+    ],
+    [
+      "ratatui_cockpit",
+      "medium_cockpit_keeps_book_and_tape_visible"
+    ],
+    [
+      "ratatui_cockpit",
+      "medium_cockpit_keeps_compact_tape_flow_and_safety_visible"
+    ],
+    [
+      "ratatui_cockpit",
+      "help_overlay_color_mode_renders_operator_keyboard_map"
+    ],
+    [
+      "ratatui_cockpit",
+      "market_board_renders_directional_edge_pulses"
+    ],
+    [
+      "ratatui_cockpit",
+      "market_board_renders_score_and_bias_columns"
+    ],
+    [
+      "ratatui_cockpit",
+      "narrow_cockpit_expands_focused_book_pane"
+    ],
+    [
+      "ratatui_cockpit",
+      "medium_header_and_status_use_fit_to_width_rails"
+    ],
+    [
+      "ratatui_cockpit",
+      "medium_status_bar_compacts_action_and_theme_rails"
+    ],
+    [
+      "ratatui_cockpit",
+      "medium_cockpit_renders_lower_pane_keyboard_router"
+    ],
+    [
+      "ratatui_cockpit",
+      "micro_cockpit_keeps_watchlist_and_color_diagnostics_on_short_shells"
+    ],
+    [
+      "ratatui_cockpit",
+      "narrow_cockpit_collapses_to_watchlist_and_detail_without_tape"
+    ],
+    [
+      "ratatui_cockpit",
+      "medium_status_bar_surfaces_compact_quality_alert"
+    ],
+    [
+      "ratatui_cockpit",
+      "market_pulse_renders_pipeline_freshness_hud"
+    ],
+    [
+      "ratatui_cockpit",
+      "narrow_cockpit_renders_status_focus_as_operational_drilldown"
+    ],
+    [
+      "ratatui_cockpit",
+      "narrow_cockpit_renders_focused_hidden_pane_as_drilldown"
+    ],
+    [
+      "ratatui_cockpit",
+      "narrow_status_bar_renders_contextual_focus_keys"
+    ],
+    [
+      "ratatui_cockpit",
+      "narrow_chart_focus_renders_compact_window_controls"
+    ],
+    [
+      "ratatui_cockpit",
+      "narrow_watchlist_scrolls_keyboard_selection_into_view"
+    ],
+    [
+      "ratatui_cockpit",
+      "short_help_overlay_keeps_quit_and_read_only_boundary_visible"
+    ],
+    [
+      "ratatui_cockpit",
+      "narrow_command_palette_renders_compact_operator_deck"
+    ],
+    [
+      "ratatui_cockpit",
+      "narrow_status_bar_surfaces_quality_alert_outside_watchlist_focus"
+    ],
+    [
+      "ratatui_cockpit",
+      "narrow_help_overlay_renders_compact_operator_map"
+    ],
+    [
+      "ratatui_cockpit",
+      "standard_wide_header_renders_selected_quote_rail"
+    ],
+    [
+      "ratatui_cockpit",
+      "tape_pane_quality_view_renders_public_print_diagnostics"
+    ],
+    [
+      "ratatui_cockpit",
+      "tape_pane_flow_view_renders_public_trade_pressure_mode"
+    ],
+    [
+      "ratatui_cockpit",
+      "watchlist_keeps_symbol_jump_selected_after_live_rank_reorder"
+    ],
+    [
+      "ratatui_cockpit",
+      "tape_pane_renders_public_recent_trades_when_available"
+    ],
+    [
+      "ratatui_cockpit",
+      "standard_wide_header_and_status_compact_dense_rails"
+    ],
+    [
+      "ratatui_cockpit",
+      "wide_chart_renders_public_volume_profile_rail"
+    ],
+    [
+      "ratatui_cockpit",
+      "wide_cockpit_expands_focused_chart_pane"
+    ],
+    [
+      "ratatui_cockpit",
+      "tape_pane_renders_flow_pulse_and_net_pressure_bars"
+    ],
+    [
+      "ratatui_cockpit",
+      "standard_wide_watchlist_keeps_row_context_rail"
+    ],
+    [
+      "ratatui_cockpit",
+      "ultrawide_header_renders_stateful_command_dock"
+    ],
+    [
+      "ratatui_cockpit",
+      "wide_book_pane_renders_queue_share_snap"
+    ],
+    [
+      "ratatui_cockpit",
+      "status_focus_renders_data_quality_watch_for_degraded_rows"
+    ],
+    [
+      "ratatui_cockpit",
+      "wide_chart_renders_public_print_markers_on_candles"
+    ],
+    [
+      "ratatui_cockpit",
+      "watchlist_color_mode_keeps_selected_row_semantic_cell_colors"
+    ],
+    [
+      "ratatui_cockpit",
+      "wide_chart_renders_selected_pair_crosshair_context"
+    ],
+    [
+      "ratatui_cockpit",
+      "wide_cockpit_renders_all_primary_trading_workstation_regions"
+    ],
+    [
+      "ratatui_cockpit",
+      "wide_chart_renders_selected_pair_order_pressure_lane"
+    ],
+    [
+      "ratatui_cockpit",
+      "wide_detail_panel_renders_selected_pair_snapshot"
+    ],
+    [
+      "ratatui_cockpit",
+      "wide_chart_renders_selected_pair_public_prints_strip"
+    ],
+    [
+      "ratatui_cockpit",
+      "wide_status_bar_renders_action_key_rail"
+    ],
+    [
+      "ratatui_cockpit",
+      "wide_status_bar_renders_dynamic_market_ticker_rail"
+    ],
+    [
+      "ratatui_cockpit",
+      "wide_market_board_renders_public_candle_sparkline_lane"
+    ],
+    [
+      "ratatui_cockpit",
+      "wide_status_focus_renders_latency_strip"
+    ],
+    [
+      "ratatui_cockpit",
+      "wide_status_focus_renders_cross_pair_signal_matrix"
+    ],
+    [
+      "ratatui_cockpit",
+      "wide_status_focus_renders_market_regime_board"
+    ],
+    [
+      "ratatui_cockpit",
+      "wide_status_bar_renders_neon_market_state_strip"
+    ],
+    [
+      "ratatui_cockpit",
+      "wide_status_bar_renders_quality_alert_for_worst_row"
+    ],
+    [
+      "ratatui_cockpit",
+      "wide_status_bar_renders_theme_calibration_rail"
+    ],
+    [
+      "ratatui_cockpit",
+      "wide_watchlist_renders_dynamic_scanner_rail"
+    ],
+    [
+      "ratatui_cockpit",
+      "wide_watchlist_renders_selected_row_router_strip"
+    ],
+    [
+      "why_ranked_pane",
+      "renders_why_ranked_pane_with_components_and_caveats"
+    ],
+    [
+      "workstation_interaction",
+      "focused_panes_scope_navigation_actions"
+    ],
+    [
+      "workstation_interaction",
+      "workstation_state_handles_command_entry_without_changing_market_focus"
+    ],
+    [
+      "workstation_interaction",
+      "workstation_state_jumps_to_clicked_view_and_chart_tabs"
+    ],
+    [
+      "workstation_interaction",
+      "workstation_state_handles_keyboard_actions"
+    ],
+    [
+      "workstation_interaction",
+      "workstation_state_scrolls_the_pane_under_the_pointer"
+    ],
+    [
+      "workstation_interaction",
+      "workstation_state_selects_clicked_watchlist_row"
+    ],
+    [
+      "workstation_interaction",
+      "workstation_symbol_selection_sticks_until_manual_row_navigation"
+    ],
+    [
+      "workstation_interaction",
+      "workstation_renderer_marks_focused_row_and_view"
+    ],
+    [
+      "workstation_interaction",
+      "workstation_renderer_shows_help_overlay_without_mocking_data"
+    ],
+    [
+      "workstation_interaction",
+      "live_renderer_uses_conservative_width_even_when_terminal_reports_wide"
+    ],
+    [
+      "workstation_interaction",
+      "workstation_renderer_can_fit_narrow_terminals_without_wrapping"
+    ],
+    [
+      "release_packaging",
+      "distributable_crate_inherits_public_repository_metadata"
+    ],
+    [
+      "release_packaging",
+      "dist_workspace_declares_tag_gated_release_artifacts"
+    ],
+    [
+      "release_packaging",
+      "local_release_archive_stages_project_and_third_party_notices"
+    ],
+    [
+      "release_packaging",
+      "public_readiness_gate_is_fail_closed_and_secret_safe"
+    ],
+    [
+      "release_packaging",
+      "release_docs_and_roadmap_separate_local_proof_from_publication"
+    ],
+    [
+      "release_packaging",
+      "dist_release_contract_builds_pr_artifacts_sbom_and_provenance"
+    ],
+    [
+      "release_packaging",
+      "release_docs_explain_local_dry_run_and_no_secrets_boundary"
+    ],
+    [
+      "release_packaging",
+      "dependency_attribution_is_deterministic_and_matches_release_targets"
+    ],
+    [
+      "release_packaging",
+      "public_docs_do_not_claim_unwired_runtime_features_and_list_local_writes"
+    ],
+    [
+      "release_packaging",
+      "public_routes_are_actionable_and_separate_security_conduct_and_questions"
+    ],
+    [
+      "release_packaging",
+      "release_validation_scripts_cover_local_artifacts_checksums_and_public_readiness"
+    ],
+    [
+      "release_packaging",
+      "release_workflow_is_pull_request_plan_and_tag_publish_only"
+    ],
+    [
+      "release_packaging",
+      "public_docs_state_identity_contribution_and_build_contracts"
+    ],
+    [
+      "release_packaging",
+      "workspace_ci_bounds_heavy_rust_build_disk_usage"
+    ],
+    [
+      "release_packaging",
+      "soak_tooling_is_bounded_fail_closed_and_documented"
+    ],
+    [
+      "release_packaging",
+      "third_party_notices_cover_packaged_dependency_notices"
+    ],
+    [
+      "release_packaging",
+      "rustsec_gate_denies_all_warnings_after_removing_paste"
+    ],
+    [
+      "release_packaging",
+      "workflows_pin_runners_actions_and_release_permissions"
+    ],
+    [
+      "release_packaging",
+      "public_docs_define_fixture_tooling_release_and_unreleased_contracts"
+    ],
+    [
+      "release_packaging",
+      "canonical_validation_entrypoint_has_bounded_modes_and_ci_doc_parity"
+    ],
+    [
+      "release_packaging",
+      "maintainer_journals_and_agent_state_are_not_tracked"
+    ],
+    [
+      "release_packaging",
+      "distributable_crates_are_not_publishable"
+    ],
+    [
+      "release_packaging",
+      "history_secret_scan_pins_gitleaks_and_redacts_findings"
+    ],
+    [
+      "release_packaging",
+      "local_release_smoke_builds_and_packages_override_candidate_and_refuses_failed_rebuild"
+    ]
+  ],
+  "artifacts": {
+    "debug-cli": {
+      "bytes": 80025872,
+      "sha256": "d6293ed3b6fbb9c0c2441f7660e1f1ffad918ae8e05eb62684d0dcd0b9591765",
+      "mode": "0555"
+    },
+    "native-release-cli": {
+      "bytes": 26802576,
+      "sha256": "17d557a6d680ce763e1ead470706108a6ea803892baec8084307f5e481a2657d",
+      "mode": "0555"
+    },
+    "native-output-budget": {
+      "bytes": 21232000,
+      "sha256": "7da28b038c44e53a269a9b3e070494a02a38ff4568e4cd56fc452415e64767e8",
+      "mode": "0555",
+      "producer_declared_recipe": {
+        "sha256": "87143aaad8e4b3886dcf68d65709bf1b800d0a8cdd2fa0a0763638f4ec21ec0a",
+        "recipe": {
+          "debug": "false",
+          "encoded_rustflags": "",
+          "git_commit": "e812e44b9893f200a4e357e6e8ae77ae41db1c3b",
+          "lock_sha256": "ee36067353a53f0ca88fed71a0ed61f04a670a2a756c1c120168a6ce2af1a7cf",
+          "opt_level": "0",
+          "package_features": [
+            {
+              "features": [
+                "causal-journal"
+              ],
+              "package": "marketfeed-daemon"
+            }
+          ],
+          "package_version": "0.1.0-alpha.1",
+          "profile": "debug",
+          "rustc_verbose": "rustc 1.88.0 (6b00bc388 2025-06-23)\nbinary: rustc\ncommit-hash: 6b00bc3880198600130e1cf62b8f8a93494488cc\ncommit-date: 2025-06-23\nhost: aarch64-apple-darwin\nrelease: 1.88.0\nLLVM version: 20.1.5\n",
+          "schema_version": 1,
+          "source_files": 548,
+          "source_scheme": "sha256-path-length-and-bytes-v1",
+          "source_sha256": "141e4c967daa4f3a15f98b41ef01dfc9e2a5d7de10d9b43c59893a5674d74f1c",
+          "target": "aarch64-apple-darwin"
+        },
+        "identical_recipe_paths": [
+          ".codex/mfop/target-stable/debug/build/marketfeed-daemon-1f10b57727d7836c/out/causal-build.json",
+          ".codex/mfop/target-stable/debug/build/marketfeed-daemon-5b186c770494f75a/out/causal-build.json"
+        ]
+      }
+    }
+  },
+  "artifact_scope": "Actual logged executable files and separately retained declared producer recipe. Not OS loaded-image/full transitive inputs/reproducible build/deployment/soak proof.",
+  "native_archive": {
+    "bytes": 10375441,
+    "sha256": "07e0eb297ae3c3729a2b57f679cbcfde36b6dc7b429175eb174016a8da07a0aa",
+    "members": {
+      "LICENSE": {
+        "bytes": 11358,
+        "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "CHANGELOG.md": {
+        "bytes": 4564,
+        "sha256": "bfc7f83424eb70d224f1d8fcf2185e5bd361bf718484067df94c7ada35b0b0e0"
+      },
+      "THIRD_PARTY_LICENSES.txt": {
+        "bytes": 389988,
+        "sha256": "8689c74cf539131f719500f680f1f6eb2fbabdea98c98a03ee83e87820f0136e"
+      },
+      "THIRD_PARTY_NOTICES.md": {
+        "bytes": 3571,
+        "sha256": "fd22881a716ce6a6fc6b38b41aef7d66dee7a58914a2be1a404e3ea7c9292c05"
+      },
+      "NOTICE": {
+        "bytes": 124,
+        "sha256": "2f58cf26f1ba2892920da15ec52489e4f7c855b4b0cd7d93450815a8277d7ca9"
+      },
+      "README.md": {
+        "bytes": 30571,
+        "sha256": "45252a70b2587fb15cc9394988b0ca1d7c172a0159e852790a8788a268c3eeb7"
+      },
+      "bin/hls": {
+        "bytes": 26802576,
+        "sha256": "17d557a6d680ce763e1ead470706108a6ea803892baec8084307f5e481a2657d"
+      }
+    }
+  },
+  "dependency_delta": {
+    "prior_registry_nodes": 419,
+    "current_registry_nodes": 431,
+    "existing_versions_checksums_preserved": 419,
+    "added_registry_nodes": [
+      {
+        "name": "h2",
+        "version": "0.4.20"
+      },
+      {
+        "name": "hmac",
+        "version": "0.12.1"
+      },
+      {
+        "name": "matchers",
+        "version": "0.2.0"
+      },
+      {
+        "name": "nu-ansi-term",
+        "version": "0.50.3"
+      },
+      {
+        "name": "sharded-slab",
+        "version": "0.1.7"
+      },
+      {
+        "name": "thread_local",
+        "version": "1.1.10"
+      },
+      {
+        "name": "tokio-util",
+        "version": "0.7.20"
+      },
+      {
+        "name": "tracing-attributes",
+        "version": "0.1.31"
+      },
+      {
+        "name": "tracing-log",
+        "version": "0.2.0"
+      },
+      {
+        "name": "tracing-serde",
+        "version": "0.2.0"
+      },
+      {
+        "name": "tracing-subscriber",
+        "version": "0.3.23"
+      },
+      {
+        "name": "valuable",
+        "version": "0.1.1"
+      }
+    ],
+    "changed_edges": [
+      {
+        "name": "anstyle-query",
+        "version": "1.1.5",
+        "added": [
+          "windows-sys 0.60.2"
+        ],
+        "removed": [
+          "windows-sys 0.61.2"
+        ]
+      },
+      {
+        "name": "anstyle-wincon",
+        "version": "3.0.11",
+        "added": [
+          "windows-sys 0.60.2"
+        ],
+        "removed": [
+          "windows-sys 0.61.2"
+        ]
+      },
+      {
+        "name": "digest",
+        "version": "0.10.7",
+        "added": [
+          "subtle"
+        ],
+        "removed": []
+      },
+      {
+        "name": "errno",
+        "version": "0.3.14",
+        "added": [
+          "windows-sys 0.60.2"
+        ],
+        "removed": [
+          "windows-sys 0.61.2"
+        ]
+      },
+      {
+        "name": "hyper",
+        "version": "1.10.1",
+        "added": [
+          "h2"
+        ],
+        "removed": []
+      },
+      {
+        "name": "quinn-udp",
+        "version": "0.5.15",
+        "added": [
+          "windows-sys 0.60.2"
+        ],
+        "removed": [
+          "windows-sys 0.61.2"
+        ]
+      },
+      {
+        "name": "reqwest",
+        "version": "0.12.28",
+        "added": [
+          "h2"
+        ],
+        "removed": []
+      },
+      {
+        "name": "rustix",
+        "version": "1.1.4",
+        "added": [
+          "windows-sys 0.60.2"
+        ],
+        "removed": [
+          "windows-sys 0.61.2"
+        ]
+      },
+      {
+        "name": "socket2",
+        "version": "0.6.4",
+        "added": [
+          "windows-sys 0.60.2"
+        ],
+        "removed": [
+          "windows-sys 0.61.2"
+        ]
+      },
+      {
+        "name": "tempfile",
+        "version": "3.27.0",
+        "added": [
+          "windows-sys 0.60.2"
+        ],
+        "removed": [
+          "windows-sys 0.61.2"
+        ]
+      },
+      {
+        "name": "termina",
+        "version": "0.3.3",
+        "added": [
+          "windows-sys 0.60.2"
+        ],
+        "removed": [
+          "windows-sys 0.61.2"
+        ]
+      },
+      {
+        "name": "tracing",
+        "version": "0.1.44",
+        "added": [
+          "tracing-attributes"
+        ],
+        "removed": []
+      },
+      {
+        "name": "tracing-core",
+        "version": "0.1.36",
+        "added": [
+          "valuable"
+        ],
+        "removed": []
+      },
+      {
+        "name": "winapi-util",
+        "version": "0.1.11",
+        "added": [
+          "windows-sys 0.60.2"
+        ],
+        "removed": [
+          "windows-sys 0.61.2"
+        ]
+      }
+    ],
+    "scope": "Node identity preservation is not dependency-edge equivalence; added feature edges and Windows dependency selection changes are explicit."
+  },
+  "shared_git_packages": [
+    {
+      "name": "marketfeed-adapter-api",
+      "version": "0.1.0-alpha.1",
+      "source": "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=e812e44b9893f200a4e357e6e8ae77ae41db1c3b#e812e44b9893f200a4e357e6e8ae77ae41db1c3b"
+    },
+    {
+      "name": "marketfeed-adapter-binance",
+      "version": "0.1.0-alpha.1",
+      "source": "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=e812e44b9893f200a4e357e6e8ae77ae41db1c3b#e812e44b9893f200a4e357e6e8ae77ae41db1c3b"
+    },
+    {
+      "name": "marketfeed-adapter-bitfinex",
+      "version": "0.1.0-alpha.1",
+      "source": "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=e812e44b9893f200a4e357e6e8ae77ae41db1c3b#e812e44b9893f200a4e357e6e8ae77ae41db1c3b"
+    },
+    {
+      "name": "marketfeed-adapter-bitstamp",
+      "version": "0.1.0-alpha.1",
+      "source": "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=e812e44b9893f200a4e357e6e8ae77ae41db1c3b#e812e44b9893f200a4e357e6e8ae77ae41db1c3b"
+    },
+    {
+      "name": "marketfeed-adapter-bybit",
+      "version": "0.1.0-alpha.1",
+      "source": "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=e812e44b9893f200a4e357e6e8ae77ae41db1c3b#e812e44b9893f200a4e357e6e8ae77ae41db1c3b"
+    },
+    {
+      "name": "marketfeed-adapter-coinbase",
+      "version": "0.1.0-alpha.1",
+      "source": "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=e812e44b9893f200a4e357e6e8ae77ae41db1c3b#e812e44b9893f200a4e357e6e8ae77ae41db1c3b"
+    },
+    {
+      "name": "marketfeed-adapter-deribit",
+      "version": "0.1.0-alpha.1",
+      "source": "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=e812e44b9893f200a4e357e6e8ae77ae41db1c3b#e812e44b9893f200a4e357e6e8ae77ae41db1c3b"
+    },
+    {
+      "name": "marketfeed-adapter-gemini",
+      "version": "0.1.0-alpha.1",
+      "source": "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=e812e44b9893f200a4e357e6e8ae77ae41db1c3b#e812e44b9893f200a4e357e6e8ae77ae41db1c3b"
+    },
+    {
+      "name": "marketfeed-adapter-hyperliquid",
+      "version": "0.1.0-alpha.1",
+      "source": "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=e812e44b9893f200a4e357e6e8ae77ae41db1c3b#e812e44b9893f200a4e357e6e8ae77ae41db1c3b"
+    },
+    {
+      "name": "marketfeed-adapter-kraken",
+      "version": "0.1.0-alpha.1",
+      "source": "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=e812e44b9893f200a4e357e6e8ae77ae41db1c3b#e812e44b9893f200a4e357e6e8ae77ae41db1c3b"
+    },
+    {
+      "name": "marketfeed-adapter-okx",
+      "version": "0.1.0-alpha.1",
+      "source": "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=e812e44b9893f200a4e357e6e8ae77ae41db1c3b#e812e44b9893f200a4e357e6e8ae77ae41db1c3b"
+    },
+    {
+      "name": "marketfeed-adapter-synthetic",
+      "version": "0.1.0-alpha.1",
+      "source": "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=e812e44b9893f200a4e357e6e8ae77ae41db1c3b#e812e44b9893f200a4e357e6e8ae77ae41db1c3b"
+    },
+    {
+      "name": "marketfeed-book",
+      "version": "0.1.0-alpha.1",
+      "source": "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=e812e44b9893f200a4e357e6e8ae77ae41db1c3b#e812e44b9893f200a4e357e6e8ae77ae41db1c3b"
+    },
+    {
+      "name": "marketfeed-daemon",
+      "version": "0.1.0-alpha.1",
+      "source": "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=e812e44b9893f200a4e357e6e8ae77ae41db1c3b#e812e44b9893f200a4e357e6e8ae77ae41db1c3b"
+    },
+    {
+      "name": "marketfeed-dispatch",
+      "version": "0.1.0-alpha.1",
+      "source": "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=e812e44b9893f200a4e357e6e8ae77ae41db1c3b#e812e44b9893f200a4e357e6e8ae77ae41db1c3b"
+    },
+    {
+      "name": "marketfeed-engine",
+      "version": "0.1.0-alpha.1",
+      "source": "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=e812e44b9893f200a4e357e6e8ae77ae41db1c3b#e812e44b9893f200a4e357e6e8ae77ae41db1c3b"
+    },
+    {
+      "name": "marketfeed-filesystem",
+      "version": "0.1.0-alpha.1",
+      "source": "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=e812e44b9893f200a4e357e6e8ae77ae41db1c3b#e812e44b9893f200a4e357e6e8ae77ae41db1c3b"
+    },
+    {
+      "name": "marketfeed-model",
+      "version": "0.1.0-alpha.1",
+      "source": "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=e812e44b9893f200a4e357e6e8ae77ae41db1c3b#e812e44b9893f200a4e357e6e8ae77ae41db1c3b"
+    },
+    {
+      "name": "marketfeed-private",
+      "version": "0.1.0-alpha.1",
+      "source": "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=e812e44b9893f200a4e357e6e8ae77ae41db1c3b#e812e44b9893f200a4e357e6e8ae77ae41db1c3b"
+    },
+    {
+      "name": "marketfeed-recording",
+      "version": "0.1.0-alpha.1",
+      "source": "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=e812e44b9893f200a4e357e6e8ae77ae41db1c3b#e812e44b9893f200a4e357e6e8ae77ae41db1c3b"
+    },
+    {
+      "name": "marketfeed-replay",
+      "version": "0.1.0-alpha.1",
+      "source": "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=e812e44b9893f200a4e357e6e8ae77ae41db1c3b#e812e44b9893f200a4e357e6e8ae77ae41db1c3b"
+    },
+    {
+      "name": "marketfeed-sinks",
+      "version": "0.1.0-alpha.1",
+      "source": "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=e812e44b9893f200a4e357e6e8ae77ae41db1c3b#e812e44b9893f200a4e357e6e8ae77ae41db1c3b"
+    },
+    {
+      "name": "marketfeed-transport",
+      "version": "0.1.0-alpha.1",
+      "source": "git+https://github.com/rsitech-ai/cryptofeed-rs?rev=e812e44b9893f200a4e357e6e8ae77ae41db1c3b#e812e44b9893f200a4e357e6e8ae77ae41db1c3b"
+    }
+  ],
+  "audit": {
+    "database": {
+      "advisory-count": 1345,
+      "last-commit": "b19b2c83c2493961ccb12f9fc4699a00fb2c6c44",
+      "last-updated": "2026-10-20T13:02:37+02:00"
+    },
+    "lockfile": {
+      "dependency-count": 462
+    },
+    "settings": {
+      "target_arch": [],
+      "target_os": [],
+      "severity": null,
+      "ignore": [],
+      "informational_warnings": [
+        "unmaintained",
+        "unsound",
+        "notice"
+      ]
+    },
+    "vulnerabilities": {
+      "found": false,
+      "count": 0,
+      "list": []
+    },
+    "warnings": {}
+  },
+  "preservation_after_all_gates": {
+    "historical_hls": {
+      "files": 35,
+      "bytes": 220787,
+      "all_recorded_fields_unchanged": true
+    },
+    "frozen_dataset": {
+      "files": 22,
+      "bytes": 37276008,
+      "all_recorded_fields_unchanged": true
+    },
+    "pilot": {
+      "files": 2,
+      "bytes": 1983604,
+      "all_recorded_fields_unchanged": true
+    },
+    "dataset_root_mode": "0o555",
+    "created_utc": "2026-10-20T18:01:17.888507+00:00"
+  },
+  "historical_preflights": [
+    {
+      "log": ".codex/mfop/preflight-01.log",
+      "bytes": 10106,
+      "sha256": "7aeb9da9348f78b6f0505a83191185c0fdf3e4529bb95c5645121d94de13f478",
+      "scope": "Historical development preflight, not source02 qualification"
+    },
+    {
+      "log": ".codex/mfop/preflight-02.log",
+      "bytes": 1941,
+      "sha256": "5be924c407ce9fc4c14f0b831af3fa4afd8f6ee2f80be9064e9e95c31874e525",
+      "scope": "Historical development preflight, not source02 qualification"
+    },
+    {
+      "log": ".codex/mfop/preflight-03.log",
+      "bytes": 157,
+      "sha256": "9122fbedf5e6986c2f78fd8931d5453225f3427825770cd2ace40cbadfb93197",
+      "scope": "Historical development preflight, not source02 qualification"
+    },
+    {
+      "log": ".codex/mfop/preflight-04.log",
+      "bytes": 6577,
+      "sha256": "0341eba68848a0297574bd8d09c3dae5f9bab0cb456f6337af7df36a85bed4b4",
+      "scope": "Historical development preflight, not source02 qualification"
+    },
+    {
+      "log": ".codex/mfop/preflight-05.log",
+      "bytes": 9437,
+      "sha256": "b425a3dda836a5e074b362a93f0db9790d86082687246885265daf633e182656",
+      "scope": "Historical development preflight, not source02 qualification"
+    },
+    {
+      "log": ".codex/mfop/preflight-06.log",
+      "bytes": 9099,
+      "sha256": "5f3d42650fe8d518b9d35423dc5a56a64a7809d14969bbc150e66040bf945bfe",
+      "scope": "Historical development preflight, not source02 qualification"
+    },
+    {
+      "log": ".codex/mfop/preflight-07.log",
+      "bytes": 488,
+      "sha256": "140f4be9272a9037ed09380258254e140a3442275f4a98a38bb3dec1ab7df8fc",
+      "scope": "Historical development preflight, not source02 qualification"
+    },
+    {
+      "log": ".codex/mfop/preflight-08.log",
+      "bytes": 1512,
+      "sha256": "454338540748f1689880addd7adaa7068c1e20b81e313f680d2875789d17bb9c",
+      "scope": "Historical development preflight, not source02 qualification"
+    },
+    {
+      "log": ".codex/mfop/preflight-09.log",
+      "bytes": 747,
+      "sha256": "d2f3b8e252ddb14da1f8009674df0ca88e0aaaadb75543a7969f1231d52ff426",
+      "scope": "Historical development preflight, not source02 qualification"
+    },
+    {
+      "log": ".codex/mfop/preflight-10.log",
+      "bytes": 1027,
+      "sha256": "550536db89bc602bd3ac1b4a7d58205472009ee5bffd76716dc7cd1e10c3c6a2",
+      "scope": "Historical development preflight, not source02 qualification"
+    },
+    {
+      "log": ".codex/mfop/preflight-11.log",
+      "bytes": 58754,
+      "sha256": "f2cb5ee7ea57649aa3c3aafe96f355c76dce26a834ee7bb4d73753692953fca0",
+      "scope": "Historical development preflight, not source02 qualification"
+    },
+    {
+      "log": ".codex/mfop/preflight-12.log",
+      "bytes": 8912,
+      "sha256": "59556feb66adc7710ec5bdfd71484e04ffe8b702fb32bc3e6911ec973f284f53",
+      "scope": "Historical development preflight, not source02 qualification"
+    },
+    {
+      "log": ".codex/mfop/preflight-13.log",
+      "bytes": 495,
+      "sha256": "263eb103f7172486a454972aac2ff7c1ca8cf7224d06f1ebaef1c0a68eeb5f45",
+      "scope": "Historical development preflight, not source02 qualification"
+    },
+    {
+      "log": ".codex/mfop/preflight-14.log",
+      "bytes": 58425,
+      "sha256": "7e2b9ce28300edfe00696aa132e16e343a1a249b2093906ef29220600df113d3",
+      "scope": "Historical development preflight, not source02 qualification"
+    },
+    {
+      "log": ".codex/mfop/preflight-15.log",
+      "bytes": 1143,
+      "sha256": "51432b3cbce75f16f5916aa350cbcacd91ff046fe22f7dc98c4e42d0d8809f78",
+      "scope": "Historical development preflight, not source02 qualification"
+    },
+    {
+      "log": ".codex/mfop/preflight-16.log",
+      "bytes": 1099,
+      "sha256": "8e08c49dfbbe18f095e69e2348f275d1a8ab5e1b33f0d76f1d46cdaf2be6ede4",
+      "scope": "Historical development preflight, not source02 qualification"
+    },
+    {
+      "log": ".codex/mfop/preflight-17.log",
+      "bytes": 590,
+      "sha256": "e1b9b960481a9813a543563dea0f842d49272aaa7e2603d745677afd30b45752",
+      "scope": "Historical development preflight, not source02 qualification"
+    },
+    {
+      "log": ".codex/mfop/preflight-18.log",
+      "bytes": 485,
+      "sha256": "9655667b2cc2f1f7763aeb20e711a5cc92f9751e537a919c0ee302823ada5213",
+      "scope": "Historical development preflight, not source02 qualification"
+    },
+    {
+      "log": ".codex/mfop/preflight-19.log",
+      "bytes": 238,
+      "sha256": "08a60cb6c69891e5261b383fafb0ffc5b108e585760d473aaaedf64bcbdfbc7d",
+      "scope": "Historical development preflight, not source02 qualification"
+    },
+    {
+      "log": ".codex/mfop/preflight-20.log",
+      "bytes": 2126,
+      "sha256": "5020b9ed60b7a590a293fc7b5e5b060e54632833c7eca22c4af1c1967cb89ed9",
+      "scope": "Historical development preflight, not source02 qualification"
+    },
+    {
+      "log": ".codex/mfop/preflight-21.log",
+      "bytes": 2126,
+      "sha256": "4ae3c8bbbdae9a02235a6bd6bff221231c17b6e5497c770e78b620d788365d09",
+      "scope": "Historical development preflight, not source02 qualification"
+    },
+    {
+      "log": ".codex/mfop/preflight-22.log",
+      "bytes": 2126,
+      "sha256": "50b4ff08adf4f29d92a5c246c453b548ae9f7666fc3653c39fb60f745452def9",
+      "scope": "Historical development preflight, not source02 qualification"
+    }
+  ],
+  "earlier_qualification": {
+    "source01_sha256": "7c15ce40b7ce49c83d24383b02866c90596d6f1a05dc76311b05f396aa5bcf9e",
+    "status": "Eight commands passed, but final artifact validation failed on undeclared macOS AppleDouble metadata; not qualified as a complete artifact",
+    "failure_receipt_sha256": "32542dee9667c8ce4bae517026677d3ec85d0349f93d2ee50a5fcca1dc66fb4a",
+    "preserved_failed_archive": {
+      "retained": ".codex/mfop/native-archive-with-appledouble-01.tar.gz",
+      "bytes": 10376218,
+      "sha256": "dd9b8b1bc2158dd0fdd5ffd299c4f8f22e6d0ed88ce6e18e0fd815642d55818f",
+      "regular_member_names": [
+        "._hlscreen-aarch64-apple-darwin",
+        "hlscreen-aarch64-apple-darwin/._LICENSE",
+        "hlscreen-aarch64-apple-darwin/LICENSE",
+        "hlscreen-aarch64-apple-darwin/._bin",
+        "hlscreen-aarch64-apple-darwin/._CHANGELOG.md",
+        "hlscreen-aarch64-apple-darwin/CHANGELOG.md",
+        "hlscreen-aarch64-apple-darwin/._THIRD_PARTY_LICENSES.txt",
+        "hlscreen-aarch64-apple-darwin/THIRD_PARTY_LICENSES.txt",
+        "hlscreen-aarch64-apple-darwin/._THIRD_PARTY_NOTICES.md",
+        "hlscreen-aarch64-apple-darwin/THIRD_PARTY_NOTICES.md",
+        "hlscreen-aarch64-apple-darwin/._NOTICE",
+        "hlscreen-aarch64-apple-darwin/NOTICE",
+        "hlscreen-aarch64-apple-darwin/._README.md",
+        "hlscreen-aarch64-apple-darwin/README.md",
+        "hlscreen-aarch64-apple-darwin/bin/._hls",
+        "hlscreen-aarch64-apple-darwin/bin/hls"
+      ]
+    },
+    "source02_change": "Only packager/test change suppresses metadata and verifies archive listing with a macOS xattr fixture; all8 commands rerun on frozen source02."
+  },
+  "remaining_gates": [
+    "Producer immutable e812 hosted run39462645500 has unresolved Windows and Linux47/48 Hyperliquid watchdog failures; successor87b diagnostics are not a claimed repair.",
+    "Source-current HLS hosted/native/archive checks pending; prior735/pin95 results do not qualify this candidate.",
+    "Actual daemon/live/control/external-I/O integration, all-mids admission, strict datasets/native continuity/checkpoints and operational gates remain open.",
+    "Rsibot continuous-reader/features/model/ETF/strategy work remains in its existing owners; initial manifest boundary is not continuous consumption. No economics/deployment/merge/release."
+  ],
+  "evidence_qualifier": {
+    "script_sha256": "754a5f8f16363a14e3af0d7dd34454610ab68a1cf08892cd53e21bf22bd16641",
+    "log_sha256": "0a32840157706f48e6b641c276a7695501227a83ae31739e853c85345abc8c2f",
+    "actual_terminal_exit": 0
+  },
+  "runner_script_sha256": "388b0773774d39614979248928f874aff6ed813a42c22e6c9d548c1afd36fa4a",
+  "explicit_version_bound_security_supplement": {
+    "receipt_sha256": "4dcedcf8391d248e0d8fe7fdf01a250102126c86f18fe6a692c43e18abc9c831",
+    "script_sha256": "64c2a69477c741db66b95f63c68cebd9bdff0354186953a13b136e9b56a8f1db",
+    "runner_log_sha256": "3e40d31670043ba3010da4bdfeb025552bb4262930e5ff5617895b9d50043bc8",
+    "actual_terminal_exit": 0,
+    "evidence": {
+      "scope": "Supplemental explicit-binary version-bound security scans; no retroactive inference about earlier Cargo plugin lookup",
+      "source_sha256": "eeb2de34cd741b55904adb189665dc31659e66d774530f28fd5a8924620e8a9e",
+      "lock_sha256": "58e746363cd279392d0290656744bd8efbfb01172fb44cf92dfa129935b371ed",
+      "checks": [
+        {
+          "name": "audit",
+          "version": "cargo-audit 0.22.2",
+          "version_command_exit": 0,
+          "version_log_sha256": "8748580845bee726903e69bc4543958fb01e2594317e6c68bf80114bff13d541",
+          "binary_sha256": "d4af0174a47b1d6fa0ec73d40a9f6057ab698e842131768e7e9d512d60045872",
+          "binary_bytes": 20273120,
+          "binary_unchanged": true,
+          "explicit_command": [
+            "<verified-tool>/cargo-audit",
+            "audit",
+            "--deny",
+            "warnings",
+            "--json"
+          ],
+          "command_exit": 0,
+          "elapsed_s": 4.804,
+          "log": ".codex/mfop/explicit-security-audit-01.log",
+          "log_sha256": "049c6a202b8f172efa042943cd17085d6d31005ac311643281bc936be87d0228",
+          "source_unchanged": true
+        },
+        {
+          "name": "deny",
+          "version": "cargo-deny 0.20.2",
+          "version_command_exit": 0,
+          "version_log_sha256": "1758f5ea93d8ad3585079f05c19358b7bb969cce1bf6c7bdab6659a8cd1ef6b8",
+          "binary_sha256": "d441cbeb35bc7e4cdc0554c49d520b25165ed0dabbefc5f1aee6db71b30c6c8a",
+          "binary_bytes": 7755376,
+          "binary_unchanged": true,
+          "explicit_command": [
+            "<verified-tool>/cargo-deny",
+            "--all-features",
+            "check",
+            "advisories",
+            "bans",
+            "licenses",
+            "sources"
+          ],
+          "command_exit": 0,
+          "elapsed_s": 2.292,
+          "log": ".codex/mfop/explicit-security-deny-01.log",
+          "log_sha256": "09950ea4ed351568997a8005b38a68d9cbb06a3a6e7dc12ffbed51ffbd9aaa6d",
+          "source_unchanged": true
+        }
+      ]
+    }
+  }
+}

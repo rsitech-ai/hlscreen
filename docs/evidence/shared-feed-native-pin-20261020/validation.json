@@ -1,0 +1,154 @@
+{
+  "schema_version": 1,
+  "base_head": "bcfc9f44c3c46fb38de62757c0b3fb4795d9f337",
+  "producer_dependency_pin": "4c2bd1520d16573fd3cdc2fd7a818d126f28a12d",
+  "git_dirty": true,
+  "scope": "uncommitted consumer dependency pin migration for review; local macOS tests and saved sealed prefix parity only; no new soak/capture, no native Windows writer runtime qualification",
+  "direct_and_resolved_marketfeed_packages": [
+    "marketfeed-adapter-api",
+    "marketfeed-adapter-hyperliquid",
+    "marketfeed-filesystem",
+    "marketfeed-model",
+    "marketfeed-recording"
+  ],
+  "registry_records_unchanged": true,
+  "registry_record_count": 419,
+  "lock_sha256": "91bf702f1cb4c4c673a22cb47320c1509b4bf4f6655ffed1899ad01c09dc8b33",
+  "commands": [
+    {
+      "command": "cargo metadata --format-version 1 --locked",
+      "exit_code": 0
+    },
+    {
+      "command": "scripts/check.sh pr",
+      "exit_code": 0,
+      "workspace_tests_passed": 543,
+      "ignored": 0,
+      "python_binding_regressions_passed": 8,
+      "rust_passed_across_all_invocations": 566,
+      "note": "packaging reruns23 tests already included in workspace543"
+    },
+    {
+      "command": "cargo build --locked -p hls-cli --bin hls",
+      "exit_code": 0
+    },
+    {
+      "command": "cargo audit --deny warnings",
+      "tool_version": "cargo-audit 0.22.2",
+      "exit_code": 0
+    },
+    {
+      "command": "target/validation-tools/bin/cargo-deny check licenses sources",
+      "tool_version": "cargo-deny 0.20.2",
+      "exit_code": 0
+    },
+    {
+      "command": "scripts/check-third-party-licenses.sh",
+      "tool_version": "cargo-about 0.9.1",
+      "exit_code": 0
+    }
+  ],
+  "exploratory_checks": [
+    {
+      "command": "cargo deny check licenses sources",
+      "tool_version": "cargo-deny 0.19.0",
+      "exit_code": 0,
+      "qualification": false,
+      "log": "target/windows-backend-pin-policy-01.log"
+    },
+    {
+      "command": "python3 TOML comparison helper",
+      "exit_code": 1,
+      "reason": "system Python lacks tomllib; corrected to Python3.13",
+      "log": "target/windows-backend-pin-helper-red-01.log"
+    }
+  ],
+  "saved_replay": {
+    "schema_version": 1,
+    "producer_dependency_pin": "4c2bd1520d16573fd3cdc2fd7a818d126f28a12d",
+    "command": "target/debug/hls live --shared-feed ../cryptofeed-rs/.local/evidence/hyperliquid-integration-review/live-pilot-07-feed --once --color never --ws-url not-an-exchange-url",
+    "exit_code": 0,
+    "summary_matches_historical_410c_security_receipt": true,
+    "market_events": 1055,
+    "summary": {
+      "as_of_ms": 1792440727739,
+      "cursor": {
+        "feed_id": "fadae1df2c473d021fa8b06b0947ed664507e04d",
+        "offset": 1983487,
+        "sequence": 2683
+      },
+      "data_gaps": 0,
+      "events": {
+        "bbo": 512,
+        "book": 37,
+        "candle": 58,
+        "context": 178,
+        "trade": 270
+      },
+      "float_projection": "features_and_display_only",
+      "sealed": true
+    },
+    "saved_prefix_unchanged": true,
+    "saved_prefix_sha256": {
+      "committed.json": "d6ff3959631b582a2a8f7729f232264e2a986af28a9bac2b775857ed8f94c06d",
+      "events.mfsf": "9207b56e6cb1544f0d9d313b17824afb508a6d44d14c35ca740a7b9184a1a45a"
+    },
+    "binary_sha256": "825580fd19fd50955b7b8f687adde8b41bcbc1017f2360730c408b8a333fda6b",
+    "log_sha256": "41e9a8a430547be5e39cd5db318ad4b14224cb5b852ebd4056699bcb5e249629",
+    "scope": "saved sealed prefix consumer projection only; no new live-forward/soak, no Windows runtime or writer durability qualification",
+    "complete_output_matches_historical_log_sha256": true
+  },
+  "historical_evidence_files_unchanged": true,
+  "historical_evidence_sha256": {
+    "docs/evidence/security-lock-20261019/README.md": "4ae22043317d0008d58559c5b0ac8ef2193b4eed3c7781022e4730a3bcfe97ce",
+    "docs/evidence/security-lock-20261019/rustsec-audit.json": "89e584f6d87e0840692cb34a98d64ff0af6dcfd1ac817b3a735264339c3cef1a",
+    "docs/evidence/security-lock-20261019/saved-prefix-replay.json": "c5268424c14ea7161e07379efcacd2a23d79da0d205ae5a97cb42cb6ccdd25fb",
+    "docs/evidence/security-lock-20261019/validation.json": "071d6ebda60ef6c1277e960a7fef5d64e91c2ce7965d81cc00562e64e6e801c8",
+    "docs/evidence/shared-feed-pin-20261019/README.md": "2b167c7d10d28c1cae8d574b699efc61317457ab8e78a23795f183f773f74d37",
+    "docs/evidence/shared-feed-pin-20261019/saved-prefix-replay.json": "207ecf9febc3da99eca8788a984b58d015373b426cfa4fbb70b839d563cc6920",
+    "docs/evidence/shared-feed-pin-20261019/validation.json": "3a260a28094385162f54c4a5337de74b0edf693a3e916d1b2e1fd4e6b813de03",
+    "docs/evidence/soak-validation-20261020/README.md": "522a69e67d053b53d98b60b191662b3070c87bda8e26db2cb89ba123b9a1dfb8",
+    "docs/evidence/soak-validation-20261020/validation.json": "bb1cbdccb6042ec31de68c4c2e293bfd4e1622739afda99a5a915ac352e320a0",
+    "docs/evidence/soak/shared-feed-20261019-15m.json": "ee3e5a00fcd4145832025453e1d7776e36724520705ae74eabb10c8aa1d4f8e7",
+    "docs/evidence/soak/sota-allpairs-20260720-15m.json": "685b705edd76997a67f9d7c2e6e22a47d04f691fcad7baaf321b1169e2650656"
+  },
+  "changed_file_sha256": {
+    "Cargo.lock": "91bf702f1cb4c4c673a22cb47320c1509b4bf4f6655ffed1899ad01c09dc8b33",
+    "Cargo.toml": "61572e97d802a2e3ca22ee55a2fbecd1fa18cb88574db4fdebf5d8a18e6216b4",
+    "README.md": "71178575a678ef57ff3a074117c56ee9d4dccb85ce906698f98d4b90fcd88f9d",
+    "THIRD_PARTY_LICENSES.txt": "ae11f3823fb68a35eeed8af1222697426e044d86b5c39a13490fda9aea586025",
+    "THIRD_PARTY_NOTICES.md": "fd22881a716ce6a6fc6b38b41aef7d66dee7a58914a2be1a404e3ea7c9292c05"
+  },
+  "log_sha256": {
+    "target/windows-backend-pin-metadata-01.log": "3000de1326813f5006398d8ecca903ccbc53d91c61dc0b45691284a525b384fa",
+    "target/windows-backend-pin-ci-parity-01.log": "470165b7df8eea4d9eabc43ce0b6e52c4170c54fff43d5bc43ea28acd7c8dbba",
+    "target/windows-backend-pin-replay-build-01.log": "47541bf76c100c6f884dbce00e11b4898ae279d125bec9b7c6ea9ca817b91189",
+    "target/windows-backend-pin-saved-replay-01.log": "41e9a8a430547be5e39cd5db318ad4b14224cb5b852ebd4056699bcb5e249629",
+    "target/windows-backend-pin-audit-01.log": "e760d3e3a6d25084a4fd8d44a2da22f8addf5c0fa9de4fdda3236f6e400d5209",
+    "target/windows-backend-pin-policy-01.log": "a09bbb250feeb5c0d6ac91177e3a1730bf09901eefcec1269ea8d00949a8f1a4",
+    "target/windows-backend-pin-policy-02.log": "a09bbb250feeb5c0d6ac91177e3a1730bf09901eefcec1269ea8d00949a8f1a4",
+    "target/windows-backend-pin-attribution-generation-01.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "target/windows-backend-pin-attribution-check-01.log": "edb814bb046435a2b1f8224b46bd879223326fa8dbd56b62e096f325ac461e3c",
+    "target/windows-backend-pin-deny-install-01.log": "e02e253638c78f5c9919cdeaf97275ba4818e72ce9b7231704719fc4539622bb",
+    "target/windows-backend-pin-deny-version-02.log": "1758f5ea93d8ad3585079f05c19358b7bb969cce1bf6c7bdab6659a8cd1ef6b8",
+    "target/windows-backend-pin-helper-red-01.log": "6217b750b7758d81cd219e7bf062219fe89cede798abc97a30c569a7a0d4be12"
+  },
+  "public_receipt": {
+    "original_local_sha256": "d278239b7b173c55891446e93100fa2bc1adb48480807604acc2de6814241ae3",
+    "transformation": "Only the Python runtime location in the exploratory-helper reason is generalized; measured values/hashes unchanged. Original local receipt retained."
+  },
+  "parent_review": {
+    "registry_records_compared": 419,
+    "all_registry_records_unchanged": true,
+    "complete_marketfeed_package_count": 5,
+    "source_and_historical_and_log_hashes_match": true,
+    "pin_check_command": "python3 scripts/check-shared-feed-pin.py",
+    "pin_check_exit": 0,
+    "pin_check_log_sha256": "4300506f4094925d8998023873ad4e5c195c0e3d8bb7d7dee37a1dc34d1ffe78"
+  },
+  "public_receipt_check": {
+    "command": "scripts/check-public-readiness.sh",
+    "exit": 0,
+    "log_sha256": "c66b17581f9ca8db2efae22a5446623ac8eaebfd4a11ed0d84812c2b63a2936c"
+  }
+}

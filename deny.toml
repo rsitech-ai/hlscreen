@@ -30,4 +30,7 @@ ignore = false
 unknown-registry = "deny"
 unknown-git = "deny"
 allow-registry = ["https://github.com/rust-lang/crates.io-index"]
-allow-git = []
+# One shared public decoder/feed implementation; both dependencies use a full
+# immutable revision in the workspace manifest and Cargo.lock.
+required-git-spec = "rev"
+allow-git = ["https://github.com/rsitech-ai/cryptofeed-rs"]
