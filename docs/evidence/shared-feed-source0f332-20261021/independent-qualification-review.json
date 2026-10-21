@@ -1,0 +1,189 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-10-21T09:49:13.511905+00:00",
+  "reviewer": "trade_review",
+  "status": "PASS_FINAL_LOCAL_QUALIFICATION_SOURCE_ARTIFACT_SECURITY_PACKAGE_EVIDENCE",
+  "scope": "Independent read-only final source/evidence audit; no reviewer Cargo/test/native/collector/network/exchange execution, no delegation or tracked edits. Only this ignored receipt written.",
+  "qualification": {
+    "path": "private-evidence/hls/.hls/source0f332-pin-03/qualified-local-02.json",
+    "bytes": 137299,
+    "sha256": "19168d8585bca30a27af3cad974935b884a54d19c4b0f9a62598c8a3a0c2e009"
+  },
+  "source_map_sha256": "69e3fa03cdf849be672392a5682c1d574d614532b6e75329c1fbcb3577ef447f",
+  "source_freeze": {
+    "path": "private-evidence/hls/.hls/source0f332-pin-03/source-freeze-01.json",
+    "bytes": 55195,
+    "sha256": "c86180969940a7f1b5c7bc23ce93678bf9be0d5c7d788cdf885c79dc241930a0"
+  },
+  "all342_current_source_bytes_independently_rechecked": true,
+  "prior_source_graph_review": {
+    "path": "private-evidence/hls/.hls/source0f332-pin-03/independent-source-review-01.json",
+    "bytes": 8319,
+    "sha256": "ec026fce6fc51254182f7c4913943997cfb48e3e6f59b8ef7587ab5714e01cb7"
+  },
+  "source_pin_graph_closure": {
+    "producer_commit": "84aa63534f79ae65161117effd624d66f0294f48",
+    "producer_source_sha256": "0f332bdf2535607281fe89330e3457498e5d81ef91867d6a4b05d2f3e91d0221",
+    "direct_pins": 7,
+    "marketfeed_packages": 23,
+    "cache_files": 566,
+    "registry_packages": 430,
+    "nodes": 461,
+    "edges": 1315,
+    "scope": "Priorindependentreview verifies actualpublishedGit/cachebytes and complete normalizedfeatures/edges; no source/lock changes since freeze."
+  },
+  "actual_terminal": {
+    "path": "private-evidence/hls/.hls/source0f332-pin-03/actual-runner-terminal-02.json",
+    "bytes": 449,
+    "sha256": "81d08e3eb6603e60dcf6c482a3b760b8e4ead772fd1b3a9db60f8c1df1a438c8"
+  },
+  "terminal_observed": {
+    "recorded_session": 46680,
+    "recorded_exit": 0,
+    "recorded_actual_chunk": "3d3b84",
+    "bound_runner_log": {
+      "path": "private-evidence/hls/.hls/source0f332-pin-03/runner-01.log",
+      "bytes": 648,
+      "sha256": "ca9c89fe3c26a7c7abbb0afdfc325c8991d73416db5ce8c7fe1c5c4bba295b9a"
+    },
+    "marker_present": true
+  },
+  "all16_commands_recorded0_and_stdout_stderr_hashes_independently_verified": true,
+  "validation": {
+    "path": "private-evidence/hls/.hls/source0f332-pin-03/validation-01.json",
+    "bytes": 13302,
+    "sha256": "9bdbc4f2478eaa198b63c43e39e378d0d9e3ae6359b29a40e7166a7e5302505f"
+  },
+  "counts_reparsed": {
+    "rust_test_executions": 589,
+    "unique_rust_names": 565,
+    "summaries": 86,
+    "failed": 0,
+    "ignored": 0,
+    "python_test_groups": [
+      8,
+      5,
+      10
+    ],
+    "actual_owner_test_names": [
+      "public_capture_profile_fits_unchanged_hls_reader_limits",
+      "mfcj5_spot_perps_native_values_and_control_only_groups_are_consumed_atomically",
+      "failed_application_write_invalidates_at_its_committed_wire_group",
+      "cancelled_application_write_invalidates_at_its_committed_unknown_group",
+      "callback_failure_on_empty_wire_group_preserves_ack_pair_and_poisons_reader"
+    ],
+    "scope": "PR profile repeats some testnames;589executions does not mean589uniqueRusttests. Fiveactualowner tests are separatefrom historicalfixture playback."
+  },
+  "security": {
+    "all_3_toolversions_and_resolution_explicit": true,
+    "audit_tool": "0.22.2",
+    "deny_tool": "0.20.2",
+    "about_tool": "0.9.1",
+    "audit": {
+      "path": "private-evidence/hls/.hls/source0f332-pin-03/audit-01.log",
+      "bytes": 375,
+      "sha256": "761a859d68bd9172ab85adb90aed4202701c8dc40a9017bb60a2772032ea123d"
+    },
+    "deny": {
+      "path": "private-evidence/hls/.hls/source0f332-pin-03/deny-01.log",
+      "bytes": 24,
+      "sha256": "a09bbb250feeb5c0d6ac91177e3a1730bf09901eefcec1269ea8d00949a8f1a4"
+    },
+    "attribution": {
+      "path": "private-evidence/hls/.hls/source0f332-pin-03/generated-attribution-01.log",
+      "bytes": 67,
+      "sha256": "edb814bb046435a2b1f8224b46bd879223326fa8dbd56b62e096f325ac461e3c"
+    },
+    "vulnerabilities": 0,
+    "warnings": {},
+    "database": {
+      "advisory-count": 1348,
+      "last-commit": "4b587f00996ebe5c05a73eaef105ef241e876414",
+      "last-updated": "2026-10-21T08:20:38+02:00"
+    },
+    "limits": "Existinglocaltools/DBscan; no generaluntrustedWasm/exploit/signedattestation or futureadvisorycleanclaim."
+  },
+  "artifact": {
+    "path": "private-evidence/hls/.hls/source0f332-pin-03/hls-release-retained-01",
+    "bytes": 26916832,
+    "sha256": "8a63828d5f4ae686cd6caade59faea78ca180e38c78a5aca1c28d001eae1bb89",
+    "mode": "0555",
+    "loaded_image_attestation": false,
+    "embedded_producer_recipe_claimed": false,
+    "binding": "actual fresh Cargo hosttriple release output equals unpacked runtime smoke executable bytes; metadata/cache/sourcefreeze binds current producer source"
+  },
+  "artifact_independently_readhashed_and_mode0555": true,
+  "samebytes_current_fresh_build_output_and_archive_bin": true,
+  "package": {
+    "archive": {
+      "path": "private-evidence/hls/.hls/source0f332-pin-03/release-smoke-01/hlscreen-aarch64-apple-darwin.tar.gz",
+      "bytes": 10421382,
+      "sha256": "a260c20b8a3faa8a0c5f4c5d395fcdc3be9960eb4c579e932090e341b8f6a43b"
+    },
+    "checksum": {
+      "path": "private-evidence/hls/.hls/source0f332-pin-03/release-smoke-01/hlscreen-aarch64-apple-darwin.tar.gz.sha256",
+      "bytes": 103,
+      "sha256": "d561825ed2a036d189ec6ccf5e8bbc6a5a585eac0d88b64a3e5369a8e2bd7f98"
+    },
+    "regular_members": 7,
+    "six_packaged_docs_byte_exact_frozen_currentfiles": true,
+    "no_extra_AppleDouble_symlink_or_payload_added": true,
+    "scope": "Archive inspectedwithout extraction/execution; currentbinary equality/packagedCLI smoke result are existingparentlogs, no reviewer-nativeexecution."
+  },
+  "synthetic_smoke_scope": {
+    "recorded_cli_exit": 0,
+    "groups": 67,
+    "events": 2,
+    "gaps": 6,
+    "artifactsha": "8a63828d5f4ae686cd6caade59faea78ca180e38c78a5aca1c28d001eae1bb89",
+    "historical_fixture_generation": "5479/recipe16a unchanged; currentpin actualowner5cases separatelyexecuted byparent",
+    "native_source_authentication": false,
+    "availability_time_ns": null
+  },
+  "preservation": {
+    "all338_recordedfullstats_andhashes_independently_equal_current": true,
+    "fourfixturefiles_andall342sourcebytes_exact": true,
+    "scope": "No atime claim; attributes-onlyGitfilterproof isnotnewWindowsruntime."
+  },
+  "provenance_correction": {
+    "proof": {
+      "path": "private-evidence/hls/.hls/source0f332-pin-03/terminal-provenance-correction-01.json",
+      "bytes": 563,
+      "sha256": "83f79c11eec664037e990fcdde2e97db0b13d5c6140d4f0591eb12dc919b2f0e"
+    },
+    "old_terminal": {
+      "path": "private-evidence/hls/.hls/source0f332-pin-03/actual-runner-terminal-01.json",
+      "bytes": 477,
+      "sha256": "15d706a08c151f65ec501542f2d9f7c3b7314249a56af30ff978f7b6f2cf0860"
+    },
+    "old_qualification": {
+      "path": "private-evidence/hls/.hls/source0f332-pin-03/qualified-local-01.json",
+      "bytes": 137071,
+      "sha256": "7c846353115f11e6cb5b18cac6b5b903cdc259f941c3d85e242d25a5a253baab"
+    },
+    "only02delta": [
+      "actual_terminal.actual_tool_result.tool_chunk placeholder->3d3b84",
+      "terminal_provenance_correction reference"
+    ],
+    "command_statuses_logs_sources_artifactunchanged": true,
+    "no_rerun": true
+  },
+  "prior_failures_preserved": [
+    "01actual2492/1 Python3.9tomllibhelper; no latergatepassimplied",
+    "02actual73089/101 genuinepackaging23pass1fail; substantiveevidenceREADMEcreatedbefore342freeze, samefailedbinarytargetcasegreen",
+    "old27bd WindowsReleasefixtureconversionfailure remainshistoricalfailed"
+  ],
+  "material_findings": [],
+  "recommendation": "Localqualificationevidence passes. Parent may separately release preregisteredjoint12 onlyafterconfirmingheavyjobsidle; thisreview doesnotexecuteorclaimitsresult.",
+  "limits": [
+    "CurrentHLS source69e3/local342build qualifiesonlyexactnamedartifact/commands; futuredocs-onlypublication distinct from thisfreeze.",
+    "No owncurrenthostedMac/Linux/Windows/Razer/soak/nativefreshness/availability/economics qualification.",
+    "Joint11 consumedpredecessorHLS238 artifact; not inheritedasnewpin growingfeedproof.",
+    "Original480 failed/unrerun and currentnativeacquisitionmultiseconddiscrepancies remainopen."
+  ],
+  "portable_copy": {
+    "original_sha256": "19ecbde4a745623b440c874fbe5c5ed8038c228e565a916645829dccff8e4054",
+    "original_bytes": 8721,
+    "scope": "Absolute private paths replaced with stable opaque roots; raw receipts, artifacts and failures retained privately. No original capture archived in Git."
+  }
+}

@@ -585,9 +585,14 @@ feature checkpoint. Floating-point conversion happens at the feature/display
 boundary; producer storage retains exact native values.
 
 The seven direct shared crates and all 23 resolved marketfeed packages use
-immutable producer revision `5479d733f02f1a2777579460154e144babe67b87`.
+immutable producer revision `84aa63534f79ae65161117effd624d66f0294f48`.
 Run `python3 scripts/check-shared-feed-pin.py` to check the complete resolution.
-For collection settings, see the [owned public capture guide](https://github.com/rsitech-ai/cryptofeed-rs/blob/5479d733f02f1a2777579460154e144babe67b87/docs/ops/hyperliquid-causal-capture.md).
+For collection settings, see the [owned public capture guide](https://github.com/rsitech-ai/cryptofeed-rs/blob/84aa63534f79ae65161117effd624d66f0294f48/docs/ops/hyperliquid-causal-capture.md).
+The coordinated pin and package checks are recorded in
+[the current integration evidence](docs/evidence/shared-feed-source0f332-20261021/README.md).
+Producer joint11 passes its two-second feed-tail diagnostic; native acquisition
+freshness remains unqualified, with perps timestamp/receipt differences above
+eight seconds. A source-to-target tail is separate from feature availability.
 
 The producer's opt-in `marketfeed-capture` command owns public transports,
 persistent native owners, durable application-write authorization and the

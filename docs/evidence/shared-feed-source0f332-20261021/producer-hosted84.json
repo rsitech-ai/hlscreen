@@ -1,0 +1,179 @@
+{
+  "schema_version": 1,
+  "status": "required_mac_linux_pass; overallsecondaryWindowsfailure",
+  "scope": "Ownpublished84aa CI; exactmerge treeequalshead; no inheritance from predecessors, no workflow skips/changes/cancellations. Not acquisition freshness/nativeavailability orreleaseartifactqualification.",
+  "run": "https://github.com/rsitech-ai/cryptofeed-rs/actions/runs/39578760751",
+  "source_commit": "84aa63534f79ae65161117effd624d66f0294f48",
+  "source_sha256": "0f332bdf2535607281fe89330e3457498e5d81ef91867d6a4b05d2f3e91d0221",
+  "tested_merge_commit": "5395e1790c03ff61bf23bd822b29a56f340ebb8d",
+  "tested_tree": "892fdd1937d0f7f34636fe521c50a4c1848da24a",
+  "merge_tree_equals_head_tree": true,
+  "jobs": {
+    "success": 16,
+    "failure": 1
+  },
+  "cancelled_jobs": 0,
+  "required_platform_tests": {
+    "macos": {
+      "passed": 1681,
+      "failed": 0,
+      "ignored": 56,
+      "summaries": 162,
+      "original_paused32_passed": true,
+      "finalization_passed": true
+    },
+    "linux-x64": {
+      "passed": 1682,
+      "failed": 0,
+      "ignored": 56,
+      "summaries": 162,
+      "original_paused32_passed": true,
+      "finalization_passed": true
+    },
+    "linux-arm64": {
+      "passed": 1682,
+      "failed": 0,
+      "ignored": 56,
+      "summaries": 162,
+      "original_paused32_passed": true,
+      "finalization_passed": true
+    }
+  },
+  "msrv": {
+    "test_totals": [
+      820,
+      0,
+      0
+    ],
+    "summaries": 40,
+    "job_conclusion": "success",
+    "log": {
+      "name": "hosted84-msrv-01.log",
+      "bytes": 171831,
+      "sha256": "a8cad11dc4ff815d5f8b7b261dba883696dbc1a3c7929151fe0f1d39d25581f5"
+    }
+  },
+  "other_jobs": [
+    {
+      "name": "Windows directory durability",
+      "conclusion": "success",
+      "databaseId": 119150817604
+    },
+    {
+      "name": "test (ubuntu-24.04-arm)",
+      "conclusion": "success",
+      "databaseId": 119150817763
+    },
+    {
+      "name": "docs",
+      "conclusion": "success",
+      "databaseId": 119150817771
+    },
+    {
+      "name": "C header and ABI exports",
+      "conclusion": "success",
+      "databaseId": 119150817913
+    },
+    {
+      "name": "simd-json (marketfeed-adapter-okx)",
+      "conclusion": "success",
+      "databaseId": 119150817939
+    },
+    {
+      "name": "clippy",
+      "conclusion": "success",
+      "databaseId": 119150817959
+    },
+    {
+      "name": "test (windows-latest)",
+      "conclusion": "failure",
+      "databaseId": 119150817971
+    },
+    {
+      "name": "simd-json (marketfeed-adapter-binance)",
+      "conclusion": "success",
+      "databaseId": 119150817981
+    },
+    {
+      "name": "simd-json (marketfeed-adapter-deribit)",
+      "conclusion": "success",
+      "databaseId": 119150817999
+    },
+    {
+      "name": "cargo-deny",
+      "conclusion": "success",
+      "databaseId": 119150818029
+    },
+    {
+      "name": "msrv (1.85)",
+      "conclusion": "success",
+      "databaseId": 119150818059
+    },
+    {
+      "name": "sbom",
+      "conclusion": "success",
+      "databaseId": 119150818082
+    },
+    {
+      "name": "test (ubuntu-latest)",
+      "conclusion": "success",
+      "databaseId": 119150818131
+    },
+    {
+      "name": "simd-json (marketfeed-adapter-bybit)",
+      "conclusion": "success",
+      "databaseId": 119150818133
+    },
+    {
+      "name": "rustfmt",
+      "conclusion": "success",
+      "databaseId": 119150818142
+    },
+    {
+      "name": "simd-json (marketfeed-adapter-kraken)",
+      "conclusion": "success",
+      "databaseId": 119150818146
+    },
+    {
+      "name": "test (macos-latest)",
+      "conclusion": "success",
+      "databaseId": 119150818398
+    }
+  ],
+  "raw_run": {
+    "name": "hosted84-progress-07.json",
+    "bytes": 25433,
+    "sha256": "75f948f7317e7427e7e8359f02cc434db61b1bc8e247cf40bb8889d45b7284fe"
+  },
+  "raw_merge_commit": {
+    "name": "hosted84-merge-01.json",
+    "bytes": 904385,
+    "sha256": "4f026df380c2a5718458c544d8c55dac1d3deb1bd7dce91d52030087f5561041"
+  },
+  "logs": {
+    "macos": {
+      "name": "hosted84-macos-01.log",
+      "bytes": 303476,
+      "sha256": "7cd64fec1f60bca30c75b525894a24a06aba5378f8f06f3a27befa0ea795a765"
+    },
+    "linux-x64": {
+      "name": "hosted84-linux-x64-01.log",
+      "bytes": 304580,
+      "sha256": "917dd8e92167c90fd808997fae3f347d6f577c6395ff0d57a48ea4813a16df3a"
+    },
+    "linux-arm64": {
+      "name": "hosted84-linux-arm64-01.log",
+      "bytes": 304505,
+      "sha256": "67eeaf1c55769ccca152622d5a96aa5a98f3cf1e50fd34c522a733c039315142"
+    }
+  },
+  "windows": {
+    "failure": "Originalpaused32tensecondwatchdog, resumed18frames; finalizationtestpasses. Originalfile/threshold unchanged. Secondaryplatform peruserscope, preserved failure.",
+    "log": {
+      "name": "hosted84-windows-01.log",
+      "bytes": 180948,
+      "sha256": "1471fdae339d8b564d836161eda41631aac27a6212f8ce3083b2cc420b2a1174"
+    }
+  },
+  "remaining": "Acquisition timestamp/receipt differences reach31.7s in joint12 despite25.7msprojectiontail; freshnessUNQUALIFIED. HLSownpublication/CI and Quantszero-stepbillingblock remainseparate."
+}
